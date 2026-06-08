@@ -1,37 +1,32 @@
 /**
  * BackgroundBuilder — hand-painted architectural parallax backgrounds.
  *
- * Five scroll-factor layers per stage give an illusion of real depth.
- * Everything is drawn with Phaser Graphics so no extra image assets are needed.
- * Techniques used for the "painted" feel:
- *   · Multiple overlapping semi-transparent shapes (wash-over-wash)
- *   · Vertical gradient fills (atmospheric perspective)
- *   · Deterministic pseudo-random variation (no Math.random → stable reloads)
- *   · Architectural light / shadow cues (ambient occlusion hints)
- *   · Stage-specific warm / cool color grading
+ * Lyric theme: "Once Upon A Time" — a fairy tale of love remembered, grieved,
+ * and locked away. Each stage is a room inside that memory-mansion, progressing
+ * from warm nostalgia (Library) through stages of heartbreak to the sealed vault.
+ *
+ * Six scroll-factor layers per stage (0.05 → 0.72) painted entirely with
+ * Phaser Graphics. Key visual techniques:
+ *   · Proper Gothic pointed arches via fillPoints() polygon approximation
+ *   · Vertical gradient washes with warm/cool temperature shifts
+ *   · Deterministic pseudo-random (LCG hash — stable across reloads)
+ *   · Layered semi-transparent "wash-over-wash" for painted depth
+ *   · Atmospheric light shafts with floating dust motes
+ *   · Stage-specific lyric-inspired motifs (torn pages, petals, shards, etc.)
  */
 import Phaser from 'phaser';
 
 export class BackgroundBuilder {
   constructor(scene, W, H, stageIndex) {
-    this.scene = scene;
-    this.W = W;       // world width (6400)
-    this.H = H;       // world height (720)
-    this.idx = stageIndex;
-
-    const lv = scene.level;
-    this.prim = Phaser.Display.Color.HexStringToColor(lv.primaryColor).color;
-    this.acc  = Phaser.Display.Color.HexStringToColor(lv.accentColor).color;
-    this.primC = Phaser.Display.Color.HexStringToColor(lv.primaryColor);
-    this.accC  = Phaser.Display.Color.HexStringToColor(lv.accentColor);
-
-    // Logical viewport width (used to compute per-layer draw widths)
-    this.VW = scene.scale.width || 1280;
+    this.scene  = scene;
+    this.W      = W;
+    this.H      = H;
+    this.idx    = stageIndex;
+    const lv    = scene.level;
+    this.prim   = Phaser.Display.Color.HexStringToColor(lv.primaryColor).color;
+    this.acc    = Phaser.Display.Color.HexStringToColor(lv.accentColor).color;
+    this.VW     = scene.scale.width || 1280;
   }
-
-  // ────────────────────────────────────────────────────────
-  //  Public entry
-  // ────────────────────────────────────────────────────────
 
   build() {
     const stages = [
@@ -46,1593 +41,1229 @@ export class BackgroundBuilder {
       () => this._treasureVault(),
     ];
     (stages[this.idx] || stages[0])();
-    this._universalVignette();
+    this._vignette();
   }
 
-  // ────────────────────────────────────────────────────────
-  //  Low-level helpers
-  // ────────────────────────────────────────────────────────
+  // ─── core helpers ──────────────────────────────────────────────────────────
 
-  /** Create a Graphics object with scroll-factor and depth pre-set. */
   _gfx(sf, depth) {
     return this.scene.add.graphics().setScrollFactor(sf).setDepth(depth);
   }
 
-  /**
-   * Minimum draw width so the layer always fills the viewport as the
-   * camera travels from x=0 to x=(W-VW).
-   * renderX = objectX − cameraX × sf  →  need objectX=0, so width ≥ VW + (W−VW)×sf
-   */
-  _lw(sf) {
-    return Math.ceil(this.VW + (this.W - this.VW) * sf) + 64; // +64 safety margin
-  }
+  // Minimum draw width for a layer so it never shows a raw edge.
+  _lw(sf) { return Math.ceil(this.VW + (this.W - this.VW) * sf) + 128; }
 
-  /** Vertical gradient: fills a rect with `steps` horizontal bands. */
-  _gradV(g, x, y, w, h, colA, colB, steps = 18) {
+  // Vertical gradient: `steps` thin horizontal bands blended top→bottom.
+  _gradV(g, x, y, w, h, cA, cB, steps = 20) {
     const sh = h / steps;
     for (let i = 0; i < steps; i++) {
-      const t = i / Math.max(steps - 1, 1);
-      const c = Phaser.Display.Color.Interpolate.ColorWithColor(
-        Phaser.Display.Color.IntegerToColor(colA),
-        Phaser.Display.Color.IntegerToColor(colB),
+      const t  = i / Math.max(steps - 1, 1);
+      const ci = Phaser.Display.Color.Interpolate.ColorWithColor(
+        Phaser.Display.Color.IntegerToColor(cA),
+        Phaser.Display.Color.IntegerToColor(cB),
         100, Math.round(t * 100),
       );
-      g.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b), 1);
+      g.fillStyle(Phaser.Display.Color.GetColor(ci.r, ci.g, ci.b), 1);
       g.fillRect(x, y + sh * i, w, sh + 1);
     }
   }
 
-  /** Deterministic pseudo-random in [0,1) — no Math.random, stable across reloads. */
+  // Noisy gradient: same as _gradV but each band gets a tiny luminance jitter
+  // for a "painted canvas" feel rather than a smooth airbrush.
+  _gradVPainted(g, x, y, w, h, cA, cB, steps = 22) {
+    const sh = h / steps;
+    for (let i = 0; i < steps; i++) {
+      const t  = i / Math.max(steps - 1, 1);
+      const ci = Phaser.Display.Color.Interpolate.ColorWithColor(
+        Phaser.Display.Color.IntegerToColor(cA),
+        Phaser.Display.Color.IntegerToColor(cB),
+        100, Math.round(t * 100),
+      );
+      // Tiny jitter: ±6 on each channel
+      const jit = (this._h(i, x) - 0.5) * 12;
+      const r = Math.max(0, Math.min(255, ci.r + jit));
+      const gv = Math.max(0, Math.min(255, ci.g + jit));
+      const b  = Math.max(0, Math.min(255, ci.b + jit));
+      g.fillStyle(Phaser.Display.Color.GetColor(r, gv, b), 1);
+      g.fillRect(x, y + sh * i, w, sh + 1);
+    }
+  }
+
+  // Deterministic LCG pseudo-random in [0, 1)
   _h(a, b = 0) {
     return ((a * 1664525 + b * 1013904223 + 22695477) & 0x7fffffff) / 0x7fffffff;
   }
 
-  /** Interpolate two integer colors by fraction t ∈ [0,1]. */
-  _lerp(colA, colB, t) {
-    const a = Phaser.Display.Color.IntegerToColor(colA);
-    const b = Phaser.Display.Color.IntegerToColor(colB);
+  // Linear-interpolate two packed int colours by fraction t ∈ [0,1]
+  _lerp(cA, cB, t) {
+    const a = Phaser.Display.Color.IntegerToColor(cA);
+    const b = Phaser.Display.Color.IntegerToColor(cB);
     return Phaser.Display.Color.GetColor(
       Math.round(a.r + (b.r - a.r) * t),
       Math.round(a.g + (b.g - a.g) * t),
       Math.round(a.b + (b.b - a.b) * t),
     );
   }
+  _darken(c, f)  { return this._lerp(c, 0x000000, f); }
+  _lighten(c, f) { return this._lerp(c, 0xffffff, f); }
 
-  /** Darken an integer color by fraction. */
-  _darken(col, f) { return this._lerp(col, 0x000000, f); }
-  /** Lighten an integer color by fraction. */
-  _lighten(col, f) { return this._lerp(col, 0xffffff, f); }
+  // Generate arc points (helper for arch shapes)
+  _arcPts(cx, cy, r, a0, a1, steps = 14) {
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const a = a0 + (a1 - a0) * (i / steps);
+      pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
+    }
+    return pts;
+  }
 
-  // ────────────────────────────────────────────────────────
-  //  Architectural elements
-  // ────────────────────────────────────────────────────────
+  // Gothic pointed arch fill (opening, i.e. the dark interior shape).
+  // cx/baseY = bottom-centre; w = total span; h = total height to apex.
+  _gothicArch(g, cx, baseY, w, h, col, alpha = 1) {
+    const hw     = w / 2;
+    const spring = baseY - h * 0.42;   // where the arcs start curving
+    const r      = hw * 1.05;
 
-  /**
-   * Bookshelves: draws `nShelves` shelf rows inside a frame rect.
-   * seed controls per-shelf variation.
-   */
-  _booksInRect(g, x, y, w, h, nShelves, seed = 0) {
-    const shelfH = h / nShelves;
-    for (let s = 0; s < nShelves; s++) {
-      const ty = y + s * shelfH;
-      // shelf board
-      g.fillStyle(this._darken(this.prim, 0.2), 0.85);
-      g.fillRect(x, ty + shelfH - 5, w, 5);
-      // books
-      for (let bx = x + 3; bx < x + w - 3; bx += 12) {
-        const bh = shelfH * 0.4 + this._h(bx, seed + s) * shelfH * 0.48;
-        const shade = this._h(bx * 3, seed + s * 7);
-        let bc = shade < 0.3  ? this.acc
-               : shade < 0.55 ? this._lerp(this.acc, this.prim, 0.5)
-               : shade < 0.78 ? this.prim
-                              : this._darken(this.prim, 0.35);
-        g.fillStyle(bc, 0.70);
-        g.fillRect(bx, ty + shelfH - 5 - bh, 10, bh);
-        // spine highlight wash
-        g.fillStyle(0xffffff, 0.06);
-        g.fillRect(bx + 1, ty + shelfH - 5 - bh + 3, 2, bh - 6);
-        // occasional gold title strip
-        if (this._h(bx * 7, seed + s) > 0.65) {
-          g.fillStyle(this.acc, 0.22);
-          g.fillRect(bx + 2, ty + shelfH - 5 - bh * 0.55, 7, 2);
+    const pts = [
+      { x: cx - hw, y: baseY },
+      { x: cx - hw, y: spring },
+      ...this._arcPts(cx - hw + r, spring, r, Math.PI, Math.PI * 1.5, 14),
+      ...this._arcPts(cx + hw - r, spring, r, Math.PI * 1.5, Math.PI * 2, 14),
+      { x: cx + hw, y: spring },
+      { x: cx + hw, y: baseY },
+    ];
+    g.fillStyle(col, alpha);
+    g.fillPoints(pts, true);
+  }
+
+  // Roman semicircular arch fill
+  _roundArch(g, cx, baseY, w, h, col, alpha = 1) {
+    const hw = w / 2;
+    const pts = [
+      { x: cx - hw, y: baseY },
+      { x: cx - hw, y: baseY - h * 0.5 },
+      ...this._arcPts(cx, baseY - h * 0.5, hw, Math.PI, 0, 16),
+      { x: cx + hw, y: baseY - h * 0.5 },
+      { x: cx + hw, y: baseY },
+    ];
+    g.fillStyle(col, alpha);
+    g.fillPoints(pts, true);
+  }
+
+  // Faceted gem / diamond shape using fillPoints (replaces the missing fillDiamond)
+  _gem(g, cx, cy, rx, ry, col, alpha = 1) {
+    // Main body
+    g.fillStyle(col, alpha);
+    g.fillPoints([
+      { x: cx,         y: cy - ry     },
+      { x: cx + rx,    y: cy          },
+      { x: cx + rx * 0.7, y: cy + ry * 0.8 },
+      { x: cx,         y: cy + ry     },
+      { x: cx - rx * 0.7, y: cy + ry * 0.8 },
+      { x: cx - rx,    y: cy          },
+    ], true);
+    // Top-left bright facet
+    g.fillStyle(0xffffff, alpha * 0.30);
+    g.fillPoints([
+      { x: cx,         y: cy - ry     },
+      { x: cx + rx * 0.5, y: cy - ry * 0.2 },
+      { x: cx + rx * 0.3, y: cy + ry * 0.3 },
+      { x: cx - rx * 0.2, y: cy - ry * 0.1 },
+    ], true);
+    // Glow halo
+    g.fillStyle(col, alpha * 0.10);
+    g.fillCircle(cx, cy, Math.max(rx, ry) * 2.2);
+  }
+
+  // Stone wall: filled rect + mortar grid + irregular surface patches
+  _stoneWall(g, x, y, w, h, stoneCol, mortarCol, bh = 48, bw = 120, alpha = 1) {
+    g.fillStyle(stoneCol, alpha);
+    g.fillRect(x, y, w, h);
+    // Mortar lines
+    g.fillStyle(mortarCol, alpha * 0.55);
+    for (let row = 0; row * bh < h + bh; row++) {
+      g.fillRect(x, y + row * bh, w, 3);
+      const off = (row % 2) * (bw / 2);
+      for (let col2 = 0; col2 * bw < w + bw; col2++) {
+        g.fillRect(x + col2 * bw + off - bw / 2, y + row * bh, 3, bh);
+      }
+    }
+    // Face variation (lighter patches — hand-painting)
+    for (let px = x; px < x + w; px += bw) {
+      for (let py = y; py < y + h; py += bh) {
+        const row = Math.round((py - y) / bh);
+        const ox  = (row % 2) * (bw / 2);
+        if (this._h(px + ox, py) > 0.58) {
+          g.fillStyle(0xffffff, alpha * 0.045);
+          g.fillRect(px + ox + 5, py + 5, bw - 10, bh - 8);
+        }
+        if (this._h(px + ox + 1, py + 1) > 0.80) {
+          g.fillStyle(0x000000, alpha * 0.06);
+          g.fillRect(px + ox + 3, py + 3, bw - 6, bh - 6);
         }
       }
     }
   }
 
-  /** Ornate classical column: fluted shaft + capital + base. */
+  // Bookshelves inside a rectangle; `seed` drives per-book variation
+  _books(g, x, y, w, h, nShelves, seed = 0) {
+    const shH = h / nShelves;
+    for (let s = 0; s < nShelves; s++) {
+      const ty = y + s * shH;
+      // Shelf board
+      g.fillStyle(this._darken(this.prim, 0.25), 0.88);
+      g.fillRect(x, ty + shH - 5, w, 6);
+      // Books on this shelf
+      for (let bx = x + 3; bx < x + w - 3; bx += 12) {
+        const bh2   = shH * 0.38 + this._h(bx, seed + s) * shH * 0.50;
+        const shade = this._h(bx * 3, seed + s * 7);
+        const bc    = shade < 0.28 ? this.acc
+                    : shade < 0.52 ? this._lerp(this.acc, this.prim, 0.5)
+                    : shade < 0.76 ? this.prim
+                    : this._darken(this.prim, 0.40);
+        g.fillStyle(bc, 0.72);
+        g.fillRect(bx, ty + shH - 5 - bh2, 10, bh2);
+        g.fillStyle(0xffffff, 0.055);
+        g.fillRect(bx + 1, ty + shH - 5 - bh2 + 4, 2, bh2 - 8);
+        if (this._h(bx * 7, seed + s) > 0.62) {
+          g.fillStyle(this.acc, 0.20);
+          g.fillRect(bx + 2, ty + shH - 5 - bh2 * 0.55, 7, 2);
+        }
+      }
+    }
+  }
+
+  // Ornate classical column (fluted shaft, capital, base)
   _ornateCol(g, cx, y, colH, r, dark, light, alpha = 1) {
-    const nFlutes = 7;
-    for (let i = 0; i < nFlutes; i++) {
-      const c = i % 2 === 0 ? dark : this._lerp(dark, light, 0.45);
-      g.fillStyle(c, alpha * 0.92);
-      g.fillRect(cx - r + (r * 2 / nFlutes) * i, y, r * 2 / nFlutes + 1, colH);
+    const nF = 8;
+    for (let i = 0; i < nF; i++) {
+      g.fillStyle(i % 2 === 0 ? dark : this._lerp(dark, light, 0.42), alpha * 0.93);
+      g.fillRect(cx - r + (r * 2 / nF) * i, y, r * 2 / nF + 1, colH);
     }
     // Capital
     g.fillStyle(light, alpha);
-    g.fillRect(cx - r * 1.6, y - 10, r * 3.2, 10);
-    g.fillRect(cx - r * 1.2, y - 18, r * 2.4, 8);
-    g.fillRect(cx - r * 1.85, y - 24, r * 3.7, 6);
+    g.fillRect(cx - r * 1.7, y - 12, r * 3.4, 12);
+    g.fillRect(cx - r * 1.3, y - 22, r * 2.6, 10);
+    g.fillRect(cx - r * 2.0, y - 30, r * 4.0, 8);
     // Base
-    g.fillStyle(light, alpha * 0.9);
-    g.fillRect(cx - r * 1.2, y + colH,      r * 2.4, 8);
-    g.fillRect(cx - r * 1.6, y + colH + 8,  r * 3.2, 8);
-    g.fillRect(cx - r * 1.85,y + colH + 16, r * 3.7, 6);
+    g.fillStyle(light, alpha * 0.88);
+    g.fillRect(cx - r * 1.3, y + colH,      r * 2.6, 10);
+    g.fillRect(cx - r * 1.7, y + colH + 10, r * 3.4, 10);
+    g.fillRect(cx - r * 2.0, y + colH + 20, r * 4.0, 7);
   }
 
-  /** Egyptian pillar with lotus capital. */
+  // Egyptian lotus column
   _lotusCol(g, cx, y, colH, r, stone, gold, alpha = 1) {
-    // Shaft with slight entasis (taper)
-    g.fillStyle(stone, alpha * 0.9);
+    g.fillStyle(stone, alpha * 0.90);
     g.fillRect(cx - r, y, r * 2, colH);
     // Hieroglyph bands
-    g.fillStyle(gold, alpha * 0.18);
-    for (let gy = y + 20; gy < y + colH; gy += 55) {
-      g.fillRect(cx - r, gy, r * 2, 8);
+    g.fillStyle(gold, alpha * 0.17);
+    for (let gy = y + 22; gy < y + colH; gy += 58) {
+      g.fillRect(cx - r, gy, r * 2, 9);
     }
-    // Lotus capital
-    g.fillStyle(gold, alpha * 0.85);
-    g.fillRect(cx - r * 1.5, y - 8, r * 3, 8);
-    // Lotus petals (fan shapes using triangles)
+    // Lotus capital petals
+    g.fillStyle(gold, alpha * 0.82);
+    g.fillRect(cx - r * 1.6, y - 9, r * 3.2, 9);
     for (let i = -2; i <= 2; i++) {
-      g.fillStyle(this._lerp(gold, 0xffffff, 0.2), alpha * 0.55);
-      g.fillTriangle(
-        cx + i * r * 0.6, y - 8,
-        cx + (i - 0.5) * r * 0.6, y - 28,
-        cx + (i + 0.5) * r * 0.6, y - 28,
-      );
+      g.fillStyle(this._lerp(gold, 0xffffff, 0.18), alpha * 0.55);
+      g.fillTriangle(cx + i * r * 0.55, y - 9, cx + (i - 0.5) * r * 0.55, y - 30, cx + (i + 0.5) * r * 0.55, y - 30);
     }
     // Base
-    g.fillStyle(stone, alpha * 0.8);
-    g.fillRect(cx - r * 1.3, y + colH, r * 2.6, 10);
-    g.fillRect(cx - r * 1.6, y + colH + 10, r * 3.2, 8);
+    g.fillStyle(stone, alpha * 0.80);
+    g.fillRect(cx - r * 1.4, y + colH, r * 2.8, 10);
+    g.fillRect(cx - r * 1.7, y + colH + 10, r * 3.4, 9);
   }
 
-  /** Stone-block wall: fill + mortar grid. */
-  _stoneWall(g, x, y, w, h, stoneCol, mortarCol, bh = 44, bw = 110, alpha = 1) {
-    g.fillStyle(stoneCol, alpha);
-    g.fillRect(x, y, w, h);
-    g.fillStyle(mortarCol, alpha * 0.55);
-    for (let row = 0; row * bh < h; row++) {
-      g.fillRect(x, y + row * bh, w, 3);            // horizontal mortar
-      const offset = row % 2 === 0 ? 0 : bw / 2;
-      for (let col = 0; col * bw < w + bw; col++) {
-        const mx = x + col * bw + offset - bw / 2;
-        g.fillRect(mx, y + row * bh, 3, bh);        // vertical mortar
-      }
-    }
-    // Subtle stone face variation: random lighter patches
-    for (let rx = x; rx < x + w; rx += bw) {
-      for (let ry = y; ry < y + h; ry += bh) {
-        const row = Math.round((ry - y) / bh);
-        const offset = row % 2 === 0 ? 0 : bw / 2;
-        const bx = rx + offset;
-        if (this._h(bx, ry) > 0.6) {
-          g.fillStyle(0xffffff, alpha * 0.04);
-          g.fillRect(bx + 4, ry + 4, bw - 8, bh - 8);
-        }
-      }
-    }
-  }
-
-  /** Arched window with glow. */
-  _archWindow(g, cx, cy, w, h, frameCol, glowCol, alpha = 1) {
-    // Outer frame
-    g.fillStyle(this._darken(frameCol, 0.3), alpha);
-    g.fillRect(cx - w / 2 - 6, cy - h / 2 - 6, w + 12, h + 12);
-    // Glass
-    g.fillStyle(glowCol, alpha * 0.28);
-    g.fillRect(cx - w / 2, cy - h / 2, w, h);
-    // Window panes
-    g.fillStyle(this._darken(frameCol, 0.2), alpha * 0.7);
-    g.fillRect(cx - 3, cy - h / 2, 6, h);
-    g.fillRect(cx - w / 2, cy - 3, w, 6);
-    // Arch top
-    g.fillStyle(glowCol, alpha * 0.22);
-    g.fillCircle(cx, cy - h / 2, w / 2);
-    // Exterior glow haze
-    g.fillStyle(glowCol, alpha * 0.07);
-    g.fillCircle(cx, cy - h * 0.1, w * 1.8);
-    // Bright center reflection
-    g.fillStyle(0xffffff, alpha * 0.06);
-    g.fillRect(cx - w * 0.3, cy - h / 2 + 5, w * 0.1, h - 10);
-  }
-
-  /** Oil lamp / sconce on a wall. */
-  _wallLamp(g, cx, cy, poleCol, glowCol) {
-    // Bracket
-    g.fillStyle(poleCol, 0.9);
-    g.fillRect(cx, cy, 3, 50);          // wall plate
-    g.fillRect(cx - 22, cy + 12, 22, 3); // arm
-    // Housing
+  // Wall sconce lamp
+  _lamp(g, cx, cy, poleCol, glowCol) {
+    g.fillStyle(poleCol, 0.88);
+    g.fillRect(cx, cy, 3, 50);
+    g.fillRect(cx - 24, cy + 14, 24, 3);
     g.fillStyle(poleCol, 0.95);
-    g.fillRect(cx - 30, cy + 4, 18, 20);
-    g.fillTriangle(cx - 30, cy + 24, cx - 12, cy + 24, cx - 21, cy + 36);
-    // Glow
-    g.fillStyle(glowCol, 0.20);
-    g.fillCircle(cx - 21, cy + 14, 28);
-    g.fillStyle(glowCol, 0.35);
-    g.fillCircle(cx - 21, cy + 14, 10);
-    // Warm floor pool
-    g.fillStyle(glowCol, 0.06);
-    g.fillEllipse(cx - 21, cy + 80, 90, 30);
+    g.fillRect(cx - 32, cy + 5, 18, 22);
+    g.fillTriangle(cx - 32, cy + 27, cx - 14, cy + 27, cx - 23, cy + 40);
+    g.fillStyle(glowCol, 0.22);
+    g.fillCircle(cx - 23, cy + 15, 30);
+    g.fillStyle(glowCol, 0.40);
+    g.fillCircle(cx - 23, cy + 15, 11);
+    g.fillStyle(glowCol, 0.055);
+    g.fillEllipse(cx - 23, cy + 85, 110, 35);
   }
 
-  /** Chandelier hanging from ceiling. */
-  _chandelier(g, cx, ty, col, glowCol, arms = 5, radius = 80) {
-    // Chain
-    g.fillStyle(col, 0.7);
-    g.fillRect(cx - 2, ty, 4, 30);
-    // Central body
-    g.fillStyle(col, 0.9);
-    g.fillEllipse(cx, ty + 30, 30, 18);
-    // Arms
+  // Chandelier
+  _chandelier(g, cx, ty, col, glowCol, arms = 6, radius = 90) {
+    g.fillStyle(col, 0.72);
+    g.fillRect(cx - 2, ty, 4, 32);
+    g.fillStyle(col, 0.90);
+    g.fillEllipse(cx, ty + 32, 32, 20);
     for (let i = 0; i < arms; i++) {
       const angle = (i / arms) * Math.PI * 2 - Math.PI / 2;
       const ex = cx + Math.cos(angle) * radius;
-      const ey = ty + 40 + Math.sin(angle) * radius * 0.25;
-      g.lineStyle(2, col, 0.7);
-      g.lineBetween(cx, ty + 38, ex, ey);
-      // Candle
-      g.fillStyle(0xfff5c0, 0.6);
-      g.fillRect(ex - 3, ey - 14, 6, 14);
-      // Flame glow
-      g.fillStyle(glowCol, 0.45);
-      g.fillCircle(ex, ey - 16, 6);
-      g.fillStyle(glowCol, 0.15);
-      g.fillCircle(ex, ey - 14, 18);
+      const ey = ty + 42 + Math.sin(angle) * radius * 0.22;
+      g.lineStyle(2, col, 0.68);
+      g.lineBetween(cx, ty + 40, ex, ey);
+      g.fillStyle(0xfff5c0, 0.62);
+      g.fillRect(ex - 3, ey - 16, 6, 16);
+      g.fillStyle(glowCol, 0.48);
+      g.fillCircle(ex, ey - 18, 6);
+      g.fillStyle(glowCol, 0.13);
+      g.fillCircle(ex, ey - 14, 22);
     }
-    // Central diffuse glow
-    g.fillStyle(glowCol, 0.06);
-    g.fillCircle(cx, ty + 40, radius * 2);
+    g.fillStyle(glowCol, 0.055);
+    g.fillCircle(cx, ty + 42, radius * 2.2);
   }
 
-  /** Neon-style glow bar (for Tech Manor). */
+  // Torn page / floating memory (lyric motif: "stupid dreams and memories")
+  _tornPage(g, cx, cy, size, col, alpha = 1) {
+    const s = size;
+    g.fillStyle(col, alpha * 0.55);
+    // Slightly irregular rectangle
+    g.fillPoints([
+      { x: cx - s,       y: cy - s * 1.4 },
+      { x: cx + s * 0.9, y: cy - s * 1.3 },
+      { x: cx + s,       y: cy + s * 1.2 },
+      { x: cx - s * 0.85, y: cy + s * 1.4 },
+    ], true);
+    // Ruled lines (text on the page)
+    g.fillStyle(col, alpha * 0.18);
+    for (let ly = cy - s + 5; ly < cy + s; ly += 10) {
+      const lineW = (s * 1.6) * (0.5 + this._h(cx, ly) * 0.5);
+      g.fillRect(cx - s * 0.8, ly, lineW, 2);
+    }
+    // Torn bottom edge
+    g.fillStyle(col, alpha * 0.30);
+    for (let tx = cx - s * 0.85; tx < cx + s; tx += 7) {
+      g.fillTriangle(tx, cy + s * 1.4, tx + 7, cy + s * 1.4, tx + 3, cy + s * 1.4 + this._h(tx, cy) * 12);
+    }
+  }
+
+  // 4-point star sparkle
+  _star(g, cx, cy, r, col, alpha = 1) {
+    g.fillStyle(col, alpha);
+    g.fillPoints([
+      { x: cx,     y: cy - r },
+      { x: cx + r * 0.2, y: cy - r * 0.2 },
+      { x: cx + r, y: cy },
+      { x: cx + r * 0.2, y: cy + r * 0.2 },
+      { x: cx,     y: cy + r },
+      { x: cx - r * 0.2, y: cy + r * 0.2 },
+      { x: cx - r, y: cy },
+      { x: cx - r * 0.2, y: cy - r * 0.2 },
+    ], true);
+  }
+
+  // Neon bar (Tech Manor)
   _neonBar(g, x, y, w, h, col, alpha = 1) {
-    // Core
     g.fillStyle(col, alpha);
     g.fillRect(x, y, w, h);
-    // Glow halos
     g.fillStyle(col, alpha * 0.18);
     g.fillRect(x - 4, y - 4, w + 8, h + 8);
-    g.fillStyle(col, alpha * 0.08);
+    g.fillStyle(col, alpha * 0.07);
     g.fillRect(x - 10, y - 10, w + 20, h + 20);
   }
 
-  /** Universal screen-space vignette (darkens edges + a slight dark overlay). */
-  _universalVignette() {
+  // Screen-space vignette + global darkening
+  _vignette() {
     const { scene } = this;
-    const sw = scene.scale.width;
-    const sh = scene.scale.height;
-    const v = scene.add.graphics().setScrollFactor(0).setDepth(-1);
-    // Top + bottom bars
-    v.fillStyle(0x000000, 0.45);
-    v.fillRect(0, 0, sw, 72);
-    v.fillRect(0, sh - 72, sw, 72);
-    // Soft side gradients (5 thin strips each side)
-    for (let i = 0; i < 6; i++) {
-      const a = 0.28 * (1 - i / 6);
-      v.fillStyle(0x000000, a);
-      v.fillRect(0, 72, (i + 1) * 18, sh - 144);
-      v.fillRect(sw - (i + 1) * 18, 72, (i + 1) * 18, sh - 144);
+    const sw = scene.scale.width, sh = scene.scale.height;
+    const v  = scene.add.graphics().setScrollFactor(0).setDepth(-1);
+    v.fillStyle(0x000000, 0.46);
+    v.fillRect(0, 0,        sw, 74);
+    v.fillRect(0, sh - 74,  sw, 74);
+    for (let i = 0; i < 7; i++) {
+      v.fillStyle(0x000000, 0.26 * (1 - i / 7));
+      v.fillRect(0,                  74, (i + 1) * 18, sh - 148);
+      v.fillRect(sw - (i + 1) * 18, 74, (i + 1) * 18, sh - 148);
     }
-    // Global darkening wash
-    const dark = scene.add.rectangle(0, 0, this.W, this.H, 0x000000, 0.38)
+    scene.add.rectangle(0, 0, this.W, this.H, 0x000000, 0.36)
       .setOrigin(0).setScrollFactor(0).setDepth(-2);
   }
 
-  // ────────────────────────────────────────────────────────
-  //  Stage backgrounds
-  // ────────────────────────────────────────────────────────
-
-  // ── 0  The Grand Library ─────────────────────────────────
+  // ─── Stage 0 — The Grand Library ──────────────────────────────────────────
+  // "Stupid dreams and memories, the only things you left with me"
+  // Amber warmth, dark mahogany, floating torn pages in dusty light shafts
   _grandLibrary() {
     const { scene, W, H } = this;
-    scene.cameras.main.setBackgroundColor('#0d0500');
+    scene.cameras.main.setBackgroundColor('#0e0600');
 
-    // Layer A — deep void with ember glow (sf 0.06)
-    {
-      const sf = 0.06, lw = this._lw(sf);
-      const g = this._gfx(sf, -14);
-      this._gradV(g, 0, 0, lw, H, 0x0d0400, 0x231000, 20);
-      // Glow pools from deep behind the stacks
-      for (let x = 400; x < lw; x += 700) {
-        g.fillStyle(0x8b4513, 0.09);
-        g.fillCircle(x, H * 0.72, 220);
+    // A: ember-warm deep void (sf 0.05)
+    { const sf = 0.05, lw = this._lw(sf), g = this._gfx(sf, -16);
+      this._gradVPainted(g, 0, 0, lw, H, 0x0e0500, 0x241000, 22);
+      for (let x = 500; x < lw; x += 900) {
+        g.fillStyle(0x8b4513, 0.08); g.fillCircle(x, H * 0.70, 260);
       }
     }
 
-    // Layer B — distant gothic arched hall + dark shelves (sf 0.16)
-    {
-      const sf = 0.16, lw = this._lw(sf);
-      const g = this._gfx(sf, -13);
-      this._gradV(g, 0, 0, lw, H * 0.22, 0x110600, 0x1e0a00, 8);
-      // Ceiling coffers + arches
-      for (let x = 0; x < lw; x += 380) {
-        // Arch pier
-        g.fillStyle(0x1c0900, 0.95);
-        g.fillRect(x, 0, 22, H * 0.82);
-        // Span fill
-        g.fillStyle(0x150700, 0.90);
-        g.fillRect(x + 22, H * 0.02, 336, H * 0.18);
-        // Pointed apex glow
-        g.fillStyle(0xd4af37, 0.07);
-        g.fillCircle(x + 190 + 22, H * 0.03, 20);
+    // B: distant vaulted hall — gothic arches + dark receding shelves (sf 0.15)
+    { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
+      this._gradVPainted(g, 0, 0, lw, H * 0.24, 0x120700, 0x1f0d00, 10);
+      // Arch spans
+      for (let x = 0; x < lw; x += 400) {
+        // Pier
+        g.fillStyle(0x1a0a00, 0.96); g.fillRect(x, 0, 26, H * 0.84);
+        // Dark arch opening
+        this._gothicArch(g, x + 213, H * 0.84, 348, H * 0.82, 0x120700, 0.92);
+        // Keystone glow
+        g.fillStyle(0xd4af37, 0.08); g.fillCircle(x + 213, H * 0.03, 22);
       }
-      // Receding bookshelves (very dark, far away)
-      for (let x = 25; x < lw; x += 210) {
-        g.fillStyle(0x190800, 0.88);
-        g.fillRect(x, H * 0.10, 188, H * 0.71);
-        this._booksInRect(g, x, H * 0.10, 188, H * 0.71, 4, x);
+      // Far bookshelf wall
+      for (let x = 28; x < lw; x += 220) {
+        g.fillStyle(0x180900, 0.88); g.fillRect(x, H * 0.09, 194, H * 0.73);
+        this._books(g, x + 4, H * 0.09, 186, H * 0.73, 4, x);
       }
-      // Far floor
-      this._gradV(g, 0, H * 0.80, lw, H * 0.20, 0x190800, 0x0d0500, 6);
+      this._gradVPainted(g, 0, H * 0.82, lw, H * 0.18, 0x180900, 0x0e0500, 8);
     }
 
-    // Layer C — mid hall: detailed mahogany shelves (sf 0.34)
-    {
-      const sf = 0.34, lw = this._lw(sf);
-      const g = this._gfx(sf, -12);
-      // Vault ribs (golden tracery lines across ceiling)
-      for (let x = 0; x < lw; x += 270) {
-        g.lineStyle(2, 0xd4af37, 0.15);
-        g.lineBetween(x, 0, x + 135, H * 0.16);
-        g.lineBetween(x + 270, 0, x + 135, H * 0.16);
-        g.fillStyle(0xd4af37, 0.10);
-        g.fillCircle(x + 135, H * 0.03, 10);
+    // C: vault rib tracery + mid bookshelves (sf 0.32)
+    { const sf = 0.32, lw = this._lw(sf), g = this._gfx(sf, -14);
+      // Ribbed vault ceiling
+      for (let x = 0; x < lw; x += 280) {
+        g.lineStyle(3, 0xd4af37, 0.13);
+        g.lineBetween(x, 0, x + 140, H * 0.17);
+        g.lineBetween(x + 280, 0, x + 140, H * 0.17);
+        g.fillStyle(0xd4af37, 0.09); g.fillCircle(x + 140, H * 0.04, 11);
       }
       // Shelf units
-      for (let x = 0; x < lw; x += 260) {
-        // Frame
-        g.fillStyle(0x3b1a05, 0.93);
-        g.fillRect(x, H * 0.07, 6, H * 0.74);
-        g.fillRect(x + 254, H * 0.07, 6, H * 0.74);
-        g.fillRect(x, H * 0.07, 260, 6);
-        // Case back
-        g.fillStyle(0x2a0f00, 0.90);
-        g.fillRect(x + 6, H * 0.07, 248, H * 0.74);
-        // Books
-        this._booksInRect(g, x + 8, H * 0.09, 244, H * 0.71, 5, x * 3);
+      for (let x = 0; x < lw; x += 264) {
+        g.fillStyle(0x3b1a05, 0.94);
+        g.fillRect(x, H * 0.07, 7, H * 0.74);
+        g.fillRect(x + 257, H * 0.07, 7, H * 0.74);
+        g.fillRect(x, H * 0.07, 264, 7);
+        g.fillStyle(0x2a0f00, 0.92); g.fillRect(x + 7, H * 0.08, 250, H * 0.73);
+        this._books(g, x + 10, H * 0.10, 244, H * 0.70, 5, x * 3);
       }
-      // Polished parquet floor
-      g.fillStyle(0x1c0b00, 0.97);
-      g.fillRect(0, H * 0.82, lw, H * 0.18);
-      for (let x = 0; x < lw; x += 90) {
-        g.fillStyle(0x2e1200, 0.35);
-        g.fillRect(x, H * 0.82, 2, H * 0.18);
-      }
-      for (let y = H * 0.84; y < H; y += 38) {
-        g.fillStyle(0x2e1200, 0.18);
-        g.fillRect(0, y, lw, 2);
-      }
+      // Parquet floor
+      g.fillStyle(0x1c0b00, 0.97); g.fillRect(0, H * 0.82, lw, H * 0.18);
+      for (let x = 0; x < lw; x += 95) { g.fillStyle(0x2e1200, 0.34); g.fillRect(x, H * 0.82, 2, H * 0.18); }
+      for (let y = H * 0.84; y < H; y += 40) { g.fillStyle(0x2e1200, 0.17); g.fillRect(0, y, lw, 2); }
       // Floor reflection sheen
-      g.fillStyle(0xd4af37, 0.03);
-      g.fillRect(0, H * 0.83, lw, 4);
+      g.fillStyle(0xd4af37, 0.025); g.fillRect(0, H * 0.82, lw, 5);
     }
 
-    // Layer D — near: ornate pillars + reading lamps + balcony (sf 0.57)
-    {
-      const sf = 0.57, lw = this._lw(sf);
-      const g = this._gfx(sf, -11);
-      // Ornate pillars
-      for (let x = 250; x < lw; x += 520) {
-        this._ornateCol(g, x, H * 0.05, H * 0.77, 20, 0x2a0f00, 0x5a2e08, 0.96);
-        // Ambient glow around pillar
-        g.fillStyle(0xd4af37, 0.05);
-        g.fillCircle(x, H * 0.06, 55);
+    // D: ornate pillars + balcony rail + reading lamps (sf 0.56)
+    { const sf = 0.56, lw = this._lw(sf), g = this._gfx(sf, -13);
+      for (let x = 260; x < lw; x += 528) {
+        this._ornateCol(g, x, H * 0.05, H * 0.77, 22, 0x2a0f00, 0x5a2e08, 0.96);
+        g.fillStyle(0xd4af37, 0.06); g.fillCircle(x, H * 0.06, 60);
       }
-      // Upper balcony rail at 52% height
-      g.fillStyle(0x3b1a05, 0.90);
-      g.fillRect(0, H * 0.52, lw, 9);
-      for (let x = 18; x < lw; x += 46) {
-        g.fillStyle(0x5a2e08, 0.80);
-        g.fillRect(x, H * 0.52 + 9, 7, 64);
-        g.fillStyle(this.acc, 0.14);
-        g.fillCircle(x + 3, H * 0.52 + 40, 4);
+      // Balcony rail ~52%
+      g.fillStyle(0x3b1a05, 0.92); g.fillRect(0, H * 0.52, lw, 10);
+      for (let x = 20; x < lw; x += 47) {
+        g.fillStyle(0x5a2e08, 0.80); g.fillRect(x, H * 0.52 + 10, 7, 68);
+        g.fillStyle(this.acc, 0.14); g.fillCircle(x + 3, H * 0.52 + 44, 4);
       }
-      g.fillStyle(0x3b1a05, 0.85);
-      g.fillRect(0, H * 0.52 + 73, lw, 9);
-      // Reading lamps on balcony
-      for (let x = 100; x < lw; x += 520) {
-        this._wallLamp(g, x, H * 0.22, 0x5a2e08, 0xfff5c0);
-      }
-      // Ground-floor wall sconces
-      for (let x = 340; x < lw; x += 520) {
-        this._wallLamp(g, x, H * 0.60, 0x5a2e08, 0xfff5c0);
+      g.fillStyle(0x3b1a05, 0.88); g.fillRect(0, H * 0.52 + 78, lw, 10);
+      // Lamps
+      for (let x = 110; x < lw; x += 528) this._lamp(g, x, H * 0.22, 0x5a2e08, 0xfff5c0);
+      for (let x = 370; x < lw; x += 528) this._lamp(g, x, H * 0.60, 0x5a2e08, 0xfff5c0);
+    }
+
+    // E: floating torn pages — "memories you left with me" (sf 0.25)
+    { const sf = 0.25, lw = this._lw(sf), g = this._gfx(sf, -12);
+      for (let i = 0; i < 22; i++) {
+        const px = this._h(i, 1) * lw;
+        const py = H * 0.08 + this._h(i, 2) * H * 0.72;
+        const sz = 8 + this._h(i, 3) * 16;
+        this._tornPage(g, px, py, sz, 0xf5e8d0, this._h(i, 4) * 0.22 + 0.06);
       }
     }
 
-    // Layer E — light shafts from skylights (sf 0.20)
-    {
-      const sf = 0.20, lw = this._lw(sf);
-      const g = this._gfx(sf, -10);
-      for (let x = 190; x < lw; x += 380) {
-        // Wide diffuse shaft
-        g.fillStyle(0xd4af37, 0.035);
-        g.fillTriangle(x - 45, 0, x + 45, 0, x + 80, H * 0.70);
-        // Bright core shaft
-        g.fillStyle(0xfff5c0, 0.025);
-        g.fillTriangle(x - 12, 0, x + 12, 0, x + 22, H * 0.60);
-        // Mote particle band
-        for (let my = 40; my < H * 0.65; my += 28) {
-          g.fillStyle(0xfff5c0, 0.03);
-          g.fillCircle(x + (my / H) * 30, my, 4);
+    // F: golden light shafts through skylight (sf 0.18)
+    { const sf = 0.18, lw = this._lw(sf), g = this._gfx(sf, -11);
+      for (let x = 200; x < lw; x += 400) {
+        g.fillStyle(0xd4af37, 0.042);
+        g.fillTriangle(x - 50, 0, x + 50, 0, x + 85, H * 0.72);
+        g.fillStyle(0xfff5c0, 0.028);
+        g.fillTriangle(x - 14, 0, x + 14, 0, x + 22, H * 0.62);
+        // Dust motes in shaft
+        for (let my = 30; my < H * 0.65; my += 34) {
+          g.fillStyle(0xfff5c0, 0.038);
+          g.fillCircle(x + my * 0.07, my, 3 + this._h(x, my) * 3);
         }
       }
     }
   }
 
-  // ── 1  Egyptian Hall ──────────────────────────────────────
+  // ─── Stage 1 — Egyptian Hall ────────────────────────────────────────────────
+  // "On bended knee I begged and plead that you would stay"
+  // Monumental gold columns, hieroglyphs of a plea, burning torchlight
   _egyptianHall() {
     const { scene, W, H } = this;
-    scene.cameras.main.setBackgroundColor('#150b00');
+    scene.cameras.main.setBackgroundColor('#140b00');
 
-    // Layer A — warm sandstone sky (sf 0.06)
-    {
-      const sf = 0.06, lw = this._lw(sf);
-      const g = this._gfx(sf, -14);
-      this._gradV(g, 0, 0, lw, H, 0x0f0800, 0x2b1800, 20);
+    // A: warm sand-heat void (sf 0.05)
+    { const sf = 0.05, lw = this._lw(sf), g = this._gfx(sf, -16);
+      this._gradVPainted(g, 0, 0, lw, H, 0x100800, 0x2c1900, 22);
     }
 
-    // Layer B — distant pyramid interior / colonnade (sf 0.16)
-    {
-      const sf = 0.16, lw = this._lw(sf);
-      const g = this._gfx(sf, -13);
-      // Far ceiling
-      this._gradV(g, 0, 0, lw, H * 0.18, 0x110900, 0x1f1000, 8);
-      // Distant columns
-      for (let x = 0; x < lw; x += 340) {
-        g.fillStyle(0x2a1800, 0.85);
-        g.fillRect(x + 130, 0, 80, H * 0.80);
-        // Hieroglyph bands
-        g.fillStyle(this.acc, 0.10);
-        for (let gy = 30; gy < H * 0.80; gy += 60) g.fillRect(x + 130, gy, 80, 7);
-      }
-      // Distant wall
-      this._stoneWall(g, 0, H * 0.05, lw, H * 0.76, 0x1f1100, 0x0d0700, 55, 140, 0.85);
-      // Distant floor
-      this._gradV(g, 0, H * 0.80, lw, H * 0.20, 0x2a1600, 0x110a00, 6);
-    }
-
-    // Layer C — mid colonnade (sf 0.34)
-    {
-      const sf = 0.34, lw = this._lw(sf);
-      const g = this._gfx(sf, -12);
-      // Ceiling: painted ceiling panels
-      this._gradV(g, 0, 0, lw, H * 0.14, 0x1a0f00, 0x2b1800, 6);
-      for (let x = 0; x < lw; x += 420) {
-        g.fillStyle(this.acc, 0.08);
-        g.fillRect(x, 0, 420, H * 0.02);
-      }
-      // Main columns
-      for (let x = 0; x < lw; x += 360) {
-        this._lotusCol(g, x + 30, H * 0.05, H * 0.76, 32, 0x3d2300, this.acc, 0.90);
-        this._lotusCol(g, x + 330, H * 0.05, H * 0.76, 32, 0x3d2300, this.acc, 0.90);
-      }
-      // Wall hieroglyphs between columns
-      for (let x = 60; x < lw; x += 360) {
-        g.fillStyle(this.acc, 0.12);
-        for (let gy = H * 0.08; gy < H * 0.72; gy += 50) {
-          // Rows of rectangular glyphs
-          for (let gx = x; gx < x + 260; gx += 24) {
-            if (this._h(gx, gy) > 0.45) {
-              g.fillRect(gx, gy, 18, 14);
-            }
+    // B: distant hypostyle colonnade (sf 0.15)
+    { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
+      this._gradVPainted(g, 0, 0, lw, H * 0.18, 0x140c00, 0x221200, 9);
+      // Wall surface
+      g.fillStyle(0x1f1200, 0.88); g.fillRect(0, H * 0.04, lw, H * 0.77);
+      // Hieroglyph strip bands
+      g.fillStyle(this.acc, 0.08);
+      for (let y = H * 0.06; y < H * 0.78; y += 62) g.fillRect(0, y, lw, 9);
+      // Far columns
+      for (let x = 0; x < lw; x += 320) {
+        g.fillStyle(0x2e1c00, 0.86); g.fillRect(x + 110, 0, 100, H * 0.80);
+        g.fillStyle(this.acc, 0.09);
+        for (let gy = 30; gy < H * 0.78; gy += 62) g.fillRect(x + 110, gy, 100, 9);
+        // Hieroglyph carved rows
+        for (let gx = x + 116; gx < x + 204; gx += 22) {
+          for (let gy = H * 0.09; gy < H * 0.72; gy += 52) {
+            if (this._h(gx, gy) > 0.44) { g.fillStyle(this.acc, 0.11); g.fillRect(gx, gy, 16, 14); }
           }
         }
-        // Horizontal divider bands
-        g.fillStyle(this.acc, 0.18);
-        g.fillRect(x, H * 0.08, 260, 5);
-        g.fillRect(x, H * 0.72, 260, 5);
       }
-      // Sand floor
-      this._gradV(g, 0, H * 0.80, lw, H * 0.20, 0x3d2300, 0x1a0f00, 8);
-      // Tile pattern on floor
-      for (let x = 0; x < lw; x += 120) {
-        g.fillStyle(0x2a1600, 0.4);
-        g.fillRect(x, H * 0.80, 3, H * 0.20);
+      this._gradVPainted(g, 0, H * 0.80, lw, H * 0.20, 0x2a1600, 0x100800, 7);
+    }
+
+    // C: mid colonnade — lotus columns + cartouche wall (sf 0.33)
+    { const sf = 0.33, lw = this._lw(sf), g = this._gfx(sf, -14);
+      this._gradVPainted(g, 0, 0, lw, H * 0.15, 0x1c1000, 0x2e1800, 8);
+      for (let x = 0; x < lw; x += 380) {
+        this._lotusCol(g, x + 40, H * 0.05, H * 0.76, 34, 0x3d2300, this.acc, 0.92);
+        this._lotusCol(g, x + 340, H * 0.05, H * 0.76, 34, 0x3d2300, this.acc, 0.92);
+      }
+      // Wall cartouches between columns
+      for (let x = 78; x < lw; x += 380) {
+        g.fillStyle(this.acc, 0.13);
+        for (let gy = H * 0.08; gy < H * 0.72; gy += 55) {
+          for (let gx = x; gx < x + 240; gx += 26) {
+            if (this._h(gx, gy) > 0.40) g.fillRect(gx, gy, 20, 15);
+          }
+        }
+        g.fillStyle(this.acc, 0.20); g.fillRect(x, H * 0.07, 240, 6);
+        g.fillStyle(this.acc, 0.20); g.fillRect(x, H * 0.73, 240, 6);
+      }
+      this._gradVPainted(g, 0, H * 0.80, lw, H * 0.20, 0x3d2300, 0x1a1000, 8);
+      for (let x = 0; x < lw; x += 130) { g.fillStyle(0x2a1600, 0.38); g.fillRect(x, H * 0.80, 3, H * 0.20); }
+    }
+
+    // D: near — pharaoh statues + wall torches (sf 0.57)
+    { const sf = 0.57, lw = this._lw(sf), g = this._gfx(sf, -13);
+      for (let x = 190; x < lw; x += 580) {
+        g.fillStyle(0x2a1800, 0.93);
+        g.fillRect(x - 32, H * 0.30, 64, H * 0.50);
+        g.fillRect(x - 48, H * 0.54, 96, H * 0.26);
+        g.fillCircle(x, H * 0.28, 32);
+        g.fillStyle(this.acc, 0.22);
+        g.fillTriangle(x, H * 0.17, x - 24, H * 0.28, x + 24, H * 0.28);
+        g.fillStyle(this.acc, 0.28);
+        g.fillRect(x + 11, H * 0.34, 6, 44);
+      }
+      for (let x = 100; x < lw; x += 580) this._lamp(g, x, H * 0.28, 0x4a2800, 0xffaa44);
+      for (let x = 400; x < lw; x += 580) this._lamp(g, x, H * 0.56, 0x4a2800, 0xffaa44);
+      g.fillStyle(0x0e0800, 0.88); g.fillRect(0, H * 0.83, lw, H * 0.17);
+    }
+
+    // E: 4-point star sparks from torch embers (sf 0.20)
+    { const sf = 0.20, lw = this._lw(sf), g = this._gfx(sf, -12);
+      for (let i = 0; i < 18; i++) {
+        const sx = this._h(i, 5) * lw;
+        const sy = H * 0.20 + this._h(i, 6) * H * 0.50;
+        this._star(g, sx, sy, 3 + this._h(i, 7) * 5, 0xffcc44, this._h(i, 8) * 0.20 + 0.05);
       }
     }
 
-    // Layer D — near: large statues + torches (sf 0.57)
-    {
-      const sf = 0.57, lw = this._lw(sf);
-      const g = this._gfx(sf, -11);
-      // Canopic jar / statue silhouettes
-      for (let x = 180; x < lw; x += 560) {
-        // Seated statue body
-        g.fillStyle(0x2a1600, 0.92);
-        g.fillRect(x - 30, H * 0.30, 60, H * 0.50);  // torso
-        g.fillRect(x - 45, H * 0.54, 90, H * 0.26);  // legs/seat
-        g.fillCircle(x, H * 0.28, 30);               // head
-        // Headdress (nemes)
-        g.fillStyle(this.acc, 0.20);
-        g.fillTriangle(x, H * 0.18, x - 22, H * 0.28, x + 22, H * 0.28);
-        // Crook
-        g.fillStyle(this.acc, 0.25);
-        g.fillRect(x + 10, H * 0.35, 5, 40);
-      }
-      // Wall torches
-      for (let x = 100; x < lw; x += 560) {
-        this._wallLamp(g, x, H * 0.30, 0x4a2800, 0xffaa44);
-      }
-      for (let x = 380; x < lw; x += 560) {
-        this._wallLamp(g, x, H * 0.55, 0x4a2800, 0xffaa44);
-      }
-      // Foreground sandy floor shadow
-      g.fillStyle(0x0d0700, 0.85);
-      g.fillRect(0, H * 0.83, lw, H * 0.17);
-    }
-
-    // Layer E — golden light shafts from above (sf 0.20)
-    {
-      const sf = 0.20, lw = this._lw(sf);
-      const g = this._gfx(sf, -10);
-      for (let x = 210; x < lw; x += 360) {
-        g.fillStyle(0xd4af37, 0.05);
-        g.fillTriangle(x - 30, 0, x + 30, 0, x + 55, H * 0.80);
-        g.fillStyle(0xffd700, 0.03);
-        g.fillTriangle(x - 8, 0, x + 8, 0, x + 15, H * 0.75);
-        // Motes
-        for (let my = 20; my < H * 0.75; my += 32) {
-          g.fillStyle(0xffd700, 0.04);
-          g.fillCircle(x + my * 0.06, my, 3);
+    // F: hot golden light shafts from high windows (sf 0.18)
+    { const sf = 0.18, lw = this._lw(sf), g = this._gfx(sf, -11);
+      for (let x = 200; x < lw; x += 380) {
+        g.fillStyle(0xd4af37, 0.052);
+        g.fillTriangle(x - 32, 0, x + 32, 0, x + 58, H * 0.82);
+        g.fillStyle(0xffd700, 0.030);
+        g.fillTriangle(x - 8, 0, x + 8, 0, x + 16, H * 0.76);
+        for (let my = 22; my < H * 0.76; my += 35) {
+          g.fillStyle(0xffd700, 0.042);
+          g.fillCircle(x + my * 0.07, my, 3 + this._h(x, my) * 2);
         }
       }
     }
   }
 
-  // ── 2  Samurai Gallery ───────────────────────────────────
+  // ─── Stage 2 — Samurai Gallery ─────────────────────────────────────────────
+  // "I was blind but now I see the truth"
+  // Cold blade-clarity, shoji light, cherry blossoms = beautiful but fleeting
   _samuraiGallery() {
     const { scene, W, H } = this;
     scene.cameras.main.setBackgroundColor('#0d0000');
 
-    // Layer A — deep crimson night void (sf 0.06)
-    {
-      const sf = 0.06, lw = this._lw(sf);
-      const g = this._gfx(sf, -14);
-      this._gradV(g, 0, 0, lw, H, 0x0a0000, 0x1a0500, 20);
-      // Moon glow pools
-      for (let x = 600; x < lw; x += 1200) {
-        g.fillStyle(0xfff5e0, 0.06);
-        g.fillCircle(x, H * 0.12, 120);
+    // A: deep crimson void with moon (sf 0.05)
+    { const sf = 0.05, lw = this._lw(sf), g = this._gfx(sf, -16);
+      this._gradVPainted(g, 0, 0, lw, H, 0x0a0000, 0x1c0600, 22);
+      for (let x = 700; x < lw; x += 1400) {
+        g.fillStyle(0xfff5e0, 0.07); g.fillCircle(x, H * 0.11, 130);
+        g.fillStyle(0xfff5e0, 0.10); g.fillCircle(x, H * 0.11, 55);
       }
     }
 
-    // Layer B — distant shoji screen wall (sf 0.16)
-    {
-      const sf = 0.16, lw = this._lw(sf);
-      const g = this._gfx(sf, -13);
-      // Dark wood frame behind everything
-      g.fillStyle(0x1a0800, 0.90);
-      g.fillRect(0, 0, lw, H * 0.85);
-      // Shoji rice-paper panels (backlit, very faint)
-      for (let x = 0; x < lw; x += 220) {
-        for (let panel = 0; panel < 3; panel++) {
-          const px = x + panel * 70;
-          g.fillStyle(0x2a1800, 0.80);
-          g.fillRect(px, H * 0.07, 65, H * 0.72);
-          // Rice paper translucency
-          g.fillStyle(0xfff5e0, 0.04);
-          g.fillRect(px + 3, H * 0.09, 59, H * 0.68);
-          // Grid lines
-          g.fillStyle(0x1a0800, 0.50);
-          for (let sy = H * 0.12; sy < H * 0.72; sy += 32) g.fillRect(px, sy, 65, 2);
-          for (let sx = px + 20; sx < px + 65; sx += 20) g.fillRect(sx, H * 0.07, 2, H * 0.72);
+    // B: distant shoji screen wall (sf 0.15)
+    { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
+      g.fillStyle(0x1a0800, 0.92); g.fillRect(0, 0, lw, H * 0.86);
+      for (let x = 0; x < lw; x += 230) {
+        for (let p = 0; p < 3; p++) {
+          const px = x + p * 74;
+          g.fillStyle(0x2c1600, 0.82); g.fillRect(px, H * 0.07, 70, H * 0.73);
+          g.fillStyle(0xfff5e0, 0.045); g.fillRect(px + 3, H * 0.09, 64, H * 0.69);
+          g.fillStyle(0x1a0800, 0.52);
+          for (let sy = H * 0.12; sy < H * 0.73; sy += 34) g.fillRect(px, sy, 70, 2);
+          for (let sxs = px + 22; sxs < px + 70; sxs += 22) g.fillRect(sxs, H * 0.07, 2, H * 0.73);
         }
       }
-      // Cherry blossom silhouette (far)
-      for (let x = 200; x < lw; x += 800) {
-        // Branch
-        g.fillStyle(0x1c0a00, 0.70);
-        g.fillRect(x, H * 0.05, 4, H * 0.32);
-        g.fillRect(x - 60, H * 0.18, 64, 3);
-        g.fillRect(x + 4, H * 0.24, 55, 3);
-        // Blossoms (tiny circles)
-        for (let i = 0; i < 12; i++) {
-          const bx = x - 70 + this._h(i, x) * 130;
-          const by = H * 0.06 + this._h(i, x + 1) * H * 0.26;
-          g.fillStyle(0x8b0000, 0.28);
-          g.fillCircle(bx, by, 5 + this._h(i * 3, x) * 6);
-        }
-      }
-      this._gradV(g, 0, H * 0.82, lw, H * 0.18, 0x1a0800, 0x0d0400, 6);
+      this._gradVPainted(g, 0, H * 0.82, lw, H * 0.18, 0x1c0a00, 0x0d0400, 7);
     }
 
-    // Layer C — mid dojo hall: weapon racks + columns (sf 0.34)
-    {
-      const sf = 0.34, lw = this._lw(sf);
-      const g = this._gfx(sf, -12);
-      // Coffered wooden ceiling
-      this._gradV(g, 0, 0, lw, H * 0.15, 0x1a0800, 0x2e1200, 6);
-      for (let x = 0; x < lw; x += 160) {
-        g.fillStyle(0x3b1a05, 0.6);
-        g.fillRect(x, 0, 6, H * 0.15);
-      }
-      for (let y = H * 0.04; y < H * 0.15; y += 35) {
-        g.fillStyle(0x3b1a05, 0.4);
-        g.fillRect(0, y, lw, 4);
-      }
-      // Lacquered wooden pillars
-      for (let x = 60; x < lw; x += 480) {
-        this._ornateCol(g, x, H * 0.07, H * 0.74, 16, 0x3b0000, 0x7a0000, 0.92);
-      }
-      // Katana racks on wall
-      for (let x = 120; x < lw; x += 480) {
-        // Rack bar
-        g.fillStyle(0x3b1a05, 0.8);
-        g.fillRect(x, H * 0.24, 200, 6);
-        g.fillRect(x, H * 0.38, 200, 6);
-        // Katanas (diagonal lines)
+    // C: mid dojo — lacquered pillars + katana racks + lanterns (sf 0.33)
+    { const sf = 0.33, lw = this._lw(sf), g = this._gfx(sf, -14);
+      this._gradVPainted(g, 0, 0, lw, H * 0.16, 0x1a0800, 0x2e1200, 8);
+      for (let x = 0; x < lw; x += 170) { g.fillStyle(0x3b1a05, 0.58); g.fillRect(x, 0, 6, H * 0.16); }
+      // Pillars
+      for (let x = 70; x < lw; x += 500) this._ornateCol(g, x, H * 0.07, H * 0.74, 17, 0x3b0000, 0x7a0000, 0.92);
+      // Katana racks
+      for (let x = 130; x < lw; x += 500) {
+        g.fillStyle(0x3b1a05, 0.82); g.fillRect(x, H * 0.22, 220, 6); g.fillRect(x, H * 0.37, 220, 6);
         for (let k = 0; k < 5; k++) {
-          const kx = x + 20 + k * 38;
-          // Handle
-          g.fillStyle(0x5a2e08, 0.9);
-          g.fillRect(kx, H * 0.25, 6, 24);
-          // Guard (tsuba)
-          g.fillStyle(this.acc, 0.60);
-          g.fillRect(kx - 4, H * 0.25 + 24, 14, 4);
-          // Blade
-          g.fillStyle(0xc0c0c0, 0.55);
-          g.fillRect(kx + 1, H * 0.30, 3, 50);
-          // Blade highlight
-          g.fillStyle(0xffffff, 0.20);
-          g.fillRect(kx + 2, H * 0.30, 1, 45);
+          const kx = x + 22 + k * 40;
+          g.fillStyle(0x5a2e08, 0.92); g.fillRect(kx, H * 0.23, 6, 24);
+          g.fillStyle(this.acc, 0.62); g.fillRect(kx - 5, H * 0.23 + 24, 16, 5);
+          g.fillStyle(0xd8d8d8, 0.58); g.fillRect(kx + 1, H * 0.29, 3, 54);
+          g.fillStyle(0xffffff, 0.22); g.fillRect(kx + 2, H * 0.30, 1, 48);
         }
       }
-      // Paper lanterns hanging
-      for (let x = 200; x < lw; x += 480) {
-        // String
-        g.fillStyle(0x3b1a05, 0.6);
-        g.fillRect(x + 100 - 2, 0, 3, H * 0.22);
-        // Lantern body
-        g.fillStyle(0xd4af37, 0.05);
-        g.fillEllipse(x + 100, H * 0.22 + 30, 44, 60);
-        g.fillStyle(0x8b0000, 0.65);
-        g.fillEllipse(x + 100, H * 0.22 + 30, 38, 54);
-        // Glow
-        g.fillStyle(0xff9900, 0.15);
-        g.fillCircle(x + 100, H * 0.22 + 30, 40);
-        // Stripes
-        for (let ly = H * 0.22 + 6; ly < H * 0.22 + 54; ly += 10) {
-          g.fillStyle(0xd4af37, 0.25);
-          g.fillRect(x + 100 - 19, ly, 38, 3);
+      // Paper lanterns
+      for (let x = 210; x < lw; x += 500) {
+        g.fillStyle(0x3b1a05, 0.60); g.fillRect(x + 110 - 2, 0, 3, H * 0.23);
+        g.fillStyle(0x8b0000, 0.68); g.fillEllipse(x + 110, H * 0.23 + 32, 40, 58);
+        g.fillStyle(0xff9900, 0.16); g.fillCircle(x + 110, H * 0.23 + 32, 44);
+        for (let ly = H * 0.23 + 7; ly < H * 0.23 + 55; ly += 11) { g.fillStyle(0xd4af37, 0.24); g.fillRect(x + 110 - 20, ly, 40, 3); }
+      }
+      // Cherry blossom branch silhouette
+      for (let x = 300; x < lw; x += 1000) {
+        g.fillStyle(0x1c0a00, 0.72);
+        g.fillRect(x, H * 0.04, 5, H * 0.35); g.fillRect(x - 70, H * 0.18, 75, 4); g.fillRect(x + 5, H * 0.26, 62, 4);
+        for (let bi = 0; bi < 14; bi++) {
+          g.fillStyle(0x8b0000, 0.28);
+          g.fillCircle(x - 75 + this._h(bi, x) * 150, H * 0.06 + this._h(bi, x + 1) * H * 0.28, 5 + this._h(bi * 3, x) * 7);
         }
       }
-      // Dark tatami/stone floor
-      g.fillStyle(0x1e0c00, 0.95);
-      g.fillRect(0, H * 0.82, lw, H * 0.18);
-      for (let x = 0; x < lw; x += 130) {
-        g.fillStyle(0x2e1200, 0.25);
-        g.fillRect(x, H * 0.82, 2, H * 0.18);
+      g.fillStyle(0x1e0c00, 0.96); g.fillRect(0, H * 0.82, lw, H * 0.18);
+      for (let x = 0; x < lw; x += 140) { g.fillStyle(0x2e1200, 0.25); g.fillRect(x, H * 0.82, 2, H * 0.18); }
+    }
+
+    // D: near — armour stands + falling petals (sf 0.57)
+    { const sf = 0.57, lw = this._lw(sf), g = this._gfx(sf, -13);
+      for (let x = 230; x < lw; x += 620) {
+        g.fillStyle(0x3b1a05, 0.86); g.fillRect(x - 3, H * 0.38, 6, H * 0.44); g.fillRect(x - 26, H * 0.80, 52, 9);
+        g.fillStyle(0x8b0000, 0.72); g.fillRect(x - 24, H * 0.27, 48, 55);
+        g.fillStyle(0x8b0000, 0.62); g.fillRect(x - 40, H * 0.28, 20, 32); g.fillRect(x + 20, H * 0.28, 20, 32);
+        g.fillStyle(0x5a0000, 0.82); g.fillEllipse(x, H * 0.23, 44, 38);
+        g.fillStyle(0xc0c0c0, 0.22); g.fillRect(x - 15, H * 0.29, 30, 20);
+        g.fillStyle(this.acc, 0.24); g.fillCircle(x, H * 0.34, 11);
+      }
+      // Falling blossom petals
+      for (let i = 0; i < 35; i++) {
+        const px = this._h(i, 10) * lw, py = H * 0.05 + this._h(i, 11) * H * 0.88;
+        g.fillStyle(0xd4607a, 0.28); g.fillEllipse(px, py, 11, 8);
+      }
+      g.fillStyle(0x0d0500, 0.90); g.fillRect(0, H * 0.83, lw, H * 0.17);
+    }
+
+    // E: moonlight + blossom sparkles (sf 0.20)
+    { const sf = 0.20, lw = this._lw(sf), g = this._gfx(sf, -12);
+      for (let x = 250; x < lw; x += 500) {
+        g.fillStyle(0xfff5e0, 0.036); g.fillTriangle(x - 28, 0, x + 28, 0, x + 44, H * 0.77);
+      }
+      for (let i = 0; i < 20; i++) {
+        this._star(g, this._h(i, 12) * lw, H * 0.05 + this._h(i, 13) * H * 0.50, 2 + this._h(i, 14) * 4, 0xffd4a0, 0.12 + this._h(i, 15) * 0.10);
       }
     }
 
-    // Layer D — near: armor stands + falling blossoms (sf 0.57)
-    {
-      const sf = 0.57, lw = this._lw(sf);
-      const g = this._gfx(sf, -11);
-      // Armor stands every ~600px
-      for (let x = 220; x < lw; x += 600) {
-        // Stand pole
-        g.fillStyle(0x3b1a05, 0.85);
-        g.fillRect(x - 3, H * 0.38, 6, H * 0.44);
-        g.fillRect(x - 25, H * 0.80, 50, 8);
-        // Chest plate
-        g.fillStyle(0x8b0000, 0.70);
-        g.fillRect(x - 22, H * 0.28, 44, 52);
-        // Shoulder guards
-        g.fillStyle(0x8b0000, 0.60);
-        g.fillRect(x - 38, H * 0.30, 20, 30);
-        g.fillRect(x + 18, H * 0.30, 20, 30);
-        // Helmet
-        g.fillStyle(0x5a0000, 0.80);
-        g.fillEllipse(x, H * 0.24, 42, 36);
-        // Menpo (face mask) glint
-        g.fillStyle(0xc0c0c0, 0.20);
-        g.fillRect(x - 14, H * 0.30, 28, 18);
-        // Mon (family crest) on chest
-        g.fillStyle(this.acc, 0.22);
-        g.fillCircle(x, H * 0.35, 10);
-      }
-      // Scattered cherry blossom petals
-      for (let i = 0; i < 30; i++) {
-        const px = this._h(i, 3) * lw;
-        const py = this._h(i, 4) * H * 0.90;
-        g.fillStyle(0xd4607a, 0.25);
-        g.fillEllipse(px, py, 10, 7);
-      }
-      g.fillStyle(0x0d0500, 0.88);
-      g.fillRect(0, H * 0.83, lw, H * 0.17);
-    }
-
-    // Layer E — moonlight shafts through shoji (sf 0.22)
-    {
-      const sf = 0.22, lw = this._lw(sf);
-      const g = this._gfx(sf, -10);
-      for (let x = 240; x < lw; x += 480) {
-        g.fillStyle(0xfff5e0, 0.035);
-        g.fillTriangle(x - 25, 0, x + 25, 0, x + 40, H * 0.75);
-        g.fillStyle(0xfff5e0, 0.02);
-        g.fillTriangle(x - 60, 0, x + 60, 0, x + 90, H * 0.85);
-      }
+    // F: deep floor + side shadows (sf 0.72)
+    { const sf = 0.72, lw = this._lw(sf), g = this._gfx(sf, -11);
+      g.fillStyle(0x0d0500, 0.92); g.fillRect(0, H * 0.82, lw, H * 0.18);
     }
   }
 
-  // ── 3  Royal Chambers ────────────────────────────────────
+  // ─── Stage 3 — Royal Chambers ──────────────────────────────────────────────
+  // "At a time in life you were all that I wanted"
+  // Peak of the fairy tale — the most opulent, warmest, most beautiful room
   _royalChambers() {
     const { scene, W, H } = this;
     scene.cameras.main.setBackgroundColor('#0a0015');
 
-    // Layer A — deep velvet void (sf 0.06)
-    {
-      const sf = 0.06, lw = this._lw(sf);
-      const g = this._gfx(sf, -14);
-      this._gradV(g, 0, 0, lw, H, 0x080010, 0x150028, 20);
+    // A: deep velvet void with star-dust (sf 0.05)
+    { const sf = 0.05, lw = this._lw(sf), g = this._gfx(sf, -16);
+      this._gradVPainted(g, 0, 0, lw, H, 0x080012, 0x18002e, 22);
+      for (let i = 0; i < 40; i++) {
+        this._star(g, this._h(i, 20) * lw, this._h(i, 21) * H * 0.55, 1 + this._h(i, 22) * 3, 0xd4af37, 0.07 + this._h(i, 23) * 0.09);
+      }
     }
 
-    // Layer B — distant ornate wallpaper hall (sf 0.16)
-    {
-      const sf = 0.16, lw = this._lw(sf);
-      const g = this._gfx(sf, -13);
-      this._gradV(g, 0, 0, lw, H, 0x0e0020, 0x1a0038, 18);
-      // Damask wallpaper pattern (small repeating motif)
-      for (let x = 0; x < lw; x += 60) {
-        for (let y = 30; y < H * 0.78; y += 70) {
-          g.fillStyle(this.acc, 0.06);
-          g.fillEllipse(x + 30, y + 35, 24, 40);
-          g.fillStyle(this.prim, 0.04);
-          g.fillCircle(x + 30, y + 35, 8);
-          g.fillCircle(x + 30, y + 10, 6);
-          g.fillCircle(x + 30, y + 60, 6);
+    // B: damask wallpaper + distant arched hall (sf 0.15)
+    { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
+      this._gradVPainted(g, 0, 0, lw, H, 0x0e0020, 0x1c003c, 20);
+      for (let x = 0; x < lw; x += 62) {
+        for (let y = 32; y < H * 0.78; y += 72) {
+          g.fillStyle(this.acc, 0.055); g.fillEllipse(x + 31, y + 36, 26, 44);
+          g.fillStyle(this.prim, 0.04); g.fillCircle(x + 31, y + 36, 9);
+          g.fillCircle(x + 31, y + 12, 6); g.fillCircle(x + 31, y + 62, 6);
         }
       }
-      // Chair rail molding
-      g.fillStyle(this.acc, 0.22);
-      g.fillRect(0, H * 0.54, lw, 5);
-      g.fillRect(0, H * 0.56, lw, 3);
-      // Wainscoting below rail
-      g.fillStyle(this.prim, 0.25);
-      g.fillRect(0, H * 0.56, lw, H * 0.24);
-      // Paneling lines
-      for (let x = 0; x < lw; x += 180) {
-        g.fillStyle(this.acc, 0.10);
-        g.fillRect(x + 15, H * 0.58, 150, H * 0.20);
-        g.fillStyle(this.acc, 0.05);
-        g.fillRect(x + 18, H * 0.585, 144, H * 0.19);
+      // Chair rail
+      g.fillStyle(this.acc, 0.24); g.fillRect(0, H * 0.54, lw, 6); g.fillRect(0, H * 0.57, lw, 3);
+      g.fillStyle(this.prim, 0.22); g.fillRect(0, H * 0.57, lw, H * 0.24);
+      for (let x = 0; x < lw; x += 190) {
+        g.fillStyle(this.acc, 0.11); g.fillRect(x + 16, H * 0.585, 158, H * 0.205);
+        g.fillStyle(this.acc, 0.05); g.fillRect(x + 20, H * 0.592, 150, H * 0.192);
       }
     }
 
-    // Layer C — mid hall: chandeliers + tapestries (sf 0.34)
-    {
-      const sf = 0.34, lw = this._lw(sf);
-      const g = this._gfx(sf, -12);
-      // Gilded cornice at ceiling
-      g.fillStyle(this.acc, 0.20);
-      g.fillRect(0, H * 0.06, lw, 10);
-      // Egg-and-dart detail
-      for (let x = 0; x < lw; x += 24) {
-        g.fillStyle(this.acc, 0.12);
-        g.fillEllipse(x + 12, H * 0.06 + 5, 16, 10);
-      }
-      // Ceiling panels (coffered)
-      for (let x = 0; x < lw; x += 300) {
-        g.fillStyle(this.prim, 0.18);
-        g.fillRect(x + 20, H * 0.02, 260, H * 0.05);
-        g.fillStyle(this.acc, 0.08);
-        g.fillRect(x + 25, H * 0.025, 250, H * 0.04);
+    // C: chandeliers + tapestries + mirrors (sf 0.33)
+    { const sf = 0.33, lw = this._lw(sf), g = this._gfx(sf, -14);
+      // Gilded cornice
+      g.fillStyle(this.acc, 0.22); g.fillRect(0, H * 0.06, lw, 11);
+      for (let x = 0; x < lw; x += 26) { g.fillStyle(this.acc, 0.12); g.fillEllipse(x + 13, H * 0.06 + 5, 18, 11); }
+      // Ceiling coffers
+      for (let x = 0; x < lw; x += 310) {
+        g.fillStyle(this.prim, 0.18); g.fillRect(x + 22, H * 0.02, 266, H * 0.05);
+        g.fillStyle(this.acc, 0.08); g.fillRect(x + 27, H * 0.025, 256, H * 0.04);
       }
       // Chandeliers
-      for (let x = 200; x < lw; x += 600) {
-        this._chandelier(g, x, H * 0.06, this.acc, 0xfff5c0, 6, 90);
+      for (let x = 210; x < lw; x += 620) this._chandelier(g, x, H * 0.06, this.acc, 0xfff5c0, 7, 96);
+      // Tapestries
+      for (let x = 110; x < lw; x += 620) {
+        g.fillStyle(this.prim, 0.82); g.fillRect(x - 60, H * 0.09, 120, H * 0.62);
+        g.fillStyle(this.acc, 0.38); g.fillRect(x - 60, H * 0.09, 120, 6); g.fillRect(x - 60, H * 0.09 + H * 0.62 - 6, 120, 6);
+        g.fillRect(x - 60, H * 0.09, 6, H * 0.62); g.fillRect(x + 54, H * 0.09, 6, H * 0.62);
+        g.fillStyle(this.acc, 0.28); g.fillCircle(x, H * 0.29, 26);
+        g.fillTriangle(x - 22, H * 0.38, x + 22, H * 0.38, x, H * 0.56);
+        for (let ty = H * 0.46; ty < H * 0.65; ty += 22) { g.fillStyle(this.acc, 0.15); g.fillRect(x - 38, ty, 76, 3); }
       }
-      // Floor-to-ceiling tapestries
-      for (let x = 100; x < lw; x += 600) {
-        // Tapestry background
-        g.fillStyle(this.prim, 0.80);
-        g.fillRect(x - 55, H * 0.09, 110, H * 0.60);
-        // Border
-        g.fillStyle(this.acc, 0.35);
-        g.fillRect(x - 55, H * 0.09, 110, 5);
-        g.fillRect(x - 55, H * 0.09 + H * 0.60 - 5, 110, 5);
-        g.fillRect(x - 55, H * 0.09, 5, H * 0.60);
-        g.fillRect(x + 50, H * 0.09, 5, H * 0.60);
-        // Heraldic design
-        g.fillStyle(this.acc, 0.25);
-        g.fillCircle(x, H * 0.28, 25);
-        g.fillTriangle(x - 20, H * 0.38, x + 20, H * 0.38, x, H * 0.55);
-        // Decorative scrollwork
-        g.fillStyle(this.acc, 0.14);
-        for (let ty = H * 0.45; ty < H * 0.65; ty += 20) {
-          g.fillRect(x - 35, ty, 70, 3);
-        }
+      // Ornate mirrors
+      for (let x = 400; x < lw; x += 620) {
+        g.fillStyle(this.acc, 0.48); g.fillEllipse(x, H * 0.30, 108, 138);
+        g.fillStyle(0x0a0018, 0.68); g.fillEllipse(x, H * 0.30, 92, 122);
+        g.fillStyle(0xffffff, 0.055); g.fillRect(x - 30, H * 0.18, 13, 84);
       }
-      // Mirror frames
-      for (let x = 380; x < lw; x += 600) {
-        g.fillStyle(this.acc, 0.45);
-        g.fillEllipse(x, H * 0.30, 100, 130);
-        g.fillStyle(0x0e0020, 0.65);
-        g.fillEllipse(x, H * 0.30, 88, 118);
-        // Reflection sheen
-        g.fillStyle(0xffffff, 0.06);
-        g.fillRect(x - 28, H * 0.18, 12, 80);
-      }
-      // Persian rug on floor
-      g.fillStyle(this.prim, 0.55);
-      g.fillRect(0, H * 0.82, lw, H * 0.18);
-      // Rug border
-      g.fillStyle(this.acc, 0.18);
-      g.fillRect(0, H * 0.82, lw, 5);
-      // Rug pattern
-      for (let x = 40; x < lw; x += 80) {
-        g.fillStyle(this.acc, 0.10);
-        g.fillCircle(x, H * 0.88, 14);
-      }
+      // Persian rug
+      g.fillStyle(this.prim, 0.58); g.fillRect(0, H * 0.82, lw, H * 0.18);
+      g.fillStyle(this.acc, 0.20); g.fillRect(0, H * 0.82, lw, 6);
+      for (let x = 44; x < lw; x += 85) { g.fillStyle(this.acc, 0.11); g.fillCircle(x, H * 0.89, 15); }
     }
 
-    // Layer D — near: ornate pillars + candelabras (sf 0.57)
-    {
-      const sf = 0.57, lw = this._lw(sf);
-      const g = this._gfx(sf, -11);
-      for (let x = 200; x < lw; x += 540) {
-        this._ornateCol(g, x, H * 0.06, H * 0.76, 18, 0x1a0038, 0x4b0082, 0.95);
-        g.fillStyle(this.acc, 0.07);
-        g.fillCircle(x, H * 0.07, 50);
+    // D: pillars + candelabras (sf 0.57)
+    { const sf = 0.57, lw = this._lw(sf), g = this._gfx(sf, -13);
+      for (let x = 210; x < lw; x += 560) {
+        this._ornateCol(g, x, H * 0.06, H * 0.76, 19, 0x1a0038, 0x4b0082, 0.96);
+        g.fillStyle(this.acc, 0.07); g.fillCircle(x, H * 0.07, 55);
       }
-      // Tall candelabras
-      for (let x = 380; x < lw; x += 540) {
-        // Stand
-        g.fillStyle(this.acc, 0.55);
-        g.fillRect(x - 3, H * 0.42, 6, H * 0.40);
-        g.fillRect(x - 16, H * 0.82, 32, 6);
-        // Top plate
-        g.fillRect(x - 18, H * 0.43, 36, 6);
-        // 3 candles
+      for (let x = 390; x < lw; x += 560) {
+        g.fillStyle(this.acc, 0.58); g.fillRect(x - 3, H * 0.42, 6, H * 0.40); g.fillRect(x - 18, H * 0.82, 36, 7); g.fillRect(x - 20, H * 0.42, 40, 7);
         for (let ci = -1; ci <= 1; ci++) {
-          const cx2 = x + ci * 14;
-          g.fillStyle(0xfff5e0, 0.65);
-          g.fillRect(cx2 - 3, H * 0.30, 6, H * 0.13);
-          g.fillStyle(0xffaa00, 0.50);
-          g.fillCircle(cx2, H * 0.29, 5);
-          g.fillStyle(0xffcc00, 0.15);
-          g.fillCircle(cx2, H * 0.29, 18);
+          const cxi = x + ci * 15;
+          g.fillStyle(0xfff5e0, 0.68); g.fillRect(cxi - 3, H * 0.29, 6, H * 0.13);
+          g.fillStyle(0xffaa00, 0.52); g.fillCircle(cxi, H * 0.28, 6);
+          g.fillStyle(0xffcc00, 0.14); g.fillCircle(cxi, H * 0.28, 22);
         }
       }
-      g.fillStyle(0x0a0015, 0.88);
-      g.fillRect(0, H * 0.83, lw, H * 0.17);
+      g.fillStyle(0x0a0015, 0.90); g.fillRect(0, H * 0.83, lw, H * 0.17);
     }
 
-    // Layer E — candlelight warm glow shafts (sf 0.20)
-    {
-      const sf = 0.20, lw = this._lw(sf);
-      const g = this._gfx(sf, -10);
-      for (let x = 200; x < lw; x += 600) {
-        g.fillStyle(0x9370db, 0.04);
-        g.fillTriangle(x - 40, 0, x + 40, 0, x + 65, H * 0.72);
-        g.fillStyle(0xd4af37, 0.025);
-        g.fillTriangle(x - 12, 0, x + 12, 0, x + 20, H * 0.65);
+    // E: fairy-tale star sparkles scattered in air (sf 0.22)
+    { const sf = 0.22, lw = this._lw(sf), g = this._gfx(sf, -12);
+      for (let i = 0; i < 30; i++) {
+        const r = 2 + this._h(i, 30) * 6;
+        this._star(g, this._h(i, 31) * lw, H * 0.04 + this._h(i, 32) * H * 0.75, r, 0xffd700, 0.06 + this._h(i, 33) * 0.10);
+      }
+    }
+
+    // F: candlelight warm shafts (sf 0.18)
+    { const sf = 0.18, lw = this._lw(sf), g = this._gfx(sf, -11);
+      for (let x = 210; x < lw; x += 620) {
+        g.fillStyle(0x9370db, 0.04); g.fillTriangle(x - 45, 0, x + 45, 0, x + 70, H * 0.74);
+        g.fillStyle(0xd4af37, 0.025); g.fillTriangle(x - 12, 0, x + 12, 0, x + 22, H * 0.66);
       }
     }
   }
 
-  // ── 4  Museum Wing ───────────────────────────────────────
+  // ─── Stage 4 — Museum Wing ──────────────────────────────────────────────────
+  // "Craving for your touch and your love in the morning"
+  // Cold preservation of warm memories — everything beautiful but behind glass
   _museumWing() {
     const { scene, W, H } = this;
     scene.cameras.main.setBackgroundColor('#0c1414');
 
-    // Layer A — cool diffuse museum light (sf 0.06)
-    {
-      const sf = 0.06, lw = this._lw(sf);
-      const g = this._gfx(sf, -14);
-      this._gradV(g, 0, 0, lw, H, 0x0c1414, 0x1a2a2a, 20);
+    // A: cool diffuse grey-teal void (sf 0.05)
+    { const sf = 0.05, lw = this._lw(sf), g = this._gfx(sf, -16);
+      this._gradVPainted(g, 0, 0, lw, H, 0x0c1414, 0x1c2e2e, 22);
     }
 
-    // Layer B — distant vaulted gallery (sf 0.16)
-    {
-      const sf = 0.16, lw = this._lw(sf);
-      const g = this._gfx(sf, -13);
-      this._stoneWall(g, 0, H * 0.06, lw, H * 0.76, 0x1e2e2e, 0x0c1414, 50, 130, 0.88);
-      // Skylight ceiling
-      this._gradV(g, 0, 0, lw, H * 0.06, 0x2a3838, 0x3a4848, 4);
-      for (let x = 180; x < lw; x += 360) {
-        // Skylight pane
-        g.fillStyle(0x88ccdd, 0.08);
-        g.fillRect(x - 60, 0, 120, H * 0.05);
-        g.fillStyle(0x2a3838, 0.6);
-        g.fillRect(x - 60, H * 0.025, 120, 3);
-        g.fillRect(x, 0, 3, H * 0.05);
+    // B: distant vaulted gallery + skylights (sf 0.15)
+    { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
+      this._stoneWall(g, 0, H * 0.06, lw, H * 0.76, 0x1e2e2e, 0x0c1414, 52, 136, 0.90);
+      this._gradVPainted(g, 0, 0, lw, H * 0.06, 0x2c3c3c, 0x3c4c4c, 4);
+      for (let x = 190; x < lw; x += 380) {
+        g.fillStyle(0x88ccdd, 0.09); g.fillRect(x - 65, 0, 130, H * 0.06);
+        g.fillStyle(0x2c3c3c, 0.62); g.fillRect(x - 65, H * 0.027, 130, 3); g.fillRect(x, 0, 3, H * 0.06);
       }
-      this._gradV(g, 0, H * 0.80, lw, H * 0.20, 0x2a3838, 0x0c1414, 6);
+      this._gradVPainted(g, 0, H * 0.80, lw, H * 0.20, 0x2c3c3c, 0x0c1414, 7);
     }
 
-    // Layer C — mid: display cases + pillars (sf 0.34)
-    {
-      const sf = 0.34, lw = this._lw(sf);
-      const g = this._gfx(sf, -12);
-      // Coffered ceiling with steel beams
-      g.fillStyle(0x223030, 0.9);
-      g.fillRect(0, 0, lw, H * 0.12);
-      for (let x = 0; x < lw; x += 240) {
-        g.fillStyle(0x334040, 0.7);
-        g.fillRect(x, 0, 8, H * 0.12);
-        g.fillStyle(0x88ccdd, 0.04);
-        g.fillRect(x + 8, 0, 232, H * 0.12);
+    // C: display cases + pillars + marble floor (sf 0.33)
+    { const sf = 0.33, lw = this._lw(sf), g = this._gfx(sf, -14);
+      g.fillStyle(0x243030, 0.92); g.fillRect(0, 0, lw, H * 0.13);
+      for (let x = 0; x < lw; x += 250) {
+        g.fillStyle(0x344040, 0.72); g.fillRect(x, 0, 8, H * 0.13);
+        g.fillStyle(0x88ccdd, 0.04); g.fillRect(x + 8, 0, 242, H * 0.13);
       }
-      for (let y = 0; y < H * 0.12; y += 40) {
-        g.fillStyle(0x334040, 0.5);
-        g.fillRect(0, y, lw, 5);
+      for (let y = 0; y < H * 0.13; y += 42) { g.fillStyle(0x344040, 0.52); g.fillRect(0, y, lw, 5); }
+      // Vitrines (display cases)
+      for (let x = 65; x < lw; x += 380) {
+        g.fillStyle(0x4a5c5c, 0.92); g.fillRect(x, H * 0.37, 210, 6); g.fillRect(x, H * 0.63, 210, 6);
+        g.fillRect(x, H * 0.37, 6, H * 0.26); g.fillRect(x + 204, H * 0.37, 6, H * 0.26);
+        g.fillStyle(0x88ccdd, 0.065); g.fillRect(x + 6, H * 0.39, 198, H * 0.24);
+        // Artifact inside
+        g.fillStyle(this.acc, 0.32); g.fillRect(x + 72, H * 0.43, 66, 44); g.fillEllipse(x + 105, H * 0.43, 44, 32);
+        // Spotlight down
+        g.fillStyle(0xffffff, 0.032); g.fillTriangle(x + 105, H * 0.13, x + 85, H * 0.39, x + 125, H * 0.39);
+        // Reflection in floor
+        g.fillStyle(this.acc, 0.06); g.fillRect(x + 72, H * 0.82, 66, 28);
       }
-      // Display cases (glass vitrines)
-      for (let x = 60; x < lw; x += 360) {
-        // Case frame (steel/brass)
-        g.fillStyle(0x4a5a5a, 0.9);
-        g.fillRect(x, H * 0.38, 200, 5);
-        g.fillRect(x, H * 0.62, 200, 5);
-        g.fillRect(x, H * 0.38, 5, H * 0.24);
-        g.fillRect(x + 195, H * 0.38, 5, H * 0.24);
-        // Glass pane
-        g.fillStyle(0x88ccdd, 0.06);
-        g.fillRect(x + 5, H * 0.40, 190, H * 0.22);
-        // Artifact inside (generic shape)
-        g.fillStyle(this.acc, 0.30);
-        g.fillRect(x + 70, H * 0.44, 60, 40);
-        g.fillEllipse(x + 100, H * 0.44, 40, 30);
-        // Spotlight on case
-        g.fillStyle(0xffffff, 0.03);
-        g.fillTriangle(x + 100, H * 0.12, x + 80, H * 0.40, x + 120, H * 0.40);
-      }
-      // Classical pillars
-      for (let x = 220; x < lw; x += 360) {
-        this._ornateCol(g, x, H * 0.10, H * 0.72, 15, 0x2a3838, 0x4a5a5a, 0.90);
-      }
-      // Marble floor with reflection
-      this._gradV(g, 0, H * 0.82, lw, H * 0.18, 0x2a3838, 0x1a2828, 6);
-      // Tile grid
-      for (let x = 0; x < lw; x += 100) {
-        g.fillStyle(0x334040, 0.30);
-        g.fillRect(x, H * 0.82, 2, H * 0.18);
-      }
-      for (let y = H * 0.82; y < H; y += 45) {
-        g.fillStyle(0x334040, 0.18);
-        g.fillRect(0, y, lw, 2);
-      }
+      // Pillars
+      for (let x = 235; x < lw; x += 380) this._ornateCol(g, x, H * 0.11, H * 0.71, 16, 0x2c3c3c, 0x4c5c5c, 0.92);
+      // Marble floor
+      this._gradVPainted(g, 0, H * 0.82, lw, H * 0.18, 0x2c3c3c, 0x1c2c2c, 7);
+      for (let x = 0; x < lw; x += 105) { g.fillStyle(0x344040, 0.32); g.fillRect(x, H * 0.82, 2, H * 0.18); }
+      for (let y = H * 0.82; y < H; y += 48) { g.fillStyle(0x344040, 0.18); g.fillRect(0, y, lw, 2); }
     }
 
-    // Layer D — near: information plaques + specimen mounts (sf 0.57)
-    {
-      const sf = 0.57, lw = this._lw(sf);
-      const g = this._gfx(sf, -11);
-      for (let x = 100; x < lw; x += 480) {
-        // Mounted artifact panel
-        g.fillStyle(0x334040, 0.85);
-        g.fillRect(x, H * 0.28, 180, 200);
-        g.fillStyle(this.acc, 0.28);
-        g.fillRect(x + 15, H * 0.30, 150, 4);
-        g.fillStyle(0x4a5a5a, 0.55);
-        for (let ty = H * 0.34; ty < H * 0.48; ty += 12) {
-          g.fillRect(x + 15, ty, 150 * (0.4 + this._h(x, ty) * 0.6), 6);
+    // D: plaques + specimen mounts + archway frames (sf 0.57)
+    { const sf = 0.57, lw = this._lw(sf), g = this._gfx(sf, -13);
+      for (let x = 110; x < lw; x += 490) {
+        this._roundArch(g, x + 90, H * 0.82, 180, H * 0.70, 0x243030, 0.88);
+        g.fillStyle(0x344040, 0.88); g.fillRect(x, H * 0.27, 190, 210);
+        g.fillStyle(this.acc, 0.30); g.fillRect(x + 16, H * 0.29, 158, 5);
+        for (let ty = H * 0.34; ty < H * 0.49; ty += 13) {
+          g.fillStyle(0x4a5c5c, 0.58); g.fillRect(x + 16, ty, 158 * (0.4 + this._h(x, ty) * 0.6), 7);
         }
-        // Plaque
-        g.fillStyle(this.acc, 0.35);
-        g.fillRect(x + 30, H * 0.50, 120, 30);
-        g.fillStyle(0x223030, 0.75);
-        for (let ty = H * 0.52; ty < H * 0.52 + 22; ty += 7) {
-          g.fillRect(x + 38, ty, 90 * (0.5 + this._h(x * 2, ty) * 0.5), 4);
-        }
+        g.fillStyle(this.acc, 0.38); g.fillRect(x + 32, H * 0.505, 126, 32);
       }
-      g.fillStyle(0x0c1414, 0.88);
-      g.fillRect(0, H * 0.83, lw, H * 0.17);
+      g.fillStyle(0x0c1414, 0.90); g.fillRect(0, H * 0.83, lw, H * 0.17);
     }
 
-    // Layer E — cool museum spotlights (sf 0.20)
-    {
-      const sf = 0.20, lw = this._lw(sf);
-      const g = this._gfx(sf, -10);
-      for (let x = 200; x < lw; x += 360) {
-        g.fillStyle(0x88ccdd, 0.04);
-        g.fillTriangle(x - 18, 0, x + 18, 0, x + 30, H * 0.55);
-        g.fillStyle(0xffffff, 0.018);
-        g.fillTriangle(x - 5, 0, x + 5, 0, x + 8, H * 0.50);
+    // E: cool museum skylight shafts (sf 0.18)
+    { const sf = 0.18, lw = this._lw(sf), g = this._gfx(sf, -12);
+      for (let x = 205; x < lw; x += 380) {
+        g.fillStyle(0x88ccdd, 0.042); g.fillTriangle(x - 20, 0, x + 20, 0, x + 34, H * 0.57);
+        g.fillStyle(0xffffff, 0.018); g.fillTriangle(x - 5, 0, x + 5, 0, x + 9, H * 0.52);
+        for (let my = 18; my < H * 0.52; my += 36) { g.fillStyle(0x88ccdd, 0.036); g.fillCircle(x + my * 0.04, my, 4 + this._h(x, my) * 2); }
       }
+    }
+
+    // F: faint warm glow from artifacts (sf 0.05)
+    { const sf = 0.05, lw = this._lw(sf), g = this._gfx(sf, -11);
+      for (let x = 240; x < lw; x += 760) { g.fillStyle(this.acc, 0.055); g.fillCircle(x, H * 0.50, 160); }
     }
   }
 
-  // ── 5  Tech Manor ────────────────────────────────────────
+  // ─── Stage 5 — Tech Manor ───────────────────────────────────────────────────
+  // "And it felt so right, never saw it coming"
+  // Reality fracturing — ancient castle fused with glitching digital world
   _techManor() {
     const { scene, W, H } = this;
     scene.cameras.main.setBackgroundColor('#050510');
 
-    // Layer A — deep blue-black void + data-stream glow (sf 0.06)
-    {
-      const sf = 0.06, lw = this._lw(sf);
-      const g = this._gfx(sf, -14);
-      this._gradV(g, 0, 0, lw, H, 0x030310, 0x0d0d28, 20);
-      // Faint data-stream columns
-      for (let x = 0; x < lw; x += 40) {
-        for (let y = 0; y < H; y += 30) {
-          if (this._h(x, y) > 0.85) {
-            g.fillStyle(0x4a90e2, 0.08);
-            g.fillRect(x, y, 12, 18);
-          }
+    // A: deep blue-black data void (sf 0.05)
+    { const sf = 0.05, lw = this._lw(sf), g = this._gfx(sf, -16);
+      this._gradVPainted(g, 0, 0, lw, H, 0x030310, 0x0f0f28, 22);
+      // Distant data-stream glyphs
+      for (let x = 0; x < lw; x += 44) {
+        for (let y = 0; y < H; y += 32) {
+          if (this._h(x, y) > 0.86) { g.fillStyle(this.acc, 0.07); g.fillRect(x, y, 14, 20); }
         }
       }
     }
 
-    // Layer B — server room / ancient stone walls hybrid (sf 0.16)
-    {
-      const sf = 0.16, lw = this._lw(sf);
-      const g = this._gfx(sf, -13);
-      // Stone wall base (castle meets tech)
-      this._stoneWall(g, 0, H * 0.08, lw, H * 0.73, 0x0d0d1e, 0x06060f, 50, 120, 0.90);
-      // Server rack overlaid on stone
-      for (let x = 0; x < lw; x += 320) {
-        g.fillStyle(0x1a1a38, 0.85);
-        g.fillRect(x + 30, H * 0.10, 120, H * 0.68);
-        // Rack units
-        for (let ry = H * 0.12; ry < H * 0.76; ry += 22) {
-          g.fillStyle(0x222244, 0.9);
-          g.fillRect(x + 33, ry, 114, 18);
-          // Status LEDs
-          g.fillStyle(this.acc, 0.55);
-          g.fillCircle(x + 40, ry + 9, 3);
-          g.fillStyle(0x44ff44, 0.40);
-          g.fillCircle(x + 50, ry + 9, 3);
-          // Drive bays
-          g.fillStyle(0x334, 0.5);
-          for (let bx = x + 60; bx < x + 140; bx += 14) {
-            g.fillStyle(0x333355, 0.6);
-            g.fillRect(bx, ry + 3, 10, 12);
-          }
+    // B: stone castle walls with server racks overlaid (sf 0.15)
+    { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
+      this._stoneWall(g, 0, H * 0.08, lw, H * 0.74, 0x0d0d1e, 0x06060e, 52, 125, 0.92);
+      for (let x = 0; x < lw; x += 330) {
+        g.fillStyle(0x1a1a3a, 0.88); g.fillRect(x + 32, H * 0.10, 126, H * 0.68);
+        for (let ry = H * 0.12; ry < H * 0.76; ry += 24) {
+          g.fillStyle(0x222246, 0.92); g.fillRect(x + 35, ry, 120, 20);
+          g.fillStyle(this.acc, 0.58); g.fillCircle(x + 43, ry + 10, 3);
+          g.fillStyle(0x44ff88, 0.42); g.fillCircle(x + 53, ry + 10, 3);
+          for (let bx = x + 64; bx < x + 148; bx += 15) { g.fillStyle(0x333357, 0.62); g.fillRect(bx, ry + 4, 11, 12); }
         }
       }
-      // Glowing floor strip
-      this._neonBar(g, 0, H * 0.80, lw, 3, this.acc, 0.35);
-      this._gradV(g, 0, H * 0.80, lw, H * 0.20, 0x0d0d24, 0x050510, 6);
+      this._neonBar(g, 0, H * 0.80, lw, 3, this.acc, 0.38);
+      this._gradVPainted(g, 0, H * 0.80, lw, H * 0.20, 0x0f0f26, 0x050510, 7);
     }
 
-    // Layer C — holographic displays + neon pillars (sf 0.34)
-    {
-      const sf = 0.34, lw = this._lw(sf);
-      const g = this._gfx(sf, -12);
+    // C: holographic panels + neon pillars + circuit ceiling (sf 0.33)
+    { const sf = 0.33, lw = this._lw(sf), g = this._gfx(sf, -14);
       // Ceiling grid
-      g.fillStyle(0x1a1a38, 0.85);
-      g.fillRect(0, 0, lw, H * 0.10);
-      for (let x = 0; x < lw; x += 80) {
-        g.fillStyle(this.acc, 0.08);
-        g.fillRect(x, 0, 2, H * 0.10);
-      }
-      for (let y = 0; y < H * 0.10; y += 25) {
-        g.fillStyle(this.acc, 0.06);
-        g.fillRect(0, y, lw, 2);
-      }
+      g.fillStyle(0x1a1a3a, 0.88); g.fillRect(0, 0, lw, H * 0.11);
+      for (let x = 0; x < lw; x += 85) { g.fillStyle(this.acc, 0.085); g.fillRect(x, 0, 2, H * 0.11); }
+      for (let y = 0; y < H * 0.11; y += 27) { g.fillStyle(this.acc, 0.065); g.fillRect(0, y, lw, 2); }
       // Holographic display panels
-      for (let x = 50; x < lw; x += 480) {
-        // Panel frame (glowing edge)
-        this._neonBar(g, x, H * 0.14, 220, 3, this.acc, 0.60);
-        this._neonBar(g, x, H * 0.14 + H * 0.52, 220, 3, this.acc, 0.60);
-        this._neonBar(g, x, H * 0.14, 3, H * 0.52, this.acc, 0.60);
-        this._neonBar(g, x + 217, H * 0.14, 3, H * 0.52, this.acc, 0.60);
-        // Holographic content
-        g.fillStyle(this.acc, 0.04);
-        g.fillRect(x + 3, H * 0.14 + 3, 214, H * 0.52 - 6);
-        // Scan lines
-        for (let sy = H * 0.17; sy < H * 0.65; sy += 8) {
-          g.fillStyle(this.acc, 0.06);
-          g.fillRect(x + 5, sy, 210, 3);
-        }
-        // Data graph shape
-        for (let gx = x + 10; gx < x + 210; gx += 20) {
-          const ht = 40 + this._h(gx, x) * 100;
-          g.fillStyle(this.acc, 0.18);
-          g.fillRect(gx, H * 0.60 - ht, 14, ht);
+      for (let x = 55; x < lw; x += 490) {
+        this._neonBar(g, x, H * 0.13, 230, 3, this.acc, 0.62);
+        this._neonBar(g, x, H * 0.13 + H * 0.53, 230, 3, this.acc, 0.62);
+        this._neonBar(g, x, H * 0.13, 3, H * 0.53, this.acc, 0.62);
+        this._neonBar(g, x + 227, H * 0.13, 3, H * 0.53, this.acc, 0.62);
+        g.fillStyle(this.acc, 0.042); g.fillRect(x + 3, H * 0.13 + 3, 224, H * 0.53 - 6);
+        for (let sy = H * 0.16; sy < H * 0.64; sy += 9) { g.fillStyle(this.acc, 0.062); g.fillRect(x + 5, sy, 220, 4); }
+        for (let bx = x + 10; bx < x + 220; bx += 22) {
+          const ht = 42 + this._h(bx, x) * 108;
+          g.fillStyle(this.acc, 0.20); g.fillRect(bx, H * 0.62 - ht, 16, ht);
         }
       }
-      // Neon accent pillars
-      for (let x = 280; x < lw; x += 480) {
-        this._neonBar(g, x - 6, H * 0.10, 12, H * 0.72, this.acc, 0.12);
-        g.fillStyle(0x1a1a38, 0.9);
-        g.fillRect(x - 5, H * 0.10, 10, H * 0.72);
-        this._neonBar(g, x - 1, H * 0.10, 2, H * 0.72, this.acc, 0.55);
+      // Neon pillars
+      for (let x = 290; x < lw; x += 490) {
+        this._neonBar(g, x - 7, H * 0.11, 14, H * 0.71, this.acc, 0.11);
+        g.fillStyle(0x1a1a3a, 0.92); g.fillRect(x - 5, H * 0.11, 10, H * 0.71);
+        this._neonBar(g, x - 1, H * 0.11, 2, H * 0.71, this.acc, 0.58);
       }
-      // Metallic floor with reflection
-      g.fillStyle(0x111126, 0.95);
-      g.fillRect(0, H * 0.82, lw, H * 0.18);
-      for (let x = 0; x < lw; x += 80) {
-        g.fillStyle(this.acc, 0.05);
-        g.fillRect(x, H * 0.82, 2, H * 0.18);
+      // Metallic floor
+      g.fillStyle(0x111128, 0.96); g.fillRect(0, H * 0.82, lw, H * 0.18);
+      for (let x = 0; x < lw; x += 85) { g.fillStyle(this.acc, 0.052); g.fillRect(x, H * 0.82, 2, H * 0.18); }
+      for (let x = 55; x < lw; x += 490) { g.fillStyle(this.acc, 0.04); g.fillRect(x, H * 0.82, 230, H * 0.18); }
+    }
+
+    // D: circuit-board archways + near panels (sf 0.57)
+    { const sf = 0.57, lw = this._lw(sf), g = this._gfx(sf, -13);
+      for (let x = 0; x < lw; x += 580) {
+        g.fillStyle(0x0d0d1e, 0.93); g.fillRect(x, 0, 26, H * 0.84);
+        g.fillStyle(this.acc, 0.22);
+        for (let ty = 22; ty < H * 0.84; ty += 58) {
+          g.fillRect(x + 7, ty, 12, 3); g.fillRect(x + 7, ty + 3, 3, 22); g.fillCircle(x + 13, ty + 25, 5);
+        }
       }
-      // Floor reflection of neon
-      for (let x = 50; x < lw; x += 480) {
-        g.fillStyle(this.acc, 0.04);
-        g.fillRect(x, H * 0.82, 220, H * 0.18);
+      g.fillStyle(0x050510, 0.92); g.fillRect(0, H * 0.83, lw, H * 0.17);
+    }
+
+    // E: glitch fragments — "never saw it coming" (sf 0.22)
+    { const sf = 0.22, lw = this._lw(sf), g = this._gfx(sf, -12);
+      for (let i = 0; i < 20; i++) {
+        const gx = this._h(i, 40) * lw, gy = H * 0.05 + this._h(i, 41) * H * 0.80;
+        const gw = 8 + this._h(i, 42) * 80, gh = 2 + this._h(i, 43) * 8;
+        g.fillStyle(this.acc, 0.08 + this._h(i, 44) * 0.10); g.fillRect(gx, gy, gw, gh);
       }
     }
 
-    // Layer D — near: circuit-board archways + floating UI widgets (sf 0.57)
-    {
-      const sf = 0.57, lw = this._lw(sf);
-      const g = this._gfx(sf, -11);
-      // Archways with circuit board motifs
-      for (let x = 0; x < lw; x += 560) {
-        g.fillStyle(0x0d0d1e, 0.92);
-        g.fillRect(x, 0, 24, H * 0.84);
-        // PCB traces
-        g.fillStyle(this.acc, 0.20);
-        for (let ty = 20; ty < H * 0.84; ty += 55) {
-          g.fillRect(x + 6, ty, 12, 3);
-          g.fillRect(x + 6, ty + 3, 3, 20);
-          g.fillCircle(x + 12, ty + 23, 4);
-        }
-      }
-      g.fillStyle(0x050510, 0.90);
-      g.fillRect(0, H * 0.83, lw, H * 0.17);
-    }
-
-    // Layer E — neon light shafts (sf 0.20)
-    {
-      const sf = 0.20, lw = this._lw(sf);
-      const g = this._gfx(sf, -10);
-      for (let x = 130; x < lw; x += 480) {
-        g.fillStyle(this.acc, 0.04);
-        g.fillTriangle(x - 20, 0, x + 20, 0, x + 35, H * 0.70);
-        g.fillStyle(this.acc, 0.025);
-        g.fillTriangle(x - 45, 0, x + 45, 0, x + 65, H * 0.80);
+    // F: neon light shafts (sf 0.18)
+    { const sf = 0.18, lw = this._lw(sf), g = this._gfx(sf, -11);
+      for (let x = 135; x < lw; x += 490) {
+        g.fillStyle(this.acc, 0.042); g.fillTriangle(x - 22, 0, x + 22, 0, x + 38, H * 0.72);
+        g.fillStyle(this.acc, 0.022); g.fillTriangle(x - 50, 0, x + 50, 0, x + 72, H * 0.84);
       }
     }
   }
 
-  // ── 6  Armory Corridor ───────────────────────────────────
+  // ─── Stage 6 — Armory Corridor ─────────────────────────────────────────────
+  // "Guess the fairy tale only lasted a moment"
+  // The battle is over — cold stone, fallen banners, the aftermath of heartbreak
   _armoryCorridor() {
     const { scene, W, H } = this;
     scene.cameras.main.setBackgroundColor('#0a0d10');
 
-    // Layer A — cold stone void (sf 0.06)
-    {
-      const sf = 0.06, lw = this._lw(sf);
-      const g = this._gfx(sf, -14);
-      this._gradV(g, 0, 0, lw, H, 0x080c10, 0x141e24, 20);
+    // A: cold stone void (sf 0.05)
+    { const sf = 0.05, lw = this._lw(sf), g = this._gfx(sf, -16);
+      this._gradVPainted(g, 0, 0, lw, H, 0x080c10, 0x141e26, 22);
     }
 
-    // Layer B — far stone corridor (sf 0.16)
-    {
-      const sf = 0.16, lw = this._lw(sf);
-      const g = this._gfx(sf, -13);
-      this._stoneWall(g, 0, H * 0.04, lw, H * 0.78, 0x1a2228, 0x0e1418, 56, 144, 0.90);
-      // Arrow-slit windows
-      for (let x = 150; x < lw; x += 360) {
-        g.fillStyle(0x0e1418, 0.9);
-        g.fillRect(x - 10, H * 0.10, 20, H * 0.28);
-        g.fillRect(x - 5, H * 0.10 - 20, 10, 20);
-        // Faint exterior glow
-        g.fillStyle(0x88aacc, 0.06);
-        g.fillRect(x - 8, H * 0.12, 16, H * 0.24);
+    // B: far stone corridor with arrow-slits (sf 0.15)
+    { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
+      this._stoneWall(g, 0, H * 0.04, lw, H * 0.78, 0x1c2430, 0x0e1418, 58, 148, 0.92);
+      for (let x = 160; x < lw; x += 375) {
+        g.fillStyle(0x0e1418, 0.92); g.fillRect(x - 12, H * 0.10, 24, H * 0.30);
+        g.fillStyle(0x88aacc, 0.065); g.fillRect(x - 9, H * 0.12, 18, H * 0.26);
       }
-      this._gradV(g, 0, H * 0.80, lw, H * 0.20, 0x1a2228, 0x0a0d10, 6);
+      // Distant vault ceiling
+      this._gradVPainted(g, 0, 0, lw, H * 0.04, 0x141e26, 0x1e2c38, 4);
+      this._gradVPainted(g, 0, H * 0.80, lw, H * 0.20, 0x1c2430, 0x0a0d10, 7);
     }
 
-    // Layer C — mid armory: weapon racks + banners (sf 0.34)
-    {
-      const sf = 0.34, lw = this._lw(sf);
-      const g = this._gfx(sf, -12);
-      // Curved stone vault ceiling
-      this._gradV(g, 0, 0, lw, H * 0.15, 0x141e24, 0x1e2c34, 6);
-      for (let x = 0; x < lw; x += 240) {
-        g.fillStyle(0x1a2630, 0.6);
-        g.fillRect(x, 0, 6, H * 0.15);
-      }
-      // Weapon racks (swords, spears, shields)
-      for (let x = 30; x < lw; x += 440) {
-        // Rack beam
-        g.fillStyle(0x2e3840, 0.9);
-        g.fillRect(x, H * 0.15, 280, 8);
-        // Swords hanging
+    // C: weapon racks + banners + vaulted ceiling (sf 0.33)
+    { const sf = 0.33, lw = this._lw(sf), g = this._gfx(sf, -14);
+      this._gradVPainted(g, 0, 0, lw, H * 0.16, 0x141e26, 0x1e2c38, 7);
+      for (let x = 0; x < lw; x += 250) { g.fillStyle(0x1c2c38, 0.62); g.fillRect(x, 0, 6, H * 0.16); }
+      // Weapon racks
+      for (let x = 32; x < lw; x += 460) {
+        g.fillStyle(0x2e3a42, 0.92); g.fillRect(x, H * 0.14, 295, 9);
         for (let k = 0; k < 6; k++) {
-          const kx = x + 22 + k * 44;
-          // Sword hilt
-          g.fillStyle(this.acc, 0.55);
-          g.fillRect(kx - 8, H * 0.16, 16, 5);
-          g.fillStyle(0x4a5a6a, 0.70);
-          g.fillRect(kx - 2, H * 0.21, 4, H * 0.36);
-          // Blade glint
-          g.fillStyle(0xc0c0c0, 0.55);
-          g.fillRect(kx - 1, H * 0.22, 2, H * 0.34);
-          g.fillStyle(0xffffff, 0.14);
-          g.fillRect(kx, H * 0.22, 1, H * 0.30);
+          const kx = x + 24 + k * 46;
+          g.fillStyle(this.acc, 0.58); g.fillRect(kx - 9, H * 0.15, 18, 5);
+          g.fillStyle(0x4a5c6c, 0.72); g.fillRect(kx - 2, H * 0.20, 4, H * 0.37);
+          g.fillStyle(0xc8c8c8, 0.58); g.fillRect(kx - 1, H * 0.21, 2, H * 0.35);
+          g.fillStyle(0xffffff, 0.16); g.fillRect(kx, H * 0.21, 1, H * 0.31);
         }
-        // Shields mounted on wall
+        // Shields
         for (let k = 0; k < 4; k++) {
-          const sx = x + 300 + k * 65;
-          // Shield body
-          g.fillStyle(0x2e3840, 0.9);
-          g.fillRect(sx - 22, H * 0.20, 44, 52);
-          g.fillTriangle(sx - 22, H * 0.20 + 52, sx + 22, H * 0.20 + 52, sx, H * 0.20 + 70);
-          // Shield emblem
-          g.fillStyle(this.acc, 0.35);
-          g.fillCircle(sx, H * 0.20 + 26, 12);
-          g.fillStyle(this.acc, 0.20);
-          g.fillRect(sx - 14, H * 0.20 + 22, 28, 4);
-          g.fillRect(sx - 2, H * 0.20 + 14, 4, 20);
-          // Boss stud
-          g.fillStyle(this.acc, 0.55);
-          g.fillCircle(sx, H * 0.20 + 26, 5);
+          const sx = x + 310 + k * 68;
+          g.fillStyle(0x2e3a42, 0.92);
+          g.fillPoints([
+            { x: sx - 24, y: H * 0.19 }, { x: sx + 24, y: H * 0.19 },
+            { x: sx + 24, y: H * 0.19 + 56 }, { x: sx, y: H * 0.19 + 76 },
+            { x: sx - 24, y: H * 0.19 + 56 },
+          ], true);
+          g.fillStyle(this.acc, 0.38); g.fillCircle(sx, H * 0.19 + 28, 13);
+          g.fillStyle(this.acc, 0.22); g.fillRect(sx - 16, H * 0.19 + 24, 32, 4); g.fillRect(sx - 2, H * 0.19 + 14, 4, 22);
+          g.fillStyle(this.acc, 0.58); g.fillCircle(sx, H * 0.19 + 28, 5);
         }
       }
-      // Battle banners
-      for (let x = 180; x < lw; x += 440) {
-        // Pole
-        g.fillStyle(0x4a5a6a, 0.8);
-        g.fillRect(x + 220 - 3, H * 0.03, 6, H * 0.55);
-        // Banner cloth
-        g.fillStyle(0x8b0000, 0.65);
-        g.fillRect(x + 220, H * 0.04, 70, H * 0.42);
-        // Banner edge serration
-        for (let by = H * 0.04; by < H * 0.04 + H * 0.42; by += 20) {
-          g.fillStyle(this.acc, 0.20);
-          g.fillRect(x + 220, by, 70, 4);
+      // Battle banners (some slightly torn — "fairy tale ended")
+      for (let x = 190; x < lw; x += 460) {
+        g.fillStyle(0x4a5c6c, 0.82); g.fillRect(x + 230 - 4, H * 0.02, 7, H * 0.57);
+        g.fillStyle(0x8b0000, 0.68); g.fillRect(x + 230, H * 0.03, 75, H * 0.44);
+        for (let by = H * 0.03; by < H * 0.03 + H * 0.44; by += 22) { g.fillStyle(this.acc, 0.22); g.fillRect(x + 230, by, 75, 4); }
+        g.fillStyle(this.acc, 0.48); g.fillCircle(x + 230 + 37, H * 0.17, 22);
+        g.fillStyle(0x8b0000, 0.72); g.fillCircle(x + 230 + 37, H * 0.17, 13);
+        g.fillStyle(this.acc, 0.44); g.fillRect(x + 230 + 35, H * 0.11, 4, 26); g.fillRect(x + 230 + 27, H * 0.17, 20, 4);
+        // Torn lower edge
+        for (let tx = x + 230; tx < x + 305; tx += 8) {
+          const tear = this._h(tx, x) * 18;
+          g.fillStyle(0x0a0d10, 0.7); g.fillTriangle(tx, H * 0.03 + H * 0.44 - tear, tx + 8, H * 0.03 + H * 0.44 - tear, tx + 4, H * 0.03 + H * 0.44 + 4);
         }
-        // Emblem
-        g.fillStyle(this.acc, 0.45);
-        g.fillCircle(x + 220 + 35, H * 0.18, 20);
-        g.fillStyle(0x8b0000, 0.7);
-        g.fillCircle(x + 220 + 35, H * 0.18, 12);
-        g.fillStyle(this.acc, 0.40);
-        g.fillRect(x + 220 + 33, H * 0.12, 4, 24);
-        g.fillRect(x + 220 + 27, H * 0.17, 16, 4);
       }
-      // Stone floor
-      this._stoneWall(g, 0, H * 0.82, lw, H * 0.18, 0x1e2a30, 0x0e1418, 30, 90, 0.92);
+      this._stoneWall(g, 0, H * 0.82, lw, H * 0.18, 0x1e2a32, 0x0e1418, 32, 95, 0.94);
     }
 
-    // Layer D — near: iron torch brackets + portcullis shadows (sf 0.57)
-    {
-      const sf = 0.57, lw = this._lw(sf);
-      const g = this._gfx(sf, -11);
-      // Iron torch brackets
-      for (let x = 100; x < lw; x += 480) {
-        this._wallLamp(g, x, H * 0.25, 0x2e3840, 0xff7722);
-      }
-      for (let x = 360; x < lw; x += 480) {
-        this._wallLamp(g, x, H * 0.55, 0x2e3840, 0xff7722);
-      }
-      // Portcullis shadow bars
-      for (let x = 0; x < lw; x += 560) {
-        g.fillStyle(0x0a0d10, 0.25);
-        g.fillRect(x, 0, 10, H * 0.82);
-      }
-      g.fillStyle(0x0a0d10, 0.88);
-      g.fillRect(0, H * 0.83, lw, H * 0.17);
+    // D: iron torches + portcullis shadow bars (sf 0.57)
+    { const sf = 0.57, lw = this._lw(sf), g = this._gfx(sf, -13);
+      for (let x = 105; x < lw; x += 490) this._lamp(g, x, H * 0.24, 0x2e3a42, 0xff7722);
+      for (let x = 370; x < lw; x += 490) this._lamp(g, x, H * 0.55, 0x2e3a42, 0xff7722);
+      for (let x = 0; x < lw; x += 580) { g.fillStyle(0x0a0d10, 0.27); g.fillRect(x, 0, 11, H * 0.84); }
+      g.fillStyle(0x0a0d10, 0.90); g.fillRect(0, H * 0.83, lw, H * 0.17);
     }
 
-    // Layer E — torch fire glow shafts (sf 0.20)
-    {
-      const sf = 0.20, lw = this._lw(sf);
-      const g = this._gfx(sf, -10);
-      for (let x = 140; x < lw; x += 480) {
-        g.fillStyle(0xff7722, 0.04);
-        g.fillTriangle(x - 22, H * 0.28, x + 22, H * 0.28, x + 35, H * 0.82);
-        g.fillStyle(0xff9944, 0.025);
-        g.fillTriangle(x - 40, H * 0.28, x + 40, H * 0.28, x + 55, H * 0.92);
+    // E: torch ember sparks floating up (sf 0.22)
+    { const sf = 0.22, lw = this._lw(sf), g = this._gfx(sf, -12);
+      for (let i = 0; i < 22; i++) {
+        const ex = this._h(i, 50) * lw, ey = H * 0.15 + this._h(i, 51) * H * 0.65;
+        this._star(g, ex, ey, 2 + this._h(i, 52) * 4, 0xff7722, 0.06 + this._h(i, 53) * 0.10);
+      }
+    }
+
+    // F: torch fire shafts (sf 0.18)
+    { const sf = 0.18, lw = this._lw(sf), g = this._gfx(sf, -11);
+      for (let x = 148; x < lw; x += 490) {
+        g.fillStyle(0xff7722, 0.042); g.fillTriangle(x - 24, H * 0.28, x + 24, H * 0.28, x + 38, H * 0.84);
+        g.fillStyle(0xff9944, 0.022); g.fillTriangle(x - 44, H * 0.28, x + 44, H * 0.28, x + 58, H * 0.96);
       }
     }
   }
 
-  // ── 7  Art Gallery ───────────────────────────────────────
+  // ─── Stage 7 — Art Gallery ──────────────────────────────────────────────────
+  // "Everything all I've had, now it's gone"
+  // Beautiful things behind glass, unreachable — paintings of what was
   _artGallery() {
     const { scene, W, H } = this;
     scene.cameras.main.setBackgroundColor('#120008');
 
-    // Layer A — deep maroon void (sf 0.06)
-    {
-      const sf = 0.06, lw = this._lw(sf);
-      const g = this._gfx(sf, -14);
-      this._gradV(g, 0, 0, lw, H, 0x0e0006, 0x200010, 20);
+    // A: deep maroon void (sf 0.05)
+    { const sf = 0.05, lw = this._lw(sf), g = this._gfx(sf, -16);
+      this._gradVPainted(g, 0, 0, lw, H, 0x0e0006, 0x220012, 22);
     }
 
-    // Layer B — distant long gallery with paintings (sf 0.16)
-    {
-      const sf = 0.16, lw = this._lw(sf);
-      const g = this._gfx(sf, -13);
-      // Wall
-      this._gradV(g, 0, H * 0.05, lw, H * 0.78, 0x1c0010, 0x280018, 10);
-      // Picture rail molding
-      g.fillStyle(this.acc, 0.18);
-      g.fillRect(0, H * 0.10, lw, 6);
-      // Far paintings (simplified rectangles)
-      for (let x = 30; x < lw; x += 260) {
-        const pw = 100 + this._h(x, 0) * 80;
-        const ph = 80 + this._h(x, 1) * 70;
-        // Frame
-        g.fillStyle(this.acc, 0.35);
-        g.fillRect(x, H * 0.14, pw + 10, ph + 10);
-        // Canvas
-        const baseHue = this._h(x, 2);
-        const cc = baseHue < 0.33 ? 0x8b3020 : baseHue < 0.66 ? 0x1e4a6a : 0x3a5a2a;
-        g.fillStyle(cc, 0.55);
-        g.fillRect(x + 5, H * 0.14 + 5, pw, ph);
-        // Highlight
-        g.fillStyle(0xffffff, 0.04);
-        g.fillRect(x + 7, H * 0.14 + 7, pw * 0.4, ph);
+    // B: distant long gallery with hung paintings (sf 0.15)
+    { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
+      this._gradVPainted(g, 0, H * 0.05, lw, H * 0.78, 0x1e0012, 0x2c0018, 12);
+      g.fillStyle(this.acc, 0.20); g.fillRect(0, H * 0.10, lw, 7); // picture rail
+      for (let x = 32; x < lw; x += 270) {
+        const pw = 105 + this._h(x, 0) * 85, ph = 84 + this._h(x, 1) * 72;
+        g.fillStyle(this.acc, 0.38); g.fillRect(x, H * 0.13, pw + 12, ph + 12);
+        const cc = this._h(x, 2) < 0.33 ? 0x8b2020 : this._h(x, 2) < 0.66 ? 0x1e4060 : 0x2c5a1a;
+        g.fillStyle(cc, 0.58); g.fillRect(x + 6, H * 0.13 + 6, pw, ph);
+        g.fillStyle(0xffffff, 0.038); g.fillRect(x + 8, H * 0.135, pw * 0.38, ph);
       }
-      this._gradV(g, 0, H * 0.80, lw, H * 0.20, 0x1c0010, 0x0e0006, 6);
+      this._gradVPainted(g, 0, H * 0.80, lw, H * 0.20, 0x1e0012, 0x0e0006, 7);
     }
 
-    // Layer C — mid gallery: large masterwork paintings + pedestals (sf 0.34)
-    {
-      const sf = 0.34, lw = this._lw(sf);
-      const g = this._gfx(sf, -12);
-      // Coffered ceiling with rosettes
-      this._gradV(g, 0, 0, lw, H * 0.12, 0x1c0012, 0x2e001e, 6);
-      for (let x = 60; x < lw; x += 180) {
-        g.fillStyle(this.acc, 0.10);
-        g.fillCircle(x, H * 0.06, 15);
-        g.lineStyle(1, this.acc, 0.08);
-        g.lineBetween(x, H * 0.0, x, H * 0.12);
-        g.lineBetween(x - 90, H * 0.06, x + 90, H * 0.06);
+    // C: large masterwork paintings + pedestals + coffered ceiling (sf 0.33)
+    { const sf = 0.33, lw = this._lw(sf), g = this._gfx(sf, -14);
+      this._gradVPainted(g, 0, 0, lw, H * 0.12, 0x1e0012, 0x300018, 7);
+      for (let x = 65; x < lw; x += 185) {
+        g.fillStyle(this.acc, 0.11); g.fillCircle(x, H * 0.06, 16);
+        g.lineStyle(1, this.acc, 0.075); g.lineBetween(x, 0, x, H * 0.12); g.lineBetween(x - 92, H * 0.06, x + 92, H * 0.06);
       }
-      // Large ornate-framed paintings
-      for (let x = 0; x < lw; x += 460) {
-        const pw = 200, ph = 140;
-        const px = x + 30, py = H * 0.14;
-        // Elaborate gold frame (4 layers of molding)
-        g.fillStyle(this._lighten(this.acc, 0.3), 0.65);
-        g.fillRect(px - 16, py - 16, pw + 32, ph + 32);
-        g.fillStyle(this.acc, 0.80);
-        g.fillRect(px - 10, py - 10, pw + 20, ph + 20);
-        g.fillStyle(this._darken(this.acc, 0.3), 0.70);
-        g.fillRect(px - 5, py - 5, pw + 10, ph + 10);
-        // Frame corner rosettes
-        for (const [fx, fy] of [[px - 10, py - 10],[px + pw + 10, py - 10],[px - 10, py + ph + 10],[px + pw + 10, py + ph + 10]]) {
-          g.fillStyle(this._lighten(this.acc, 0.5), 0.80);
-          g.fillCircle(fx, fy, 8);
+      for (let x = 0; x < lw; x += 475) {
+        const pw = 210, ph = 148, px = x + 32, py = H * 0.13;
+        // 4-layer ornate gold frame
+        g.fillStyle(this._lighten(this.acc, 0.28), 0.68); g.fillRect(px - 18, py - 18, pw + 36, ph + 36);
+        g.fillStyle(this.acc, 0.82);                       g.fillRect(px - 12, py - 12, pw + 24, ph + 24);
+        g.fillStyle(this._darken(this.acc, 0.28), 0.72);   g.fillRect(px - 6,  py - 6,  pw + 12, ph + 12);
+        // Corner rosettes
+        for (const [fx, fy] of [[px - 12, py - 12],[px + pw + 12, py - 12],[px - 12, py + ph + 12],[px + pw + 12, py + ph + 12]]) {
+          g.fillStyle(this._lighten(this.acc, 0.50), 0.82); g.fillCircle(fx, fy, 9);
         }
-        // Canvas (color-field painting)
-        const palette = [0x8b2020, 0x4a2060, 0x1e4060, 0x3a6020, 0x8b5020];
-        const mainCol = palette[Math.floor(this._h(x, 5) * palette.length)];
-        g.fillStyle(mainCol, 0.70);
-        g.fillRect(px, py, pw, ph);
-        // Painted subject (abstract shape)
-        g.fillStyle(this._lighten(mainCol, 0.3), 0.35);
-        g.fillEllipse(px + pw * 0.5, py + ph * 0.45, pw * 0.55, ph * 0.60);
-        // Light glare on varnish
-        g.fillStyle(0xffffff, 0.05);
-        g.fillRect(px + 8, py + 8, pw * 0.25, ph - 16);
-        // Spotlight cone
-        g.fillStyle(0xfff5c0, 0.04);
-        g.fillTriangle(px + pw / 2 - 15, 0, px + pw / 2 + 15, 0, px + pw / 2 + 30, py);
+        // Canvas
+        const palette = [0x8b2020, 0x4a2060, 0x1e4060, 0x3a6020, 0x8b5020, 0x602040];
+        const mainC = palette[Math.floor(this._h(x, 5) * palette.length)];
+        g.fillStyle(mainC, 0.72); g.fillRect(px, py, pw, ph);
+        g.fillStyle(this._lighten(mainC, 0.28), 0.36); g.fillEllipse(px + pw * 0.5, py + ph * 0.44, pw * 0.58, ph * 0.62);
+        // Varnish glare
+        g.fillStyle(0xffffff, 0.048); g.fillRect(px + 7, py + 7, pw * 0.24, ph - 14);
+        // Spotlight
+        g.fillStyle(0xfff5c0, 0.038); g.fillTriangle(px + pw / 2 - 16, 0, px + pw / 2 + 16, 0, px + pw / 2 + 32, py);
       }
-      // Marble pedestals with sculptures
-      for (let x = 280; x < lw; x += 460) {
-        // Pedestal
-        g.fillStyle(0x3a2028, 0.85);
-        g.fillRect(x - 28, H * 0.54, 56, H * 0.28);
-        g.fillRect(x - 35, H * 0.78, 70, 8);
-        g.fillRect(x - 35, H * 0.52, 70, 8);
-        // Abstract sculpture
-        g.fillStyle(0xc0a0a8, 0.60);
-        g.fillEllipse(x, H * 0.46, 44, 55);
-        g.fillCircle(x, H * 0.36, 18);
-        // Highlight
-        g.fillStyle(0xffffff, 0.08);
-        g.fillRect(x - 14, H * 0.35, 6, 60);
+      // Marble pedestals
+      for (let x = 295; x < lw; x += 475) {
+        g.fillStyle(0x3a2028, 0.88); g.fillRect(x - 30, H * 0.54, 60, H * 0.28);
+        g.fillStyle(0x4a3038, 0.72); g.fillRect(x - 37, H * 0.78, 74, 9); g.fillRect(x - 37, H * 0.52, 74, 9);
+        g.fillStyle(0xc0a0a8, 0.62); g.fillEllipse(x, H * 0.45, 46, 58); g.fillCircle(x, H * 0.35, 20);
+        g.fillStyle(0xffffff, 0.08); g.fillRect(x - 16, H * 0.34, 7, 64);
       }
-      // Parquet with herringbone hint
-      g.fillStyle(0x200010, 0.95);
-      g.fillRect(0, H * 0.82, lw, H * 0.18);
-      for (let x = 0; x < lw; x += 60) {
-        g.fillStyle(0x380020, 0.25);
-        g.fillRect(x, H * 0.82, 2, H * 0.18);
+      // Herringbone parquet
+      g.fillStyle(0x220012, 0.96); g.fillRect(0, H * 0.82, lw, H * 0.18);
+      for (let x = 0; x < lw; x += 62) { g.fillStyle(0x3a0020, 0.27); g.fillRect(x, H * 0.82, 2, H * 0.18); }
+      for (let y = H * 0.84; y < H; y += 30) { g.fillStyle(0x3a0020, 0.14); g.fillRect(0, y, lw, 2); }
+    }
+
+    // D: ornate columns + track lighting + near archways (sf 0.57)
+    { const sf = 0.57, lw = this._lw(sf), g = this._gfx(sf, -13);
+      for (let x = 210; x < lw; x += 560) {
+        this._ornateCol(g, x, H * 0.06, H * 0.76, 19, 0x220012, 0x800020, 0.96);
+        g.fillStyle(this.acc, 0.065); g.fillCircle(x, H * 0.07, 55);
       }
-      for (let y = H * 0.84; y < H; y += 28) {
-        g.fillStyle(0x380020, 0.14);
-        g.fillRect(0, y, lw, 2);
+      g.fillStyle(0x2e1a18, 0.82); g.fillRect(0, H * 0.06, lw, 9);
+      for (let x = 85; x < lw; x += 210) {
+        g.fillStyle(0x3a2020, 0.92); g.fillEllipse(x, H * 0.075, 22, 15);
+        g.fillStyle(0xfff5c0, 0.28); g.fillCircle(x, H * 0.085, 6);
+        g.fillStyle(0xfff5c0, 0.062); g.fillTriangle(x - 20, H * 0.095, x + 20, H * 0.095, x + 28, H * 0.52);
+      }
+      g.fillStyle(0x0e0006, 0.90); g.fillRect(0, H * 0.83, lw, H * 0.17);
+    }
+
+    // E: gallery spotlights (sf 0.18)
+    { const sf = 0.18, lw = this._lw(sf), g = this._gfx(sf, -12);
+      for (let x = 137; x < lw; x += 475) {
+        g.fillStyle(0xfff5c0, 0.044); g.fillTriangle(x - 22, H * 0.07, x + 22, H * 0.07, x + 36, H * 0.57);
+        g.fillStyle(0xfff5c0, 0.022); g.fillTriangle(x - 50, H * 0.07, x + 50, H * 0.07, x + 66, H * 0.68);
+        for (let my = H * 0.10; my < H * 0.52; my += 38) { g.fillStyle(0xfff5c0, 0.026); g.fillCircle(x + (my - H * 0.10) * 0.05, my, 3 + this._h(x, my) * 2); }
       }
     }
 
-    // Layer D — near: ornate columns + track lighting (sf 0.57)
-    {
-      const sf = 0.57, lw = this._lw(sf);
-      const g = this._gfx(sf, -11);
-      for (let x = 200; x < lw; x += 540) {
-        this._ornateCol(g, x, H * 0.06, H * 0.76, 18, 0x200010, 0x800020, 0.95);
-        g.fillStyle(this.acc, 0.06);
-        g.fillCircle(x, H * 0.07, 50);
-      }
-      // Gallery track lighting bar
-      g.fillStyle(0x2e1a18, 0.80);
-      g.fillRect(0, H * 0.06, lw, 8);
-      // Track lights
-      for (let x = 80; x < lw; x += 200) {
-        g.fillStyle(0x3a2020, 0.9);
-        g.fillEllipse(x, H * 0.07, 20, 14);
-        g.fillStyle(0xfff5c0, 0.25);
-        g.fillCircle(x, H * 0.08, 5);
-        g.fillStyle(0xfff5c0, 0.06);
-        g.fillTriangle(x - 18, H * 0.09, x + 18, H * 0.09, x + 25, H * 0.50);
-      }
-      g.fillStyle(0x0e0006, 0.88);
-      g.fillRect(0, H * 0.83, lw, H * 0.17);
-    }
-
-    // Layer E — gallery spotlights (sf 0.20)
-    {
-      const sf = 0.20, lw = this._lw(sf);
-      const g = this._gfx(sf, -10);
-      for (let x = 130; x < lw; x += 460) {
-        g.fillStyle(0xfff5c0, 0.04);
-        g.fillTriangle(x - 20, H * 0.07, x + 20, H * 0.07, x + 32, H * 0.55);
-        g.fillStyle(0xfff5c0, 0.022);
-        g.fillTriangle(x - 45, H * 0.07, x + 45, H * 0.07, x + 60, H * 0.65);
+    // F: floating star sparks — "everything I've had" (sf 0.22)
+    { const sf = 0.22, lw = this._lw(sf), g = this._gfx(sf, -11);
+      for (let i = 0; i < 25; i++) {
+        const r = 1 + this._h(i, 60) * 5;
+        this._star(g, this._h(i, 61) * lw, H * 0.05 + this._h(i, 62) * H * 0.80, r, 0xffd700, 0.04 + this._h(i, 63) * 0.07);
       }
     }
   }
 
-  // ── 8  Treasure Vault ────────────────────────────────────
+  // ─── Stage 8 — Treasure Vault ───────────────────────────────────────────────
+  // "Once Upon A…" — the ellipsis, the locked-away love, the sealed ending
+  // Darkness, guarded gold, gems that used to sparkle freely, now imprisoned
   _treasureVault() {
     const { scene, W, H } = this;
-    scene.cameras.main.setBackgroundColor('#050510');
+    scene.cameras.main.setBackgroundColor('#05050f');
 
-    // Layer A — deep dark near-black with golden underglow (sf 0.06)
-    {
-      const sf = 0.06, lw = this._lw(sf);
-      const g = this._gfx(sf, -14);
-      this._gradV(g, 0, 0, lw, H, 0x050510, 0x0f0f20, 20);
-      // Distant gold glow pools
-      for (let x = 400; x < lw; x += 800) {
-        g.fillStyle(0xffd700, 0.07);
-        g.fillCircle(x, H * 0.75, 250);
+    // A: near-black void with deep golden underglow (sf 0.05)
+    { const sf = 0.05, lw = this._lw(sf), g = this._gfx(sf, -16);
+      this._gradVPainted(g, 0, 0, lw, H, 0x050510, 0x101022, 22);
+      for (let x = 500; x < lw; x += 1000) {
+        g.fillStyle(0xffd700, 0.08); g.fillCircle(x, H * 0.76, 280);
+        g.fillStyle(0xffd700, 0.04); g.fillCircle(x, H * 0.76, 420);
       }
     }
 
-    // Layer B — far vault interior: stacked chests + archways (sf 0.16)
-    {
-      const sf = 0.16, lw = this._lw(sf);
-      const g = this._gfx(sf, -13);
-      this._stoneWall(g, 0, H * 0.05, lw, H * 0.76, 0x0f0f1e, 0x070710, 60, 150, 0.88);
-      // Distant stacked treasure chests
-      for (let x = 0; x < lw; x += 300) {
+    // B: stacked treasure chests + stone vault (sf 0.15)
+    { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
+      this._stoneWall(g, 0, H * 0.05, lw, H * 0.77, 0x0f0f1e, 0x070710, 62, 155, 0.90);
+      for (let x = 0; x < lw; x += 310) {
         for (let row = 0; row < 3; row++) {
-          const cy = H * 0.65 - row * 52;
-          g.fillStyle(0x2a1e00, 0.80);
-          g.fillRect(x + 40, cy, 90, 44);
-          // Chest lid
-          g.fillStyle(0x3d2c00, 0.75);
-          g.fillRect(x + 40, cy, 90, 12);
-          // Gold bands
-          g.fillStyle(this.acc, 0.25);
-          g.fillRect(x + 40, cy + 6, 90, 4);
-          g.fillRect(x + 80, cy, 6, 44);
-          // Keyhole
-          g.fillStyle(0xffd700, 0.35);
-          g.fillCircle(x + 84, cy + 22, 4);
+          const cy = H * 0.65 - row * 54;
+          g.fillStyle(0x2c2000, 0.82); g.fillRect(x + 42, cy, 94, 46);
+          g.fillStyle(0x3e2e00, 0.78); g.fillRect(x + 42, cy, 94, 13);
+          g.fillStyle(this.acc, 0.27); g.fillRect(x + 42, cy + 7, 94, 5); g.fillRect(x + 84, cy, 6, 46);
+          g.fillStyle(0xffd700, 0.38); g.fillCircle(x + 88, cy + 23, 5);
         }
       }
-      this._gradV(g, 0, H * 0.80, lw, H * 0.20, 0x1a1600, 0x050510, 6);
+      this._gradVPainted(g, 0, H * 0.80, lw, H * 0.20, 0x1c1800, 0x050510, 7);
     }
 
-    // Layer C — mid vault: gem-encrusted walls + coin piles (sf 0.34)
-    {
-      const sf = 0.34, lw = this._lw(sf);
-      const g = this._gfx(sf, -12);
-      // Ceiling vault ribs
-      this._gradV(g, 0, 0, lw, H * 0.13, 0x0f0f1e, 0x1a1a30, 6);
-      for (let x = 0; x < lw; x += 220) {
-        g.fillStyle(0x1a1a30, 0.65);
-        g.fillRect(x, 0, 5, H * 0.13);
-        g.fillStyle(this.acc, 0.08);
-        g.fillCircle(x + 110, H * 0.03, 10);
-      }
-      // Gem-studded wall panel sections
-      for (let x = 0; x < lw; x += 500) {
-        // Dark wall section
-        g.fillStyle(0x0d0d20, 0.90);
-        g.fillRect(x, H * 0.12, 400, H * 0.60);
-        // Scattered gems
-        const gemCols = [0xff4444, 0x44ff88, 0x4488ff, 0xffd700, 0xff88ff];
-        for (let i = 0; i < 18; i++) {
-          const gx = x + 15 + this._h(i, x) * 370;
-          const gy = H * 0.15 + this._h(i + 1, x) * H * 0.54;
+    // C: gem walls + coin piles + vault doors (sf 0.33)
+    { const sf = 0.33, lw = this._lw(sf), g = this._gfx(sf, -14);
+      this._gradVPainted(g, 0, 0, lw, H * 0.14, 0x0f0f1e, 0x1e1e34, 7);
+      for (let x = 0; x < lw; x += 225) { g.fillStyle(0x1e1e34, 0.68); g.fillRect(x, 0, 5, H * 0.14); g.fillStyle(this.acc, 0.08); g.fillCircle(x + 112, H * 0.03, 11); }
+      // Gem-studded wall panels
+      const gemCols = [0xff4444, 0x44ff88, 0x4488ff, 0xffd700, 0xff88ff, 0x44ffff];
+      for (let x = 0; x < lw; x += 510) {
+        g.fillStyle(0x0d0d20, 0.92); g.fillRect(x, H * 0.12, 410, H * 0.62);
+        for (let i = 0; i < 22; i++) {
+          const gx = x + 16 + this._h(i, x) * 378;
+          const gy = H * 0.15 + this._h(i + 1, x) * H * 0.56;
           const gc = gemCols[Math.floor(this._h(i * 3, x) * gemCols.length)];
-          const gr = 4 + this._h(i, x + 1) * 8;
-          // Gem body
-          g.fillStyle(gc, 0.55);
-          g.fillDiamond(gx, gy, gr * 0.8, gr);
-          // Gem facet highlight
-          g.fillStyle(0xffffff, 0.25);
-          g.fillDiamond(gx - gr * 0.15, gy - gr * 0.2, gr * 0.25, gr * 0.35);
-          // Glow halo
-          g.fillStyle(gc, 0.08);
-          g.fillCircle(gx, gy, gr * 2.5);
+          const gr = 5 + this._h(i, x + 1) * 10;
+          this._gem(g, gx, gy, gr, gr * 1.35, gc, 0.58);
         }
       }
-      // Gold coin piles on floor
-      for (let x = 80; x < lw; x += 240) {
-        const pileH = 20 + this._h(x, 7) * 40;
-        const pileW = 60 + this._h(x, 8) * 80;
-        // Pile base ellipse
-        g.fillStyle(this.acc, 0.28);
-        g.fillEllipse(x + pileW / 2, H * 0.80, pileW, pileH * 0.6);
-        // Individual coin glints
-        for (let ci = 0; ci < 8; ci++) {
-          const cx2 = x + 8 + this._h(ci, x) * (pileW - 16);
-          const cy = H * 0.75 - this._h(ci + 1, x) * pileH * 0.7;
-          g.fillStyle(this.acc, 0.50);
-          g.fillEllipse(cx2, cy, 14, 8);
-          g.fillStyle(0xffffff, 0.15);
-          g.fillEllipse(cx2 - 2, cy - 1, 6, 3);
+      // Gold coin piles
+      for (let x = 85; x < lw; x += 245) {
+        const pH = 22 + this._h(x, 7) * 44, pW = 65 + this._h(x, 8) * 85;
+        g.fillStyle(this.acc, 0.30); g.fillEllipse(x + pW / 2, H * 0.80, pW, pH * 0.62);
+        for (let ci = 0; ci < 9; ci++) {
+          const cx2 = x + 9 + this._h(ci, x) * (pW - 18);
+          const cy  = H * 0.75 - this._h(ci + 1, x) * pH * 0.72;
+          g.fillStyle(this.acc, 0.52); g.fillEllipse(cx2, cy, 15, 9);
+          g.fillStyle(0xffffff, 0.16); g.fillEllipse(cx2 - 2, cy - 1, 6, 3);
         }
       }
-      // Vault door sections on walls
-      for (let x = 350; x < lw; x += 500) {
-        // Door frame
-        g.fillStyle(0x2a2a40, 0.90);
-        g.fillRect(x, H * 0.18, 110, H * 0.60);
-        g.fillStyle(0x3a3a50, 0.70);
-        g.fillRect(x + 4, H * 0.20, 102, H * 0.56);
-        // Locking mechanism
-        g.fillStyle(this.acc, 0.45);
-        for (let ly = H * 0.25; ly < H * 0.70; ly += 50) {
-          g.fillCircle(x + 20, ly, 10);
-          g.fillCircle(x + 90, ly, 10);
+      // Vault door sections
+      for (let x = 360; x < lw; x += 510) {
+        g.fillStyle(0x2a2a42, 0.92); g.fillRect(x, H * 0.17, 115, H * 0.62);
+        g.fillStyle(0x3a3a52, 0.72); g.fillRect(x + 5, H * 0.19, 105, H * 0.58);
+        g.fillStyle(this.acc, 0.48);
+        for (let ly = H * 0.24; ly < H * 0.72; ly += 52) {
+          g.fillCircle(x + 21, ly, 11); g.fillCircle(x + 94, ly, 11);
         }
-        // Handle
-        g.fillStyle(this.acc, 0.60);
-        g.fillCircle(x + 55, H * 0.48, 16);
-        g.fillStyle(0x0f0f1e, 0.7);
-        g.fillCircle(x + 55, H * 0.48, 8);
+        g.fillCircle(x + 57, H * 0.48, 18);
+        g.fillStyle(0x0f0f1e, 0.72); g.fillCircle(x + 57, H * 0.48, 9);
       }
-      // Floor (dark stone with gold sheen)
-      this._gradV(g, 0, H * 0.82, lw, H * 0.18, 0x1a1600, 0x050510, 6);
-      for (let x = 0; x < lw; x += 100) {
-        g.fillStyle(this.acc, 0.05);
-        g.fillRect(x, H * 0.82, 2, H * 0.18);
-      }
+      // Floor with gold sheen
+      this._gradVPainted(g, 0, H * 0.82, lw, H * 0.18, 0x1c1800, 0x050510, 7);
+      for (let x = 0; x < lw; x += 105) { g.fillStyle(this.acc, 0.052); g.fillRect(x, H * 0.82, 2, H * 0.18); }
     }
 
-    // Layer D — near: candelabras + gem-glint particles (sf 0.57)
-    {
-      const sf = 0.57, lw = this._lw(sf);
-      const g = this._gfx(sf, -11);
-      for (let x = 160; x < lw; x += 560) {
-        // Candelabra
-        g.fillStyle(this.acc, 0.55);
-        g.fillRect(x - 3, H * 0.40, 6, H * 0.42);
-        g.fillRect(x - 18, H * 0.82, 36, 7);
-        g.fillRect(x - 22, H * 0.40, 44, 7);
-        // 3 candle branches
+    // D: candelabras + floating gem sparkles (sf 0.57)
+    { const sf = 0.57, lw = this._lw(sf), g = this._gfx(sf, -13);
+      for (let x = 165; x < lw; x += 575) {
+        g.fillStyle(this.acc, 0.58); g.fillRect(x - 3, H * 0.40, 6, H * 0.42); g.fillRect(x - 19, H * 0.82, 38, 8); g.fillRect(x - 23, H * 0.40, 46, 8);
         for (let ci = -1; ci <= 1; ci++) {
-          const cx2 = x + ci * 18;
-          g.fillStyle(0xfff5e0, 0.70);
-          g.fillRect(cx2 - 3, H * 0.26, 6, H * 0.14);
-          g.fillStyle(0xffcc00, 0.55);
-          g.fillCircle(cx2, H * 0.25, 6);
-          g.fillStyle(0xffcc00, 0.14);
-          g.fillCircle(cx2, H * 0.25, 20);
+          const cxi = x + ci * 19;
+          g.fillStyle(0xfff5e0, 0.72); g.fillRect(cxi - 3, H * 0.27, 6, H * 0.13);
+          g.fillStyle(0xffcc00, 0.56); g.fillCircle(cxi, H * 0.26, 7);
+          g.fillStyle(0xffcc00, 0.14); g.fillCircle(cxi, H * 0.26, 24);
         }
       }
-      // Floating gem sparkle particles
-      for (let i = 0; i < 40; i++) {
-        const px = this._h(i, 9) * lw;
-        const py = H * 0.10 + this._h(i, 10) * H * 0.72;
-        const gemCols2 = [0xff6666, 0x66ff99, 0x6699ff, 0xffd700, 0xff99ff];
-        g.fillStyle(gemCols2[i % gemCols2.length], 0.30);
-        g.fillCircle(px, py, 3);
-        g.fillStyle(0xffffff, 0.18);
-        g.fillCircle(px, py, 1);
+      // Sparkle particles — "Jeweled Paradise"
+      const gemColsD = [0xff4444, 0x44ff88, 0x4488ff, 0xffd700, 0xff88ff, 0x44ffff];
+      for (let i = 0; i < 48; i++) {
+        const px = this._h(i, 70) * lw, py = H * 0.08 + this._h(i, 71) * H * 0.76;
+        const gc = gemColsD[i % 6];
+        this._star(g, px, py, 1 + this._h(i, 72) * 5, gc, 0.12 + this._h(i, 73) * 0.18);
       }
-      g.fillStyle(0x050510, 0.88);
-      g.fillRect(0, H * 0.83, lw, H * 0.17);
+      g.fillStyle(0x05050f, 0.90); g.fillRect(0, H * 0.83, lw, H * 0.17);
     }
 
-    // Layer E — golden light rays from coin piles (sf 0.20)
-    {
-      const sf = 0.20, lw = this._lw(sf);
-      const g = this._gfx(sf, -10);
-      for (let x = 200; x < lw; x += 500) {
-        g.fillStyle(0xffd700, 0.05);
-        g.fillTriangle(x - 35, H * 0.80, x + 35, H * 0.80, x - 20, 0);
-        g.fillTriangle(x - 10, H * 0.80, x + 10, H * 0.80, x + 5, 0);
-        g.fillStyle(0xffd700, 0.025);
-        g.fillTriangle(x - 60, H * 0.82, x + 60, H * 0.82, x - 40, 0);
+    // E: upward gold light from coin piles (sf 0.20)
+    { const sf = 0.20, lw = this._lw(sf), g = this._gfx(sf, -12);
+      for (let x = 205; x < lw; x += 510) {
+        g.fillStyle(0xffd700, 0.052); g.fillTriangle(x - 38, H * 0.82, x + 38, H * 0.82, x - 22, 0);
+        g.fillStyle(0xffd700, 0.030); g.fillTriangle(x - 10, H * 0.82, x + 10, H * 0.82, x + 5, 0);
+        g.fillStyle(0xffd700, 0.018); g.fillTriangle(x - 65, H * 0.84, x + 65, H * 0.84, x - 42, 0);
+      }
+    }
+
+    // F: "Once Upon A…" — final sparkle constellation overhead (sf 0.06)
+    { const sf = 0.06, lw = this._lw(sf), g = this._gfx(sf, -11);
+      for (let i = 0; i < 55; i++) {
+        const r = 1 + this._h(i, 80) * 4;
+        this._star(g, this._h(i, 81) * lw, H * 0.02 + this._h(i, 82) * H * 0.48, r, 0xffd700, 0.05 + this._h(i, 83) * 0.10);
       }
     }
   }
