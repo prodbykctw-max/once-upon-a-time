@@ -22,7 +22,7 @@ const config = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 1600 },
+      gravity: { y: 1200 },
       debug: false,                 // flip true to see hitboxes
     },
   },

@@ -5,12 +5,12 @@ import levels from '../data/levels.json';
 // All cells are 256x256, one row, N frames. Re-run the sprite processor if you
 // regenerate art and these counts change.
 export const SHEETS = {
-  idle:   { frames: 6,  fps: 8,  repeat: -1 },
+  idle:   { frames: 6,  fps: 4,  repeat: -1 },  // slow subtle sway
   run:    { frames: 8,  fps: 14, repeat: -1 },
   jump:   { frames: 6,  fps: 10, repeat: 0  },
   attack: { frames: 8,  fps: 18, repeat: 0  },
   dash:   { frames: 5,  fps: 16, repeat: 0  },
-  block:  { frames: 3,  fps: 10, repeat: -1 },
+  block:  { frames: 3,  fps: 12, repeat: 0  },  // play once → hold last frame
   dance:  { frames: 6,  fps: 10, repeat: -1 },
 };
 export const FRAME = 256;
