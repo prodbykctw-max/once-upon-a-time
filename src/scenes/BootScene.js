@@ -56,6 +56,6 @@ export default class BootScene extends Phaser.Scene {
     this.registry.set('levels', levels.levels);
     this.registry.set('levelIndex', 0);
 
-    this.scene.start('Title');
+    this.scene.start('Intro');
   }
 }

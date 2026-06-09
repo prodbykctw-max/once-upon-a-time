@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import BootScene from './scenes/BootScene.js';
+import IntroScene from './scenes/IntroScene.js';
+import RegisterScene from './scenes/RegisterScene.js';
 import TitleScene from './scenes/TitleScene.js';
 import GameScene from './scenes/GameScene.js';
 import UIScene from './scenes/UIScene.js';
@@ -27,7 +29,7 @@ const config = {
     },
   },
   // Scenes run in order; UIScene runs parallel on top of GameScene.
-  scene: [BootScene, TitleScene, GameScene, UIScene],
+  scene: [BootScene, IntroScene, RegisterScene, TitleScene, GameScene, UIScene],
 };
 
 // eslint-disable-next-line no-new
