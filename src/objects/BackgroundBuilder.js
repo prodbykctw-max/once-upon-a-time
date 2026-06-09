@@ -175,8 +175,9 @@ export class BackgroundBuilder {
     g.fillCircle(cx, cy, Math.max(rx, ry) * 2.2);
   }
 
-  // Stone wall: filled rect + mortar grid + irregular surface patches
-  _stoneWall(g, x, y, w, h, stoneCol, mortarCol, bh = 48, bw = 120, alpha = 1) {
+  // Stone wall: filled rect + mortar grid + irregular surface patches.
+  // skipFaceVar=true omits the per-block variation pass (use for far/distant layers).
+  _stoneWall(g, x, y, w, h, stoneCol, mortarCol, bh = 48, bw = 120, alpha = 1, skipFaceVar = false) {
     g.fillStyle(stoneCol, alpha);
     g.fillRect(x, y, w, h);
     // Mortar lines
@@ -188,7 +189,8 @@ export class BackgroundBuilder {
         g.fillRect(x + col2 * bw + off - bw / 2, y + row * bh, 3, bh);
       }
     }
-    // Face variation (lighter patches — hand-painting)
+    if (skipFaceVar) return;
+    // Face variation (lighter patches — hand-painting, near layers only)
     for (let px = x; px < x + w; px += bw) {
       for (let py = y; py < y + h; py += bh) {
         const row = Math.round((py - y) / bh);
@@ -205,16 +207,18 @@ export class BackgroundBuilder {
     }
   }
 
-  // Bookshelves inside a rectangle; `seed` drives per-book variation
-  _books(g, x, y, w, h, nShelves, seed = 0) {
+  // Bookshelves inside a rectangle; `seed` drives per-book variation.
+  // `stride` skips books for distant/cheap layers (stride=1 = every book, stride=2 = every other)
+  _books(g, x, y, w, h, nShelves, seed = 0, stride = 1) {
     const shH = h / nShelves;
+    const step = 12 * stride;
     for (let s = 0; s < nShelves; s++) {
       const ty = y + s * shH;
       // Shelf board
       g.fillStyle(this._darken(this.prim, 0.25), 0.88);
       g.fillRect(x, ty + shH - 5, w, 6);
       // Books on this shelf
-      for (let bx = x + 3; bx < x + w - 3; bx += 12) {
+      for (let bx = x + 3; bx < x + w - 3; bx += step) {
         const bh2   = shH * 0.38 + this._h(bx, seed + s) * shH * 0.50;
         const shade = this._h(bx * 3, seed + s * 7);
         const bc    = shade < 0.28 ? this.acc
@@ -406,10 +410,10 @@ export class BackgroundBuilder {
         // Keystone glow
         g.fillStyle(0xd4af37, 0.08); g.fillCircle(x + 213, H * 0.03, 22);
       }
-      // Far bookshelf wall
+      // Far bookshelf wall (stride=3 for performance — distant, barely visible)
       for (let x = 28; x < lw; x += 220) {
         g.fillStyle(0x180900, 0.88); g.fillRect(x, H * 0.09, 194, H * 0.73);
-        this._books(g, x + 4, H * 0.09, 186, H * 0.73, 4, x);
+        this._books(g, x + 4, H * 0.09, 186, H * 0.73, 4, x, 3);
       }
       this._gradVPainted(g, 0, H * 0.82, lw, H * 0.18, 0x180900, 0x0e0500, 8);
     }
@@ -430,7 +434,7 @@ export class BackgroundBuilder {
         g.fillRect(x + 257, H * 0.07, 7, H * 0.74);
         g.fillRect(x, H * 0.07, 264, 7);
         g.fillStyle(0x2a0f00, 0.92); g.fillRect(x + 7, H * 0.08, 250, H * 0.73);
-        this._books(g, x + 10, H * 0.10, 244, H * 0.70, 5, x * 3);
+        this._books(g, x + 10, H * 0.10, 244, H * 0.70, 5, x * 3, 2);
       }
       // Parquet floor
       g.fillStyle(0x1c0b00, 0.97); g.fillRect(0, H * 0.82, lw, H * 0.18);
@@ -801,7 +805,7 @@ export class BackgroundBuilder {
 
     // B: distant vaulted gallery + skylights (sf 0.15)
     { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
-      this._stoneWall(g, 0, H * 0.06, lw, H * 0.76, 0x1e2e2e, 0x0c1414, 52, 136, 0.90);
+      this._stoneWall(g, 0, H * 0.06, lw, H * 0.76, 0x1e2e2e, 0x0c1414, 52, 136, 0.90, true);
       this._gradVPainted(g, 0, 0, lw, H * 0.06, 0x2c3c3c, 0x3c4c4c, 4);
       for (let x = 190; x < lw; x += 380) {
         g.fillStyle(0x88ccdd, 0.09); g.fillRect(x - 65, 0, 130, H * 0.06);
@@ -887,10 +891,10 @@ export class BackgroundBuilder {
 
     // B: stone castle walls with server racks overlaid (sf 0.15)
     { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
-      this._stoneWall(g, 0, H * 0.08, lw, H * 0.74, 0x0d0d1e, 0x06060e, 52, 125, 0.92);
+      this._stoneWall(g, 0, H * 0.08, lw, H * 0.74, 0x0d0d1e, 0x06060e, 52, 125, 0.92, true);
       for (let x = 0; x < lw; x += 330) {
         g.fillStyle(0x1a1a3a, 0.88); g.fillRect(x + 32, H * 0.10, 126, H * 0.68);
-        for (let ry = H * 0.12; ry < H * 0.76; ry += 24) {
+        for (let ry = H * 0.12; ry < H * 0.76; ry += 48) {
           g.fillStyle(0x222246, 0.92); g.fillRect(x + 35, ry, 120, 20);
           g.fillStyle(this.acc, 0.58); g.fillCircle(x + 43, ry + 10, 3);
           g.fillStyle(0x44ff88, 0.42); g.fillCircle(x + 53, ry + 10, 3);
@@ -976,7 +980,7 @@ export class BackgroundBuilder {
 
     // B: far stone corridor with arrow-slits (sf 0.15)
     { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
-      this._stoneWall(g, 0, H * 0.04, lw, H * 0.78, 0x1c2430, 0x0e1418, 58, 148, 0.92);
+      this._stoneWall(g, 0, H * 0.04, lw, H * 0.78, 0x1c2430, 0x0e1418, 58, 148, 0.92, true);
       for (let x = 160; x < lw; x += 375) {
         g.fillStyle(0x0e1418, 0.92); g.fillRect(x - 12, H * 0.10, 24, H * 0.30);
         g.fillStyle(0x88aacc, 0.065); g.fillRect(x - 9, H * 0.12, 18, H * 0.26);
@@ -1173,7 +1177,7 @@ export class BackgroundBuilder {
 
     // B: stacked treasure chests + stone vault (sf 0.15)
     { const sf = 0.15, lw = this._lw(sf), g = this._gfx(sf, -15);
-      this._stoneWall(g, 0, H * 0.05, lw, H * 0.77, 0x0f0f1e, 0x070710, 62, 155, 0.90);
+      this._stoneWall(g, 0, H * 0.05, lw, H * 0.77, 0x0f0f1e, 0x070710, 62, 155, 0.90, true);
       for (let x = 0; x < lw; x += 310) {
         for (let row = 0; row < 3; row++) {
           const cy = H * 0.65 - row * 54;

@@ -10,7 +10,6 @@ import UIScene from './scenes/UIScene.js';
 // sprites are GPU-batched textures, not re-painted shapes every frame.
 const config = {
   type: Phaser.AUTO,                // WebGL with Canvas fallback
-  parent: 'game',
   backgroundColor: '#04000c',
   pixelArt: false,                  // our sprites are hi-res, keep smoothing
   roundPixels: true,
