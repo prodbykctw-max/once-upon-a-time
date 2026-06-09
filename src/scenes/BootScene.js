@@ -34,7 +34,7 @@ export default class BootScene extends Phaser.Scene {
 
     // Load each animation sheet as a spritesheet with fixed frame size.
     Object.keys(SHEETS).forEach((key) => {
-      this.load.spritesheet(`jande_${key}`, `/assets/sprites/${key}.png`, {
+      this.load.spritesheet(`jande_${key}`, `assets/sprites/${key}.png`, {
         frameWidth: FRAME,
         frameHeight: FRAME,
       });
