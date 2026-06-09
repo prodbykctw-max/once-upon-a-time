@@ -821,640 +821,98 @@ function ptcl(x,y,tp){var r=Math.random;
 //  DRAW (FX canvas over the WebGL background)
 // ════════ PAINTED MANSION BACKGROUND (Canvas2D, parallax) ════════
 function shade(rgb,f){var p=rgb.split(',');return 'rgb('+Math.round(p[0]*f)+','+Math.round(p[1]*f)+','+Math.round(p[2]*f)+')';}
-// ════════════════════════════════════════════════════════════
-//  CASTLE INTERIOR BACKGROUND — Canvas 2D, parallax layers
-//  Visual reference: gothic stone arches, ribbed vaulted ceiling,
-//  warm amber torch glow, sandstone walls, polished flagstone floor
-// ════════════════════════════════════════════════════════════
-function _h(a,b){b=b||0;return((a*1664525+b*1013904223+22695477)&0x7fffffff)/0x7fffffff;}
-
 function drawMansionBG(st){
-  var cam=GS.camX, floorY=H*0.82;
-  // All stages share the castle stone architecture — stage index tints the palette
-  var stoneR=[120,160,110, 80,60, 28, 54,108, 18][GS.ai]||80;
-  var stoneG=[ 80,120, 60, 40,68, 38, 62, 58, 14][GS.ai]||60;
-  var stoneB=[ 50, 60, 45, 80,68, 58, 58, 40, 28][GS.ai]||40;
-  var acRGB=hexS(st.ac);
-
-  // ── BASE WALL GRADIENT ──
-  var bg=FX.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'rgb('+(stoneR>>2)+','+(stoneG>>2)+','+(stoneB>>2)+')');
-  bg.addColorStop(0.20,'rgb('+(stoneR*0.5|0)+','+(stoneG*0.5|0)+','+(stoneB*0.5|0)+')');
-  bg.addColorStop(0.65,'rgb('+stoneR+','+stoneG+','+stoneB+')');
-  bg.addColorStop(1,'rgb('+(stoneR*0.55|0)+','+(stoneG*0.55|0)+','+(stoneB*0.55|0)+')');
-  FX.fillStyle=bg; FX.fillRect(0,0,W,H);
-
-  _drawCastleCeiling(stoneR,stoneG,stoneB,acRGB,cam);
-  _drawCastleArches(stoneR,stoneG,stoneB,acRGB,cam,floorY);
-  _drawCastleFloor(stoneR,stoneG,stoneB,acRGB,cam,floorY);
-
-  // Stage-specific decorative layer
-  var deco=[_deco_Library,_deco_Egyptian,_deco_Samurai,_deco_Royal,
-            _deco_Museum,_deco_Tech,_deco_Armory,_deco_ArtGallery,_deco_Vault];
-  (deco[GS.ai]||deco[0])(stoneR,stoneG,stoneB,acRGB,cam,floorY);
-
-  // Floating dust motes
-  FX.fillStyle='rgba(255,235,190,0.45)';
-  for(var i=0;i<14;i++){
-    var mx=((_h(i,1)*W+cam*0.08+GS.tick*(0.18+_h(i,3)*0.22))%W+W)%W;
-    var my=H*0.15+(_h(i,2)*H*0.55-GS.tick*(0.10+_h(i,4)*0.14)+H*2)%(H*0.55);
-    FX.beginPath();FX.arc(mx,my,0.8+_h(i,5)*2,0,6.28);FX.fill();
-  }
-
-  // Vignette
-  var vig=FX.createRadialGradient(W/2,H*0.45,H*0.18,W/2,H*0.45,W*0.72);
-  vig.addColorStop(0,'rgba(0,0,0,0)');
-  vig.addColorStop(0.65,'rgba(0,0,0,0.14)');
-  vig.addColorStop(1,'rgba(0,0,0,0.75)');
-  FX.fillStyle=vig; FX.fillRect(0,0,W,H);
-}
-
-// ── RIBBED VAULTED CEILING ────────────────────────────────────────────────────
-function _drawCastleCeiling(sr,sg,sb,ac,cam){
-  var cH=H*0.22, sp=320, off=(-cam*0.12)%sp;
-  // Ceiling painted surface — dark amber with warm painted panels
-  var cg=FX.createLinearGradient(0,0,0,cH);
-  cg.addColorStop(0,'rgb('+(sr*0.16|0)+','+(sg*0.16|0)+','+(sb*0.16|0)+')');
-  cg.addColorStop(0.5,'rgb('+(sr*0.28|0)+','+(sg*0.28|0)+','+(sb*0.28|0)+')');
-  cg.addColorStop(1,'rgb('+(sr*0.40|0)+','+(sg*0.40|0)+','+(sb*0.40|0)+')');
-  FX.fillStyle=cg; FX.fillRect(0,0,W,cH);
-
-  // Painted ornamental rosettes in ceiling panels
-  FX.globalAlpha=0.08;
-  FX.fillStyle='rgba('+ac+',1)';
-  for(var i=0;i<12;i++){
-    var rx=(_h(i,20)*W-cam*0.06+W*2)%W, ry=_h(i,21)*cH*0.7;
-    FX.beginPath();FX.arc(rx,ry,8+_h(i,22)*14,0,6.28);FX.fill();
-  }
-  FX.globalAlpha=1;
-
-  // Vault ribs — diagonal beziers from wall top toward crown, matching reference
-  FX.lineWidth=3;
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var bx=x+sp/2;
-    // Centre rib (straight up the middle)
-    FX.strokeStyle='rgb('+(sr*0.58|0)+','+(sg*0.58|0)+','+(sb*0.58|0)+')';
-    FX.lineWidth=2.5;
-    FX.beginPath();FX.moveTo(bx,cH);FX.lineTo(bx,0);FX.stroke();
-    // Diagonal ribs from corners of bay
-    for(var side=-1;side<=1;side+=2){
-      FX.strokeStyle='rgb('+(sr*0.52|0)+','+(sg*0.52|0)+','+(sb*0.52|0)+')';
-      FX.lineWidth=2;
-      FX.beginPath();
-      FX.moveTo(x+(side<0?0:sp),cH);
-      FX.quadraticCurveTo(bx+side*sp*0.22,cH*0.38,bx,cH*0.06);
-      FX.stroke();
-      // Secondary rib at mid-span
-      FX.strokeStyle='rgb('+(sr*0.44|0)+','+(sg*0.44|0)+','+(sb*0.44|0)+')';
-      FX.lineWidth=1.5;
-      FX.beginPath();
-      FX.moveTo(x+(side<0?0:sp),cH);
-      FX.quadraticCurveTo(x+(side<0?sp*0.22:sp*0.78),cH*0.28,bx+side*sp*0.28,cH*0.32);
-      FX.stroke();
-    }
-    // Keystone boss at crown
-    FX.fillStyle='rgb('+(sr*0.7|0)+','+(sg*0.7|0)+','+(sb*0.7|0)+')';
-    FX.beginPath();FX.arc(bx,cH*0.05,6,0,6.28);FX.fill();
-    FX.fillStyle='rgba('+ac+',0.30)';
-    FX.beginPath();FX.arc(bx,cH*0.05,3,0,6.28);FX.fill();
-  }
-  // Horizontal cornice at ceiling base
-  FX.fillStyle='rgb('+(sr*0.6|0)+','+(sg*0.6|0)+','+(sb*0.6|0)+')';
-  FX.fillRect(0,cH-3,W,5);
-  FX.fillStyle='rgb('+(sr*0.35|0)+','+(sg*0.35|0)+','+(sb*0.35|0)+')';
-  FX.fillRect(0,cH+2,W,3);
-}
-
-// ── GOTHIC ARCH SERIES ────────────────────────────────────────────────────────
-function _drawCastleArches(sr,sg,sb,ac,cam,floorY){
-  var sp=320, cH=H*0.22;
-  var off=(-cam*0.30)%sp;
-  var aW=sp*0.68, aH=floorY-cH;
-
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var cx=x+sp/2;
-    var aL=cx-aW/2, aR=cx+aW/2;
-    var aTop=cH+H*0.04;
-
-    // Stone pillar / column — left & right of arch
-    var colW=24;
-    for(var side=0;side<2;side++){
-      var cx2=side===0?aL-colW:aR;
-      // Column body
-      FX.fillStyle='rgb('+(sr*0.48|0)+','+(sg*0.48|0)+','+(sb*0.48|0)+')';
-      FX.fillRect(cx2,cH,colW,floorY-cH);
-      // Column highlight (light from left)
-      FX.fillStyle='rgb('+(sr*0.65|0)+','+(sg*0.65|0)+','+(sb*0.65|0)+')';
-      FX.fillRect(cx2+(side===0?0:colW-5),cH,5,floorY-cH);
-      // Column shadow
-      FX.fillStyle='rgb('+(sr*0.28|0)+','+(sg*0.28|0)+','+(sb*0.28|0)+')';
-      FX.fillRect(cx2+(side===0?colW-5:0),cH,5,floorY-cH);
-      // Entasis (slight bulge suggestion via mid band)
-      FX.fillStyle='rgba(255,220,150,0.04)';
-      FX.beginPath();FX.ellipse(cx2+colW/2,(cH+floorY)/2,colW/2+1,(floorY-cH)*0.38,0,0,6.28);FX.fill();
-      // Capital at top
-      FX.fillStyle='rgb('+(sr*0.55|0)+','+(sg*0.55|0)+','+(sb*0.55|0)+')';
-      FX.fillRect(cx2-3,cH,colW+6,18);
-      FX.fillStyle='rgb('+(sr*0.70|0)+','+(sg*0.70|0)+','+(sb*0.70|0)+')';
-      FX.fillRect(cx2-3,cH,colW+6,4);
-    }
-
-    // Arch opening — dark interior (sense of depth beyond)
-    FX.fillStyle='rgb('+(sr*0.12|0)+','+(sg*0.12|0)+','+(sb*0.12|0)+')';
-    FX.beginPath();
-    FX.moveTo(aL,floorY);
-    FX.lineTo(aL,aTop+aH*0.48);
-    FX.quadraticCurveTo(aL,aTop-8,cx,aTop-aH*0.10);
-    FX.quadraticCurveTo(aR,aTop-8,aR,aTop+aH*0.48);
-    FX.lineTo(aR,floorY);
-    FX.closePath();FX.fill();
-
-    // Distant warm glow through arch (like lit hall beyond)
-    var ag=FX.createRadialGradient(cx,(aTop+floorY)*0.48,0,cx,(aTop+floorY)*0.48,aW*0.55);
-    ag.addColorStop(0,'rgba(200,150,60,0.22)');
-    ag.addColorStop(0.6,'rgba(140,90,30,0.08)');
-    ag.addColorStop(1,'rgba(0,0,0,0)');
-    FX.fillStyle=ag;FX.fillRect(aL,aTop-aH*0.1,aW,floorY-aTop+aH*0.1);
-
-    // Gothic arch molding — 4 concentric profiles (innermost to outermost)
-    var mProfiles=[
-      {w:0,  col:[sr*0.32,sg*0.32,sb*0.32], lw:6},
-      {w:7,  col:[sr*0.48,sg*0.48,sb*0.48], lw:5},
-      {w:13, col:[sr*0.60,sg*0.60,sb*0.60], lw:4},
-      {w:19, col:[sr*0.44,sg*0.44,sb*0.44], lw:3},
-    ];
-    for(var mi=0;mi<mProfiles.length;mi++){
-      var mp=mProfiles[mi], mo=mp.w;
-      FX.strokeStyle='rgb('+(mp.col[0]|0)+','+(mp.col[1]|0)+','+(mp.col[2]|0)+')';
-      FX.lineWidth=mp.lw;
-      FX.beginPath();
-      FX.moveTo(aL-mo,floorY);
-      FX.lineTo(aL-mo,aTop+aH*0.48-mo*0.4);
-      FX.quadraticCurveTo(aL-mo,aTop-8-mo*1.1,cx,aTop-aH*0.10-mo*1.5);
-      FX.quadraticCurveTo(aR+mo,aTop-8-mo*1.1,aR+mo,aTop+aH*0.48-mo*0.4);
-      FX.lineTo(aR+mo,floorY);
-      FX.stroke();
-    }
-
-    // Trefoil at arch apex (3 lobed circles)
-    var tc=cx, ty2=aTop-aH*0.10-22;
-    FX.fillStyle='rgb('+(sr*0.62|0)+','+(sg*0.62|0)+','+(sb*0.62|0)+')';
-    FX.beginPath();FX.arc(tc,ty2,7,0,6.28);FX.fill();
-    FX.beginPath();FX.arc(tc-6,ty2+5,4.5,0,6.28);FX.fill();
-    FX.beginPath();FX.arc(tc+6,ty2+5,4.5,0,6.28);FX.fill();
-    FX.fillStyle='rgb('+(sr*0.80|0)+','+(sg*0.80|0)+','+(sb*0.80|0)+')';
-    FX.beginPath();FX.arc(tc,ty2,3,0,6.28);FX.fill();
-
-    // Torch sconce on left column face
-    var tX=aL-colW*0.5, tY=cH+(floorY-cH)*0.32;
-    var flick=0.72+0.28*Math.sin(GS.tick*0.13+cx*0.018);
-    // Warm glow pool radiating from torch
-    var gwl=FX.createRadialGradient(tX,tY,2,tX,tY,160);
-    gwl.addColorStop(0,'rgba(255,210,90,'+(0.42*flick)+')');
-    gwl.addColorStop(0.35,'rgba(220,150,50,'+(0.18*flick)+')');
-    gwl.addColorStop(1,'rgba(0,0,0,0)');
-    FX.fillStyle=gwl; FX.fillRect(tX-160,tY-80,320,200);
-    // Iron bracket
-    FX.strokeStyle='rgba(22,14,6,0.92)'; FX.lineWidth=2.5;
-    FX.beginPath();FX.moveTo(tX+12,tY);FX.lineTo(tX+4,tY-12);FX.stroke();
-    FX.beginPath();FX.moveTo(tX+12,tY);FX.bezierCurveTo(tX+5,tY,tX+1,tY+8,tX-2,tY+5);FX.stroke();
-    // Flame body
-    var fBase=tY-18;
-    FX.fillStyle='rgba(255,100,20,'+(0.55*flick)+')';
-    FX.beginPath();FX.ellipse(tX+4,fBase,5,13+flick*3,Math.sin(GS.tick*0.09+cx)*0.18,0,6.28);FX.fill();
-    FX.fillStyle='rgba(255,230,80,'+(0.80*flick)+')';
-    FX.beginPath();FX.ellipse(tX+4,fBase+2,3,8,0,0,6.28);FX.fill();
-    FX.fillStyle='rgba(255,255,200,'+(0.55*flick)+')';
-    FX.beginPath();FX.ellipse(tX+4,fBase+4,1.5,4,0,0,6.28);FX.fill();
-
-    // Stone block texture between arches
-    var wL=x, wR=aL-colW;
-    if(wR>wL){
-      FX.strokeStyle='rgba('+(sr*0.32|0)+','+(sg*0.32|0)+','+(sb*0.32|0)+',0.7)';
-      FX.lineWidth=0.8;
-      var bkH=30, bkW=85;
-      for(var brow=Math.ceil(cH/bkH);brow<Math.floor(floorY/bkH)+1;brow++){
-        var by=brow*bkH;
-        FX.beginPath();FX.moveTo(wL,by);FX.lineTo(wR,by);FX.stroke();
-        var roff=brow%2===0?0:bkW/2;
-        for(var bx2=wL+((-cam*0.30+roff)%bkW)-bkW;bx2<wR;bx2+=bkW){
-          FX.beginPath();FX.moveTo(bx2,by);FX.lineTo(bx2,by+bkH);FX.stroke();
-        }
-      }
-    }
-  }
-}
-
-// ── STONE FLAGSTONE FLOOR ─────────────────────────────────────────────────────
-function _drawCastleFloor(sr,sg,sb,ac,cam,floorY){
-  // Floor base gradient
-  var fg=FX.createLinearGradient(0,floorY,0,H);
-  fg.addColorStop(0,'rgb('+(sr*0.62|0)+','+(sg*0.62|0)+','+(sb*0.62|0)+')');
-  fg.addColorStop(0.4,'rgb('+(sr*0.48|0)+','+(sg*0.48|0)+','+(sb*0.48|0)+')');
-  fg.addColorStop(1,'rgb('+(sr*0.28|0)+','+(sg*0.28|0)+','+(sb*0.28|0)+')');
-  FX.fillStyle=fg; FX.fillRect(0,floorY,W,H-floorY);
-
-  // Flagstone grid
-  var tW=100, tH=38, off=(-cam*0.55)%tW;
-  FX.strokeStyle='rgba('+(sr*0.30|0)+','+(sg*0.30|0)+','+(sb*0.30|0)+',0.85)';
-  FX.lineWidth=1.5;
-  for(var row=0;row<=3;row++){
-    var ty=floorY+row*tH;
-    FX.beginPath();FX.moveTo(0,ty);FX.lineTo(W,ty);FX.stroke();
-    var roff=row%2===0?0:tW/2;
-    for(var tx=off+roff-tW;tx<W+tW;tx+=tW){
-      FX.beginPath();FX.moveTo(tx,ty);FX.lineTo(tx,ty+tH);FX.stroke();
-    }
-  }
-  // Subtle tile bevel highlight
-  FX.strokeStyle='rgba(255,240,200,0.07)';FX.lineWidth=1;
-  for(var row2=0;row2<3;row2++){
-    var ty2=floorY+row2*tH+1.5;
-    FX.beginPath();FX.moveTo(0,ty2);FX.lineTo(W,ty2);FX.stroke();
-  }
-
-  // Torch reflection pools on floor
-  var sp=320, lampOff=(-cam*0.30)%sp;
-  for(var lx=lampOff-sp;lx<W+sp*2;lx+=sp){
-    var ltX=lx+sp/2-sp*0.32;
-    var flk=0.55+0.45*Math.sin(GS.tick*0.13+lx*0.018);
-    var ref=FX.createRadialGradient(ltX,floorY+4,0,ltX,floorY+16,110);
-    ref.addColorStop(0,'rgba(255,210,90,'+(0.28*flk)+')');
-    ref.addColorStop(0.5,'rgba(200,140,40,'+(0.10*flk)+')');
-    ref.addColorStop(1,'rgba(0,0,0,0)');
-    FX.fillStyle=ref; FX.fillRect(ltX-110,floorY,220,70);
-  }
-}
-
-// ── STAGE DECORATION LAYERS ───────────────────────────────────────────────────
-// Stage 0: Grand Library — Gothic bookshelves filling arch openings
-function _deco_Library(sr,sg,sb,ac,cam,floorY){
-  var sp=320, cH=H*0.22, off=(-cam*0.30)%sp;
-  var aW=sp*0.68;
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var cx=x+sp/2, aL=cx-aW/2, aR=cx+aW/2, aTop=cH+H*0.04;
-    // Dark wood shelving unit filling arch
-    FX.fillStyle='rgb(30,18,8)';
-    FX.fillRect(aL+4,aTop+aW*0.12,aW-8,floorY-aTop-aW*0.12);
-    // 4 shelf boards
-    var rows=4, rowH=(floorY-aTop-aW*0.12-8)/rows;
+  var pc=hexS(st.pc), ac=hexS(st.ac), cam=GS.camX;
+  // —— wall gradient (warm, darker up top) ——
+  var wg=FX.createLinearGradient(0,0,0,H);
+  wg.addColorStop(0,shade(pc,0.18));wg.addColorStop(0.55,shade(pc,0.30));wg.addColorStop(1,shade(pc,0.40));
+  FX.fillStyle=wg;FX.fillRect(0,0,W,H);
+  var floorY=H*0.82;
+  // —— FAR: vertical wall panels w/ molding (slow parallax) ——
+  var pw=150, off1=(-cam*0.15)%pw;
+  FX.strokeStyle=shade(pc,0.14);FX.lineWidth=2;
+  for(var x=off1;x<W+pw;x+=pw){FX.beginPath();FX.moveTo(x,0);FX.lineTo(x,floorY);FX.stroke();}
+  // chair rail
+  FX.fillStyle=shade(pc,0.5);FX.fillRect(0,H*0.52,W,4);
+  FX.fillStyle=shade(pc,0.22);FX.fillRect(0,H*0.52+4,W,H*0.30-4);
+  // —— MID: tall bookshelves (medium parallax) ——
+  var shelfW=300, off2=(-cam*0.35)%shelfW, shelfTop=H*0.16, shelfBot=H*0.52;
+  for(var sx=off2;sx<W+shelfW;sx+=shelfW){
+    // cabinet body
+    FX.fillStyle=shade(pc,0.26);FX.fillRect(sx,shelfTop,shelfW-14,shelfBot-shelfTop);
+    FX.strokeStyle=shade(pc,0.16);FX.lineWidth=3;FX.strokeRect(sx,shelfTop,shelfW-14,shelfBot-shelfTop);
+    var rows=4,rowH=(shelfBot-shelfTop)/rows;
     for(var r=0;r<rows;r++){
-      var ry=aTop+aW*0.12+r*rowH;
-      // Shelf board
-      FX.fillStyle='rgb(50,28,12)'; FX.fillRect(aL+4,ry+rowH-5,aW-8,6);
-      FX.fillStyle='rgb(70,42,18)'; FX.fillRect(aL+4,ry+rowH-5,aW-8,2);
-      // Book spines
-      var bx2=aL+8, seed2=Math.floor(x/sp)*100+r*13;
-      while(bx2<aR-10){
-        var rnd=_h(seed2++,42);
-        var bw=5+rnd*10, bh2=rowH-9-rnd*5;
-        var bc=[
-          'rgb('+(180+rnd*40|0)+','+(30+rnd*20|0)+',20)',
-          'rgb(20,'+(90+rnd*60|0)+','+(30+rnd*30|0)+')',
-          'rgb(30,30,'+(120+rnd*80|0)+')',
-          'rgb('+(140+rnd*60|0)+','+(100+rnd*40|0)+',20)',
-          'rgb('+(80+rnd*40|0)+','+(20+rnd*20|0)+','+(60+rnd*40|0)+')',
-        ][Math.floor(rnd*5)%5];
-        FX.fillStyle=bc; FX.fillRect(bx2,ry+rowH-5-bh2,bw,bh2);
-        // Gold spine lettering suggestion
-        if(rnd>0.55){FX.fillStyle='rgba(200,160,60,0.65)'; FX.fillRect(bx2,ry+rowH-5-bh2*0.7,bw,1.5);}
-        FX.fillStyle='rgba(255,255,255,0.06)'; FX.fillRect(bx2,ry+rowH-5-bh2,1,bh2);
-        bx2+=bw+1.5;
+      var ry=shelfTop+r*rowH;
+      // shelf board
+      FX.fillStyle=shade(pc,0.15);FX.fillRect(sx,ry+rowH-4,shelfW-14,4);
+      // books: colored spines
+      var bxp=sx+8, lim=sx+shelfW-22;
+      var seed=Math.floor(sx*0.7)+r*13;
+      while(bxp<lim){
+        var rnd=Math.abs(Math.sin(seed*12.9898))*43758.5; rnd=rnd-Math.floor(rnd);
+        seed++;
+        var bw=5+rnd*9, bh=rowH-8-rnd*6;
+        // jewel-tone book color blended toward accent
+        var hue=rnd, ar2=ac.split(','), 
+            br=Math.round(ar2[0]*0.5+hue*120), bgc=Math.round(ar2[1]*0.5+(1-hue)*90), bb=Math.round(ar2[2]*0.5+hue*160);
+        FX.fillStyle='rgb('+br+','+bgc+','+bb+')';
+        FX.fillRect(bxp,ry+rowH-4-bh,bw,bh);
+        // gold band detail
+        if(rnd>0.6){FX.fillStyle='rgba('+ac+',0.7)';FX.fillRect(bxp,ry+rowH-4-bh*0.7,bw,1.5);}
+        // spine highlight
+        FX.fillStyle='rgba(255,255,255,0.07)';FX.fillRect(bxp,ry+rowH-4-bh,1,bh);
+        bxp+=bw+1.5;
       }
     }
-    // Shelf frame — carved dark wood sides
-    FX.strokeStyle='rgb(55,32,14)'; FX.lineWidth=3;
-    FX.strokeRect(aL+4,aTop+aW*0.12,aW-8,floorY-aTop-aW*0.12);
-    // Candle on shelf
-    var cndX=cx-6, cndY=aTop+aW*0.12+rowH*2-5;
-    FX.fillStyle='rgb(220,210,180)'; FX.fillRect(cndX-2,cndY-12,4,12);
-    var cflk=0.7+0.3*Math.sin(GS.tick*0.17+cx);
-    FX.fillStyle='rgba(255,230,80,'+(0.9*cflk)+')'; FX.beginPath(); FX.ellipse(cndX,cndY-14,2,4,0,0,6.28); FX.fill();
-    var cgl=FX.createRadialGradient(cndX,cndY-14,0,cndX,cndY-14,40);
-    cgl.addColorStop(0,'rgba(255,210,80,'+(0.25*cflk)+')'); cgl.addColorStop(1,'rgba(0,0,0,0)');
-    FX.fillStyle=cgl; FX.fillRect(cndX-40,cndY-54,80,80);
   }
-}
-
-// Stage 1: Egyptian Hall — golden hieroglyph walls + lotus columns
-function _deco_Egyptian(sr,sg,sb,ac,cam,floorY){
-  var sp=320, cH=H*0.22, off=(-cam*0.30)%sp;
-  var aW=sp*0.68;
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var cx=x+sp/2, aL=cx-aW/2, aR=cx+aW/2, aTop=cH+H*0.04;
-    // Desert night sky or golden glow through arch
-    var eg=FX.createLinearGradient(aL,aTop,aL,floorY);
-    eg.addColorStop(0,'rgb(20,14,4)'); eg.addColorStop(1,'rgb(60,40,10)');
-    FX.fillStyle=eg;
-    FX.beginPath();FX.moveTo(aL,floorY);FX.lineTo(aL,aTop+aW*0.48);
-    FX.quadraticCurveTo(aL,aTop-8,cx,aTop-aW*0.10);
-    FX.quadraticCurveTo(aR,aTop-8,aR,aTop+aW*0.48);
-    FX.lineTo(aR,floorY);FX.closePath();FX.fill();
-    // Lotus column capitals (fan-shaped)
-    var capY=cH+6;
-    FX.fillStyle='rgba('+ac+',0.45)';
-    for(var f=-3;f<=3;f++){
-      var fa=f*0.22, fx2=cx+f*8;
-      FX.beginPath();FX.moveTo(cx,capY);FX.lineTo(cx+Math.sin(fa)*20,capY-22+Math.abs(f)*2);FX.stroke();}
-    // Hieroglyph band (mid-wall frieze)
-    var frieze=cH+(floorY-cH)*0.18;
-    FX.fillStyle='rgba('+ac+',0.12)'; FX.fillRect(x,frieze,sp,18);
-    FX.fillStyle='rgba('+ac+',0.35)'; FX.lineWidth=1;
-    var syms=['𓂀','𓆣','𓁹','𓅓','𓆑'];
-    FX.font='12px serif';FX.textAlign='center';FX.textBaseline='middle';
-    for(var gi=0;gi<5;gi++){
-      var gx=x+gi*sp*0.2+10;
-      FX.fillText(syms[gi],gx,frieze+9);
-    }
-    // Golden artifact on plinth inside arch
-    var plX=cx, plY=floorY-8;
-    FX.fillStyle='rgb('+(sr|0)+','+(sg|0)+',20)'; FX.fillRect(plX-12,plY-22,24,22);
-    FX.fillStyle='rgba('+ac+',0.7)';
-    FX.beginPath();FX.ellipse(plX,plY-30,8,12,0,0,6.28);FX.fill();
-    FX.beginPath();FX.ellipse(plX,plY-30,4,8,0,0,6.28);FX.fill();
-    // Golden glow
-    var glw=FX.createRadialGradient(plX,plY-22,0,plX,plY-22,55);
-    glw.addColorStop(0,'rgba('+ac+',0.20)');glw.addColorStop(1,'rgba(0,0,0,0)');
-    FX.fillStyle=glw;FX.fillRect(plX-55,plY-77,110,110);
+  // —— framed paintings on the upper wall, offset from shelves ——
+  var paintW=300, off3=(-cam*0.35+150)%paintW;
+  for(var px2=off3;px2<W+paintW;px2+=paintW){
+    var fw=70,fh=90,fy=H*0.20;
+    // gold frame
+    FX.fillStyle=shade(ac,0.8);FX.fillRect(px2,fy,fw,fh);
+    FX.fillStyle=shade(ac,1.1>1?1:1.0);FX.fillRect(px2+3,fy+3,fw-6,fh-6);
+    // canvas: soft painted scene
+    var cg=FX.createLinearGradient(px2,fy,px2,fy+fh);
+    cg.addColorStop(0,shade(pc,1.4));cg.addColorStop(1,shade(ac,0.7));
+    FX.fillStyle=cg;FX.fillRect(px2+6,fy+6,fw-12,fh-12);
+    // suggestion of a figure/landscape
+    FX.fillStyle='rgba('+pc+',0.5)';FX.beginPath();FX.ellipse(px2+fw/2,fy+fh*0.62,fw*0.18,fh*0.22,0,0,6.28);FX.fill();
   }
-}
-
-// Stage 2: Samurai Gallery — weapon displays + clan banners
-function _deco_Samurai(sr,sg,sb,ac,cam,floorY){
-  var sp=320, cH=H*0.22, off=(-cam*0.30)%sp;
-  var aW=sp*0.68;
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var cx=x+sp/2, aL=cx-aW/2, aTop=cH+H*0.04;
-    // Dark interior through arch
-    FX.fillStyle='rgb(12,6,4)';
-    FX.beginPath();FX.moveTo(aL,floorY);FX.lineTo(aL,aTop+aW*0.48);
-    FX.quadraticCurveTo(aL,aTop-8,cx,aTop-aW*0.10);
-    FX.quadraticCurveTo(cx+aW/2,aTop-8,cx+aW/2,aTop+aW*0.48);
-    FX.lineTo(cx+aW/2,floorY);FX.closePath();FX.fill();
-    // Weapon mount bracket on wall
-    var mY=(cH+floorY)*0.45;
-    FX.strokeStyle='rgba('+ac+',0.5)'; FX.lineWidth=2;
-    FX.beginPath();FX.moveTo(cx-16,mY);FX.lineTo(cx+16,mY);FX.stroke();
-    // Katana silhouette (diagonal)
-    FX.strokeStyle='rgba(200,210,220,0.65)'; FX.lineWidth=1.8;
-    FX.beginPath();FX.moveTo(cx-30,mY-18);FX.lineTo(cx+30,mY+18);FX.stroke();
-    FX.strokeStyle='rgba('+ac+',0.45)'; FX.lineWidth=3.5;
-    FX.beginPath();FX.moveTo(cx-28,mY-16);FX.lineTo(cx-16,mY-8);FX.stroke(); // tsuka
-    FX.fillStyle='rgba('+ac+',0.5)'; FX.beginPath(); FX.ellipse(cx-14,mY-6,4,4,0.5,0,6.28); FX.fill(); // tsuba
-    // Clan banner
-    var bnX=cx+aW*0.28, bnY=cH+8;
-    FX.fillStyle='rgba('+ac+',0.15)'; FX.fillRect(bnX-8,bnY,16,60);
-    FX.strokeStyle='rgba('+ac+',0.5)'; FX.lineWidth=1;
-    FX.strokeRect(bnX-6,bnY+4,12,52);
-    // Enso circle on wall
-    FX.strokeStyle='rgba('+ac+',0.18)'; FX.lineWidth=4;
-    FX.beginPath(); FX.arc(cx,cH+(floorY-cH)*0.62,28,0.3,6.0); FX.stroke();
+  // —— warm chandelier light pools (near top) ——
+  var lampSp=400, off4=(-cam*0.35)%lampSp;
+  for(var lx=off4;lx<W+lampSp;lx+=lampSp){
+    var flick=0.85+0.15*Math.sin(GS.tick*0.08+lx);
+    var lg=FX.createRadialGradient(lx,H*0.08,0,lx,H*0.08,180);
+    lg.addColorStop(0,'rgba(255,205,130,'+(0.28*flick)+')');lg.addColorStop(1,'rgba(255,205,130,0)');
+    FX.fillStyle=lg;FX.fillRect(lx-180,0,360,H*0.5);
+    // chandelier silhouette
+    FX.strokeStyle='rgba(40,30,15,0.6)';FX.lineWidth=2;FX.beginPath();FX.moveTo(lx,0);FX.lineTo(lx,H*0.06);FX.stroke();
+    FX.fillStyle='rgba('+ac+','+(0.6*flick)+')';
+    for(var cb=-2;cb<=2;cb++){FX.beginPath();FX.arc(lx+cb*9,H*0.07,2.5,0,6.28);FX.fill();}
   }
-}
-
-// Stage 3: Royal Chambers — throne, tapestries, stained glass
-function _deco_Royal(sr,sg,sb,ac,cam,floorY){
-  var sp=320, cH=H*0.22, off=(-cam*0.30)%sp;
-  var aW=sp*0.68;
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var cx=x+sp/2, aL=cx-aW/2, aR=cx+aW/2, aTop=cH+H*0.04;
-    // Stained glass window in arch (blue/purple/gold panes)
-    var gy=aTop-aW*0.08;
-    var panes=[
-      {x:aL+8,w:(aR-aL)*0.28,col:'rgba(40,60,180,0.45)'},
-      {x:cx-(aR-aL)*0.14,w:(aR-aL)*0.28,col:'rgba(80,20,160,0.45)'},
-      {x:aR-(aR-aL)*0.36,w:(aR-aL)*0.28,col:'rgba('+ac+',0.40)'},
-    ];
-    for(var pi=0;pi<panes.length;pi++){
-      var pn=panes[pi];
-      FX.fillStyle=pn.col; FX.fillRect(pn.x,gy+8,pn.w,(floorY-gy)*0.55);
-      FX.strokeStyle='rgba(150,130,80,0.7)'; FX.lineWidth=1.5;
-      FX.strokeRect(pn.x,gy+8,pn.w,(floorY-gy)*0.55);
-    }
-    // Light shaft through window
-    var sg2=FX.createLinearGradient(cx,gy,cx,floorY);
-    sg2.addColorStop(0,'rgba('+ac+',0.08)');sg2.addColorStop(1,'rgba(0,0,0,0)');
-    FX.fillStyle=sg2; FX.fillRect(cx-30,gy,60,floorY-gy);
-    // Tapestry on wall
-    var tpX=x+6, tpY=cH+8;
-    FX.fillStyle='rgba('+ac+',0.10)'; FX.fillRect(tpX,tpY,sp*0.22,H*0.38);
-    FX.strokeStyle='rgba('+ac+',0.30)'; FX.lineWidth=1.5; FX.strokeRect(tpX,tpY,sp*0.22,H*0.38);
-    // Crown motif on tapestry
-    FX.fillStyle='rgba('+ac+',0.40)';FX.font='18px serif';FX.textAlign='center';FX.textBaseline='middle';
-    FX.fillText('♛',tpX+sp*0.11,tpY+H*0.19);
-    // Grand chandelier above arch
-    var chX=cx, chY=cH+10;
-    FX.fillStyle='rgba(150,120,60,0.80)'; FX.beginPath(); FX.arc(chX,chY,5,0,6.28); FX.fill();
-    for(var arm=-3;arm<=3;arm+=2){
-      FX.strokeStyle='rgba(130,100,50,0.7)'; FX.lineWidth=1.5;
-      FX.beginPath();FX.moveTo(chX,chY);FX.lineTo(chX+arm*22,chY+14);FX.stroke();
-      var cflk=0.7+0.3*Math.sin(GS.tick*0.15+cx+arm);
-      FX.fillStyle='rgba(255,220,80,'+(0.9*cflk)+')';
-      FX.beginPath();FX.ellipse(chX+arm*22,chY+14,1.5,4,0,0,6.28);FX.fill();
-      var cgl=FX.createRadialGradient(chX+arm*22,chY+14,0,chX+arm*22,chY+14,18);
-      cgl.addColorStop(0,'rgba(255,210,80,'+(0.22*cflk)+')');cgl.addColorStop(1,'rgba(0,0,0,0)');
-      FX.fillStyle=cgl;FX.fillRect(chX+arm*22-18,chY,36,36);
-    }
+  // —— floor: polished parquet w/ reflections ——
+  var fg=FX.createLinearGradient(0,floorY,0,H);
+  fg.addColorStop(0,shade(pc,0.5));fg.addColorStop(1,shade(pc,0.32));
+  FX.fillStyle=fg;FX.fillRect(0,floorY,W,H-floorY);
+  // parquet diagonal hatch
+  FX.strokeStyle='rgba(0,0,0,0.12)';FX.lineWidth=1;
+  var pq=40, poff=(-cam*0.6)%pq;
+  for(var fx2=poff-H;fx2<W+H;fx2+=pq){FX.beginPath();FX.moveTo(fx2,floorY);FX.lineTo(fx2+(H-floorY),H);FX.stroke();}
+  // warm reflection streaks
+  for(var rl=off4;rl<W+lampSp;rl+=lampSp){
+    var rgd=FX.createLinearGradient(rl,floorY,rl,H);rgd.addColorStop(0,'rgba(255,205,130,0.10)');rgd.addColorStop(1,'rgba(255,205,130,0)');
+    FX.fillStyle=rgd;FX.fillRect(rl-50,floorY,100,H-floorY);
   }
+  // —— vignette ——
+  var vg=FX.createRadialGradient(W/2,H/2,H*0.3,W/2,H/2,H*0.85);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.45)');
+  FX.fillStyle=vg;FX.fillRect(0,0,W,H);
+  // —— floating dust motes ——
+  FX.fillStyle='rgba(255,225,170,0.5)';
+  for(var m=0;m<14;m++){var mx=( (m*137 - cam*0.4)%W +W)%W, my=(H*0.2+m*47+Math.sin(GS.tick*0.02+m)*20)%floorY;FX.beginPath();FX.arc(mx,my,1.2,0,6.28);FX.fill();}
 }
-
-// Stage 4: Museum Wing — display cases + track lighting
-function _deco_Museum(sr,sg,sb,ac,cam,floorY){
-  var sp=320, cH=H*0.22, off=(-cam*0.30)%sp;
-  var aW=sp*0.68;
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var cx=x+sp/2, aL=cx-aW/2, aR=cx+aW/2, aTop=cH+H*0.04;
-    // Clean off-white arch interior
-    FX.fillStyle='rgba(230,225,215,0.07)';
-    FX.beginPath();FX.moveTo(aL+6,floorY);FX.lineTo(aL+6,aTop+aW*0.48);
-    FX.quadraticCurveTo(aL+6,aTop-2,cx,aTop-aW*0.10+6);
-    FX.quadraticCurveTo(aR-6,aTop-2,aR-6,aTop+aW*0.48);
-    FX.lineTo(aR-6,floorY);FX.closePath();FX.fill();
-    // Glass display case
-    var caseX=cx-22, caseY=floorY-90, caseW=44, caseH=82;
-    FX.strokeStyle='rgba(200,210,220,0.55)'; FX.lineWidth=1.5;
-    FX.fillStyle='rgba(180,210,240,0.08)'; FX.fillRect(caseX,caseY,caseW,caseH);
-    FX.strokeRect(caseX,caseY,caseW,caseH);
-    // Artifact inside case
-    var artType=Math.floor(_h(Math.floor(x/sp),99)*3);
-    FX.fillStyle='rgba('+ac+',0.55)';
-    if(artType===0){FX.beginPath();FX.ellipse(cx,caseY+35,8,22,0,0,6.28);FX.fill();FX.fillRect(cx-10,caseY+55,20,6);}
-    else if(artType===1){FX.beginPath();FX.arc(cx,caseY+38,12,0,6.28);FX.fill();FX.fillRect(cx-3,caseY+48,6,14);}
-    else{FX.fillRect(cx-12,caseY+22,24,40);FX.beginPath();FX.ellipse(cx,caseY+22,10,6,0,0,6.28);FX.fill();}
-    // Track light spotlight cone
-    var tlX=cx+30;
-    FX.fillStyle='rgba(255,250,230,0.12)';
-    FX.beginPath();FX.moveTo(tlX,cH);FX.lineTo(caseX+caseW*0.5-12,floorY-85);FX.lineTo(caseX+caseW*0.5+12,floorY-85);FX.closePath();FX.fill();
-    FX.fillStyle='rgba(255,250,230,0.75)';FX.beginPath();FX.arc(tlX,cH+3,4,0,6.28);FX.fill();
-    // Plinth
-    FX.fillStyle='rgba('+(sr*0.7|0)+','+(sg*0.7|0)+','+(sb*0.7|0)+',0.9)';
-    FX.fillRect(cx-24,floorY-10,48,10);FX.fillRect(cx-20,floorY-90,40,4);
-  }
-}
-
-// Stage 5: Tech Manor — dark stone + neon circuit traces
-function _deco_Tech(sr,sg,sb,ac,cam,floorY){
-  var sp=320, cH=H*0.22, off=(-cam*0.30)%sp;
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var cx=x+sp/2;
-    // Animated circuit traces on wall (horizontal runs with branches)
-    var pulseA=0.55+0.45*Math.sin(GS.tick*0.08+cx*0.01);
-    FX.strokeStyle='rgba('+ac+','+pulseA+')'; FX.lineWidth=1.2;
-    var traceY=[(cH+floorY)*0.32,(cH+floorY)*0.52,(cH+floorY)*0.72];
-    for(var ti=0;ti<traceY.length;ti++){
-      var ty=traceY[ti];
-      FX.beginPath();FX.moveTo(x,ty);FX.lineTo(cx+sp*0.2,ty);FX.stroke();
-      // Branch node
-      FX.fillStyle='rgba('+ac+','+(0.7*pulseA)+')';
-      FX.beginPath();FX.arc(cx+sp*0.05,ty,3,0,6.28);FX.fill();
-      FX.strokeStyle='rgba('+ac+','+(0.5*pulseA)+')';
-      FX.beginPath();FX.moveTo(cx+sp*0.05,ty);FX.lineTo(cx+sp*0.05,ty-24);FX.stroke();
-    }
-    // Holographic panel suggestion
-    var panX=cx-32, panY=cH+(floorY-cH)*0.28, panW=64, panH=H*0.30;
-    FX.strokeStyle='rgba('+ac+',0.35)'; FX.lineWidth=1.5;
-    FX.strokeRect(panX,panY,panW,panH);
-    // Scanlines
-    FX.strokeStyle='rgba('+ac+',0.07)'; FX.lineWidth=0.8;
-    for(var sl=0;sl<8;sl++){FX.beginPath();FX.moveTo(panX,panY+sl*(panH/8));FX.lineTo(panX+panW,panY+sl*(panH/8));FX.stroke();}
-    // LED dot indicator strip
-    for(var led=0;led<5;led++){
-      var lc=[[80,220,80],[220,80,80],[80,80,220],[220,220,80],[80,220,220]][led];
-      var lpulse=0.4+0.6*((Math.sin(GS.tick*0.2+led*1.3+cx)>0.3)?1:0);
-      FX.fillStyle='rgba('+lc[0]+','+lc[1]+','+lc[2]+','+lpulse+')';
-      FX.beginPath();FX.arc(panX+panW+8,panY+6+led*12,3,0,6.28);FX.fill();
-    }
-  }
-}
-
-// Stage 6: Armory Corridor — suits of armor + crossed weapons on wall
-function _deco_Armory(sr,sg,sb,ac,cam,floorY){
-  var sp=320, cH=H*0.22, off=(-cam*0.30)%sp;
-  var aW=sp*0.68;
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var cx=x+sp/2, aL=cx-aW/2, aR=cx+aW/2, aTop=cH+H*0.04;
-    // Dark stone interior
-    FX.fillStyle='rgb(10,8,8)';
-    FX.beginPath();FX.moveTo(aL,floorY);FX.lineTo(aL,aTop+aW*0.48);
-    FX.quadraticCurveTo(aL,aTop-8,cx,aTop-aW*0.10);
-    FX.quadraticCurveTo(aR,aTop-8,aR,aTop+aW*0.48);
-    FX.lineTo(aR,floorY);FX.closePath();FX.fill();
-    // Suit of armor silhouette in arch
-    var aX=cx, aY=floorY;
-    // Helm
-    FX.fillStyle='rgb('+(sr*0.7|0)+','+(sg*0.7|0)+','+(sb*0.7|0)+')';
-    FX.beginPath();FX.ellipse(aX,aY-95,11,13,0,0,6.28);FX.fill();
-    FX.fillStyle='rgb('+(sr*0.5|0)+','+(sg*0.5|0)+','+(sb*0.5|0)+')';
-    FX.fillRect(aX-8,aY-92,16,8);// visor slit
-    // Gorget+breastplate
-    FX.fillStyle='rgb('+(sr*0.68|0)+','+(sg*0.68|0)+','+(sb*0.68|0)+')';
-    FX.fillRect(aX-14,aY-82,28,38);
-    FX.fillStyle='rgba('+ac+',0.25)'; FX.fillRect(aX-12,aY-80,24,2);// chest line
-    // Pauldrons (shoulders)
-    FX.fillStyle='rgb('+(sr*0.62|0)+','+(sg*0.62|0)+','+(sb*0.62|0)+')';
-    FX.beginPath();FX.ellipse(aX-18,aY-74,10,6,-0.3,0,6.28);FX.fill();
-    FX.beginPath();FX.ellipse(aX+18,aY-74,10,6,0.3,0,6.28);FX.fill();
-    // Legs
-    FX.fillStyle='rgb('+(sr*0.65|0)+','+(sg*0.65|0)+','+(sb*0.65|0)+')';
-    FX.fillRect(aX-10,aY-44,9,44);FX.fillRect(aX+1,aY-44,9,44);
-    // Highlight
-    FX.fillStyle='rgba(255,245,220,0.14)'; FX.fillRect(aX-10,aY-82,4,82);
-    // Ground shadow
-    FX.fillStyle='rgba(0,0,0,0.35)'; FX.beginPath();FX.ellipse(aX,floorY,18,5,0,0,6.28);FX.fill();
-    // Crossed swords on wall above arch
-    var swY=cH+(floorY-cH)*0.20;
-    FX.strokeStyle='rgba(200,210,220,0.55)'; FX.lineWidth=2;
-    FX.beginPath();FX.moveTo(cx-22,swY-16);FX.lineTo(cx+22,swY+16);FX.stroke();
-    FX.beginPath();FX.moveTo(cx+22,swY-16);FX.lineTo(cx-22,swY+16);FX.stroke();
-    FX.fillStyle='rgba('+ac+',0.45)';FX.beginPath();FX.arc(cx,swY,5,0,6.28);FX.fill();
-  }
-}
-
-// Stage 7: Art Gallery — crimson walls + ornate paintings in arches
-function _deco_ArtGallery(sr,sg,sb,ac,cam,floorY){
-  var sp=320, cH=H*0.22, off=(-cam*0.30)%sp;
-  var aW=sp*0.68;
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var cx=x+sp/2, aL=cx-aW/2, aR=cx+aW/2, aTop=cH+H*0.04;
-    // Large framed painting filling arch
-    var fmX=aL+8, fmY=aTop+12, fmW=aW-16, fmH=(floorY-aTop)*0.75;
-    // Outer gold frame (4 layers)
-    var fColors=['rgba(100,80,30,0.9)','rgba(180,140,50,0.85)','rgba(220,180,70,0.8)','rgba(160,120,40,0.7)'];
-    for(var fi=0;fi<4;fi++){
-      FX.fillStyle=fColors[fi]; var fo=fi*4;
-      FX.fillRect(fmX-fo,fmY-fo,fmW+fo*2,fmH+fo*2);
-    }
-    // Canvas background (painted landscape suggestion)
-    var cg2=FX.createLinearGradient(fmX,fmY,fmX,fmY+fmH);
-    cg2.addColorStop(0,'rgb('+(sr*0.45|0)+','+(sg*0.55|0)+','+(sb*0.80|0)+')');
-    cg2.addColorStop(0.5,'rgb('+(sr*0.55|0)+','+(sg*0.45|0)+','+(sb*0.35|0)+')');
-    cg2.addColorStop(1,'rgb('+(sr*0.35|0)+','+(sg*0.30|0)+','+(sb*0.25|0)+')');
-    FX.fillStyle=cg2; FX.fillRect(fmX+2,fmY+2,fmW-4,fmH-4);
-    // Painted figure (abstract suggestion)
-    FX.fillStyle='rgba('+(sr*0.15|0)+','+(sg*0.12|0)+','+(sb*0.12|0)+',0.55)';
-    FX.beginPath();FX.ellipse(cx,fmY+fmH*0.38,fmW*0.14,fmH*0.22,0,0,6.28);FX.fill();
-    FX.fillRect(cx-fmW*0.07,fmY+fmH*0.58,fmW*0.14,fmH*0.38);
-    // Spotlight cone on painting
-    FX.fillStyle='rgba(255,245,220,0.10)';
-    FX.beginPath();FX.moveTo(cx,cH);FX.lineTo(fmX+fmW*0.3,fmY);FX.lineTo(fmX+fmW*0.7,fmY);FX.closePath();FX.fill();
-    FX.fillStyle='rgba(255,250,230,0.8)';FX.beginPath();FX.arc(cx,cH+2,3,0,6.28);FX.fill();
-    // Dado rail + wainscot on side walls
-    FX.fillStyle='rgba('+ac+',0.22)'; FX.fillRect(x,cH+(floorY-cH)*0.68,sp,4);
-    FX.fillStyle='rgba('+(sr*0.30|0)+','+(sg*0.30|0)+','+(sb*0.30|0)+',0.5)';
-    FX.fillRect(x,cH+(floorY-cH)*0.68+4,sp,(floorY-cH)*0.32-4);
-  }
-}
-
-// Stage 8: Treasure Vault — dark vault + gems + gold treasure
-function _deco_Vault(sr,sg,sb,ac,cam,floorY){
-  var sp=320, cH=H*0.22, off=(-cam*0.30)%sp;
-  var aW=sp*0.68;
-  for(var x=off-sp;x<W+sp*2;x+=sp){
-    var cx=x+sp/2, aL=cx-aW/2, aR=cx+aW/2, aTop=cH+H*0.04;
-    // Iron vault interior
-    FX.fillStyle='rgb(8,5,12)';
-    FX.beginPath();FX.moveTo(aL,floorY);FX.lineTo(aL,aTop+aW*0.48);
-    FX.quadraticCurveTo(aL,aTop-8,cx,aTop-aW*0.10);
-    FX.quadraticCurveTo(aR,aTop-8,aR,aTop+aW*0.48);
-    FX.lineTo(aR,floorY);FX.closePath();FX.fill();
-    // Gem clusters embedded in arch wall (jewel colors)
-    var gemCols=['rgba(40,60,220,0.85)','rgba(200,20,20,0.80)','rgba(20,180,40,0.75)','rgba('+ac+',0.85)','rgba(160,20,200,0.80)'];
-    for(var gc=0;gc<8;gc++){
-      var gx=aL-18+_h(gc,x)*20-4, gy=cH+(floorY-cH)*(_h(gc,x+1)*0.65+0.1);
-      var gCol=gemCols[Math.floor(_h(gc,x+2)*5)];
-      FX.fillStyle=gCol;
-      FX.beginPath();FX.moveTo(gx,gy-6);FX.lineTo(gx+4,gy);FX.lineTo(gx,gy+6);FX.lineTo(gx-4,gy);FX.closePath();FX.fill();
-      FX.fillStyle='rgba(255,255,255,0.55)';
-      FX.beginPath();FX.moveTo(gx-1,gy-5);FX.lineTo(gx+2,gy-1);FX.lineTo(gx-1,gy-1);FX.closePath();FX.fill();
-      // Soft gem glow
-      var ggw=FX.createRadialGradient(gx,gy,0,gx,gy,14);
-      ggw.addColorStop(0,gCol.replace(/,[^,)]+\)$/,',0.25)'));
-      ggw.addColorStop(1,'rgba(0,0,0,0)');
-      FX.fillStyle=ggw; FX.fillRect(gx-14,gy-14,28,28);
-    }
-    // Gold coin pile at base of arch
-    var coinBase=floorY-4;
-    for(var ci=0;ci<12;ci++){
-      var cix=cx-24+_h(ci,77)*48, ciy=coinBase-_h(ci,78)*16;
-      var coinG=FX.createRadialGradient(cix,ciy,0,cix,ciy,6);
-      coinG.addColorStop(0,'rgba(255,220,80,0.90)');coinG.addColorStop(1,'rgba(180,130,20,0.60)');
-      FX.fillStyle=coinG; FX.beginPath();FX.ellipse(cix,ciy,6,3,0,0,6.28);FX.fill();
-    }
-    // Treasure chest
-    var chX=cx+aW*0.22, chY=floorY-34;
-    FX.fillStyle='rgb(60,28,8)'; FX.fillRect(chX-18,chY,36,30);
-    FX.fillStyle='rgb(80,38,10)'; FX.beginPath();FX.ellipse(chX,chY,18,8,0,0,6.28,true);FX.fill();
-    FX.strokeStyle='rgba('+ac+',0.65)'; FX.lineWidth=1.5;
-    FX.strokeRect(chX-18,chY,36,30);
-    FX.beginPath();FX.moveTo(chX-18,chY+15);FX.lineTo(chX+18,chY+15);FX.stroke();
-    FX.fillStyle='rgba('+ac+',0.80)'; FX.beginPath();FX.arc(chX,chY+14,4,0,6.28);FX.fill();
-    // Gem glow from open chest
-    var cgw=FX.createRadialGradient(chX,chY,0,chX,chY,50);
-    cgw.addColorStop(0,'rgba('+ac+',0.22)'); cgw.addColorStop(1,'rgba(0,0,0,0)');
-    FX.fillStyle=cgw; FX.fillRect(chX-50,chY-50,100,100);
-  }
-}
-
 // ════════════════════════════════════════════════════════════
 function draw(){
   var st=STAGES[GS.ai],ac=hexS(st.ac),pc=hexS(st.pc);
@@ -1953,250 +1411,17 @@ var CREAT={
   }
 };
 
-function drawBoss(b, ac) {
-  const x = b.x, y = b.y, W70 = b.W || 70, H96 = b.H || 96;
-  const A = GS.tick;
-  const pulse = Math.sin(A * 0.09) * 0.5 + 0.5;
-  const ph2 = b.enraged;
-  const cx = x + W70 * 0.5, cy = y + H96 * 0.5;
-
-  // ── shockwave ring ─────────────────────────────────────────────────────────
-  if (b.slamT > 0) {
-    const sr = (1 - b.slamT) * 180;
-    FX.strokeStyle = `rgba(${ac},${(b.slamT * 0.8).toFixed(2)})`;
-    FX.lineWidth = 4;
-    FX.beginPath(); FX.arc(cx, y + H96, sr, 0, Math.PI * 2); FX.stroke();
-  }
-
-  if (b.type === 'REVENANT') {
-    _drawRevenant(x, y, W70, H96, cx, cy, ac, pulse, ph2);
-  } else if (b.type === 'HEARTBREAKER') {
-    _drawHeartbreaker(x, y, W70, H96, cx, cy, ac, pulse, ph2);
-  }
-}
-
-function _drawRevenant(x, y, W70, H96, cx, cy, ac, pulse, ph2) {
-  const A = GS.tick;
-
-  // ground shadow
-  castShadow(cx, y + H96, W70 * 0.85);
-
-  // phase 2 aura
-  if (ph2) {
-    FX.globalAlpha = 0.22 + pulse * 0.12;
-    softGlow(cx, cy, H96 * 1.1 + pulse * 22, '160,10,20', 0.45);
-    FX.globalAlpha = 1;
-  }
-
-  // --- flowing cape (behind body) ---
-  const capeSwing = Math.sin(A * 0.06) * 7;
-  FX.fillStyle = ph2 ? 'rgba(60,0,0,0.88)' : 'rgba(14,8,22,0.88)';
-  FX.beginPath();
-  FX.moveTo(cx - W70 * 0.38, y + H96 * 0.22);
-  FX.bezierCurveTo(
-    cx - W70 * 0.82 + capeSwing, y + H96 * 0.40,
-    cx - W70 * 0.92 + capeSwing, y + H96 * 0.85,
-    cx - W70 * 0.32 + capeSwing, y + H96
-  );
-  FX.lineTo(cx + W70 * 0.32 + capeSwing, y + H96);
-  FX.bezierCurveTo(
-    cx + W70 * 0.92 + capeSwing, y + H96 * 0.85,
-    cx + W70 * 0.78 + capeSwing, y + H96 * 0.40,
-    cx + W70 * 0.38, y + H96 * 0.22
-  );
-  FX.closePath(); FX.fill();
-
-  // --- tuxedo body ---
-  const jacketColor = ph2 ? 'rgba(38,4,4,0.96)' : 'rgba(22,18,30,0.96)';
-  FX.fillStyle = jacketColor;
-  FX.fillRect(cx - W70 * 0.36, y + H96 * 0.38, W70 * 0.72, H96 * 0.54);
-
-  // shirt front (white)
-  FX.fillStyle = 'rgba(230,225,240,0.82)';
-  FX.beginPath();
-  FX.moveTo(cx - W70 * 0.10, y + H96 * 0.38);
-  FX.lineTo(cx - W70 * 0.04, y + H96 * 0.70);
-  FX.lineTo(cx + W70 * 0.04, y + H96 * 0.70);
-  FX.lineTo(cx + W70 * 0.10, y + H96 * 0.38);
-  FX.closePath(); FX.fill();
-
-  // lapels
-  FX.fillStyle = jacketColor;
-  FX.beginPath();
-  FX.moveTo(cx - W70 * 0.36, y + H96 * 0.38);
-  FX.lineTo(cx - W70 * 0.10, y + H96 * 0.38);
-  FX.lineTo(cx - W70 * 0.02, y + H96 * 0.52);
-  FX.lineTo(cx - W70 * 0.20, y + H96 * 0.62);
-  FX.lineTo(cx - W70 * 0.36, y + H96 * 0.62);
-  FX.closePath(); FX.fill();
-  FX.beginPath();
-  FX.moveTo(cx + W70 * 0.36, y + H96 * 0.38);
-  FX.lineTo(cx + W70 * 0.10, y + H96 * 0.38);
-  FX.lineTo(cx + W70 * 0.02, y + H96 * 0.52);
-  FX.lineTo(cx + W70 * 0.20, y + H96 * 0.62);
-  FX.lineTo(cx + W70 * 0.36, y + H96 * 0.62);
-  FX.closePath(); FX.fill();
-
-  // bow tie
-  FX.fillStyle = ph2 ? 'rgba(180,20,20,0.90)' : `rgba(${ac},0.80)`;
-  FX.beginPath();
-  FX.moveTo(cx - W70 * 0.09, y + H96 * 0.40);
-  FX.lineTo(cx - W70 * 0.01, y + H96 * 0.43);
-  FX.lineTo(cx - W70 * 0.09, y + H96 * 0.46);
-  FX.closePath(); FX.fill();
-  FX.beginPath();
-  FX.moveTo(cx + W70 * 0.09, y + H96 * 0.40);
-  FX.lineTo(cx + W70 * 0.01, y + H96 * 0.43);
-  FX.lineTo(cx + W70 * 0.09, y + H96 * 0.46);
-  FX.closePath(); FX.fill();
-
-  // pants
-  FX.fillStyle = ph2 ? 'rgba(28,2,2,0.96)' : 'rgba(16,12,22,0.96)';
-  FX.fillRect(cx - W70 * 0.34, y + H96 * 0.72, W70 * 0.68, H96 * 0.28);
-
-  // --- head ---
-  const skinColor = ph2 ? 'rgba(80,12,12,0.95)' : 'rgba(46,34,28,0.95)';
-  FX.fillStyle = skinColor;
-  FX.beginPath(); FX.ellipse(cx, y + H96 * 0.24, W70 * 0.25, H96 * 0.17, 0, 0, Math.PI * 2); FX.fill();
-
-  // defined jaw
-  FX.fillStyle = ph2 ? 'rgba(65,8,8,0.90)' : 'rgba(36,26,20,0.90)';
-  FX.beginPath(); FX.ellipse(cx, y + H96 * 0.30, W70 * 0.22, H96 * 0.09, 0, 0, Math.PI * 2); FX.fill();
-
-  // top hat
-  FX.fillStyle = ph2 ? 'rgba(32,2,2,0.96)' : 'rgba(12,10,18,0.96)';
-  FX.fillRect(cx - W70 * 0.20, y + H96 * 0.04, W70 * 0.40, H96 * 0.14);
-  // brim
-  FX.fillRect(cx - W70 * 0.28, y + H96 * 0.14, W70 * 0.56, H96 * 0.04);
-  // gold band
-  FX.fillStyle = ph2 ? 'rgba(180,20,20,0.78)' : `rgba(${ac},0.78)`;
-  FX.fillRect(cx - W70 * 0.20, y + H96 * 0.15, W70 * 0.40, H96 * 0.018);
-
-  // glowing hollow eyes
-  const eyeGlow = 0.55 + pulse * 0.38;
-  FX.fillStyle = `rgba(${ac},${eyeGlow.toFixed(2)})`;
-  FX.beginPath(); FX.ellipse(cx - W70 * 0.10, y + H96 * 0.22, W70 * 0.055, H96 * 0.038, 0, 0, Math.PI * 2); FX.fill();
-  FX.beginPath(); FX.ellipse(cx + W70 * 0.10, y + H96 * 0.22, W70 * 0.055, H96 * 0.038, 0, 0, Math.PI * 2); FX.fill();
-  // inner dark void
-  FX.fillStyle = 'rgba(0,0,0,0.75)';
-  FX.beginPath(); FX.ellipse(cx - W70 * 0.10, y + H96 * 0.22, W70 * 0.030, H96 * 0.022, 0, 0, Math.PI * 2); FX.fill();
-  FX.beginPath(); FX.ellipse(cx + W70 * 0.10, y + H96 * 0.22, W70 * 0.030, H96 * 0.022, 0, 0, Math.PI * 2); FX.fill();
-  // eye glow halos
-  softGlow(cx - W70 * 0.10, y + H96 * 0.22, W70 * 0.12, ac, 0.20 * eyeGlow);
-  softGlow(cx + W70 * 0.10, y + H96 * 0.22, W70 * 0.12, ac, 0.20 * eyeGlow);
-
-  // --- left hand: white glove + wilted bouquet ---
-  const lhx = cx - W70 * 0.54 + Math.sin(GS.tick * 0.07) * 3;
-  const lhy = y + H96 * 0.72;
-  FX.fillStyle = 'rgba(220,215,230,0.85)';
-  FX.beginPath(); FX.ellipse(lhx, lhy, W70 * 0.12, H96 * 0.08, 0.3, 0, Math.PI * 2); FX.fill();
-  // bouquet stems (drooping)
-  FX.strokeStyle = 'rgba(60,90,30,0.65)'; FX.lineWidth = 1.5;
-  for (let fi = -2; fi <= 2; fi++) {
-    const fx2 = lhx + fi * 5, fy2 = lhy - 8;
-    FX.beginPath(); FX.moveTo(fx2, fy2);
-    FX.quadraticCurveTo(fx2 + fi * 4, fy2 - 18, fx2 + fi * 8, fy2 - 28); FX.stroke();
-    // drooping flower heads
-    FX.fillStyle = fi % 2 === 0 ? 'rgba(160,40,80,0.65)' : 'rgba(100,30,60,0.55)';
-    FX.beginPath(); FX.ellipse(fx2 + fi * 8, fy2 - 28, 4, 3, fi * 0.4, 0, Math.PI * 2); FX.fill();
-  }
-
-  // --- right hand: white glove + broken gold ring ---
-  const rhx = cx + W70 * 0.54 + Math.sin(GS.tick * 0.07 + 1) * 3;
-  const rhy = y + H96 * 0.72;
-  FX.fillStyle = 'rgba(220,215,230,0.85)';
-  FX.beginPath(); FX.ellipse(rhx, rhy, W70 * 0.12, H96 * 0.08, -0.3, 0, Math.PI * 2); FX.fill();
-  // broken ring (open circle with crack)
-  FX.strokeStyle = `rgba(${ac},0.82)`; FX.lineWidth = 3;
-  FX.beginPath(); FX.arc(rhx, rhy - 16, 9, 0.3, Math.PI * 1.9); FX.stroke();
-  FX.strokeStyle = `rgba(${ac},0.40)`; FX.lineWidth = 1.5;
-  FX.beginPath(); FX.moveTo(rhx + 7, rhy - 20); FX.lineTo(rhx + 11, rhy - 16); FX.lineTo(rhx + 7, rhy - 12); FX.stroke();
-}
-
-function _drawHeartbreaker(x, y, W70, H96, cx, cy, ac, pulse, ph2) {
-  const A = GS.tick;
-
-  // draw base revenant form first
-  _drawRevenant(x, y, W70, H96, cx, cy, ac, pulse, ph2);
-
-  // --- thorn crown ---
-  const thornY = y + H96 * 0.06;
-  FX.strokeStyle = 'rgba(50,18,6,0.88)'; FX.lineWidth = 2.5;
-  for (let ti = -4; ti <= 4; ti++) {
-    const tx = cx + ti * 9, ty = thornY + Math.abs(ti) * 3;
-    FX.beginPath(); FX.moveTo(tx - 4, ty + 8); FX.lineTo(tx, ty - 8); FX.lineTo(tx + 4, ty + 8); FX.stroke();
-    // thorn spikes
-    FX.strokeStyle = 'rgba(30,8,2,0.72)'; FX.lineWidth = 1.2;
-    FX.beginPath(); FX.moveTo(tx + 2, ty); FX.lineTo(tx + 8, ty - 4); FX.stroke();
-    FX.beginPath(); FX.moveTo(tx - 2, ty); FX.lineTo(tx - 8, ty - 4); FX.stroke();
-    FX.strokeStyle = 'rgba(50,18,6,0.88)'; FX.lineWidth = 2.5;
-  }
-
-  // --- cracked glowing heart on chest ---
-  const heartCx = cx, heartCy = y + H96 * 0.54;
-  const hs = 12 + pulse * 3;
-  const heartGlow = ph2 ? `rgba(200,0,20,${(0.70 + pulse * 0.25).toFixed(2)})` : `rgba(${ac},${(0.60 + pulse * 0.30).toFixed(2)})`;
-  FX.fillStyle = heartGlow;
-  FX.beginPath();
-  FX.moveTo(heartCx, heartCy + hs * 0.38);
-  FX.bezierCurveTo(heartCx - hs * 1.1, heartCy - hs * 0.6, heartCx - hs * 1.1, heartCy - hs * 1.5, heartCx, heartCy - hs * 0.65);
-  FX.bezierCurveTo(heartCx + hs * 1.1, heartCy - hs * 1.5, heartCx + hs * 1.1, heartCy - hs * 0.6, heartCx, heartCy + hs * 0.38);
-  FX.fill();
-  softGlow(heartCx, heartCy, hs * 2.8, ph2 ? '200,0,20' : ac, 0.30 * (0.6 + pulse * 0.4));
-  // fracture lines
-  FX.strokeStyle = 'rgba(0,0,0,0.68)'; FX.lineWidth = 1.8;
-  FX.beginPath(); FX.moveTo(heartCx, heartCy - hs * 0.65); FX.lineTo(heartCx + 3, heartCy - hs * 0.2); FX.lineTo(heartCx - 2, heartCy + hs * 0.1); FX.stroke();
-  FX.beginPath(); FX.moveTo(heartCx - hs * 0.4, heartCy - hs * 0.4); FX.lineTo(heartCx - hs * 0.1, heartCy); FX.stroke();
-  // crimson drips
-  FX.fillStyle = 'rgba(180,0,12,0.72)';
-  for (let di = 0; di < 3; di++) {
-    const drx = heartCx - hs * 0.3 + di * hs * 0.3;
-    const dry = heartCy + hs * 0.38 + di * 8 + Math.sin(A * 0.09 + di) * 3;
-    FX.beginPath(); FX.ellipse(drx, dry, 2, 4 + di * 1.5, 0, 0, Math.PI * 2); FX.fill();
-  }
-
-  // --- torn/shredded jacket edges ---
-  FX.strokeStyle = 'rgba(22,6,6,0.72)'; FX.lineWidth = 2.2;
-  const shredL = cx - W70 * 0.36, shredR = cx + W70 * 0.36;
-  for (let sj = 0; sj < 5; sj++) {
-    const sy0 = y + H96 * 0.42 + sj * H96 * 0.09;
-    const jag = 5 + _h(sj, 200) * 6;
-    FX.beginPath();
-    FX.moveTo(shredL, sy0);
-    FX.lineTo(shredL - jag, sy0 + H96 * 0.032);
-    FX.lineTo(shredL, sy0 + H96 * 0.065); FX.stroke();
-    FX.beginPath();
-    FX.moveTo(shredR, sy0);
-    FX.lineTo(shredR + jag, sy0 + H96 * 0.032);
-    FX.lineTo(shredR, sy0 + H96 * 0.065); FX.stroke();
-  }
-
-  // --- phase 2 enrage: crimson skin tint + orbiting broken hearts ---
-  if (ph2) {
-    // crimson overlay on face
-    FX.fillStyle = 'rgba(140,10,10,0.22)';
-    FX.beginPath(); FX.ellipse(cx, y + H96 * 0.24, W70 * 0.27, H96 * 0.19, 0, 0, Math.PI * 2); FX.fill();
-
-    // orbiting broken heart fragments
-    for (let oi = 0; oi < 5; oi++) {
-      const oa = A * 0.045 + (oi / 5) * Math.PI * 2;
-      const orb = 68 + pulse * 12;
-      const ox = cx + Math.cos(oa) * orb, oy = cy + Math.sin(oa) * orb * 0.55;
-      const os = 6 + _h(oi, 300) * 5;
-      FX.fillStyle = `rgba(200,0,20,${(0.55 + _h(oi, 301) * 0.25).toFixed(2)})`;
-      // mini broken heart
-      FX.beginPath();
-      FX.moveTo(ox, oy + os * 0.3);
-      FX.bezierCurveTo(ox - os, oy - os * 0.5, ox - os, oy - os * 1.2, ox, oy - os * 0.5);
-      FX.bezierCurveTo(ox + os, oy - os * 1.2, ox + os, oy - os * 0.5, ox, oy + os * 0.3);
-      FX.fill();
-      FX.strokeStyle = 'rgba(0,0,0,0.50)'; FX.lineWidth = 1;
-      FX.beginPath(); FX.moveTo(ox, oy - os * 0.5); FX.lineTo(ox + 2, oy); FX.stroke();
-      softGlow(ox, oy, os * 1.8, '200,0,20', 0.18);
-    }
-  }
-}
-
+function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A*.09)*.5+.5;
+  if(b.type==='HEARTBREAKER'){FX.fillStyle=ph2?'#180005':'#0A0018';FX.fillRect(x,y,b.W,b.H);FX.fillStyle=ph2?'#240008':'#10002A';FX.fillRect(x+4,y+4,b.W-8,b.H-10);
+    FX.fillStyle='#3A2800';FX.fillRect(x+13,y,b.W-26,9);FX.fillStyle='#806000';FX.fillRect(x+16,y-9,7,11);FX.fillRect(x+34,y-13,8,15);FX.fillRect(x+52,y-9,7,11);
+    var ec=ph2?'255,0,51':ac;FX.fillStyle='rgba('+ec+','+(.58+pulse*.42)+')';FX.beginPath();FX.ellipse(x+25,y+24,9,11,0,0,6.28);FX.fill();FX.beginPath();FX.ellipse(x+b.W-25,y+24,9,11,0,0,6.28);FX.fill();
+    var hcx=x+b.W/2,hcy=y+60;FX.fillStyle='rgba('+(ph2?'255,0,40':'255,45,138')+','+(.48+pulse*.52)+')';FX.beginPath();FX.moveTo(hcx,hcy+16);FX.bezierCurveTo(hcx-28,hcy,hcx-28,hcy-20,hcx,hcy-11);FX.bezierCurveTo(hcx+28,hcy-20,hcx+28,hcy,hcx,hcy+16);FX.fill();
+    FX.strokeStyle='rgba(0,0,0,0.82)';FX.lineWidth=2.5;FX.beginPath();FX.moveTo(hcx,hcy-10);FX.lineTo(hcx-6,hcy-1);FX.lineTo(hcx+4,hcy+5);FX.lineTo(hcx-2,hcy+14);FX.stroke();
+    var ag=FX.createRadialGradient(x+b.W/2,y+b.H/2,0,x+b.W/2,y+b.H/2,90);ag.addColorStop(0,'rgba('+(ph2?'255,0,40':ac)+','+(.11+pulse*.07)+')');ag.addColorStop(1,'transparent');FX.fillStyle=ag;FX.fillRect(x-45,y-45,b.W+90,b.H+90);}
+  else{FX.fillStyle='#080016';FX.fillRect(x,y,b.W,b.H);FX.fillStyle='#0E0024';FX.fillRect(x+4,y+4,b.W-8,b.H-8);FX.fillStyle='#040008';FX.beginPath();FX.moveTo(x,y+18);FX.lineTo(x+b.W/2,y);FX.lineTo(x+b.W,y+18);FX.lineTo(x+b.W-8,y+b.H);FX.lineTo(x+8,y+b.H);FX.closePath();FX.fill();
+    FX.fillStyle='rgba('+ac+','+(.62+pulse*.36)+')';FX.beginPath();FX.ellipse(x+25,y+26,7,9,0,0,6.28);FX.fill();FX.beginPath();FX.ellipse(x+b.W-25,y+26,7,9,0,0,6.28);FX.fill();
+    var ag2=FX.createRadialGradient(x+b.W/2,y+b.H/2,0,x+b.W/2,y+b.H/2,70);ag2.addColorStop(0,'rgba('+ac+','+(.11+pulse*.07)+')');ag2.addColorStop(1,'transparent');FX.fillStyle=ag2;FX.fillRect(x-32,y-32,b.W+64,b.H+64);}
+  if(b.slamT>0){FX.strokeStyle='rgba('+ac+','+(b.slamT/24*0.6)+')';FX.lineWidth=4;FX.beginPath();FX.arc(x+b.W/2,y+b.H,(24-b.slamT)*8,0,6.28);FX.stroke();}}
 
 // ---------- HERO sprite draw ----------
 function drawHero(p){
