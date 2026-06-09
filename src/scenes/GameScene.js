@@ -23,6 +23,8 @@ export default class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, W, H);
 
     // ── themed painted background (parallax layers) ──
+    // Set a base colour immediately so the screen isn't black while backgrounds render
+    this.cameras.main.setBackgroundColor(this.level.primaryColor);
     new BackgroundBuilder(this, W, H, idx).build();
 
     // ── platforms from the level builder ──
