@@ -288,99 +288,28 @@ function loadSprites(cb){
 var GL, glProg, glBuf, glLoc={}, glC;
 var VERT=`attribute vec2 p;varying vec2 uv;void main(){uv=p*0.5+0.5;gl_Position=vec4(p,0.,1.);}`;
 // Fragment: procedural layered castle interior with depth, lighting, fog.
-var FRAG=`precision highp float;varying vec2 uv;
+var FRAG=`precision mediump float;varying vec2 uv;
 uniform float t;uniform vec2 res;uniform float camX;uniform vec3 pc;uniform vec3 ac;uniform float stage;
-float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
-float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
- float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));
- return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}
-float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.;a*=.5;}return v;}
 void main(){
  vec2 u=uv;float ar=res.x/res.y;
- // ===== PAINTED MANSION INTERIOR =====
- // warm dark base: deep wood walls, lighter near floor
- vec3 wallTop=pc*0.16, wallBot=pc*0.34;
- vec3 col=mix(wallBot, wallTop, smoothstep(0.0,1.0,u.y));
- // large-scale watercolor blotching (paint texture)
- float wc=fbm(vec2(u.x*2.2+camX*0.03, u.y*2.2));
- col=mix(col, col*1.25, wc*0.4);
- col+=ac*0.04*fbm(vec2(u.x*4.+camX*0.04,u.y*4.+1.7));
-
- // ---- FAR WALL PANELING: vertical wood panels w/ molding ----
- float panel=(u.x+camX*0.015)*7.0;
- float seam=smoothstep(0.04,0.0,abs(fract(panel)-0.5));
- col=mix(col, pc*0.12, seam*0.5*step(u.y,0.92));
- // chair-rail / wainscoting band
- float rail=smoothstep(0.02,0.0,abs(u.y-0.30));
- col=mix(col, pc*0.5, rail*0.6);
- float wains=step(u.y,0.30)*step(0.12,u.y);
- col=mix(col, pc*0.22, wains*0.4*seam);
-
- // ---- MID: TALL BOOKSHELVES (parallax) ----
- float bx=(u.x+camX*0.05)*3.2;          // shelf units
- float unit=fract(bx);
- float inShelf=step(0.08,unit)*step(unit,0.92)*step(0.33,u.y)*step(u.y,0.88);
- // shelf frame (dark wood)
- vec3 woodd=pc*0.22;
- col=mix(col, woodd, step(0.33,u.y)*step(u.y,0.9)*(1.0-inShelf)*0.85);
- // horizontal shelf boards every ~0.11
- float board=smoothstep(0.018,0.0,abs(fract(u.y*9.0)-0.0));
- col=mix(col, pc*0.18, board*inShelf*0.8);
- // BOOK SPINES: colored vertical bars on each shelf row
- float books=(u.x+camX*0.05)*46.0;
- float bk=fract(books);
- float bh=hash(vec2(floor(books),floor(u.y*9.0)));      // per-book
- float bookMask=inShelf*step(0.12,bk)*step(bk,0.88)*step(fract(u.y*9.0),0.82)*step(0.12,fract(u.y*9.0));
- // book colors: jewel tones derived from accent + variation
- vec3 bookCol=mix(ac, vec3(bh,fract(bh*3.1),fract(bh*7.7)), 0.55)*(0.5+bh*0.6);
- col=mix(col, bookCol*0.8, bookMask*0.9);
- // gold spine detail
- col+=ac*step(0.93,fract(u.y*9.0))*bookMask*0.3;
-
- // ---- FRAMED PAINTINGS between shelf columns (on upper wall) ----
- float fx=(u.x+camX*0.05)*3.2;
- float fcx=abs(fract(fx)-0.5);
- float paintBox=step(fcx,0.16)*step(0.5,u.y)*step(u.y,0.82)*(1.0-inShelf);
- // gold frame
- vec3 frame=mix(ac,vec3(1.0,0.85,0.4),0.5);
- col=mix(col, frame*0.7, paintBox*smoothstep(0.16,0.12,fcx)*0.9);
- // painted canvas (soft watercolor scene)
- float pin=step(fcx,0.12)*step(0.53,u.y)*step(u.y,0.79);
- vec3 canvasCol=mix(pc*1.6, ac*0.8, fbm(vec2(fx*6.0,u.y*5.0)));
- col=mix(col, canvasCol*0.6, pin*0.85);
-
- // ---- CHANDELIER / SCONCE warm glow from top ----
- float lx=(u.x+camX*0.05)*2.0;
- float sconce=smoothstep(0.1,0.0,length(vec2(fract(lx)-0.5,(u.y-0.86)*1.5)));
- float flick=0.8+0.2*sin(t*3.0+floor(lx)*2.1)+0.05*fbm(vec2(t*2.0,floor(lx)));
+ vec3 col=mix(pc*0.34,pc*0.16,u.y);
+ float panel=fract((u.x+camX*0.015)*7.0);
+ col=mix(col,pc*0.12,step(panel,0.04)*0.5*step(u.y,0.92));
+ col=mix(col,pc*0.5,step(abs(u.y-0.30),0.02)*0.6);
+ col=mix(col,pc*0.22,step(u.y,0.30)*step(0.12,u.y)*step(panel,0.04)*0.35);
+ float lx2=fract((u.x+camX*0.05)*2.0);
+ float flick=0.8+0.2*sin(t*3.0+floor((u.x+camX*0.05)*2.0)*2.1);
  vec3 warm=vec3(1.0,0.8,0.45);
- col+=warm*sconce*flick*0.9;
- // pooled warm light spilling down the wall
- col+=warm*smoothstep(0.4,0.0,abs(fract(lx)-0.5))*smoothstep(0.5,1.0,u.y)*0.06*flick;
-
- // ---- FLOOR: polished parquet w/ reflections ----
+ float scl=max(0.0,1.0-length(vec2(lx2-0.5,(u.y-0.86)*1.5))*8.0);
+ col+=warm*scl*flick*0.9;
+ col+=warm*max(0.0,0.18-abs(lx2-0.5))*max(0.0,u.y-0.5)*0.12*flick;
+ col+=ac*0.03*max(0.0,1.0-u.y*2.5);
  float floorM=step(u.y,0.12);
- vec3 floorCol=pc*0.5;
- // parquet diagonal pattern
  float par=step(0.5,fract((u.x*30.0+u.y*30.0)));
- floorCol=mix(floorCol, floorCol*1.2, par*0.3);
- col=mix(col, floorCol, floorM);
- // warm reflection streaks on floor
- col+=warm*floorM*smoothstep(0.12,0.0,u.y)*0.12*(0.5+0.5*sin(u.x*16.0+camX*0.1));
-
- // ---- dust motes in the light ----
- float mx=u.x+camX*0.12;
- for(int i=0;i<3;i++){float fi=float(i);
-  vec2 mp=vec2(fract(mx*2.0+fi*0.31+t*0.012*(fi+1.0)),fract(u.y+sin(t*0.1+fi)*0.1+fi*0.2));
-  float m=smoothstep(0.010,0.0,length(mp-0.5));
-  col+=warm*m*0.5;}
-
- // atmosphere: vignette + soft fog low
- float vig=smoothstep(1.35,0.35,length((u-0.5)*vec2(ar,1.0)));
- col*=vig;
- col=mix(col, pc*0.10, smoothstep(0.45,0.0,u.y)*0.25);
- // watercolor grain
- col+=(hash(u*res.xy+t)-0.5)*0.018;
+ col=mix(col,mix(pc*0.5,pc*0.62,par*0.3),floorM);
+ col+=warm*floorM*max(0.0,0.12-u.y)*0.8*(0.5+0.5*sin(u.x*16.0+camX*0.1));
+ col*=smoothstep(1.35,0.35,length((u-0.5)*vec2(ar,1.0)));
+ col+=(fract(sin(dot(u*res.xy+t,vec2(127.1,311.7)))*43758.5)-0.5)*0.015;
  gl_FragColor=vec4(col,1.0);
 }`;
 function initGL(){
@@ -430,7 +359,7 @@ function resize(){
 var T=32, GRAV=0.52, MASKS=5;
 var PW=30, PH=86; // hero collision box (scaled to ~5'3.75")
 var GS={};
-function initGS(ai){
+function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
   var sc=GS.score||0, gn=GS.totalNotes||0, lvl=GS.level||1, xp=GS.xp||0, mm=GS.permMax||MASKS, dmg=GS.dmg||1;
   GS={ai:ai,score:sc,totalNotes:gn,masks:mm,maxMasks:mm,permMax:mm,res:0,resMax:200,
     level:lvl,xp:xp,xpNext:GS.xpNext||100,dmg:dmg,
@@ -704,7 +633,7 @@ function update(){
   if(GS.boss&&!GS.boss.alive&&!GS.won&&!GS.trans){GS.won=true;GS.trans=true;GS.score+=3000*(STAGES.length-GS.ai);updateHUD();
     setTimeout(function(){if(GS.ai<STAGES.length-1){GS.trans=false;nextStage();}else showOver(true);},2200);}
 
-  for(var pi=GS.ptcl.length-1;pi>=0;pi--){var pp=GS.ptcl[pi];pp.x+=pp.vx;pp.y+=pp.vy;pp.vy+=pp.g||0;pp.vx*=pp.dr||0.95;pp.life-=pp.d;if(pp.life<=0)GS.ptcl.splice(pi,1);}
+  var _po=0;for(var pi=0;pi<GS.ptcl.length;pi++){var pp=GS.ptcl[pi];pp.x+=pp.vx;pp.y+=pp.vy;pp.vy+=pp.g||0;pp.vx*=pp.dr||0.95;pp.life-=pp.d;if(pp.life>0)GS.ptcl[_po++]=pp;}GS.ptcl.length=_po;
 }
 
 function updateEnemies(){
@@ -821,97 +750,147 @@ function ptcl(x,y,tp){var r=Math.random;
 //  DRAW (FX canvas over the WebGL background)
 // ════════ PAINTED MANSION BACKGROUND (Canvas2D, parallax) ════════
 function shade(rgb,f){var p=rgb.split(',');return 'rgb('+Math.round(p[0]*f)+','+Math.round(p[1]*f)+','+Math.round(p[2]*f)+')';}
+// ════ PHOTOREAL BACKDROPS (preferred path) ════
+// Drop base64 data-URIs per stage index (or 'all' for every stage) into BG_DATA.
+// When an image exists for the current stage it is drawn as a parallax backdrop
+// with stage tint + candle flicker + vignette; otherwise painted fallback below.
+var BG_DATA={};   // e.g. BG_DATA[0]='data:image/jpeg;base64,....'  BG_DATA.all='data:...'
+var BG_IMG={};
+function loadBGs(){for(var k in BG_DATA){(function(i){var im=new Image();im.onload=function(){BG_IMG[i]=im;};im.src=BG_DATA[i];})(k);}}
+// Classic library book spine palette — muted, realistic, no neon
+var _BKPAL=['110,25,25','25,45,100','28,72,38','105,62,28','72,38,98','18,65,72','135,48,20','52,68,108','85,72,26','55,40,35','30,55,88','98,44,28','145,125,88','38,55,40'];
+var _bgW=null,_bgF=null,_bgV=null,_bgP=null;
 function drawMansionBG(st){
   var pc=hexS(st.pc), ac=hexS(st.ac), cam=GS.camX;
-  // —— wall gradient (warm, darker up top) ——
-  var wg=FX.createLinearGradient(0,0,0,H);
-  wg.addColorStop(0,shade(pc,0.18));wg.addColorStop(0.55,shade(pc,0.30));wg.addColorStop(1,shade(pc,0.40));
-  FX.fillStyle=wg;FX.fillRect(0,0,W,H);
   var floorY=H*0.82;
-  // —— FAR: vertical wall panels w/ molding (slow parallax) ——
-  var pw=150, off1=(-cam*0.15)%pw;
-  FX.strokeStyle=shade(pc,0.14);FX.lineWidth=2;
-  for(var x=off1;x<W+pw;x+=pw){FX.beginPath();FX.moveTo(x,0);FX.lineTo(x,floorY);FX.stroke();}
-  // chair rail
-  FX.fillStyle=shade(pc,0.5);FX.fillRect(0,H*0.52,W,4);
-  FX.fillStyle=shade(pc,0.22);FX.fillRect(0,H*0.52+4,W,H*0.30-4);
-  // —— MID: tall bookshelves (medium parallax) ——
-  var shelfW=300, off2=(-cam*0.35)%shelfW, shelfTop=H*0.16, shelfBot=H*0.52;
-  for(var sx=off2;sx<W+shelfW;sx+=shelfW){
-    // cabinet body
-    FX.fillStyle=shade(pc,0.26);FX.fillRect(sx,shelfTop,shelfW-14,shelfBot-shelfTop);
-    FX.strokeStyle=shade(pc,0.16);FX.lineWidth=3;FX.strokeRect(sx,shelfTop,shelfW-14,shelfBot-shelfTop);
-    var rows=4,rowH=(shelfBot-shelfTop)/rows;
+
+  // — photoreal backdrop path —
+  var bgi=BG_IMG[GS.ai]||BG_IMG.all;
+  if(bgi){
+    var isc=H/bgi.height, iw=bgi.width*isc;
+    var ox=(-cam*0.22)%iw; if(ox>0)ox-=iw;
+    for(var ix=ox;ix<W+iw;ix+=iw)FX.drawImage(bgi,ix,0,iw,H);
+    FX.fillStyle='rgba('+pc+',0.14)';FX.fillRect(0,0,W,H);            // stage color grade
+    var lampSp2=480, offL=(-cam*0.58)%lampSp2;
+    for(var lx2=offL-lampSp2;lx2<W+lampSp2;lx2+=lampSp2){              // candle light pools
+      var fk=0.80+0.20*Math.sin(GS.tick*0.07+lx2*0.01);
+      var lg2=FX.createRadialGradient(lx2,H*0.10,0,lx2,H*0.10,230);
+      lg2.addColorStop(0,'rgba(255,200,120,'+(0.20*fk)+')');lg2.addColorStop(1,'rgba(255,200,120,0)');
+      FX.fillStyle=lg2;FX.fillRect(lx2-230,0,460,H*0.6);
+    }
+    if(!_bgV){_bgV=FX.createRadialGradient(W/2,H/2,H*0.28,W/2,H/2,H*0.88);_bgV.addColorStop(0,'rgba(0,0,0,0)');_bgV.addColorStop(1,'rgba(0,0,0,0.48)');}
+    FX.fillStyle=_bgV;FX.fillRect(0,0,W,H);
+    FX.fillStyle='rgba(255,225,170,0.45)';
+    for(var m2=0;m2<16;m2++){var mx2=(((m2*137+31)-(cam*0.45))%W+W*3)%W,my2=(H*0.18+m2*43+Math.sin(GS.tick*0.018+m2*1.3)*22)%floorY;FX.beginPath();FX.arc(mx2,my2,1.1,0,6.28);FX.fill();}
+    return;
+  }
+
+  // — LAYER 0: wall fill (cached per stage) —
+  if(!_bgW){_bgW=FX.createLinearGradient(0,0,0,H);_bgW.addColorStop(0,shade(pc,0.16));_bgW.addColorStop(0.55,shade(pc,0.28));_bgW.addColorStop(1,shade(pc,0.38));}
+  FX.fillStyle=_bgW;FX.fillRect(0,0,W,H);
+
+  // — LAYER 1: distant Gothic arches (parallax 0.06×, very slow) —
+  var archSp=440, off0=(-cam*0.06)%archSp;
+  FX.strokeStyle=shade(pc,0.07);FX.lineWidth=4;
+  for(var ax=off0-archSp;ax<W+archSp;ax+=archSp){
+    var aW=110,aH=H*0.52,ay=H*0.06;
+    FX.beginPath();FX.moveTo(ax-aW/2,ay+aH);FX.lineTo(ax-aW/2,ay+aH*0.3);
+    FX.bezierCurveTo(ax-aW/2,ay,ax+aW/2,ay,ax+aW/2,ay+aH*0.3);
+    FX.lineTo(ax+aW/2,ay+aH);FX.stroke();
+    FX.lineWidth=1.5;
+    FX.beginPath();FX.moveTo(ax,ay+aH*0.16);FX.lineTo(ax,ay+aH*0.72);FX.stroke();
+    FX.beginPath();FX.moveTo(ax-aW*0.3,ay+aH*0.42);FX.lineTo(ax+aW*0.3,ay+aH*0.42);FX.stroke();
+    FX.lineWidth=4;
+  }
+
+  // — LAYER 2: wall panels & wainscoting (parallax 0.12×) —
+  var pw=180, off1=(-cam*0.12)%pw;
+  FX.strokeStyle=shade(pc,0.12);FX.lineWidth=1.5;
+  for(var x=off1-pw;x<W+pw;x+=pw){
+    FX.beginPath();FX.moveTo(x,H*0.04);FX.lineTo(x,floorY);FX.stroke();
+  }
+  FX.fillStyle=shade(pc,0.44);FX.fillRect(0,H*0.50,W,5);      // chair rail
+  FX.fillStyle=shade(pc,0.19);FX.fillRect(0,H*0.505,W,H*0.315); // wainscoting
+
+  // — LAYER 3: framed paintings, upper wall (parallax 0.24×) —
+  var paintW=400, off3=(-cam*0.24)%paintW;
+  var fw=78,fh=96,fy=H*0.16;
+  for(var px2=off3-paintW;px2<W+paintW;px2+=paintW){
+    FX.fillStyle=shade(ac,0.68);FX.fillRect(px2,fy,fw,fh);           // frame
+    FX.fillStyle='rgba(0,0,0,0.28)';FX.fillRect(px2+5,fy+5,fw-10,fh-10); // inner shadow
+    if(!_bgP){_bgP=FX.createLinearGradient(0,fy,0,fy+fh);_bgP.addColorStop(0,shade(pc,1.2));_bgP.addColorStop(1,shade(ac,0.52));}
+    FX.fillStyle=_bgP;FX.fillRect(px2+7,fy+7,fw-14,fh-14);           // canvas
+    FX.fillStyle='rgba('+pc+',0.42)';FX.beginPath();FX.ellipse(px2+fw/2,fy+fh*0.58,fw*0.2,fh*0.26,0,0,6.28);FX.fill();
+    FX.strokeStyle='rgba('+ac+',0.3)';FX.lineWidth=1.5;FX.beginPath();
+    FX.moveTo(px2+3,fy+fh-3);FX.lineTo(px2+3,fy+3);FX.lineTo(px2+fw-3,fy+3);FX.stroke();
+  }
+
+  // — LAYER 4: tall bookshelves (parallax 0.44×) — books use realistic palette —
+  var shelfW=320, off2=(-cam*0.44)%shelfW;
+  var shelfTop=H*0.14, shelfBot=H*0.50, sW=shelfW-20;
+  for(var sx=off2-shelfW;sx<W+shelfW;sx+=shelfW){
+    FX.fillStyle='rgba(0,0,0,0.15)';FX.fillRect(sx+5,shelfTop+5,sW,shelfBot-shelfTop); // drop shadow
+    FX.fillStyle=shade(pc,0.22);FX.fillRect(sx,shelfTop,sW,shelfBot-shelfTop);          // cabinet
+    FX.strokeStyle=shade(pc,0.12);FX.lineWidth=2;FX.strokeRect(sx,shelfTop,sW,shelfBot-shelfTop);
+    FX.fillStyle=shade(ac,0.50);FX.fillRect(sx-3,shelfTop-5,sW+6,5);   // crown molding
+    FX.fillStyle=shade(pc,0.32);FX.fillRect(sx-1,shelfTop-3,sW+2,3);
+    var rows=4, rowH=(shelfBot-shelfTop)/rows;
     for(var r=0;r<rows;r++){
       var ry=shelfTop+r*rowH;
-      // shelf board
-      FX.fillStyle=shade(pc,0.15);FX.fillRect(sx,ry+rowH-4,shelfW-14,4);
-      // books: colored spines
-      var bxp=sx+8, lim=sx+shelfW-22;
-      var seed=Math.floor(sx*0.7)+r*13;
+      FX.fillStyle=shade(pc,0.34);FX.fillRect(sx,ry+rowH-6,sW,6);     // shelf board
+      FX.fillStyle='rgba(0,0,0,0.18)';FX.fillRect(sx,ry+rowH-6,sW,2); // under-shelf shadow
+      var bxp=sx+10, lim=sx+sW-10;
+      var seed=Math.floor(Math.abs(sx)*0.5+1)+r*17;
       while(bxp<lim){
-        var rnd=Math.abs(Math.sin(seed*12.9898))*43758.5; rnd=rnd-Math.floor(rnd);
-        seed++;
-        var bw=5+rnd*9, bh=rowH-8-rnd*6;
-        // jewel-tone book color blended toward accent
-        var hue=rnd, ar2=ac.split(','), 
-            br=Math.round(ar2[0]*0.5+hue*120), bgc=Math.round(ar2[1]*0.5+(1-hue)*90), bb=Math.round(ar2[2]*0.5+hue*160);
-        FX.fillStyle='rgb('+br+','+bgc+','+bb+')';
-        FX.fillRect(bxp,ry+rowH-4-bh,bw,bh);
-        // gold band detail
-        if(rnd>0.6){FX.fillStyle='rgba('+ac+',0.7)';FX.fillRect(bxp,ry+rowH-4-bh*0.7,bw,1.5);}
-        // spine highlight
-        FX.fillStyle='rgba(255,255,255,0.07)';FX.fillRect(bxp,ry+rowH-4-bh,1,bh);
-        bxp+=bw+1.5;
+        var rnd=Math.abs(Math.sin(seed*12.9898)*43758.5);rnd-=Math.floor(rnd);seed++;
+        var bw=6+rnd*11, bh=rowH-10-rnd*5;
+        FX.fillStyle='rgb('+_BKPAL[Math.abs(seed)%_BKPAL.length]+')';
+        FX.fillRect(bxp,ry+rowH-6-bh,bw,bh);
+        if(rnd>0.55){FX.fillStyle='rgba('+ac+',0.45)';FX.fillRect(bxp,ry+rowH-6-bh+3,bw,2);}
+        FX.fillStyle='rgba(255,255,255,0.07)';FX.fillRect(bxp,ry+rowH-6-bh,1.5,bh);
+        bxp+=bw+2;
       }
     }
   }
-  // —— framed paintings on the upper wall, offset from shelves ——
-  var paintW=300, off3=(-cam*0.35+150)%paintW;
-  for(var px2=off3;px2<W+paintW;px2+=paintW){
-    var fw=70,fh=90,fy=H*0.20;
-    // gold frame
-    FX.fillStyle=shade(ac,0.8);FX.fillRect(px2,fy,fw,fh);
-    FX.fillStyle=shade(ac,1.1>1?1:1.0);FX.fillRect(px2+3,fy+3,fw-6,fh-6);
-    // canvas: soft painted scene
-    var cg=FX.createLinearGradient(px2,fy,px2,fy+fh);
-    cg.addColorStop(0,shade(pc,1.4));cg.addColorStop(1,shade(ac,0.7));
-    FX.fillStyle=cg;FX.fillRect(px2+6,fy+6,fw-12,fh-12);
-    // suggestion of a figure/landscape
-    FX.fillStyle='rgba('+pc+',0.5)';FX.beginPath();FX.ellipse(px2+fw/2,fy+fh*0.62,fw*0.18,fh*0.22,0,0,6.28);FX.fill();
+
+  // — LAYER 5: chandeliers (parallax 0.58×) —
+  var lampSp=480, off4=(-cam*0.58)%lampSp;
+  for(var lx=off4-lampSp;lx<W+lampSp;lx+=lampSp){
+    var flick=0.80+0.20*Math.sin(GS.tick*0.07+lx*0.01);
+    var lg=FX.createRadialGradient(lx,H*0.07,0,lx,H*0.07,210);
+    lg.addColorStop(0,'rgba(255,210,135,'+(0.30*flick)+')');lg.addColorStop(1,'rgba(255,210,135,0)');
+    FX.fillStyle=lg;FX.fillRect(lx-210,0,420,H*0.55);
+    FX.strokeStyle='rgba(35,25,12,0.6)';FX.lineWidth=2;FX.beginPath();FX.moveTo(lx,0);FX.lineTo(lx,H*0.05);FX.stroke();
+    FX.strokeStyle='rgba(45,35,18,0.72)';FX.lineWidth=3;FX.beginPath();FX.ellipse(lx,H*0.064,26,5,0,0,6.28);FX.stroke();
+    for(var cb=-3;cb<=3;cb++){
+      var cx2=lx+cb*10, cy2=H*0.07;
+      FX.fillStyle='rgba(55,45,25,0.78)';FX.fillRect(cx2-1.5,cy2,3,9);
+      FX.fillStyle='rgba('+ac+','+(0.72*flick)+')';FX.beginPath();FX.arc(cx2,cy2,2.5,0,6.28);FX.fill();
+    }
   }
-  // —— warm chandelier light pools (near top) ——
-  var lampSp=400, off4=(-cam*0.35)%lampSp;
-  for(var lx=off4;lx<W+lampSp;lx+=lampSp){
-    var flick=0.85+0.15*Math.sin(GS.tick*0.08+lx);
-    var lg=FX.createRadialGradient(lx,H*0.08,0,lx,H*0.08,180);
-    lg.addColorStop(0,'rgba(255,205,130,'+(0.28*flick)+')');lg.addColorStop(1,'rgba(255,205,130,0)');
-    FX.fillStyle=lg;FX.fillRect(lx-180,0,360,H*0.5);
-    // chandelier silhouette
-    FX.strokeStyle='rgba(40,30,15,0.6)';FX.lineWidth=2;FX.beginPath();FX.moveTo(lx,0);FX.lineTo(lx,H*0.06);FX.stroke();
-    FX.fillStyle='rgba('+ac+','+(0.6*flick)+')';
-    for(var cb=-2;cb<=2;cb++){FX.beginPath();FX.arc(lx+cb*9,H*0.07,2.5,0,6.28);FX.fill();}
-  }
-  // —— floor: polished parquet w/ reflections ——
-  var fg=FX.createLinearGradient(0,floorY,0,H);
-  fg.addColorStop(0,shade(pc,0.5));fg.addColorStop(1,shade(pc,0.32));
-  FX.fillStyle=fg;FX.fillRect(0,floorY,W,H-floorY);
-  // parquet diagonal hatch
-  FX.strokeStyle='rgba(0,0,0,0.12)';FX.lineWidth=1;
-  var pq=40, poff=(-cam*0.6)%pq;
+
+  // — Floor (cached per stage) —
+  if(!_bgF){_bgF=FX.createLinearGradient(0,floorY,0,H);_bgF.addColorStop(0,shade(pc,0.5));_bgF.addColorStop(1,shade(pc,0.32));}
+  FX.fillStyle=_bgF;FX.fillRect(0,floorY,W,H-floorY);
+  FX.strokeStyle='rgba(0,0,0,0.11)';FX.lineWidth=1;
+  var pq=46, poff=(-cam*0.68)%pq;
   for(var fx2=poff-H;fx2<W+H;fx2+=pq){FX.beginPath();FX.moveTo(fx2,floorY);FX.lineTo(fx2+(H-floorY),H);FX.stroke();}
-  // warm reflection streaks
-  for(var rl=off4;rl<W+lampSp;rl+=lampSp){
-    var rgd=FX.createLinearGradient(rl,floorY,rl,H);rgd.addColorStop(0,'rgba(255,205,130,0.10)');rgd.addColorStop(1,'rgba(255,205,130,0)');
-    FX.fillStyle=rgd;FX.fillRect(rl-50,floorY,100,H-floorY);
+  for(var rl=off4-lampSp;rl<W+lampSp;rl+=lampSp){
+    var rgd=FX.createLinearGradient(rl,floorY,rl,H);rgd.addColorStop(0,'rgba(255,205,130,0.09)');rgd.addColorStop(1,'rgba(255,205,130,0)');
+    FX.fillStyle=rgd;FX.fillRect(rl-55,floorY,110,H-floorY);
   }
-  // —— vignette ——
-  var vg=FX.createRadialGradient(W/2,H/2,H*0.3,W/2,H/2,H*0.85);
-  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.45)');
-  FX.fillStyle=vg;FX.fillRect(0,0,W,H);
-  // —— floating dust motes ——
-  FX.fillStyle='rgba(255,225,170,0.5)';
-  for(var m=0;m<14;m++){var mx=( (m*137 - cam*0.4)%W +W)%W, my=(H*0.2+m*47+Math.sin(GS.tick*0.02+m)*20)%floorY;FX.beginPath();FX.arc(mx,my,1.2,0,6.28);FX.fill();}
+
+  // — Vignette (cached) —
+  if(!_bgV){_bgV=FX.createRadialGradient(W/2,H/2,H*0.28,W/2,H/2,H*0.88);_bgV.addColorStop(0,'rgba(0,0,0,0)');_bgV.addColorStop(1,'rgba(0,0,0,0.48)');}
+  FX.fillStyle=_bgV;FX.fillRect(0,0,W,H);
+
+  // — Dust motes —
+  FX.fillStyle='rgba(255,225,170,0.45)';
+  for(var m=0;m<16;m++){
+    var mx=(((m*137+31)-(cam*0.45))%W+W*3)%W;
+    var my=(H*0.18+m*43+Math.sin(GS.tick*0.018+m*1.3)*22)%floorY;
+    FX.beginPath();FX.arc(mx,my,1.1,0,6.28);FX.fill();
+  }
 }
 // ════════════════════════════════════════════════════════════
 function draw(){
@@ -952,8 +931,7 @@ function drawTile(t,ac,pc){var x=t.c*T,y=t.r*T,s=T;
     FX.fillStyle='rgba(200,150,255,'+(pl*0.5)+')';FX.beginPath();FX.arc(x+s/2,y+s/2,4,0,6.28);FX.fill();
     FX.strokeStyle='rgba(180,120,255,'+(pl*0.4)+')';FX.lineWidth=1;FX.beginPath();FX.moveTo(x+s/2,y+4);FX.lineTo(x+s/2,y+s-4);FX.moveTo(x+4,y+s/2);FX.lineTo(x+s-4,y+s/2);FX.stroke();return;}
   if(t.t!=='G'&&t.t!=='P')return;
-  var isTop=!isSolid(t.c,t.r-1);          // exposed top surface?
-  // base wood block w/ vertical grain gradient
+  var isTop=!isSolid(t.c,t.r-1);
   var g=FX.createLinearGradient(x,y,x,y+s);
   g.addColorStop(0,'rgba('+pc+',0.85)');g.addColorStop(0.5,'rgba('+pc+',0.62)');g.addColorStop(1,'rgba('+pc+',0.45)');
   FX.fillStyle=g;FX.fillRect(x,y,s,s);
@@ -1506,14 +1484,15 @@ function showOver(won){document.getElementById('overlay').classList.add('on');do
 function initTitleBG(){var bc=document.getElementById('bgC'),c2=bc.getContext('2d');bc.width=innerWidth;bc.height=innerHeight;
   var stars=[],wisps=[];for(var i=0;i<200;i++)stars.push({x:Math.random()*bc.width,y:Math.random()*bc.height,s:Math.random()*1.6+.3,b:Math.random()*6.28,v:.015+Math.random()*.03});
   for(i=0;i<40;i++)wisps.push({x:Math.random()*bc.width,y:Math.random()*bc.height+80,vx:(Math.random()-.5)*.5,vy:-.35-Math.random()*.35,a:Math.random()*6.28,sz:3+Math.random()*7});
-  (function l(){bc.width=innerWidth;bc.height=innerHeight;var bg=c2.createLinearGradient(0,0,0,bc.height);bg.addColorStop(0,'#020006');bg.addColorStop(.45,'#1a0a2e');bg.addColorStop(1,'#04000C');c2.fillStyle=bg;c2.fillRect(0,0,bc.width,bc.height);
+  var _tbg=c2.createLinearGradient(0,0,0,bc.height);_tbg.addColorStop(0,'#020006');_tbg.addColorStop(.45,'#1a0a2e');_tbg.addColorStop(1,'#04000C');
+  (function l(){c2.fillStyle=_tbg;c2.fillRect(0,0,bc.width,bc.height);
     for(var i=0;i<stars.length;i++){var s=stars[i];s.b+=s.v;c2.fillStyle='rgba(255,215,0,'+(Math.sin(s.b)*.4+.34)+')';c2.beginPath();c2.arc(s.x,s.y,s.s,0,6.28);c2.fill();}
     for(i=0;i<wisps.length;i++){var w=wisps[i];w.x+=w.vx;w.y+=w.vy;w.a+=.018;if(w.y<-20){w.y=bc.height+10;w.x=Math.random()*bc.width;}c2.fillStyle='rgba(130,0,255,'+(Math.sin(w.a)*.17+.08)+')';c2.beginPath();c2.ellipse(w.x,w.y,w.sz*.28,w.sz,Math.sin(w.a)*.44,0,6.28);c2.fill();}
     requestAnimationFrame(l);})();}
 
 // ---------- loop ----------
 var running=false;
-function loop(){if(!running)return;update();draw();requestAnimationFrame(loop);}
+var _lT=0;function loop(ts){if(!running)return;var dt=ts-_lT;if(dt<14){requestAnimationFrame(loop);return;}_lT=ts;try{update();draw();}catch(e){console.error('loop:',e);}requestAnimationFrame(loop);}
 function startGame(){
   // hide ALL fullscreen overlays so the game canvas is visible
   var scr=document.querySelectorAll('.screen');for(var si=0;si<scr.length;si++)scr[si].classList.remove('active');
@@ -1559,6 +1538,7 @@ function wire(){
   // init FX 2D canvas context up front (used by all drawing)
   FXC=document.getElementById('fxC');FX=FXC.getContext('2d');
   initTitleBG();
+  loadBGs();     // photoreal backdrops (no-op until BG_DATA is filled)
   loadSprites(); // preload sprites in background
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire);else wire();
