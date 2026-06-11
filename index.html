@@ -359,8 +359,7 @@ function resize(){
 var T=32, GRAV=0.52, MASKS=5;
 var PW=30, PH=86; // hero collision box (scaled to ~5'3.75")
 var GS={};
-var _tileG=null;
-function initGS(ai){_tileG=null;_bgW=null;_bgF=null;_bgV=null;_bgP=null;
+function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
   var sc=GS.score||0, gn=GS.totalNotes||0, lvl=GS.level||1, xp=GS.xp||0, mm=GS.permMax||MASKS, dmg=GS.dmg||1;
   GS={ai:ai,score:sc,totalNotes:gn,masks:mm,maxMasks:mm,permMax:mm,res:0,resMax:200,
     level:lvl,xp:xp,xpNext:GS.xpNext||100,dmg:dmg,
@@ -932,10 +931,10 @@ function drawTile(t,ac,pc){var x=t.c*T,y=t.r*T,s=T;
     FX.fillStyle='rgba(200,150,255,'+(pl*0.5)+')';FX.beginPath();FX.arc(x+s/2,y+s/2,4,0,6.28);FX.fill();
     FX.strokeStyle='rgba(180,120,255,'+(pl*0.4)+')';FX.lineWidth=1;FX.beginPath();FX.moveTo(x+s/2,y+4);FX.lineTo(x+s/2,y+s-4);FX.moveTo(x+4,y+s/2);FX.lineTo(x+s-4,y+s/2);FX.stroke();return;}
   if(t.t!=='G'&&t.t!=='P')return;
-  var isTop=!isSolid(t.c,t.r-1);          // exposed top surface?
-  // base wood block w/ vertical grain gradient (gradient height is always T=32, cache per stage)
-  if(!_tileG){_tileG=FX.createLinearGradient(0,0,0,s);_tileG.addColorStop(0,'rgba('+pc+',0.85)');_tileG.addColorStop(0.5,'rgba('+pc+',0.62)');_tileG.addColorStop(1,'rgba('+pc+',0.45)');}
-  FX.save();FX.translate(x,y);FX.fillStyle=_tileG;FX.fillRect(0,0,s,s);FX.restore();
+  var isTop=!isSolid(t.c,t.r-1);
+  var g=FX.createLinearGradient(x,y,x,y+s);
+  g.addColorStop(0,'rgba('+pc+',0.85)');g.addColorStop(0.5,'rgba('+pc+',0.62)');g.addColorStop(1,'rgba('+pc+',0.45)');
+  FX.fillStyle=g;FX.fillRect(x,y,s,s);
   // wood grain streaks
   FX.strokeStyle='rgba(0,0,0,0.10)';FX.lineWidth=1;
   for(var gi=0;gi<3;gi++){var gy=y+6+gi*9;FX.beginPath();FX.moveTo(x,gy);FX.bezierCurveTo(x+s*0.4,gy-2,x+s*0.6,gy+2,x+s,gy);FX.stroke();}
@@ -1493,7 +1492,7 @@ function initTitleBG(){var bc=document.getElementById('bgC'),c2=bc.getContext('2
 
 // ---------- loop ----------
 var running=false;
-var _lT=0;function loop(ts){if(!running)return;var dt=ts-_lT;if(dt<14){requestAnimationFrame(loop);return;}_lT=ts;update();draw();requestAnimationFrame(loop);}
+var _lT=0;function loop(ts){if(!running)return;var dt=ts-_lT;if(dt<14){requestAnimationFrame(loop);return;}_lT=ts;try{update();draw();}catch(e){console.error('loop:',e);}requestAnimationFrame(loop);}
 function startGame(){
   // hide ALL fullscreen overlays so the game canvas is visible
   var scr=document.querySelectorAll('.screen');for(var si=0;si<scr.length;si++)scr[si].classList.remove('active');
