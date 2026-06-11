@@ -751,94 +751,119 @@ function ptcl(x,y,tp){var r=Math.random;
 //  DRAW (FX canvas over the WebGL background)
 // ════════ PAINTED MANSION BACKGROUND (Canvas2D, parallax) ════════
 function shade(rgb,f){var p=rgb.split(',');return 'rgb('+Math.round(p[0]*f)+','+Math.round(p[1]*f)+','+Math.round(p[2]*f)+')';}
+// Classic library book spine palette — muted, realistic, no neon
+var _BKPAL=['110,25,25','25,45,100','28,72,38','105,62,28','72,38,98','18,65,72','135,48,20','52,68,108','85,72,26','55,40,35','30,55,88','98,44,28','145,125,88','38,55,40'];
 var _bgW=null,_bgF=null,_bgV=null,_bgP=null;
 function drawMansionBG(st){
   var pc=hexS(st.pc), ac=hexS(st.ac), cam=GS.camX;
-  // —— wall gradient (warm, darker up top) — cached per stage ——
-  if(!_bgW){_bgW=FX.createLinearGradient(0,0,0,H);_bgW.addColorStop(0,shade(pc,0.18));_bgW.addColorStop(0.55,shade(pc,0.30));_bgW.addColorStop(1,shade(pc,0.40));}
-  FX.fillStyle=_bgW;FX.fillRect(0,0,W,H);
   var floorY=H*0.82;
-  // —— FAR: vertical wall panels w/ molding (slow parallax) ——
-  var pw=150, off1=(-cam*0.15)%pw;
-  FX.strokeStyle=shade(pc,0.14);FX.lineWidth=2;
-  for(var x=off1;x<W+pw;x+=pw){FX.beginPath();FX.moveTo(x,0);FX.lineTo(x,floorY);FX.stroke();}
-  // chair rail
-  FX.fillStyle=shade(pc,0.5);FX.fillRect(0,H*0.52,W,4);
-  FX.fillStyle=shade(pc,0.22);FX.fillRect(0,H*0.52+4,W,H*0.30-4);
-  // —— MID: tall bookshelves (medium parallax) ——
-  var shelfW=300, off2=(-cam*0.35)%shelfW, shelfTop=H*0.16, shelfBot=H*0.52;
-  for(var sx=off2;sx<W+shelfW;sx+=shelfW){
-    // cabinet body
-    FX.fillStyle=shade(pc,0.26);FX.fillRect(sx,shelfTop,shelfW-14,shelfBot-shelfTop);
-    FX.strokeStyle=shade(pc,0.16);FX.lineWidth=3;FX.strokeRect(sx,shelfTop,shelfW-14,shelfBot-shelfTop);
-    var rows=4,rowH=(shelfBot-shelfTop)/rows;
+
+  // — LAYER 0: wall fill (cached per stage) —
+  if(!_bgW){_bgW=FX.createLinearGradient(0,0,0,H);_bgW.addColorStop(0,shade(pc,0.16));_bgW.addColorStop(0.55,shade(pc,0.28));_bgW.addColorStop(1,shade(pc,0.38));}
+  FX.fillStyle=_bgW;FX.fillRect(0,0,W,H);
+
+  // — LAYER 1: distant Gothic arches (parallax 0.06×, very slow) —
+  var archSp=440, off0=(-cam*0.06)%archSp;
+  FX.strokeStyle=shade(pc,0.07);FX.lineWidth=4;
+  for(var ax=off0-archSp;ax<W+archSp;ax+=archSp){
+    var aW=110,aH=H*0.52,ay=H*0.06;
+    FX.beginPath();FX.moveTo(ax-aW/2,ay+aH);FX.lineTo(ax-aW/2,ay+aH*0.3);
+    FX.bezierCurveTo(ax-aW/2,ay,ax+aW/2,ay,ax+aW/2,ay+aH*0.3);
+    FX.lineTo(ax+aW/2,ay+aH);FX.stroke();
+    FX.lineWidth=1.5;
+    FX.beginPath();FX.moveTo(ax,ay+aH*0.16);FX.lineTo(ax,ay+aH*0.72);FX.stroke();
+    FX.beginPath();FX.moveTo(ax-aW*0.3,ay+aH*0.42);FX.lineTo(ax+aW*0.3,ay+aH*0.42);FX.stroke();
+    FX.lineWidth=4;
+  }
+
+  // — LAYER 2: wall panels & wainscoting (parallax 0.12×) —
+  var pw=180, off1=(-cam*0.12)%pw;
+  FX.strokeStyle=shade(pc,0.12);FX.lineWidth=1.5;
+  for(var x=off1-pw;x<W+pw;x+=pw){
+    FX.beginPath();FX.moveTo(x,H*0.04);FX.lineTo(x,floorY);FX.stroke();
+  }
+  FX.fillStyle=shade(pc,0.44);FX.fillRect(0,H*0.50,W,5);      // chair rail
+  FX.fillStyle=shade(pc,0.19);FX.fillRect(0,H*0.505,W,H*0.315); // wainscoting
+
+  // — LAYER 3: framed paintings, upper wall (parallax 0.24×) —
+  var paintW=400, off3=(-cam*0.24)%paintW;
+  var fw=78,fh=96,fy=H*0.16;
+  for(var px2=off3-paintW;px2<W+paintW;px2+=paintW){
+    FX.fillStyle=shade(ac,0.68);FX.fillRect(px2,fy,fw,fh);           // frame
+    FX.fillStyle='rgba(0,0,0,0.28)';FX.fillRect(px2+5,fy+5,fw-10,fh-10); // inner shadow
+    if(!_bgP){_bgP=FX.createLinearGradient(0,fy,0,fy+fh);_bgP.addColorStop(0,shade(pc,1.2));_bgP.addColorStop(1,shade(ac,0.52));}
+    FX.fillStyle=_bgP;FX.fillRect(px2+7,fy+7,fw-14,fh-14);           // canvas
+    FX.fillStyle='rgba('+pc+',0.42)';FX.beginPath();FX.ellipse(px2+fw/2,fy+fh*0.58,fw*0.2,fh*0.26,0,0,6.28);FX.fill();
+    FX.strokeStyle='rgba('+ac+',0.3)';FX.lineWidth=1.5;FX.beginPath();
+    FX.moveTo(px2+3,fy+fh-3);FX.lineTo(px2+3,fy+3);FX.lineTo(px2+fw-3,fy+3);FX.stroke();
+  }
+
+  // — LAYER 4: tall bookshelves (parallax 0.44×) — books use realistic palette —
+  var shelfW=320, off2=(-cam*0.44)%shelfW;
+  var shelfTop=H*0.14, shelfBot=H*0.50, sW=shelfW-20;
+  for(var sx=off2-shelfW;sx<W+shelfW;sx+=shelfW){
+    FX.fillStyle='rgba(0,0,0,0.15)';FX.fillRect(sx+5,shelfTop+5,sW,shelfBot-shelfTop); // drop shadow
+    FX.fillStyle=shade(pc,0.22);FX.fillRect(sx,shelfTop,sW,shelfBot-shelfTop);          // cabinet
+    FX.strokeStyle=shade(pc,0.12);FX.lineWidth=2;FX.strokeRect(sx,shelfTop,sW,shelfBot-shelfTop);
+    FX.fillStyle=shade(ac,0.50);FX.fillRect(sx-3,shelfTop-5,sW+6,5);   // crown molding
+    FX.fillStyle=shade(pc,0.32);FX.fillRect(sx-1,shelfTop-3,sW+2,3);
+    var rows=4, rowH=(shelfBot-shelfTop)/rows;
     for(var r=0;r<rows;r++){
       var ry=shelfTop+r*rowH;
-      // shelf board
-      FX.fillStyle=shade(pc,0.15);FX.fillRect(sx,ry+rowH-4,shelfW-14,4);
-      // books: colored spines
-      var bxp=sx+8, lim=sx+shelfW-22;
-      var seed=Math.floor(sx*0.7)+r*13;
+      FX.fillStyle=shade(pc,0.34);FX.fillRect(sx,ry+rowH-6,sW,6);     // shelf board
+      FX.fillStyle='rgba(0,0,0,0.18)';FX.fillRect(sx,ry+rowH-6,sW,2); // under-shelf shadow
+      var bxp=sx+10, lim=sx+sW-10;
+      var seed=Math.floor(Math.abs(sx)*0.5+1)+r*17;
       while(bxp<lim){
-        var rnd=Math.abs(Math.sin(seed*12.9898))*43758.5; rnd=rnd-Math.floor(rnd);
-        seed++;
-        var bw=5+rnd*9, bh=rowH-8-rnd*6;
-        // jewel-tone book color blended toward accent
-        var hue=rnd, ar2=ac.split(','), 
-            br=Math.round(ar2[0]*0.5+hue*120), bgc=Math.round(ar2[1]*0.5+(1-hue)*90), bb=Math.round(ar2[2]*0.5+hue*160);
-        FX.fillStyle='rgb('+br+','+bgc+','+bb+')';
-        FX.fillRect(bxp,ry+rowH-4-bh,bw,bh);
-        // gold band detail
-        if(rnd>0.6){FX.fillStyle='rgba('+ac+',0.7)';FX.fillRect(bxp,ry+rowH-4-bh*0.7,bw,1.5);}
-        // spine highlight
-        FX.fillStyle='rgba(255,255,255,0.07)';FX.fillRect(bxp,ry+rowH-4-bh,1,bh);
-        bxp+=bw+1.5;
+        var rnd=Math.abs(Math.sin(seed*12.9898)*43758.5);rnd-=Math.floor(rnd);seed++;
+        var bw=6+rnd*11, bh=rowH-10-rnd*5;
+        FX.fillStyle='rgb('+_BKPAL[Math.abs(seed)%_BKPAL.length]+')';
+        FX.fillRect(bxp,ry+rowH-6-bh,bw,bh);
+        if(rnd>0.55){FX.fillStyle='rgba('+ac+',0.45)';FX.fillRect(bxp,ry+rowH-6-bh+3,bw,2);}
+        FX.fillStyle='rgba(255,255,255,0.07)';FX.fillRect(bxp,ry+rowH-6-bh,1.5,bh);
+        bxp+=bw+2;
       }
     }
   }
-  // —— framed paintings on the upper wall, offset from shelves ——
-  var paintW=300, off3=(-cam*0.35+150)%paintW;
-  for(var px2=off3;px2<W+paintW;px2+=paintW){
-    var fw=70,fh=90,fy=H*0.20;
-    // gold frame
-    FX.fillStyle=shade(ac,0.8);FX.fillRect(px2,fy,fw,fh);
-    FX.fillStyle=shade(ac,1.1>1?1:1.0);FX.fillRect(px2+3,fy+3,fw-6,fh-6);
-    // canvas: soft painted scene
-    if(!_bgP){_bgP=FX.createLinearGradient(0,fy,0,fy+fh);_bgP.addColorStop(0,shade(pc,1.4));_bgP.addColorStop(1,shade(ac,0.7));}
-    FX.fillStyle=_bgP;FX.fillRect(px2+6,fy+6,fw-12,fh-12);
-    // suggestion of a figure/landscape
-    FX.fillStyle='rgba('+pc+',0.5)';FX.beginPath();FX.ellipse(px2+fw/2,fy+fh*0.62,fw*0.18,fh*0.22,0,0,6.28);FX.fill();
+
+  // — LAYER 5: chandeliers (parallax 0.58×) —
+  var lampSp=480, off4=(-cam*0.58)%lampSp;
+  for(var lx=off4-lampSp;lx<W+lampSp;lx+=lampSp){
+    var flick=0.80+0.20*Math.sin(GS.tick*0.07+lx*0.01);
+    var lg=FX.createRadialGradient(lx,H*0.07,0,lx,H*0.07,210);
+    lg.addColorStop(0,'rgba(255,210,135,'+(0.30*flick)+')');lg.addColorStop(1,'rgba(255,210,135,0)');
+    FX.fillStyle=lg;FX.fillRect(lx-210,0,420,H*0.55);
+    FX.strokeStyle='rgba(35,25,12,0.6)';FX.lineWidth=2;FX.beginPath();FX.moveTo(lx,0);FX.lineTo(lx,H*0.05);FX.stroke();
+    FX.strokeStyle='rgba(45,35,18,0.72)';FX.lineWidth=3;FX.beginPath();FX.ellipse(lx,H*0.064,26,5,0,0,6.28);FX.stroke();
+    for(var cb=-3;cb<=3;cb++){
+      var cx2=lx+cb*10, cy2=H*0.07;
+      FX.fillStyle='rgba(55,45,25,0.78)';FX.fillRect(cx2-1.5,cy2,3,9);
+      FX.fillStyle='rgba('+ac+','+(0.72*flick)+')';FX.beginPath();FX.arc(cx2,cy2,2.5,0,6.28);FX.fill();
+    }
   }
-  // —— warm chandelier light pools (near top) ——
-  var lampSp=400, off4=(-cam*0.35)%lampSp;
-  for(var lx=off4;lx<W+lampSp;lx+=lampSp){
-    var flick=0.85+0.15*Math.sin(GS.tick*0.08+lx);
-    var lg=FX.createRadialGradient(lx,H*0.08,0,lx,H*0.08,180);
-    lg.addColorStop(0,'rgba(255,205,130,'+(0.28*flick)+')');lg.addColorStop(1,'rgba(255,205,130,0)');
-    FX.fillStyle=lg;FX.fillRect(lx-180,0,360,H*0.5);
-    // chandelier silhouette
-    FX.strokeStyle='rgba(40,30,15,0.6)';FX.lineWidth=2;FX.beginPath();FX.moveTo(lx,0);FX.lineTo(lx,H*0.06);FX.stroke();
-    FX.fillStyle='rgba('+ac+','+(0.6*flick)+')';
-    for(var cb=-2;cb<=2;cb++){FX.beginPath();FX.arc(lx+cb*9,H*0.07,2.5,0,6.28);FX.fill();}
-  }
-  // —— floor: polished parquet w/ reflections ——
+
+  // — Floor (cached per stage) —
   if(!_bgF){_bgF=FX.createLinearGradient(0,floorY,0,H);_bgF.addColorStop(0,shade(pc,0.5));_bgF.addColorStop(1,shade(pc,0.32));}
   FX.fillStyle=_bgF;FX.fillRect(0,floorY,W,H-floorY);
-  // parquet diagonal hatch
-  FX.strokeStyle='rgba(0,0,0,0.12)';FX.lineWidth=1;
-  var pq=40, poff=(-cam*0.6)%pq;
+  FX.strokeStyle='rgba(0,0,0,0.11)';FX.lineWidth=1;
+  var pq=46, poff=(-cam*0.68)%pq;
   for(var fx2=poff-H;fx2<W+H;fx2+=pq){FX.beginPath();FX.moveTo(fx2,floorY);FX.lineTo(fx2+(H-floorY),H);FX.stroke();}
-  // warm reflection streaks
-  for(var rl=off4;rl<W+lampSp;rl+=lampSp){
-    var rgd=FX.createLinearGradient(rl,floorY,rl,H);rgd.addColorStop(0,'rgba(255,205,130,0.10)');rgd.addColorStop(1,'rgba(255,205,130,0)');
-    FX.fillStyle=rgd;FX.fillRect(rl-50,floorY,100,H-floorY);
+  for(var rl=off4-lampSp;rl<W+lampSp;rl+=lampSp){
+    var rgd=FX.createLinearGradient(rl,floorY,rl,H);rgd.addColorStop(0,'rgba(255,205,130,0.09)');rgd.addColorStop(1,'rgba(255,205,130,0)');
+    FX.fillStyle=rgd;FX.fillRect(rl-55,floorY,110,H-floorY);
   }
-  // —— vignette ——
-  if(!_bgV){_bgV=FX.createRadialGradient(W/2,H/2,H*0.3,W/2,H/2,H*0.85);_bgV.addColorStop(0,'rgba(0,0,0,0)');_bgV.addColorStop(1,'rgba(0,0,0,0.45)');}
+
+  // — Vignette (cached) —
+  if(!_bgV){_bgV=FX.createRadialGradient(W/2,H/2,H*0.28,W/2,H/2,H*0.88);_bgV.addColorStop(0,'rgba(0,0,0,0)');_bgV.addColorStop(1,'rgba(0,0,0,0.48)');}
   FX.fillStyle=_bgV;FX.fillRect(0,0,W,H);
-  // —— floating dust motes ——
-  FX.fillStyle='rgba(255,225,170,0.5)';
-  for(var m=0;m<14;m++){var mx=( (m*137 - cam*0.4)%W +W)%W, my=(H*0.2+m*47+Math.sin(GS.tick*0.02+m)*20)%floorY;FX.beginPath();FX.arc(mx,my,1.2,0,6.28);FX.fill();}
+
+  // — Dust motes —
+  FX.fillStyle='rgba(255,225,170,0.45)';
+  for(var m=0;m<16;m++){
+    var mx=(((m*137+31)-(cam*0.45))%W+W*3)%W;
+    var my=(H*0.18+m*43+Math.sin(GS.tick*0.018+m*1.3)*22)%floorY;
+    FX.beginPath();FX.arc(mx,my,1.1,0,6.28);FX.fill();
+  }
 }
 // ════════════════════════════════════════════════════════════
 function draw(){
