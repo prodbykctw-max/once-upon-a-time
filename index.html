@@ -866,8 +866,8 @@ function drawMansionBG(st){
     FX.beginPath();FX.moveTo(x,H*0.04);FX.lineTo(x,floorY);FX.stroke();
   }
 
-  // — LAYER 3: framed paintings, upper wall (parallax 0.24×) —
-  var paintW=400, off3=(-cam*0.24)%paintW;
+  // — LAYER 3: framed paintings, upper wall (parallax 0.48×) —
+  var paintW=400, off3=(-cam*0.48)%paintW;
   var fw=78,fh=96,fy=H*0.16;
   for(var px2=off3-paintW;px2<W+paintW;px2+=paintW){
     FX.fillStyle=shade(ac,0.68);FX.fillRect(px2,fy,fw,fh);           // frame
@@ -879,8 +879,8 @@ function drawMansionBG(st){
     FX.moveTo(px2+3,fy+fh-3);FX.lineTo(px2+3,fy+3);FX.lineTo(px2+fw-3,fy+3);FX.stroke();
   }
 
-  // — LAYER 4: tall bookshelves (parallax 0.44×) — books use realistic palette —
-  var shelfW=320, off2=(-cam*0.44)%shelfW;
+  // — LAYER 4: tall bookshelves (parallax 0.72×) — books scroll with the room —
+  var shelfW=320, off2=(-cam*0.72)%shelfW;
   var shelfTop=H*0.14, shelfBot=H*0.50, sW=shelfW-20;
   for(var sx=off2-shelfW;sx<W+shelfW;sx+=shelfW){
     FX.fillStyle='rgba(0,0,0,0.15)';FX.fillRect(sx+5,shelfTop+5,sW,shelfBot-shelfTop); // drop shadow
@@ -1010,12 +1010,15 @@ function drawThread(th){var tx=th.x,ty=th.y;
     FX.globalAlpha*=0.6;FX.lineWidth=1.5;FX.beginPath();FX.arc(tx,ty,11,0,6.28);FX.stroke();FX.globalAlpha*=0.5;FX.beginPath();FX.arc(tx,ty,16,0,6.28);FX.stroke();FX.globalAlpha=1;}}
 
 function drawEnemy(e,ac){var x=e.x,y=e.y,A=e.aT,fl=e.vx<=0;
-  FX.save();if(fl){FX.translate(x+e.W,0);FX.scale(-1,1);FX.translate(-x,0);}
+  FX.save();
+  var sc=1.55;
+  FX.translate(x,y+e.Hh);FX.scale(sc,sc);FX.translate(-x,-(y+e.Hh)); // scale from feet up
+  if(fl){FX.translate(x+e.W,0);FX.scale(-1,1);FX.translate(-x,0);}
   if(e.stg)FX.globalAlpha=.45+Math.sin(A*1.2)*.45;
   var fn=CREAT[e.cr]||CREAT.wraith;
   fn(x,y,A,e,ac);
-  if(e.hp<e.mhp){for(var h=0;h<e.mhp;h++){FX.globalAlpha=1;FX.fillStyle=h<e.hp?'#FF4d6d':'rgba(255,255,255,0.12)';FX.beginPath();FX.arc(x+6+h*9,y-10,3.2,0,6.28);FX.fill();}}
-  FX.globalAlpha=1;FX.restore();}
+  FX.globalAlpha=1;FX.restore();
+  if(e.hp<e.mhp){for(var h=0;h<e.mhp;h++){FX.fillStyle=h<e.hp?'#FF4d6d':'rgba(255,255,255,0.12)';FX.beginPath();FX.arc(x+6+h*9,y-14,3.5,0,6.28);FX.fill();}}}
 
 // ── PAINTERLY HELPERS (watercolor / form-shading toolkit) ──
 function lerpC(a,b,t){return 'rgb('+Math.round(a[0]+(b[0]-a[0])*t)+','+Math.round(a[1]+(b[1]-a[1])*t)+','+Math.round(a[2]+(b[2]-a[2])*t)+')';}
