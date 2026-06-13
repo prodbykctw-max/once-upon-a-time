@@ -288,29 +288,82 @@ function loadSprites(cb){
 var GL, glProg, glBuf, glLoc={}, glC;
 var VERT=`attribute vec2 p;varying vec2 uv;void main(){uv=p*0.5+0.5;gl_Position=vec4(p,0.,1.);}`;
 // Fragment: procedural layered castle interior with depth, lighting, fog.
-var FRAG=`precision mediump float;varying vec2 uv;
+var FRAG=`precision mediump float;
+varying vec2 uv;
 uniform float t;uniform vec2 res;uniform float camX;uniform vec3 pc;uniform vec3 ac;uniform float stage;
+float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+float h11(float n){return fract(sin(n)*43758.5);}
+float n21(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}
+float fbm(vec2 p){float v=n21(p)*.5;p*=2.1;v+=n21(p)*.25;p*=2.1;v+=n21(p)*.125;return v;}
+vec3 cndl(vec2 u,float lx,float flk,float ar){
+  float d=length(vec2((u.x-lx)*ar,1.-u.y-.07));
+  float cone=max(0.,1.-d*2.7);cone*=cone;
+  float amb=max(0.,.18-d)/.18;amb*=amb*.28;
+  return vec3(1.,.78,.38)*(cone*.52+amb)*flk;
+}
+float gRay(vec2 u,float lx,float ar,float flk){
+  float uy=1.-u.y;if(uy<.08)return 0.;
+  float rx=(u.x-lx-(uy-.07)*.06)*ar;
+  float r=max(0.,1.-abs(rx)*17.)*max(0.,1.-uy*1.18)*flk;
+  return r*(n21(vec2(rx*13.+t*.27,uy*3.+t*.09))*.6+.4)*.055;
+}
 void main(){
- vec2 u=uv;float ar=res.x/res.y;
- vec3 col=mix(pc*0.34,pc*0.16,u.y);
- float panel=fract((u.x+camX*0.015)*7.0);
- col=mix(col,pc*0.12,step(panel,0.04)*0.5*step(u.y,0.92));
- col=mix(col,pc*0.5,step(abs(u.y-0.30),0.02)*0.6);
- col=mix(col,pc*0.22,step(u.y,0.30)*step(0.12,u.y)*step(panel,0.04)*0.35);
- float lx2=fract((u.x+camX*0.05)*2.0);
- float flick=0.8+0.2*sin(t*3.0+floor((u.x+camX*0.05)*2.0)*2.1);
- vec3 warm=vec3(1.0,0.8,0.45);
- float scl=max(0.0,1.0-length(vec2(lx2-0.5,(u.y-0.86)*1.5))*8.0);
- col+=warm*scl*flick*0.9;
- col+=warm*max(0.0,0.18-abs(lx2-0.5))*max(0.0,u.y-0.5)*0.12*flick;
- col+=ac*0.03*max(0.0,1.0-u.y*2.5);
- float floorM=step(u.y,0.12);
- float par=step(0.5,fract((u.x*30.0+u.y*30.0)));
- col=mix(col,mix(pc*0.5,pc*0.62,par*0.3),floorM);
- col+=warm*floorM*max(0.0,0.12-u.y)*0.8*(0.5+0.5*sin(u.x*16.0+camX*0.1));
- col*=smoothstep(1.35,0.35,length((u-0.5)*vec2(ar,1.0)));
- col+=(fract(sin(dot(u*res.xy+t,vec2(127.1,311.7)))*43758.5)-0.5)*0.015;
- gl_FragColor=vec4(col,1.0);
+  vec2 u=uv;float ar=res.x/res.y;float uy=1.-u.y;float cx=camX;float flY=.82;
+  float isFlr=step(flY,uy);float isCl=step(uy,.06);float isWll=max(0.,1.-isFlr-isCl);
+  vec2 wuv=vec2((u.x*ar+cx*.3)*3.5,uy*6.);wuv.x+=floor(floor(wuv.y)*.5);
+  vec2 bc=floor(wuv),bf=fract(wuv);
+  float mort=min(1.,step(bf.x,.07)+step(.93,bf.x)+step(bf.y,.06)+step(.94,bf.y));
+  float bv=h21(bc)*.12-.06;float sf=fbm(vec2((u.x*ar+cx*.28)*7.,uy*7.))*.055;
+  vec3 stone=pc*.21+vec3(.04,.03,.016)+bv+sf;
+  vec3 col=mix(stone,stone*.56,mort*.72)*isWll;
+  if(isFlr>.5){
+    float fvy=(uy-flY)/max(.01,1.-flY);
+    vec2 fuv=vec2((u.x*ar+cx*.68)*5.,fvy*2.5);
+    vec2 fc2=floor(fuv),ff2=fract(fuv);
+    float fm=min(1.,step(ff2.x,.055)+step(.945,ff2.x)+step(ff2.y,.055)+step(.945,ff2.y));
+    col=(pc*.42+vec3(.04,.028,.012)+h21(fc2)*.09)*(1.-.42*fm);
+  }
+  if(isCl>.5){col=pc*.13+vec3(.01,.008,.003)+fbm(vec2((u.x*ar+cx*.08)*4.,uy*6.))*.03;}
+  float asp=.44*ar;float aOff=fract(-cx*.06/asp)*asp;
+  for(int ai=0;ai<3;ai++){
+    float ax=float(ai)*asp-aOff;float hw=.21;
+    float qx=(u.x-ax)*ar,qy=uy-.05;
+    if(qy>0.&&qy<.70&&abs(qx)<hw){
+      float aqx=abs(qx);vec2 lc=vec2(hw*.28,hw*.65);
+      float dl=abs(length(vec2(aqx,qy)-lc)-hw*.77);
+      float g=max(0.,1.-min(dl,min(abs(qx)*.55,abs(qy-.70*.44)*.45))*85.)*.07;
+      col+=vec3(1.,.95,.82)*g*(1.-isFlr);
+    }
+  }
+  float l0=fract(-cx*.58+.10),l1=fract(-cx*.58+.44),l2=fract(-cx*.58+.77);
+  float f0=.78+.22*sin(t*3.1)*sin(t*1.9+1.3);
+  float f1=.78+.22*sin(t*2.8+2.1)*sin(t*1.6+2.4);
+  float f2=.78+.22*sin(t*3.4+4.2)*sin(t*2.0+.7);
+  col+=cndl(u,l0,f0,ar)*(1.-isCl)+cndl(u,l1,f1,ar)*(1.-isCl)+cndl(u,l2,f2,ar)*(1.-isCl);
+  col+=vec3(1.,.86,.55)*(gRay(u,l0,ar,f0)+gRay(u,l1,ar,f1)+gRay(u,l2,ar,f2))*(1.-isFlr);
+  if(isFlr>.5){
+    float fvy2=uy-flY;
+    float rd0=abs(u.x-l0)*ar,rd1=abs(u.x-l1)*ar,rd2=abs(u.x-l2)*ar;
+    float ref=(max(0.,.065-rd0*rd0)*f0+max(0.,.065-rd1*rd1)*f1+max(0.,.065-rd2*rd2)*f2)*(1.-fvy2*4.);
+    col+=vec3(1.,.84,.48)*ref*.95;
+  }
+  for(int di=0;di<10;di++){
+    float fd=float(di);
+    float dx=fract(h11(fd*7.1)+cx*(h11(fd)*.28+.18)+t*h11(fd*3.7)*.015);
+    float dy=fract(h11(fd*3.7+17.)+t*(.006+h11(fd*2.1)*.008));
+    float dd=length(vec2((u.x-dx)*ar*1.5,(1.-u.y)-(dy*.75+.06)));
+    col+=vec3(1.,.92,.7)*max(0.,.0048-dd)/.0048*.3*(1.-isFlr);
+  }
+  float isWain=step(.505,uy)*step(uy,flY)*isWll;
+  col=mix(col,col*.78+pc*.05,isWain*.42);
+  col=mix(col,col*.7,isWain*step(fract((u.x*ar+cx*.12)*2.2),.035)*.38);
+  col=mix(col,pc*.52+vec3(.05,.04,.02),step(abs(uy-.50),.005)*isWll*.8);
+  col=mix(col,col*(pc*.45+vec3(.55)),.08);col+=ac*.022*max(0.,1.-uy*2.8);
+  vec2 vp=(u-.5)*vec2(ar,1.);float vig=smoothstep(1.2,.25,length(vp));col*=vig*.8+.2;
+  col+=fbm(vec2(u.x*ar*.5+cx*.04,uy*.6))*.022*pc;
+  col+=(h21(u*res+vec2(t*71.,t*43.))-.5)*.015;
+  col=col/(col+.52)*1.58;col=clamp(col,0.,1.);
+  gl_FragColor=vec4(col,1.);
 }`;
 function initGL(){
   glC=document.getElementById('glC');
@@ -785,22 +838,25 @@ function drawMansionBG(st){
     return;
   }
 
-  // — LAYER 0: wall fill (cached per stage) —
-  if(!_bgW){_bgW=FX.createLinearGradient(0,0,0,H);_bgW.addColorStop(0,shade(pc,0.16));_bgW.addColorStop(0.55,shade(pc,0.28));_bgW.addColorStop(1,shade(pc,0.38));}
-  FX.fillStyle=_bgW;FX.fillRect(0,0,W,H);
 
+  // — cobwebs in upper corners (screen-space, no parallax) —
+  FX.strokeStyle='rgba(200,190,170,0.13)';FX.lineWidth=0.8;
+  var cwSz=80;
+  [[0,0],[W,0]].forEach(function(c){var cx=c[0],cy=c[1];
+    for(var ci=0;ci<7;ci++){var a=ci/6*(Math.PI*0.5)+(cx?Math.PI*0.5:0);var r=cwSz*(0.3+ci*0.1);FX.beginPath();FX.arc(cx,cy,r,cx?Math.PI*0.5:0,cx?Math.PI:Math.PI*0.5);FX.stroke();}
+    for(var sp=0;sp<5;sp++){var a1=(cx?Math.PI*0.5:0),a2=(cx?Math.PI:Math.PI*0.5),a=(a1+(a2-a1)*sp/4);FX.beginPath();FX.moveTo(cx,cy);FX.lineTo(cx+Math.cos(a)*cwSz,cy+Math.sin(a)*cwSz);FX.stroke();}});
   // — LAYER 1: distant Gothic arches (parallax 0.06×, very slow) —
   var archSp=440, off0=(-cam*0.06)%archSp;
-  FX.strokeStyle=shade(pc,0.07);FX.lineWidth=4;
+  FX.strokeStyle='rgba(255,240,200,0.07)';FX.lineWidth=2;
   for(var ax=off0-archSp;ax<W+archSp;ax+=archSp){
     var aW=110,aH=H*0.52,ay=H*0.06;
     FX.beginPath();FX.moveTo(ax-aW/2,ay+aH);FX.lineTo(ax-aW/2,ay+aH*0.3);
     FX.bezierCurveTo(ax-aW/2,ay,ax+aW/2,ay,ax+aW/2,ay+aH*0.3);
     FX.lineTo(ax+aW/2,ay+aH);FX.stroke();
-    FX.lineWidth=1.5;
+    FX.lineWidth=1;
     FX.beginPath();FX.moveTo(ax,ay+aH*0.16);FX.lineTo(ax,ay+aH*0.72);FX.stroke();
     FX.beginPath();FX.moveTo(ax-aW*0.3,ay+aH*0.42);FX.lineTo(ax+aW*0.3,ay+aH*0.42);FX.stroke();
-    FX.lineWidth=4;
+    FX.lineWidth=2;
   }
 
   // — LAYER 2: wall panels & wainscoting (parallax 0.12×) —
@@ -809,8 +865,6 @@ function drawMansionBG(st){
   for(var x=off1-pw;x<W+pw;x+=pw){
     FX.beginPath();FX.moveTo(x,H*0.04);FX.lineTo(x,floorY);FX.stroke();
   }
-  FX.fillStyle=shade(pc,0.44);FX.fillRect(0,H*0.50,W,5);      // chair rail
-  FX.fillStyle=shade(pc,0.19);FX.fillRect(0,H*0.505,W,H*0.315); // wainscoting
 
   // — LAYER 3: framed paintings, upper wall (parallax 0.24×) —
   var paintW=400, off3=(-cam*0.24)%paintW;
@@ -857,9 +911,6 @@ function drawMansionBG(st){
   var lampSp=480, off4=(-cam*0.58)%lampSp;
   for(var lx=off4-lampSp;lx<W+lampSp;lx+=lampSp){
     var flick=0.80+0.20*Math.sin(GS.tick*0.07+lx*0.01);
-    var lg=FX.createRadialGradient(lx,H*0.07,0,lx,H*0.07,210);
-    lg.addColorStop(0,'rgba(255,210,135,'+(0.30*flick)+')');lg.addColorStop(1,'rgba(255,210,135,0)');
-    FX.fillStyle=lg;FX.fillRect(lx-210,0,420,H*0.55);
     FX.strokeStyle='rgba(35,25,12,0.6)';FX.lineWidth=2;FX.beginPath();FX.moveTo(lx,0);FX.lineTo(lx,H*0.05);FX.stroke();
     FX.strokeStyle='rgba(45,35,18,0.72)';FX.lineWidth=3;FX.beginPath();FX.ellipse(lx,H*0.064,26,5,0,0,6.28);FX.stroke();
     for(var cb=-3;cb<=3;cb++){
@@ -869,31 +920,12 @@ function drawMansionBG(st){
     }
   }
 
-  // — Floor (cached per stage) —
-  if(!_bgF){_bgF=FX.createLinearGradient(0,floorY,0,H);_bgF.addColorStop(0,shade(pc,0.5));_bgF.addColorStop(1,shade(pc,0.32));}
-  FX.fillStyle=_bgF;FX.fillRect(0,floorY,W,H-floorY);
-  FX.strokeStyle='rgba(0,0,0,0.11)';FX.lineWidth=1;
+  FX.strokeStyle='rgba(0,0,0,0.13)';FX.lineWidth=1;
   var pq=46, poff=(-cam*0.68)%pq;
   for(var fx2=poff-H;fx2<W+H;fx2+=pq){FX.beginPath();FX.moveTo(fx2,floorY);FX.lineTo(fx2+(H-floorY),H);FX.stroke();}
-  for(var rl=off4-lampSp;rl<W+lampSp;rl+=lampSp){
-    var rgd=FX.createLinearGradient(rl,floorY,rl,H);rgd.addColorStop(0,'rgba(255,205,130,0.09)');rgd.addColorStop(1,'rgba(255,205,130,0)');
-    FX.fillStyle=rgd;FX.fillRect(rl-55,floorY,110,H-floorY);
-  }
-
-  // — Vignette (cached) —
-  if(!_bgV){_bgV=FX.createRadialGradient(W/2,H/2,H*0.28,W/2,H/2,H*0.88);_bgV.addColorStop(0,'rgba(0,0,0,0)');_bgV.addColorStop(1,'rgba(0,0,0,0.48)');}
-  FX.fillStyle=_bgV;FX.fillRect(0,0,W,H);
-
-  // — Dust motes —
-  FX.fillStyle='rgba(255,225,170,0.45)';
-  for(var m=0;m<16;m++){
-    var mx=(((m*137+31)-(cam*0.45))%W+W*3)%W;
-    var my=(H*0.18+m*43+Math.sin(GS.tick*0.018+m*1.3)*22)%floorY;
-    FX.beginPath();FX.arc(mx,my,1.1,0,6.28);FX.fill();
-  }
 }
 // ════════════════════════════════════════════════════════════
-function draw(){
+function draw(){drawGL();
   var st=STAGES[GS.ai],ac=hexS(st.ac),pc=hexS(st.pc);
   FX.clearRect(0,0,W,H);
   drawMansionBG(st);            // painted interior (parallax, screen-space)
