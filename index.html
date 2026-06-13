@@ -789,18 +789,24 @@ function drawMansionBG(st){
   if(!_bgW){_bgW=FX.createLinearGradient(0,0,0,H);_bgW.addColorStop(0,shade(pc,0.16));_bgW.addColorStop(0.55,shade(pc,0.28));_bgW.addColorStop(1,shade(pc,0.38));}
   FX.fillStyle=_bgW;FX.fillRect(0,0,W,H);
 
+  // — cobwebs in upper corners (screen-space, no parallax) —
+  FX.strokeStyle='rgba(200,190,170,0.13)';FX.lineWidth=0.8;
+  var cwSz=80;
+  [[0,0],[W,0]].forEach(function(c){var cx=c[0],cy=c[1];
+    for(var ci=0;ci<7;ci++){var a=ci/6*(Math.PI*0.5)+(cx?Math.PI*0.5:0);var r=cwSz*(0.3+ci*0.1);FX.beginPath();FX.arc(cx,cy,r,cx?Math.PI*0.5:0,cx?Math.PI:Math.PI*0.5);FX.stroke();}
+    for(var sp=0;sp<5;sp++){var a1=(cx?Math.PI*0.5:0),a2=(cx?Math.PI:Math.PI*0.5),a=(a1+(a2-a1)*sp/4);FX.beginPath();FX.moveTo(cx,cy);FX.lineTo(cx+Math.cos(a)*cwSz,cy+Math.sin(a)*cwSz);FX.stroke();}});
   // — LAYER 1: distant Gothic arches (parallax 0.06×, very slow) —
   var archSp=440, off0=(-cam*0.06)%archSp;
-  FX.strokeStyle=shade(pc,0.07);FX.lineWidth=4;
+  FX.strokeStyle='rgba(255,240,200,0.07)';FX.lineWidth=2;
   for(var ax=off0-archSp;ax<W+archSp;ax+=archSp){
     var aW=110,aH=H*0.52,ay=H*0.06;
     FX.beginPath();FX.moveTo(ax-aW/2,ay+aH);FX.lineTo(ax-aW/2,ay+aH*0.3);
     FX.bezierCurveTo(ax-aW/2,ay,ax+aW/2,ay,ax+aW/2,ay+aH*0.3);
     FX.lineTo(ax+aW/2,ay+aH);FX.stroke();
-    FX.lineWidth=1.5;
+    FX.lineWidth=1;
     FX.beginPath();FX.moveTo(ax,ay+aH*0.16);FX.lineTo(ax,ay+aH*0.72);FX.stroke();
     FX.beginPath();FX.moveTo(ax-aW*0.3,ay+aH*0.42);FX.lineTo(ax+aW*0.3,ay+aH*0.42);FX.stroke();
-    FX.lineWidth=4;
+    FX.lineWidth=2;
   }
 
   // — LAYER 2: wall panels & wainscoting (parallax 0.12×) —
@@ -809,8 +815,8 @@ function drawMansionBG(st){
   for(var x=off1-pw;x<W+pw;x+=pw){
     FX.beginPath();FX.moveTo(x,H*0.04);FX.lineTo(x,floorY);FX.stroke();
   }
-  FX.fillStyle=shade(pc,0.44);FX.fillRect(0,H*0.50,W,5);      // chair rail
-  FX.fillStyle=shade(pc,0.19);FX.fillRect(0,H*0.505,W,H*0.315); // wainscoting
+  FX.fillStyle=shade(pc,0.50);FX.fillRect(0,H*0.50,W,5);      // chair rail
+  FX.fillStyle=shade(pc,0.30);FX.fillRect(0,H*0.505,W,H*0.315); // wainscoting
 
   // — LAYER 3: framed paintings, upper wall (parallax 0.24×) —
   var paintW=400, off3=(-cam*0.24)%paintW;
@@ -857,9 +863,9 @@ function drawMansionBG(st){
   var lampSp=480, off4=(-cam*0.58)%lampSp;
   for(var lx=off4-lampSp;lx<W+lampSp;lx+=lampSp){
     var flick=0.80+0.20*Math.sin(GS.tick*0.07+lx*0.01);
-    var lg=FX.createRadialGradient(lx,H*0.07,0,lx,H*0.07,210);
-    lg.addColorStop(0,'rgba(255,210,135,'+(0.30*flick)+')');lg.addColorStop(1,'rgba(255,210,135,0)');
-    FX.fillStyle=lg;FX.fillRect(lx-210,0,420,H*0.55);
+    var lg=FX.createRadialGradient(lx,H*0.07,0,lx,H*0.07,160);
+    lg.addColorStop(0,'rgba(255,210,135,'+(0.16*flick)+')');lg.addColorStop(1,'rgba(255,210,135,0)');
+    FX.fillStyle=lg;FX.fillRect(lx-160,0,320,H*0.45);
     FX.strokeStyle='rgba(35,25,12,0.6)';FX.lineWidth=2;FX.beginPath();FX.moveTo(lx,0);FX.lineTo(lx,H*0.05);FX.stroke();
     FX.strokeStyle='rgba(45,35,18,0.72)';FX.lineWidth=3;FX.beginPath();FX.ellipse(lx,H*0.064,26,5,0,0,6.28);FX.stroke();
     for(var cb=-3;cb<=3;cb++){
@@ -876,8 +882,8 @@ function drawMansionBG(st){
   var pq=46, poff=(-cam*0.68)%pq;
   for(var fx2=poff-H;fx2<W+H;fx2+=pq){FX.beginPath();FX.moveTo(fx2,floorY);FX.lineTo(fx2+(H-floorY),H);FX.stroke();}
   for(var rl=off4-lampSp;rl<W+lampSp;rl+=lampSp){
-    var rgd=FX.createLinearGradient(rl,floorY,rl,H);rgd.addColorStop(0,'rgba(255,205,130,0.09)');rgd.addColorStop(1,'rgba(255,205,130,0)');
-    FX.fillStyle=rgd;FX.fillRect(rl-55,floorY,110,H-floorY);
+    var rgd=FX.createLinearGradient(rl,floorY,rl,H);rgd.addColorStop(0,'rgba(255,205,130,0.05)');rgd.addColorStop(1,'rgba(255,205,130,0)');
+    FX.fillStyle=rgd;FX.fillRect(rl-40,floorY,80,H-floorY);
   }
 
   // — Vignette (cached) —
