@@ -120,6 +120,14 @@ body.mobile #bossBar{bottom:150px}
 }
 .mwave{border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:manipulation;font-family:'Press Start 2P';font-size:7px;color:#fff;background:rgba(139,0,255,.3);border:1.5px solid rgba(139,0,255,.6)}
 .mthrow{border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:manipulation;font-family:'Press Start 2P';font-size:7px;color:#fff;background:rgba(200,160,255,.25);border:1.5px solid rgba(200,160,255,.5)}
+/* ── Neumorphic joystick ── */
+#joyWrap{width:134px;height:134px;display:flex;align-items:center;justify-content:center;pointer-events:auto}
+.joy-base{position:relative;width:124px;height:124px;border-radius:50%;background:#dde1e7;box-shadow:inset -3px -3px 7px rgba(255,255,255,0.62),inset 4px 4px 9px rgba(163,177,198,0.68);touch-action:none;user-select:none;cursor:pointer}
+.joy-dot{position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(163,177,198,0.48);box-shadow:inset 1px 1px 2px rgba(255,255,255,0.65),inset -1px -1px 1px rgba(163,177,198,0.5)}
+.joy-knob{position:absolute;width:56px;height:56px;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;background:linear-gradient(145deg,#f2f5f9 0%,#e4eaf1 45%,#cdd5e0 100%);box-shadow:-5px -5px 11px rgba(255,255,255,0.78),6px 6px 13px rgba(163,177,198,0.82),inset -1px -1px 2px rgba(255,255,255,0.4),inset 1px 1px 2px rgba(163,177,198,0.18);pointer-events:none}
+body.mobile #joyWrap{width:154px;height:154px}
+body.mobile .joy-base{width:144px;height:144px}
+body.mobile .joy-knob{width:64px;height:64px}
 #loadMsg{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:#04000c;font-family:'Press Start 2P';font-size:10px;color:rgba(255,215,0,.7);flex-direction:column;gap:16px}
 .spin{width:30px;height:30px;border:3px solid rgba(255,215,0,.2);border-top-color:rgba(255,215,0,.8);border-radius:50%;animation:sp 0.8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -176,7 +184,7 @@ body.mobile #bossBar{bottom:150px}
     <div class="ab" id="ab5"><div class="ab-cd" id="cd5"></div><div class="ab-k" style="color:#FF2D8A">5</div><div class="ab-n">STRIKE</div></div>
   </div>
   <div id="mCtrl">
-    <div class="mdp"><div></div><div class="mb" id="mU">↑</div><div></div><div class="mb" id="mL">←</div><div></div><div class="mb" id="mR">→</div></div>
+    <div id="joyWrap"><div class="joy-base" id="joyBase"><div class="joy-knob" id="joyKnob"></div></div></div>
     <div class="mact">
       <div class="mrow"><div class="mthrow" id="mTh">THROW</div><div class="mwave" id="mWv">WAVE</div></div>
       <div class="mbc mjump" id="mJ">JUMP</div>
@@ -1538,7 +1546,23 @@ function startGame(){
   if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||('ontouchstart' in window)||innerWidth<760){
     document.body.classList.add('mobile');
     document.getElementById('mCtrl').classList.add('on');
-    tbind('mL','l');tbind('mR','r');tbind('mU','u');tbind('mJ','u');tbind('mA','a');tbind('mD','d');tbind('mB','b');
+    // Neumorphic virtual joystick — replaces d-pad buttons
+    (function(){
+      var jB=document.getElementById('joyBase'),jK=document.getElementById('joyKnob');
+      if(!jB)return;
+      var jR=34,jAct=false;
+      requestAnimationFrame(function(){
+        var sz=jB.offsetWidth||124,cr=sz*0.455;
+        for(var i=0;i<12;i++){var ang=i/12*6.283-1.571;var d=document.createElement('div');d.className='joy-dot';d.style.left=(sz/2+cr*Math.cos(ang)-2.5)+'px';d.style.top=(sz/2+cr*Math.sin(ang)-2.5)+'px';jB.appendChild(d);}
+      });
+      function jMov(tx,ty){var r=jB.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=tx-cx,dy=ty-cy,dist=Math.sqrt(dx*dx+dy*dy);if(dist>jR){dx=dx/dist*jR;dy=dy/dist*jR;}jK.style.transform='translate(calc(-50% + '+Math.round(dx)+'px),calc(-50% + '+Math.round(dy)+'px))';var nx=dx/jR,ny=dy/jR;TC.l=nx<-0.28?1:0;TC.r=nx>0.28?1:0;TC.u=ny<-0.38?1:0;}
+      function jRst(){jAct=false;jK.style.transform='translate(-50%,-50%)';TC.l=TC.r=TC.u=0;}
+      jB.addEventListener('touchstart',function(e){jAct=true;jMov(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+      jB.addEventListener('touchmove',function(e){if(jAct)jMov(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+      jB.addEventListener('touchend',jRst,{passive:false});
+      jB.addEventListener('touchcancel',jRst,{passive:false});
+    })();
+    tbind('mJ','u');tbind('mA','a');tbind('mD','d');tbind('mB','b');
     // WAVE (Q/key2) and THROW (F/key1) touch buttons
     var wv=document.getElementById('mWv');if(wv){wv.addEventListener('touchstart',function(e){K.KeyQ=1;e.preventDefault();},{passive:false});wv.addEventListener('touchend',function(e){K.KeyQ=0;e.preventDefault();},{passive:false});}
     var th=document.getElementById('mTh');if(th){th.addEventListener('touchstart',function(e){K.KeyF=1;e.preventDefault();},{passive:false});th.addEventListener('touchend',function(e){K.KeyF=0;e.preventDefault();},{passive:false});}
