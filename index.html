@@ -122,9 +122,9 @@ body.mobile #bossBar{bottom:150px}
 .mthrow{border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:manipulation;font-family:'Press Start 2P';font-size:7px;color:#fff;background:rgba(200,160,255,.25);border:1.5px solid rgba(200,160,255,.5)}
 /* ── Neumorphic joystick ── */
 #joyWrap{width:134px;height:134px;display:flex;align-items:center;justify-content:center;pointer-events:auto}
-.joy-base{position:relative;width:124px;height:124px;border-radius:50%;background:#dde1e7;box-shadow:inset -3px -3px 7px rgba(255,255,255,0.62),inset 4px 4px 9px rgba(163,177,198,0.68);touch-action:none;user-select:none;cursor:pointer}
-.joy-dot{position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(163,177,198,0.48);box-shadow:inset 1px 1px 2px rgba(255,255,255,0.65),inset -1px -1px 1px rgba(163,177,198,0.5)}
-.joy-knob{position:absolute;width:56px;height:56px;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;background:linear-gradient(145deg,#f2f5f9 0%,#e4eaf1 45%,#cdd5e0 100%);box-shadow:-5px -5px 11px rgba(255,255,255,0.78),6px 6px 13px rgba(163,177,198,0.82),inset -1px -1px 2px rgba(255,255,255,0.4),inset 1px 1px 2px rgba(163,177,198,0.18);pointer-events:none}
+.joy-base{position:relative;width:124px;height:124px;border-radius:50%;background:rgba(221,225,231,0.32);box-shadow:inset -3px -3px 7px rgba(255,255,255,0.38),inset 4px 4px 9px rgba(163,177,198,0.42);touch-action:none;user-select:none;cursor:pointer;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.joy-dot{position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(163,177,198,0.32);box-shadow:inset 1px 1px 2px rgba(255,255,255,0.45),inset -1px -1px 1px rgba(163,177,198,0.35)}
+.joy-knob{position:absolute;width:56px;height:56px;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;background:linear-gradient(145deg,rgba(242,245,249,0.72) 0%,rgba(228,234,241,0.62) 45%,rgba(205,213,224,0.55) 100%);box-shadow:-4px -4px 9px rgba(255,255,255,0.6),5px 5px 11px rgba(163,177,198,0.65),inset -1px -1px 2px rgba(255,255,255,0.3),inset 1px 1px 2px rgba(163,177,198,0.14);pointer-events:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 body.mobile #joyWrap{width:154px;height:154px}
 body.mobile .joy-base{width:144px;height:144px}
 body.mobile .joy-knob{width:64px;height:64px}
