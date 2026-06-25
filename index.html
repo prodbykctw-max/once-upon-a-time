@@ -457,61 +457,136 @@ function buildLevel(gs){
   //  - Every pit has solid landing platforms on BOTH edges within reach.
   //  - High platforms always have a stepping path (no rise > 4 tiles in one jump).
   //  - There is always a low/ground route forward; platforms are optional bonus.
-  if(ai===0){ // GRAND LIBRARY — gentle shelving steps
-    plat(gs,4,11,3);plat(gs,9,9,3);plat(gs,14,11,4);
-    plat(gs,20,12,2);plat(gs,24,12,2); // pit-edge landings
-    pit(gs,21,24,FLOOR,LH);
-    plat(gs,28,10,3);plat(gs,33,8,3);plat(gs,38,10,3);
-    plat(gs,52,10,3);plat(gs,56,11,3);plat(gs,60,11,4);
-    plat(gs,68,9,3);plat(gs,72,11,3);plat(gs,76,10,3);plat(gs,80,11,4);plat(gs,85,9,3);
-  } else if(ai===1){ // EGYPTIAN HALL — pyramidal climbs (each step <=2 up, reachable)
-    for(var i=0;i<5;i++)plat(gs,6+i*3,12-i,3);        // ascending stair, gentle
-    for(i=0;i<5;i++)plat(gs,24+i*3,8+i,3);            // descending stair back to floor
-    plat(gs,39,12,2);plat(gs,45,12,2);                // pit-edge landings
-    pit(gs,40,44,FLOOR,LH);
-    plat(gs,48,11,3);plat(gs,52,10,3);plat(gs,56,11,3);
-    for(i=0;i<4;i++)plat(gs,62+i*3,12-i,3);plat(gs,80,11,4);plat(gs,85,9,3);
-  } else if(ai===2){ // SAMURAI GALLERY — narrow ledges + pits (all bridged)
-    plat(gs,5,11,2);plat(gs,9,11,2);
-    plat(gs,12,12,2);plat(gs,16,12,2); pit(gs,13,16,FLOOR,LH);
-    plat(gs,19,10,2);plat(gs,23,11,2);plat(gs,27,10,2);
-    plat(gs,29,12,2);plat(gs,33,12,2); pit(gs,30,33,FLOOR,LH);
-    plat(gs,37,11,3);plat(gs,42,10,2);plat(gs,47,11,2);
-    plat(gs,51,12,2);plat(gs,55,12,2); pit(gs,52,55,FLOOR,LH);
-    plat(gs,59,10,2);plat(gs,64,11,2);plat(gs,69,10,3);plat(gs,75,11,2);plat(gs,81,10,3);plat(gs,86,9,2);
-  } else if(ai===3){ // ROYAL CHAMBERS — high platforms WITH stepping stones
-    plat(gs,5,11,3);plat(gs,9,9,2);plat(gs,12,7,3);   // step up to high
-    plat(gs,17,9,2);plat(gs,21,11,3);plat(gs,26,9,3);
-    plat(gs,32,12,2);plat(gs,36,12,2); pit(gs,33,36,FLOOR,LH);
-    plat(gs,40,10,2);plat(gs,44,8,3);plat(gs,49,10,2);plat(gs,54,11,3);
-    plat(gs,59,9,2);plat(gs,63,11,3);plat(gs,68,9,2);plat(gs,72,11,3);plat(gs,78,9,3);plat(gs,84,10,4);
-  } else if(ai===4){ // MUSEUM WING — wide floors w/ display gaps (short pits)
-    plat(gs,6,11,5);plat(gs,14,10,4);
-    plat(gs,19,12,2);plat(gs,23,12,2); pit(gs,20,23,FLOOR,LH);
-    plat(gs,26,11,5);plat(gs,34,10,4);plat(gs,42,11,5);
-    plat(gs,48,12,2);plat(gs,52,12,2); pit(gs,49,52,FLOOR,LH);
-    plat(gs,56,10,5);plat(gs,64,10,4);plat(gs,72,11,5);plat(gs,80,10,4);plat(gs,85,11,3);
-  } else if(ai===5){ // TECH MANOR — floating platforms, vertical but reachable
-    plat(gs,6,12,2);plat(gs,10,10,2);plat(gs,14,12,2);plat(gs,18,10,2);plat(gs,22,12,2);plat(gs,26,10,2);plat(gs,30,12,2);
-    plat(gs,33,12,2);plat(gs,37,12,2); pit(gs,34,38,FLOOR,LH);
-    plat(gs,41,11,2);plat(gs,45,9,2);plat(gs,49,11,2);plat(gs,53,9,2);plat(gs,57,11,2);
-    plat(gs,61,12,2);plat(gs,65,10,2);plat(gs,69,12,2);plat(gs,73,10,2);plat(gs,77,12,2);plat(gs,84,10,3);
-  } else if(ai===6){ // ARMORY CORRIDOR — mostly flat, bridged pits
-    plat(gs,5,11,4);plat(gs,11,11,4);plat(gs,17,11,4);
-    plat(gs,22,12,2);plat(gs,26,12,2); pit(gs,23,26,FLOOR,LH);
-    plat(gs,29,10,3);plat(gs,35,11,4);plat(gs,42,10,3);plat(gs,48,11,4);
-    plat(gs,54,12,2);plat(gs,58,12,2); pit(gs,55,58,FLOOR,LH);
-    plat(gs,61,10,4);plat(gs,68,11,4);plat(gs,75,10,3);plat(gs,81,11,4);plat(gs,86,9,3);
-  } else if(ai===7){ // ART GALLERY — staggered mid-height (gentle rises)
-    plat(gs,5,10,3);plat(gs,10,12,3);plat(gs,15,10,3);plat(gs,20,12,3);plat(gs,25,10,3);
-    plat(gs,29,12,2);plat(gs,33,12,2); pit(gs,30,33,FLOOR,LH);
-    plat(gs,36,11,3);plat(gs,41,9,3);plat(gs,46,11,3);plat(gs,51,12,3);
-    plat(gs,57,10,3);plat(gs,63,12,3);plat(gs,69,10,3);plat(gs,75,11,3);plat(gs,81,10,3);plat(gs,86,11,3);
-  } else { // TREASURE VAULT — finale (grand but climbable)
-    plat(gs,5,11,3);plat(gs,9,9,2);plat(gs,13,11,3);plat(gs,18,9,3);plat(gs,24,11,3);
-    plat(gs,30,12,2);plat(gs,34,12,2); pit(gs,31,35,FLOOR,LH);
-    plat(gs,38,10,3);plat(gs,44,11,3);plat(gs,49,9,3);plat(gs,55,11,4);
-    plat(gs,62,9,2);plat(gs,66,11,3);plat(gs,72,10,3);plat(gs,78,9,3);plat(gs,83,10,4);plat(gs,86,8,2);
+  if(ai===0){ // GRAND LIBRARY — cathedral staircase + tiered reading halls
+    // Grand ascending staircase (cols 2-20)
+    plat(gs,2,12,3);plat(gs,6,10,3);plat(gs,10,8,3);plat(gs,14,6,3);
+    // Return descent + gallery floor
+    plat(gs,19,8,2);plat(gs,23,10,3);plat(gs,28,12,3);
+    // Reading gallery (cols 31-47)
+    plat(gs,31,11,4);plat(gs,37,9,3);plat(gs,42,7,3);
+    // Pit 1 (cols 48-53) — safe: avoids enemies at 46 and 55
+    pit(gs,48,54,FLOOR,LH);
+    plat(gs,47,12,2);plat(gs,54,12,2);plat(gs,50,10,2);
+    // Archive hall (cols 55-71)
+    plat(gs,55,11,3);plat(gs,60,9,4);plat(gs,66,7,3);
+    // Pit 2 (cols 72-75) — safe: avoids enemies at 71 and 77
+    pit(gs,72,76,FLOOR,LH);
+    plat(gs,71,12,2);plat(gs,76,12,2);plat(gs,73,10,1);
+    // Finale shelves (cols 77-87)
+    plat(gs,78,10,3);plat(gs,83,8,3);plat(gs,87,10,2);
+  } else if(ai===1){ // EGYPTIAN HALL — pyramid tiers + monumental platforms
+    // Pyramid 1 (cols 2-22)
+    plat(gs,2,12,3);plat(gs,6,10,4);plat(gs,11,8,4);plat(gs,16,10,3);plat(gs,21,12,2);
+    // Obelisk platform + descent (cols 23-36)
+    plat(gs,24,6,4);plat(gs,29,8,2);plat(gs,33,10,2);
+    // Pit 1 (cols 37-44) — safe: avoids 35 and 46
+    pit(gs,37,45,FLOOR,LH);
+    plat(gs,36,12,2);plat(gs,45,12,2);plat(gs,40,10,2);plat(gs,43,11,1);
+    // Pyramid 2 (cols 45-59)
+    plat(gs,46,12,3);plat(gs,50,10,4);plat(gs,55,8,4);plat(gs,60,10,3);
+    // Pit 2 (cols 60-65) — safe: avoids 58 and 67
+    pit(gs,60,66,FLOOR,LH);
+    plat(gs,59,12,2);plat(gs,66,12,2);plat(gs,62,10,2);
+    // Finale monuments (cols 66-87)
+    plat(gs,67,11,3);plat(gs,72,9,4);plat(gs,78,7,3);plat(gs,83,9,3);plat(gs,87,11,2);
+  } else if(ai===2){ // SAMURAI GALLERY — narrow ledge gauntlet, multi-pit obstacle course
+    // Weaving approach (cols 2-28)
+    plat(gs,2,11,2);plat(gs,6,9,2);plat(gs,10,7,2);plat(gs,14,9,2);plat(gs,18,11,2);
+    plat(gs,22,9,2);plat(gs,26,7,2);
+    // Pit 1 (cols 29-32) — safe: avoids 27 and 33
+    pit(gs,29,33,FLOOR,LH);
+    plat(gs,28,12,2);plat(gs,33,12,2);plat(gs,30,10,2);
+    // Mid ledge run (cols 34-47)
+    plat(gs,34,9,2);plat(gs,38,7,2);plat(gs,42,9,2);plat(gs,46,11,2);
+    // Pit 2 (cols 48-53) — safe: avoids 46 and 55
+    pit(gs,48,54,FLOOR,LH);
+    plat(gs,47,12,2);plat(gs,54,12,2);plat(gs,50,10,1);plat(gs,52,11,1);
+    // Gauntlet finale (cols 55-87)
+    plat(gs,55,10,2);plat(gs,59,8,2);plat(gs,63,10,2);plat(gs,67,8,2);
+    plat(gs,72,10,2);plat(gs,76,8,2);plat(gs,80,10,3);plat(gs,85,8,2);plat(gs,87,9,2);
+  } else if(ai===3){ // ROYAL CHAMBERS — grand palace halls + throne dais
+    // Palace approach (cols 2-13)
+    plat(gs,2,12,3);plat(gs,7,10,2);plat(gs,11,8,2);
+    // Throne dais — very high + wide (cols 14-21)
+    plat(gs,14,5,8);
+    // Descent from throne (cols 22-47)
+    plat(gs,23,7,2);plat(gs,27,9,3);plat(gs,32,11,3);plat(gs,37,9,3);plat(gs,42,11,3);
+    // Pit 1 (cols 48-53) — safe: avoids 46 and 55
+    pit(gs,48,54,FLOOR,LH);
+    plat(gs,47,12,2);plat(gs,54,12,2);plat(gs,50,10,2);
+    // Royal gallery (cols 55-71)
+    plat(gs,55,10,3);plat(gs,60,8,3);plat(gs,65,6,4);
+    // Pit 2 (cols 72-75) — safe: avoids 71 and 77
+    pit(gs,72,76,FLOOR,LH);
+    plat(gs,71,12,2);plat(gs,76,12,2);plat(gs,73,10,1);
+    // Grand hall finale (cols 77-87)
+    plat(gs,78,8,3);plat(gs,83,6,3);plat(gs,87,8,2);
+  } else if(ai===4){ // MUSEUM WING — wide exhibition platforms + display pedestals
+    // Lobby (cols 2-28)
+    plat(gs,2,12,5);plat(gs,9,10,3);plat(gs,14,12,5);plat(gs,21,9,2);plat(gs,25,11,3);
+    // Pit 1 (cols 37-44) — safe: avoids 35 and 46
+    pit(gs,37,45,FLOOR,LH);
+    plat(gs,36,12,2);plat(gs,45,12,2);plat(gs,40,10,3);
+    // Exhibit A (cols 46-59)
+    plat(gs,46,11,4);plat(gs,52,9,3);plat(gs,57,11,3);
+    // Pit 2 (cols 72-75) — safe: avoids 71 and 77
+    pit(gs,72,76,FLOOR,LH);
+    plat(gs,71,12,2);plat(gs,76,12,2);plat(gs,73,10,1);
+    // Exhibit B finale (cols 61-87)
+    plat(gs,61,9,4);plat(gs,67,11,5);plat(gs,78,9,4);plat(gs,84,11,4);plat(gs,87,9,2);
+  } else if(ai===5){ // TECH MANOR — holographic grid, floating platform arrays
+    // Tech grid approach (cols 2-28)
+    plat(gs,2,12,2);plat(gs,6,10,2);plat(gs,10,12,2);plat(gs,14,10,2);
+    plat(gs,18,8,2);plat(gs,22,10,2);plat(gs,26,12,2);
+    // Pit 1 (cols 29-32) — safe: avoids 27 and 33
+    pit(gs,29,33,FLOOR,LH);
+    plat(gs,28,12,2);plat(gs,33,12,2);plat(gs,30,10,2);
+    // Server room platforms (cols 34-59)
+    plat(gs,34,11,2);plat(gs,38,9,2);plat(gs,42,7,3);plat(gs,47,9,2);plat(gs,51,11,2);plat(gs,56,9,3);
+    // Pit 2 (cols 60-65) — safe: avoids 58 and 67
+    pit(gs,60,66,FLOOR,LH);
+    plat(gs,59,12,2);plat(gs,66,12,2);plat(gs,62,10,1);plat(gs,64,11,1);
+    // Mainframe finale (cols 67-87)
+    plat(gs,67,10,2);plat(gs,71,8,2);plat(gs,75,6,3);plat(gs,80,8,2);plat(gs,84,10,2);plat(gs,87,8,2);
+  } else if(ai===6){ // ARMORY CORRIDOR — fortress battlements, alternating heights
+    // Battlement approach (cols 2-28)
+    plat(gs,2,10,3);plat(gs,7,12,2);plat(gs,11,10,3);plat(gs,16,12,2);plat(gs,20,10,3);plat(gs,25,12,2);
+    // Pit 1 (cols 37-44) — safe: avoids 35 and 46
+    pit(gs,37,45,FLOOR,LH);
+    plat(gs,36,12,2);plat(gs,45,12,2);plat(gs,40,10,2);plat(gs,43,11,1);
+    // Inner keep (cols 46-71)
+    plat(gs,46,10,4);plat(gs,52,8,4);plat(gs,58,10,3);plat(gs,63,12,3);plat(gs,68,10,3);
+    // Pit 2 (cols 72-75) — safe: avoids 71 and 77
+    pit(gs,72,76,FLOOR,LH);
+    plat(gs,71,12,2);plat(gs,76,12,2);plat(gs,73,10,1);
+    // Final fortress (cols 77-87)
+    plat(gs,78,10,4);plat(gs,84,8,4);plat(gs,87,6,2);
+  } else if(ai===7){ // ART GALLERY — elegant staggered galleries + sculpture courts
+    // Opening gallery (cols 2-28)
+    plat(gs,2,11,4);plat(gs,8,9,4);plat(gs,14,11,4);plat(gs,20,9,3);plat(gs,25,7,3);
+    // Pit 1 (cols 29-32) — safe: avoids 27 and 33
+    pit(gs,29,33,FLOOR,LH);
+    plat(gs,28,12,2);plat(gs,33,12,2);plat(gs,30,10,2);
+    // Sculpture court (cols 34-59)
+    plat(gs,34,11,4);plat(gs,40,9,4);plat(gs,46,7,4);plat(gs,52,9,3);plat(gs,57,11,4);
+    // Pit 2 (cols 60-65) — safe: avoids 58 and 67
+    pit(gs,60,66,FLOOR,LH);
+    plat(gs,59,12,2);plat(gs,66,12,2);plat(gs,62,10,2);
+    // Grand finale gallery (cols 67-87)
+    plat(gs,67,10,4);plat(gs,73,8,4);plat(gs,79,6,4);plat(gs,85,8,3);plat(gs,87,10,2);
+  } else { // TREASURE VAULT — jeweled paradise, multi-path grand finale
+    // Opening vaults (cols 2-28)
+    plat(gs,2,11,3);plat(gs,7,9,2);plat(gs,11,7,2);plat(gs,15,9,2);plat(gs,20,11,3);plat(gs,25,9,2);
+    // Pit 1 (cols 37-44) — safe: avoids 35 and 46
+    pit(gs,37,45,FLOOR,LH);
+    plat(gs,36,12,2);plat(gs,45,12,2);plat(gs,40,10,2);plat(gs,43,11,1);
+    // Treasure cathedral — apex at col 50 (cols 46-65)
+    plat(gs,46,11,3);plat(gs,50,9,3);plat(gs,55,7,4);plat(gs,61,9,3);
+    // Pit 2 (cols 60-65) — safe: avoids 58 and 67
+    pit(gs,60,66,FLOOR,LH);
+    plat(gs,59,12,2);plat(gs,66,12,2);plat(gs,62,10,1);plat(gs,64,11,1);
+    // Grand finale (cols 67-87)
+    plat(gs,67,10,3);plat(gs,72,8,2);plat(gs,76,6,3);plat(gs,81,8,3);plat(gs,85,10,2);plat(gs,87,8,2);
   }
 
   // Boss gate + sealed arena (cols 89-98) — uniform across stages
@@ -965,34 +1040,54 @@ function draw(){drawGL();
 
 function drawTile(t,ac,pc){var x=t.c*T,y=t.r*T,s=T;
   if(t.t==='GATE'){var pl=Math.sin(GS.tick*0.08)*0.4+0.6;
-    // ornate locked gate: dark iron w/ glowing runes
     FX.fillStyle='#140030';FX.fillRect(x,y,s,s);
     FX.strokeStyle='rgba(139,0,255,'+(pl*0.7)+')';FX.lineWidth=2;FX.strokeRect(x+3,y+3,s-6,s-6);
     FX.fillStyle='rgba(200,150,255,'+(pl*0.5)+')';FX.beginPath();FX.arc(x+s/2,y+s/2,4,0,6.28);FX.fill();
     FX.strokeStyle='rgba(180,120,255,'+(pl*0.4)+')';FX.lineWidth=1;FX.beginPath();FX.moveTo(x+s/2,y+4);FX.lineTo(x+s/2,y+s-4);FX.moveTo(x+4,y+s/2);FX.lineTo(x+s-4,y+s/2);FX.stroke();return;}
   if(t.t!=='G'&&t.t!=='P')return;
-  var isTop=!isSolid(t.c,t.r-1);
+  var isTop=!isSolid(t.c,t.r-1),isL=!isSolid(t.c-1,t.r),isR=!isSolid(t.c+1,t.r),isBtm=!isSolid(t.c,t.r+1);
+  var fH=13; // 2.5D front-face depth in px
+  // ── BODY ──────────────────────────────────────────────────
   var g=FX.createLinearGradient(x,y,x,y+s);
-  g.addColorStop(0,'rgba('+pc+',0.85)');g.addColorStop(0.5,'rgba('+pc+',0.62)');g.addColorStop(1,'rgba('+pc+',0.45)');
+  g.addColorStop(0,'rgba('+pc+',0.92)');g.addColorStop(0.5,'rgba('+pc+',0.70)');g.addColorStop(1,'rgba('+pc+',0.50)');
   FX.fillStyle=g;FX.fillRect(x,y,s,s);
-  // wood grain streaks
-  FX.strokeStyle='rgba(0,0,0,0.10)';FX.lineWidth=1;
-  for(var gi=0;gi<3;gi++){var gy=y+6+gi*9;FX.beginPath();FX.moveTo(x,gy);FX.bezierCurveTo(x+s*0.4,gy-2,x+s*0.6,gy+2,x+s,gy);FX.stroke();}
-  // carved recessed panel in the face
-  FX.strokeStyle='rgba(0,0,0,0.22)';FX.lineWidth=1;FX.strokeRect(x+5,y+5,s-10,s-10);
-  FX.strokeStyle='rgba(255,255,255,0.06)';FX.strokeRect(x+6,y+6,s-12,s-12);
+  // ── STONE BLOCK TEXTURE ───────────────────────────────────
+  FX.strokeStyle='rgba(0,0,0,0.17)';FX.lineWidth=1;
+  FX.beginPath();FX.moveTo(x,y+s*.5);FX.lineTo(x+s,y+s*.5);FX.stroke();
+  var vo=(t.r%2===0)?s*.5:0;FX.beginPath();FX.moveTo(x+vo,y);FX.lineTo(x+vo,y+s);FX.stroke();
+  FX.strokeStyle='rgba(255,255,255,0.09)';
+  FX.beginPath();FX.moveTo(x+1,y+1);FX.lineTo(x+s-1,y+1);FX.moveTo(x+1,y+1);FX.lineTo(x+1,y+s-1);FX.stroke();
+  // ── TOP CAP (molding) ─────────────────────────────────────
   if(isTop){
-    // ornate molding cap on top surface
-    FX.fillStyle='rgba('+pc+',0.95)';FX.fillRect(x,y,s,6);
-    FX.fillStyle='rgba('+ac+',0.85)';FX.fillRect(x,y,s,2);                 // gold lip
-    FX.fillStyle='rgba('+ac+',0.4)';FX.fillRect(x,y+5,s,1);
-    // little carved dentils under the cap
-    FX.fillStyle='rgba(0,0,0,0.25)';for(var d=0;d<s;d+=6)FX.fillRect(x+d+1,y+6,3,2);
-    // soft highlight catching the chandelier
-    FX.fillStyle='rgba(255,225,170,0.12)';FX.fillRect(x+2,y+2,s-4,2);
+    FX.fillStyle='rgba('+ac+',0.92)';FX.fillRect(x,y,s,2.5);
+    FX.fillStyle='rgba(255,240,200,0.17)';FX.fillRect(x+2,y+2.5,s-4,2);
+    FX.fillStyle='rgba(0,0,0,0.26)';for(var d=0;d<s;d+=6)FX.fillRect(x+d+1,y+7,3,2);
+    FX.fillStyle='rgba(255,235,180,0.11)';FX.fillRect(x,y,s,4);
   }
-  // shadow on bottom + right for depth
-  FX.fillStyle='rgba(0,0,0,0.35)';FX.fillRect(x,y+s-2,s,2);FX.fillRect(x+s-2,y,2,s);}
+  // ── 2.5D FRONT FACE (floating platforms only) ─────────────
+  if(isTop&&isBtm){
+    var fy=y+s;
+    var fg=FX.createLinearGradient(x,fy,x,fy+fH);
+    fg.addColorStop(0,'rgba('+pc+',0.90)');fg.addColorStop(0.55,'rgba('+pc+',0.55)');fg.addColorStop(1,'rgba(0,0,0,0.85)');
+    FX.fillStyle=fg;FX.fillRect(x,fy,s,fH);
+    // brick courses on face (staggered)
+    FX.strokeStyle='rgba(0,0,0,0.32)';FX.lineWidth=1;
+    FX.beginPath();FX.moveTo(x,fy+fH*.5);FX.lineTo(x+s,fy+fH*.5);FX.stroke();
+    var bx=(t.c%2===0)?0:s*.5;
+    FX.beginPath();FX.moveTo(x+bx,fy);FX.lineTo(x+bx,fy+fH*.5);
+    FX.moveTo(x+(bx?0:s*.5),fy+fH*.5);FX.lineTo(x+(bx?0:s*.5),fy+fH);FX.stroke();
+    // accent strip where top meets face
+    FX.fillStyle='rgba('+ac+',0.60)';FX.fillRect(x,fy,s,1.5);
+    // cast shadow below face
+    FX.fillStyle='rgba(0,0,0,0.55)';FX.fillRect(x+2,fy+fH,s-2,4);
+    if(isL){FX.fillStyle='rgba(255,255,255,0.11)';FX.fillRect(x,fy,2,fH);}
+    if(isR){FX.fillStyle='rgba(0,0,0,0.28)';FX.fillRect(x+s-2,fy,2,fH);}
+  }
+  // ── SIDE FACES (platform ends) ────────────────────────────
+  if(isTop&&isL){var sf=FX.createLinearGradient(x-5,y,x,y);sf.addColorStop(0,'rgba(0,0,0,0.54)');sf.addColorStop(1,'rgba('+pc+',0.28)');FX.fillStyle=sf;FX.fillRect(x-5,y+2,5,s-2+(isBtm?fH:0));}
+  if(isTop&&isR){var sf2=FX.createLinearGradient(x+s,y,x+s+5,y);sf2.addColorStop(0,'rgba('+pc+',0.32)');sf2.addColorStop(1,'rgba(0,0,0,0.60)');FX.fillStyle=sf2;FX.fillRect(x+s,y+2,5,s-2+(isBtm?fH:0));}
+  // ── INNER DEPTH SHADOW ────────────────────────────────────
+  FX.fillStyle='rgba(0,0,0,0.30)';FX.fillRect(x,y+s-2,s,2);FX.fillRect(x+s-2,y,2,s);}
 function drawBkbl(b,ac){var x=b.c*T,y=b.r*T,s=T,isG=b.t==='G';FX.fillStyle=isG?'#2A1A00':'#1A0040';FX.fillRect(x,y,s,s);FX.fillStyle=isG?'#FFD700':'#C8A0FF';FX.fillRect(x+4,y+4,s-8,s-8);FX.fillStyle='rgba(255,255,255,0.17)';FX.fillRect(x+4,y+4,s-8,3);var pl=Math.sin(GS.tick*.08+b.c*.5)*.1+.08;FX.fillStyle='rgba('+(isG?'255,215,0':'200,160,255')+','+pl+')';FX.fillRect(x-2,y-2,s+4,s+4);}
 function drawNote(sh,ac){var x=sh.x,y=sh.y+Math.sin(sh.anim*.07)*4.5,p2=Math.sin(sh.anim*.1)*.5+.5;
   FX.fillStyle='rgba('+ac+','+(.13+p2*.1)+')';FX.beginPath();FX.arc(x,y+8,18,0,6.28);FX.fill();
