@@ -449,7 +449,7 @@ function buildLevel(gs){
   for(var c=0;c<LW;c++){for(var r=FLOOR;r<LH;r++)setT(gs,c,r,'G');}
   for(c=0;c<LW;c++)setT(gs,c,0,'G');
   for(r=0;r<LH;r++){setT(gs,0,r,'G');setT(gs,LW-1,r,'G');}
-  var ai=gs.ai;
+  var ai=gs.ai,i;
 
   // Per-stage layout generator — distinct shapes.
   // RULES baked in for traversability:
