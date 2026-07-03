@@ -47,7 +47,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .lb-btn{width:100%;background:linear-gradient(135deg,#7a1fd0,#ff2d8a);border:none;border-radius:8px;padding:15px;color:#fff;font-family:'Press Start 2P';font-size:clamp(7px,1.4vw,9px);cursor:pointer;margin-top:8px;letter-spacing:1px}
 .lb-msg{font-family:'Press Start 2P';font-size:7px;min-height:20px;margin-top:10px;color:rgba(255,50,80,.9)}
 .lb-skip{font-family:'Raleway';font-size:12px;color:rgba(255,255,255,.22);margin-top:14px;cursor:pointer;text-decoration:underline}
-#gameWrap{position:relative;width:100%;height:100%;display:none;background:#000}
+#gameWrap{position:relative;width:100%;height:100%;display:none;background:#000;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#gameWrap canvas{touch-action:none}
 #gameWrap.on{display:block}
 #glC{position:absolute;inset:0;width:100%;height:100%;display:block}
 #fxC{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:5}
@@ -450,6 +451,8 @@ function drawGL(){
 var FX, FXC, W, H, DPR=Math.min(2,window.devicePixelRatio||1);
 function resize(){
   W=window.innerWidth;H=window.innerHeight;
+  // phones: cap canvas density at 1.5× — full 2-3× costs more GPU than it's worth
+  DPR=document.body.classList.contains('mobile')?Math.min(1.5,window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1);
   glC.width=W*DPR;glC.height=H*DPR;glC.style.width=W+'px';glC.style.height=H+'px';
   FXC.width=W*DPR;FXC.height=H*DPR;FXC.style.width=W+'px';FXC.style.height=H+'px';
   FX.setTransform(DPR,0,0,DPR,0,0);
@@ -475,7 +478,7 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
        anim:'run',animT:0,frame:0,
        atk:false,atkT:0,atkDir:'r',dead:false,deadT:0,inv:0,
        dashing:false,dashT:0,dashVx:0,dashCd:0,canDash:true,diving:false,
-       sliding:false,slideT:0,airJumps:1,
+       sliding:false,slideT:0,airJumps:1,coyote:0,
        waveCd:0,throwCd:0,screamT:0,idleT:0}};
   if(MODE==='side')buildRunner(GS);
   updateHUD();
@@ -785,12 +788,13 @@ function update(){
   if(GS.dist>=GS.nextTheme){GS.nextTheme+=500;GS.ai=(GS.ai+1)%STAGES.length;
     _bgW=null;_bgF=null;_bgV=null;_bgP=null;showLevelCard(GS.ai,null);updateHUD();}
 
-  // ── JUMP (buffered) + DOUBLE JUMP ──
+  // ── JUMP (buffered + coyote time) + DOUBLE JUMP ──
+  if(p.onGround)p.coyote=8;else if(p.coyote>0)p.coyote--;
   if(TC.hold>0)TC.hold--;
   var jc=(iU()||TC.hold>0)?1:0;
-  if(iU()&&!lJ)TC.jb=7;
+  if(iU()&&!lJ)TC.jb=12;
   if(TC.jb>0){
-    if(p.onGround){p.vy=-12.8;p.onGround=false;p.airJumps=1;TC.jb=0;TC.hold=Math.max(TC.hold,14);ptcl(p.x+PW/2,p.y+PH,'jdust');if(navigator.vibrate)navigator.vibrate(40);}
+    if(p.onGround||p.coyote>0){p.vy=-12.8;p.onGround=false;p.coyote=0;p.airJumps=1;TC.jb=0;TC.hold=Math.max(TC.hold,14);ptcl(p.x+PW/2,p.y+PH,'jdust');if(navigator.vibrate)navigator.vibrate(40);}
     else if(p.airJumps>0){p.vy=-11.2;p.airJumps--;TC.jb=0;TC.hold=Math.max(TC.hold,12);ptcl(p.x+PW/2,p.y+PH/2,'wjump');if(navigator.vibrate)navigator.vibrate(30);}
     else TC.jb--;
   }
@@ -1600,7 +1604,9 @@ function drawMansionBG(st){
 // ════════════════════════════════════════════════════════════
 function draw(){
   if(MODE==='temple')return drawT();
-  drawGL();
+  // NOTE: drawGL() intentionally skipped — drawMansionBG paints an opaque
+  // full-screen background, so the WebGL pass was invisible and cost ~half
+  // the frame budget on phones.
   var st=STAGES[GS.ai],ac=hexS(st.ac),pc=hexS(st.pc);
   FX.clearRect(0,0,W,H);
   drawMansionBG(st);            // painted interior (parallax, screen-space)
@@ -2266,7 +2272,20 @@ function initTitleBG(){var bc=document.getElementById('bgC'),c2=bc.getContext('2
 var running=false;
 var MODE='side'; // 'side' = side-scroll runner · 'temple' = behind-the-back corridor
 function showModeSel(){show('modeScreen');}
-var _lT=0;function loop(ts){if(!running)return;var dt=ts-_lT;if(dt<14){requestAnimationFrame(loop);return;}_lT=ts;try{update();draw();}catch(e){console.error('loop:',e);}requestAnimationFrame(loop);}
+// fixed-timestep: physics always advance at 60Hz regardless of render FPS,
+// so slow phones don't turn jumps into slow-motion mush
+var _lT=0,_acc=0;
+function loop(ts){if(!running)return;
+  if(typeof ts!=='number'){_lT=0;_acc=0;requestAnimationFrame(loop);return;} // first call has no timestamp
+  if(!_lT)_lT=ts;
+  var dt=Math.min(100,ts-_lT);_lT=ts;_acc+=dt;
+  try{
+    var steps=0;
+    while(_acc>=16.6&&steps<3){update();_acc-=16.6;steps++;}
+    if(_acc>=16.6)_acc=0; // device can't keep up — drop backlog, never spiral
+    draw();
+  }catch(e){console.error('loop:',e);}
+  requestAnimationFrame(loop);}
 function startGame(){
   // hide ALL fullscreen overlays so the game canvas is visible
   var scr=document.querySelectorAll('.screen');for(var si=0;si<scr.length;si++)scr[si].classList.remove('active');
@@ -2277,16 +2296,24 @@ function startGame(){
     document.body.classList.add('mobile');
   }
   // ── TEMPLE-RUN TOUCH: swipe ▲ jump · ▼ slide · ◀ ▶ lanes (temple view) · tap = jump ──
+  // preventDefault + touch-action:none stop iOS/Android gestures (double-tap zoom,
+  // scroll, rubber-band) from eating taps; low thresholds = instant swipe response.
   if(!window._swipeBound){window._swipeBound=true;
     var gw=document.getElementById('gameWrap'),swX=0,swY=0,swT=0,swActed=false;
     var swIgnore=function(e){var t2=e.target;return t2.closest&&t2.closest('#topBtns,.ov-btn,button,input');};
-    gw.addEventListener('touchstart',function(e){if(swIgnore(e))return;var t2=e.touches[0];swX=t2.clientX;swY=t2.clientY;swT=Date.now();swActed=false;},{passive:true});
-    gw.addEventListener('touchmove',function(e){if(swActed||swIgnore(e))return;var t2=e.touches[0],dx=t2.clientX-swX,dy=t2.clientY-swY;
-      if(Math.abs(dy)>26&&Math.abs(dy)>Math.abs(dx)*1.2){swActed=true;if(dy<0)TC.jb=10;else TC.st=26;}
-      else if(Math.abs(dx)>30&&Math.abs(dx)>Math.abs(dy)*1.2){swActed=true;if(dx<0)TC.ml++;else TC.mr++;}},{passive:true});
-    gw.addEventListener('touchend',function(e){if(swIgnore(e))return;
-      if(!swActed&&Date.now()-swT<400)TC.jb=10; // tap = jump (forgiving window)
-      swActed=false;},{passive:true});
+    var swEnd=function(e){if(swIgnore(e))return;
+      if(!swActed&&Date.now()-swT<450)TC.jb=12; // tap = jump
+      swActed=false;};
+    gw.addEventListener('touchstart',function(e){if(swIgnore(e))return;e.preventDefault();
+      var t2=e.touches[0];swX=t2.clientX;swY=t2.clientY;swT=Date.now();swActed=false;},{passive:false});
+    gw.addEventListener('touchmove',function(e){if(swIgnore(e))return;e.preventDefault();
+      if(swActed)return;var t2=e.touches[0],dx=t2.clientX-swX,dy=t2.clientY-swY;
+      if(Math.abs(dy)>20&&Math.abs(dy)>Math.abs(dx)){swActed=true;if(dy<0)TC.jb=12;else TC.st=26;}
+      else if(Math.abs(dx)>24&&Math.abs(dx)>Math.abs(dy)){swActed=true;if(dx<0)TC.ml++;else TC.mr++;}},{passive:false});
+    gw.addEventListener('touchend',swEnd,{passive:true});
+    gw.addEventListener('touchcancel',swEnd,{passive:true});
+    // desktop: click anywhere = jump
+    gw.addEventListener('mousedown',function(e){if(swIgnore(e))return;TC.jb=12;});
   }
   if(!GL){initGL();}
   resize();
