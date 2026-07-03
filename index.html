@@ -35,6 +35,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .ms-ico{font-size:44px;margin-bottom:12px}
 .ms-t{font-family:'Press Start 2P';font-size:12px;color:#fff;margin-bottom:12px;letter-spacing:1px}
 .ms-d{font-family:Raleway,sans-serif;font-size:12.5px;color:rgba(255,255,255,.55);line-height:1.6}
+.ms-stats{margin-top:24px;font-family:'Press Start 2P';font-size:8px;color:rgba(255,215,0,.7);letter-spacing:1px}
+#ovBoard{margin:14px auto 4px;width:min(420px,86vw);font-family:'Press Start 2P';font-size:7px;color:rgba(255,255,255,.75);text-align:left;max-height:34vh;overflow-y:auto}
+#ovBoard .bd-h{color:#FFD700;font-size:8px;text-align:center;margin:10px 0 6px;letter-spacing:2px}
+#ovBoard .bd-row{display:flex;justify-content:space-between;gap:8px;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.09);line-height:1.5}
+#ovBoard .bd-row.me{background:rgba(255,215,0,.13);color:#FFD700;border-radius:4px}
+#ovBoard .bd-ach{color:#7CFFB2;text-align:center;padding:4px 0;line-height:1.7}
+#ovBoard .bd-sub{color:rgba(255,255,255,.35);text-align:center;margin-top:8px}
 @media (max-height:500px){.ms-h{margin-bottom:16px;font-size:20px}.ms-card{padding:14px 16px;width:225px}.ms-ico{font-size:28px;margin-bottom:6px}}
 .lb{background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.2);border-radius:18px;padding:clamp(28px,4vw,48px) clamp(30px,5vw,56px);width:min(440px,90vw);text-align:center;backdrop-filter:blur(8px)}
 .lb-eye{font-family:'Press Start 2P';font-size:7px;color:rgba(255,215,0,.6);letter-spacing:3px;margin-bottom:16px}
@@ -195,6 +202,7 @@ body.mobile .joy-knob{width:64px;height:64px}
         <div class="ms-d">Behind-the-back corridor run.<br>Swipe ◀ ▶ lanes · ▲ jump · ▼ slide.</div>
       </div>
     </div>
+    <div class="ms-stats" id="msStats"></div>
   </div>
 </div>
 <div id="gameWrap">
@@ -245,6 +253,7 @@ body.mobile .joy-knob{width:64px;height:64px}
   <div id="overlay">
     <div class="ov-t" id="ovT">GAME OVER</div>
     <div class="ov-m" id="ovM">She rose again.</div>
+    <div id="ovBoard"></div>
     <div class="ov-btns"><button class="ov-btn prim" id="ovR">TRY AGAIN</button><button class="ov-btn" id="ovM2">MAIN MENU</button></div>
   </div>
   <div id="loadMsg"><div class="spin"></div><div>SUMMONING THE QUEEN...</div></div>
@@ -473,6 +482,7 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
     solid:{},tiles:[],bkbl:[],enemies:[],notes:[],pwr:[],threads:[],ptcl:[],boss:null,bossActive:false,
     gateOpen:false,gateFlash:0,gateCol:88,arrowT:0,LW:1e9,LH:18,
     speed:5.2,dist:0,nextTheme:500,obs:[],genC:0,groundR:14,
+    stats:{dj:0,sl:0},toasts:[],newAch:[],blendT:1,prevPc:null,prevAc:null,
     t3:{lane:0,laneX:0,py:0,vy:0,slid:0,obs:[],coins:[],nextZ:900,howT:300},
     p:{x:3*T,y:8*T,vx:0,vy:0,onGround:false,onWall:false,wallDir:0,faceL:false,
        anim:'run',animT:0,frame:0,
@@ -781,12 +791,12 @@ function update(){
   GS.speed=Math.min(11.5,5.2+GS.dist*0.0045);
   var pm=Math.floor(GS.dist);
   GS.dist+=GS.speed/T;
-  if(Math.floor(GS.dist)>pm){GS.score+=12;if(Math.floor(GS.dist)%20===0)updateHUD();}
+  if(Math.floor(GS.dist)>pm){GS.score+=12;checkAch();if(Math.floor(GS.dist)%20===0)updateHUD();}
   p.vx=GS.speed;p.faceL=false;
 
-  // ── THEME SHIFT: new mansion room every 500m ──
-  if(GS.dist>=GS.nextTheme){GS.nextTheme+=500;GS.ai=(GS.ai+1)%STAGES.length;
-    _bgW=null;_bgF=null;_bgV=null;_bgP=null;showLevelCard(GS.ai,null);updateHUD();}
+  // ── THEME SHIFT: crossfade to the next room every 500m (no blackout) ──
+  if(GS.dist>=GS.nextTheme)themeShift();
+  tickFx();
 
   // ── JUMP (buffered + coyote time) + DOUBLE JUMP ──
   if(p.onGround)p.coyote=8;else if(p.coyote>0)p.coyote--;
@@ -795,14 +805,14 @@ function update(){
   if(iU()&&!lJ)TC.jb=12;
   if(TC.jb>0){
     if(p.onGround||p.coyote>0){p.vy=-12.8;p.onGround=false;p.coyote=0;p.airJumps=1;TC.jb=0;TC.hold=Math.max(TC.hold,14);ptcl(p.x+PW/2,p.y+PH,'jdust');if(navigator.vibrate)navigator.vibrate(40);}
-    else if(p.airJumps>0){p.vy=-11.2;p.airJumps--;TC.jb=0;TC.hold=Math.max(TC.hold,12);ptcl(p.x+PW/2,p.y+PH/2,'wjump');if(navigator.vibrate)navigator.vibrate(30);}
+    else if(p.airJumps>0){p.vy=-11.2;p.airJumps--;GS.stats.dj++;TC.jb=0;TC.hold=Math.max(TC.hold,12);ptcl(p.x+PW/2,p.y+PH/2,'wjump');if(navigator.vibrate)navigator.vibrate(30);}
     else TC.jb--;
   }
   if(!jc&&p.vy<-4.5)p.vy=-4.5;lJ=iU()?1:0;
   if(TC.st>0)TC.st--;
 
   // ── SLIDE ──
-  if(iD()&&p.onGround&&!p.sliding){p.sliding=true;p.slideT=0;ptcl(p.x+PW/2,p.y+PH,'dash');if(navigator.vibrate)navigator.vibrate(20);}
+  if(iD()&&p.onGround&&!p.sliding){p.sliding=true;p.slideT=0;GS.stats.sl++;ptcl(p.x+PW/2,p.y+PH,'dash');if(navigator.vibrate)navigator.vibrate(20);}
   if(p.sliding){p.slideT++;if(!iD()&&p.slideT>16)p.sliding=false;if(!p.onGround&&p.vy>3)p.sliding=false;}
 
   // ── PHYSICS ──
@@ -862,11 +872,11 @@ function updateT(){
   GS.speed=Math.min(11.5,5.2+GS.dist*0.0045);
   var pm=Math.floor(GS.dist);
   GS.dist+=GS.speed/T;
-  if(Math.floor(GS.dist)>pm){GS.score+=12;if(Math.floor(GS.dist)%20===0)updateHUD();}
+  if(Math.floor(GS.dist)>pm){GS.score+=12;checkAch();if(Math.floor(GS.dist)%20===0)updateHUD();}
 
-  // theme shift
-  if(GS.dist>=GS.nextTheme){GS.nextTheme+=500;GS.ai=(GS.ai+1)%STAGES.length;
-    _bgW=null;_bgF=null;_bgV=null;_bgP=null;showLevelCard(GS.ai,null);updateHUD();}
+  // theme shift: smooth color crossfade + banner tab, keep running
+  if(GS.dist>=GS.nextTheme)themeShift();
+  tickFx();
 
   // LANE CHANGE (queued swipes / arrow keys)
   if(K.ArrowLeft&&!TC._lk){TC.ml++;}TC._lk=K.ArrowLeft?1:0;
@@ -886,7 +896,7 @@ function updateT(){
   if(TC.st>0)TC.st--;
 
   // SLIDE
-  if(iD()&&t3.py<=0&&t3.slid<=0){t3.slid=26;if(navigator.vibrate)navigator.vibrate(20);}
+  if(iD()&&t3.py<=0&&t3.slid<=0){t3.slid=26;GS.stats.sl++;if(navigator.vibrate)navigator.vibrate(20);}
   if(t3.slid>0)t3.slid--;
 
   // SPAWN obstacles + coin runs ahead
@@ -935,7 +945,7 @@ function updateT(){
 // perspective projection: scale factor for depth z (z=0 at player, grows into screen)
 function prjT(z){return 300/(300+z);}
 function drawT(){
-  var st=STAGES[GS.ai],ac=hexS(st.ac),pc=hexS(st.pc),t3=GS.t3;
+  var st=blendedStage(),ac=hexS(st.ac),pc=hexS(st.pc),t3=GS.t3;
   var vpX=W/2,vpY=H*0.34,gNear=H*0.90,corrW=W*0.62,laneW=W*0.185;
   FX.clearRect(0,0,W,H);
   // sky / far wall
@@ -1027,7 +1037,7 @@ function drawT(){
       FX.drawImage(img,fr*spd2.cw,0,spd2.cw-4,spd2.ch,hx-dw/2,hy-dh,dw,dh);
     }
   }
-  drawLyric(ac);drawPowerHUD(ac);drawDist(ac);
+  drawLyric(ac);drawPowerHUD(ac);drawDist(ac);drawToasts();
   // how-to overlay (first ~5s)
   if(t3.howT>0){var ha=Math.min(1,t3.howT/60);
     FX.globalAlpha=ha*0.85;FX.fillStyle='rgba(8,0,18,0.72)';
@@ -1154,6 +1164,77 @@ function ptcl(x,y,tp){var r=Math.random;
 //  DRAW (FX canvas over the WebGL background)
 // ════════ PAINTED MANSION BACKGROUND (Canvas2D, parallax) ════════
 function shade(rgb,f){var p=rgb.split(',');return 'rgb('+Math.round(p[0]*f)+','+Math.round(p[1]*f)+','+Math.round(p[2]*f)+')';}
+
+// ════════════════════════════════════════════════════════════
+//  GAMIFICATION — theme crossfade · toasts · achievements · leaderboard
+// ════════════════════════════════════════════════════════════
+function mixHex(h1,h2,t){function q(h,i){return parseInt(h.slice(i,i+2),16);}
+  function z(v){v=Math.round(v).toString(16);return v.length<2?'0'+v:v;}
+  return '#'+z(q(h1,1)+(q(h2,1)-q(h1,1))*t)+z(q(h1,3)+(q(h2,3)-q(h1,3))*t)+z(q(h1,5)+(q(h2,5)-q(h1,5))*t);}
+// stage with colors crossfaded during a theme shift (blendT 0→1 over ~1.5s)
+function blendedStage(){var st=STAGES[GS.ai];
+  if(GS.blendT<1&&GS.prevPc)return{n:st.n,theme:st.theme,pc:mixHex(GS.prevPc,st.pc,GS.blendT),ac:mixHex(GS.prevAc,st.ac,GS.blendT),lyr:st.lyr};
+  return st;}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+var ACH=[
+  {id:'d100', n:'FIRST STEPS',   d:'Run 100m',                     f:function(g){return g.dist>=100;}},
+  {id:'d500', n:'NEW WING',      d:'Reach a new room (500m)',      f:function(g){return g.dist>=500;}},
+  {id:'d1000',n:'WORLD TOUR',    d:'Run 1,000m',                   f:function(g){return g.dist>=1000;}},
+  {id:'d2000',n:'IMMORTAL DIVA', d:'Run 2,000m',                   f:function(g){return g.dist>=2000;}},
+  {id:'n10',  n:'EAR FOR MUSIC', d:'10 Grace Notes in one run',    f:function(g){return g.totalNotes>=10;}},
+  {id:'n30',  n:'VIRTUOSO',      d:'30 Grace Notes in one run',    f:function(g){return g.totalNotes>=30;}},
+  {id:'dj10', n:'AIR QUEEN',     d:'10 double jumps in one run',   f:function(g){return g.stats&&g.stats.dj>=10;}},
+  {id:'sl10', n:'LOW NOTE',      d:'10 slides in one run',         f:function(g){return g.stats&&g.stats.sl>=10;}},
+  {id:'ff300',n:'FLAWLESS',      d:'300m with every heart intact', f:function(g){return g.dist>=300&&g.masks>=g.maxMasks;}},
+  {id:'sc5k', n:'CHART TOPPER',  d:'Score 5,000 in one run',       f:function(g){return g.score>=5000;}},
+  {id:'modes',n:'BOTH WORLDS',   d:'Play Side Runner and Temple View',
+    f:function(){try{return localStorage.getItem('jande_mode_side')&&localStorage.getItem('jande_mode_temple');}catch(x){return false;}}}
+];
+function loadAch(){try{return JSON.parse(localStorage.getItem('jande_ach')||'{}');}catch(x){return{};}}
+var ACH_GOT=loadAch();
+function checkAch(){
+  for(var i=0;i<ACH.length;i++){var a=ACH[i];if(ACH_GOT[a.id])continue;
+    var ok=false;try{ok=a.f(GS);}catch(x){}
+    if(ok){ACH_GOT[a.id]=1;try{localStorage.setItem('jande_ach',JSON.stringify(ACH_GOT));}catch(x){}
+      GS.toasts.push({txt:'🏆 '+a.n,sub:a.d.toUpperCase(),t:260,max:260});
+      GS.newAch.push(a.n);GS.score+=500;
+      if(navigator.vibrate)navigator.vibrate([30,20,30]);}}}
+// per-frame housekeeping shared by both modes
+function tickFx(){
+  if(GS.blendT<1)GS.blendT=Math.min(1,GS.blendT+0.012);
+  // only the visible (first 2) toasts tick down; the rest wait in queue
+  for(var i=Math.min(1,GS.toasts.length-1);i>=0;i--)if(--GS.toasts[i].t<=0)GS.toasts.splice(i,1);}
+// mid-run stage change: crossfade colors + banner tab (no blackout card)
+function themeShift(){
+  var ps=STAGES[GS.ai];GS.nextTheme+=500;GS.ai=(GS.ai+1)%STAGES.length;
+  GS.prevPc=ps.pc;GS.prevAc=ps.ac;GS.blendT=0;
+  _bgW=null;_bgF=null;_bgV=null;_bgP=null;
+  var ns=STAGES[GS.ai];
+  GS.toasts.push({txt:'◆ '+ns.n+' ◆',sub:ns.theme.toUpperCase()+' · +250',t:240,max:240});
+  GS.score+=250;updateHUD();
+  if(navigator.vibrate)navigator.vibrate([20,30,60]);}
+function drawToasts(){
+  if(!GS.toasts||!GS.toasts.length)return;
+  var y=92,nShow=Math.min(2,GS.toasts.length);
+  for(var i=0;i<nShow;i++){var tt=GS.toasts[i];
+    var a=Math.max(0,Math.min(1,(tt.max-tt.t)/16,tt.t/45)),hh=tt.sub?46:30,w2=Math.min(W-30,390);
+    FX.globalAlpha=a;
+    FX.fillStyle='rgba(10,2,20,0.85)';FX.fillRect(W/2-w2/2,y,w2,hh);
+    FX.strokeStyle='rgba(255,215,0,0.6)';FX.lineWidth=1;FX.strokeRect(W/2-w2/2,y,w2,hh);
+    FX.fillStyle='#FFD700';FX.font='9px "Press Start 2P",monospace';FX.textAlign='center';
+    FX.fillText(tt.txt,W/2,y+19);
+    if(tt.sub){FX.fillStyle='rgba(255,255,255,0.6)';FX.font='7px "Press Start 2P",monospace';FX.fillText(tt.sub,W/2,y+36);}
+    y+=hh+8;}
+  FX.globalAlpha=1;}
+function saveRun(){
+  var stamp=Date.now(),runs=[];
+  try{runs=JSON.parse(localStorage.getItem('jande_runs')||'[]');}catch(x){}
+  var nm='';try{var sg=JSON.parse(localStorage.getItem('jande_signups')||'[]');if(sg.length)nm=(sg[sg.length-1].name||'').slice(0,14);}catch(x){}
+  runs.push({n:nm||'JANDÉ FAN',d:Math.floor(GS.dist),s:GS.score,g:GS.totalNotes,m:MODE,t:stamp});
+  runs.sort(function(a,b){return b.d-a.d||b.s-a.s;});runs=runs.slice(0,10);
+  try{localStorage.setItem('jande_runs',JSON.stringify(runs));}catch(x){}
+  return{runs:runs,stamp:stamp};}
 // ════ PHOTOREAL BACKDROPS (preferred path) ════
 // Drop base64 data-URIs per stage index (or 'all' for every stage) into BG_DATA.
 // When an image exists for the current stage it is drawn as a parallax backdrop
@@ -1167,8 +1248,9 @@ var _bgW=null,_bgF=null,_bgV=null,_bgP=null;
 function drawMansionBG(st){
   var pc=hexS(st.pc),ac=hexS(st.ac),cam=GS.camX,ai=GS.ai,tick=GS.tick;
   var floorY=H*0.82;
-  // — photoreal backdrop path (stage-specific image, or 'all' only for stage 0) —
-  var bgi=BG_IMG[GS.ai]||(ai===0?BG_IMG.all:null);
+  // — photoreal backdrop path (stage-specific image, or 'all' only for stage 0);
+  //   skipped mid-crossfade so the theme blend stays smooth —
+  var bgi=GS.blendT<1?null:(BG_IMG[GS.ai]||(ai===0?BG_IMG.all:null));
   if(bgi){
     var isc=H/bgi.height,iw=bgi.width*isc;
     var ox=(-cam*0.22)%iw;if(ox>0)ox-=iw;
@@ -1607,7 +1689,7 @@ function draw(){
   // NOTE: drawGL() intentionally skipped — drawMansionBG paints an opaque
   // full-screen background, so the WebGL pass was invisible and cost ~half
   // the frame budget on phones.
-  var st=STAGES[GS.ai],ac=hexS(st.ac),pc=hexS(st.pc);
+  var st=blendedStage(),ac=hexS(st.ac),pc=hexS(st.pc);
   FX.clearRect(0,0,W,H);
   drawMansionBG(st);            // painted interior (parallax, screen-space)
   FX.save();FX.translate(-GS.camX,-GS.camY);
@@ -1626,7 +1708,7 @@ function draw(){
   if(gy2<H){var ab2=FX.createLinearGradient(0,gy2,0,Math.min(H,gy2+140));
     ab2.addColorStop(0,'rgba(6,2,10,0.55)');ab2.addColorStop(1,'rgba(2,0,5,0.97)');
     FX.fillStyle=ab2;FX.fillRect(0,gy2,W,H-gy2);}
-  drawLyric(ac);drawPowerHUD(ac);drawDist(ac);
+  drawLyric(ac);drawPowerHUD(ac);drawDist(ac);drawToasts();
   // how-to overlay (first ~5s of a run)
   if(GS.tick<300){var ha=GS.tick>240?(300-GS.tick)/60:1;
     FX.globalAlpha=ha*0.85;FX.fillStyle='rgba(8,0,18,0.72)';
@@ -2252,10 +2334,22 @@ function showLevelCard(ai,cb){var st=STAGES[ai];document.getElementById('lcR').t
 function toRoman(n){return ['I','II','III','IV','V','VI','VII','VIII','IX'][n-1]||n;}
 function nextStage(){var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;updateHUD();showLevelCard(ai,function(){});}
 function showOver(won){
-  var best=0;try{best=parseInt(localStorage.getItem('jande_best')||'0',10);if(Math.floor(GS.dist)>best){best=Math.floor(GS.dist);localStorage.setItem('jande_best',''+best);}}catch(x){}
+  checkAch(); // final pass (score/notes earned at the very end)
+  var best=0,isPB=false;
+  try{best=parseInt(localStorage.getItem('jande_best')||'0',10);
+    if(Math.floor(GS.dist)>best){best=Math.floor(GS.dist);isPB=true;localStorage.setItem('jande_best',''+best);}}catch(x){}
+  var sv=saveRun();
   document.getElementById('overlay').classList.add('on');
-  document.getElementById('ovT').textContent='RUN OVER';
-  document.getElementById('ovM').textContent='"Even divas miss a note.\nShe always comes back louder."\n\nDistance: '+Math.floor(GS.dist)+'m · Best: '+best+'m\nGrace Notes: '+GS.totalNotes+' · Score: '+GS.score.toLocaleString();
+  document.getElementById('ovT').textContent=isPB?'NEW BEST RUN ✦':'RUN OVER';
+  document.getElementById('ovM').textContent=Math.floor(GS.dist)+'m · '+GS.totalNotes+' notes · '+GS.score.toLocaleString()+' pts';
+  var bh='<div class="bd-h">— TOP RUNS —</div>';
+  sv.runs.slice(0,5).forEach(function(r,i){
+    bh+='<div class="bd-row'+(r.t===sv.stamp?' me':'')+'"><span>'+(i+1)+'. '+(r.m==='temple'?'🏛':'🏃')+' '+esc(r.n)+'</span><span>'+r.d+'m · '+Number(r.s).toLocaleString()+'</span></div>';});
+  if(GS.newAch&&GS.newAch.length){
+    bh+='<div class="bd-h">— UNLOCKED —</div>';
+    GS.newAch.forEach(function(n){bh+='<div class="bd-ach">🏆 '+esc(n)+'</div>';});}
+  bh+='<div class="bd-sub">TROPHIES '+Object.keys(ACH_GOT).length+' / '+ACH.length+'</div>';
+  document.getElementById('ovBoard').innerHTML=bh;
   running=false;}
 
 // ---------- title BG ----------
@@ -2271,7 +2365,10 @@ function initTitleBG(){var bc=document.getElementById('bgC'),c2=bc.getContext('2
 // ---------- loop ----------
 var running=false;
 var MODE='side'; // 'side' = side-scroll runner · 'temple' = behind-the-back corridor
-function showModeSel(){show('modeScreen');}
+function showModeSel(){
+  try{var b=parseInt(localStorage.getItem('jande_best')||'0',10);
+    document.getElementById('msStats').textContent=(b>0?'BEST '+b+'m  ·  ':'')+'🏆 '+Object.keys(ACH_GOT).length+' / '+ACH.length+' TROPHIES';}catch(x){}
+  show('modeScreen');}
 // fixed-timestep: physics always advance at 60Hz regardless of render FPS,
 // so slow phones don't turn jumps into slow-motion mush
 var _lT=0,_acc=0;
@@ -2318,7 +2415,8 @@ function startGame(){
   if(!GL){initGL();}
   resize();
   var lm=document.getElementById('loadMsg');
-  function begin(){if(lm)lm.style.display='none';initGS(0);showLevelCard(0,function(){running=true;loop();});}
+  try{localStorage.setItem('jande_mode_'+MODE,'1');}catch(x){} // for BOTH WORLDS trophy
+  function begin(){if(lm)lm.style.display='none';GS={};initGS(0);showLevelCard(0,function(){running=true;loop();});}
   if(imagesReady)begin();else loadSprites(begin);
 }
 
