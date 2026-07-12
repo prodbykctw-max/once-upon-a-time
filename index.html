@@ -1088,7 +1088,8 @@ function drawT(){
     FX.fillRect(mx2,my2,2,2);}
   // ── FLOOR: textured depth bands (pixel-art, crossfaded on theme shift) ──
   FX.imageSmoothingEnabled=false;
-  var zoff=(GS.dist*T)%110;
+  var wz=GS.dist*T*2.4; // world scroll — MUST match entity speed (mv=eff*2.4) or the floor skates
+  var zoff=wz%110;
   for(var z=1450;z>=-70;z-=110){
     var zz=z-zoff;var s1=prjT(Math.max(0,zz+110)),s0=prjT(Math.max(-40,zz));
     var y1=vpY+(gNear-vpY)*s1,y0=vpY+(gNear-vpY)*s0,sm=(s0+s1)/2;
@@ -1097,6 +1098,8 @@ function drawT(){
     if(GS.blendT<1){floorBand(GS.prevAi,1,bx,y1,bw,y0-y1);floorBand(ai,GS.blendT,bx,y1,bw,y0-y1);}
     else floorBand(ai,1,bx,y1,bw,y0-y1);
     FX.fillStyle='rgba(0,0,0,'+Math.max(0,0.55-sm*0.55)+')';FX.fillRect(bx,y1,bw,y0-y1); // depth fog
+    // floor seam at the band's near edge — the strongest "ground is moving" cue
+    FX.fillStyle='rgba(0,0,0,'+(0.18+sm*0.16)+')';FX.fillRect(bx,y0-Math.max(1,2.2*sm),bw,Math.max(1,2.2*sm));
   }
   // lane dividers
   FX.strokeStyle='rgba('+ac+',0.28)';FX.lineWidth=1.5;
@@ -1104,7 +1107,7 @@ function drawT(){
     FX.beginPath();FX.moveTo(vpX+ln*laneW*0.5*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
     FX.lineTo(vpX+ln*laneW*0.5*3,gNear);FX.stroke();}
   // ── WALLS: textured panels receding to the vanishing point ──
-  var woff=(GS.dist*T)%150;
+  var woff=wz%150;
   for(z=1500;z>=-40;z-=150){
     var zz2=z-woff;if(zz2<-100)continue;
     var s2=prjT(Math.max(0,zz2)),sF=prjT(zz2+150);
@@ -1131,7 +1134,7 @@ function drawT(){
     if(ai===3){FX.strokeStyle='rgba('+ac+',0.5)';FX.lineWidth=2;FX.stroke();}}
   // ── PER-STAGE IDENTITY: paired decor props along the corridor edges ──
   if(TEX.decor){
-    var doff=(GS.dist*T)%520;
+    var doff=wz%520;
     for(z=1400;z>=-30;z-=520){
       var zd=z-doff;if(zd<-60)continue;
       var sd2=prjT(Math.max(0,zd)),dy2=vpY+(gNear-vpY)*sd2;
@@ -1143,7 +1146,7 @@ function drawT(){
   }
   // ── PER-STAGE IDENTITY: overhead elements ──
   if(ai===0||ai===3){ // chandeliers
-    var choff=(GS.dist*T)%700;
+    var choff=wz%700;
     for(z=1300;z>=0;z-=700){
       var zc=z-choff;if(zc<0)continue;var sc3=prjT(zc),cyy=vpY+(gNear-vpY)*sc3;
       var chR=60*sc3,chY=cyy-(gNear-vpY)*sc3*1.55,fl3=0.8+0.2*Math.sin(GS.tick*0.09+z);
@@ -1158,14 +1161,14 @@ function drawT(){
       cg3.addColorStop(0,'rgba(255,200,110,'+(0.16*fl3)+')');cg3.addColorStop(1,'rgba(255,200,110,0)');
       FX.fillStyle=cg3;FX.fillRect(vpX-chR*2.4,chY-chR*2.4,chR*4.8,chR*4.8);}}
   else if(ai===2){ // overhead torii beams
-    var tboff=(GS.dist*T)%620;
+    var tboff=wz%620;
     for(z=1300;z>=0;z-=620){
       var zt=z-tboff;if(zt<0)continue;var st3=prjT(zt),tyy=vpY+(gNear-vpY)*st3;
       var bw3=corrW*2.05*st3,bh3=(gNear-vpY)*st3*1.45;
       FX.fillStyle='rgba(150,26,18,0.9)';FX.fillRect(vpX-bw3/2,tyy-bh3,bw3,10*st3);
       FX.fillStyle='rgba(90,14,8,0.9)';FX.fillRect(vpX-bw3/2.15,tyy-bh3+10*st3,bw3/1.08,5*st3);}}
   else if(ai===5){ // neon arch rings
-    var nroff=(GS.dist*T)%520;
+    var nroff=wz%520;
     for(z=1300;z>=0;z-=520){
       var zn=z-nroff;if(zn<0)continue;var sn3=prjT(zn),nyy=vpY+(gNear-vpY)*sn3;
       var nf3=0.6+0.4*Math.sin(GS.tick*0.12+z);
@@ -1173,7 +1176,7 @@ function drawT(){
       FX.beginPath();FX.moveTo(vpX-corrW*sn3,nyy);FX.lineTo(vpX-corrW*sn3,nyy-(gNear-vpY)*sn3*1.45);
       FX.lineTo(vpX+corrW*sn3,nyy-(gNear-vpY)*sn3*1.45);FX.lineTo(vpX+corrW*sn3,nyy);FX.stroke();}}
   // torch light pools on walls
-  var tp3=(GS.dist*T)%450;
+  var tp3=wz%450;
   for(z=1350;z>=0;z-=450){
     var zz3=z-tp3;if(zz3<0)continue;var s3=prjT(zz3),ty=vpY+(gNear-vpY)*s3;
     var tf2=0.7+0.3*Math.sin(GS.tick*0.1+z);
@@ -1194,6 +1197,12 @@ function drawT(){
   ents.sort(function(a,b){return b.z-a.z;});
   for(i=0;i<ents.length;i++){var e=ents[i];if(e.z<-40||e.z>1450)continue;
     var es=prjT(e.z),ey=vpY+(gNear-vpY)*es,ex=vpX+(e.lane||0)*laneW*es*2.6;
+    // CONTACT SHADOW — pins every object to the floor plane
+    if(e.tp!=='turn'&&!e.hit){
+      var shw=(e.tp==='low'||e.tp==='gate'||e.tp==='wall')?laneW*es*1.0:24*es;
+      FX.fillStyle='rgba(0,0,0,0.16)';FX.beginPath();FX.ellipse(ex,ey,shw*1.4,shw*0.30,0,0,6.28);FX.fill();
+      FX.fillStyle='rgba(0,0,0,0.30)';FX.beginPath();FX.ellipse(ex,ey,shw,shw*0.20,0,0,6.28);FX.fill();
+    }
     if(e.tp==='turn'){ // corner: full-width end wall + big arrow
       if(e.done)continue;
       var twW=corrW*2.3*es,twH=(gNear-vpY)*es*1.6;
@@ -1218,6 +1227,7 @@ function drawT(){
       FX.fillStyle='rgba('+ac+',0.9)';FX.fillRect(ex-hw/2,ey-hh,hw,hh*0.28);
       FX.fillStyle='rgba('+pc+',0.95)';FX.fillRect(ex-hw/2+3*es,ey-hh*0.72,hw-6*es,hh*0.72);
       FX.strokeStyle='rgba(0,0,0,0.5)';FX.lineWidth=Math.max(1,2*es);FX.strokeRect(ex-hw/2,ey-hh,hw,hh);
+      FX.fillStyle='rgba(0,0,0,0.55)';FX.fillRect(ex-hw/2-2*es,ey-3*es,hw+4*es,3*es); // base plinth
     }else if(e.tp==='gate'){
       var gw=laneW*es*1.9,gh=150*es,gap=62*es;
       FX.fillStyle='rgba('+pc+',0.95)';FX.fillRect(ex-gw/2,ey-gap-gh,gw,gh);
@@ -1226,6 +1236,8 @@ function drawT(){
       for(var sp2=0;sp2<3;sp2++){var spx=ex-gw/2+sp2*gw/3;
         FX.beginPath();FX.moveTo(spx,ey-gap);FX.lineTo(spx+gw/6,ey-gap+12*es);FX.lineTo(spx+gw/3,ey-gap);FX.closePath();FX.fill();}
       FX.fillStyle='rgba('+pc+',0.9)';FX.fillRect(ex-gw/2-5*es,ey-gap-gh,5*es,gh+gap);FX.fillRect(ex+gw/2,ey-gap-gh,5*es,gh+gap);
+      FX.fillStyle='rgba(0,0,0,0.55)'; // post feet on the floor
+      FX.fillRect(ex-gw/2-7*es,ey-3*es,9*es,3*es);FX.fillRect(ex+gw/2-2*es,ey-3*es,9*es,3*es);
     }else if(e.tp==='wall'){
       var ww=laneW*es*1.8,wh2=190*es;
       if(TEX.walls){FX.drawImage(TEX.walls,ai*144,0,144,144,ex-ww/2,ey-wh2,ww,wh2);}
@@ -1233,6 +1245,7 @@ function drawT(){
       FX.fillStyle='rgba(0,0,0,0.35)';FX.fillRect(ex-ww/2,ey-wh2,ww,wh2);
       FX.fillStyle='rgba('+ac+',0.85)';FX.fillRect(ex-ww/2,ey-wh2,ww,6*es);
       FX.strokeStyle='rgba(0,0,0,0.5)';FX.lineWidth=Math.max(1,2*es);FX.strokeRect(ex-ww/2,ey-wh2,ww,wh2);
+      FX.fillStyle='rgba(0,0,0,0.55)';FX.fillRect(ex-ww/2-2*es,ey-3*es,ww+4*es,3*es); // base plinth
     }else{ // coin — tier colors: gold ×1 · rose ×2 · cyan ×3
       var v=e.v||1,cc=v===3?'80,220,255':v===2?'255,110,150':'255,215,0';
       var cr=13*es,cy2=ey-40*es-Math.sin((e.anim||0)*0.1)*8*es;
@@ -1254,7 +1267,15 @@ function drawT(){
   FX.imageSmoothingEnabled=true;
   // ── HERO ──
   var p=GS.p,hx=vpX+t3.laneX*laneW*2.6,hy=gNear-t3.py;
-  FX.fillStyle='rgba(0,0,0,0.3)';FX.beginPath();FX.ellipse(hx,gNear+4,34*(1-t3.py/500),8,0,0,6.28);FX.fill();
+  // grounded shadow: stays on the floor, shrinks + fades as she rises — the jump-timing anchor
+  var shA=Math.max(0.10,0.36-t3.py*0.0011),shW2=38*(1-Math.min(0.5,t3.py/340));
+  FX.fillStyle='rgba(0,0,0,'+(shA*0.45)+')';FX.beginPath();FX.ellipse(hx,gNear+5,shW2*1.5,10,0,0,6.28);FX.fill();
+  FX.fillStyle='rgba(0,0,0,'+shA+')';FX.beginPath();FX.ellipse(hx,gNear+5,shW2,6.5,0,0,6.28);FX.fill();
+  // run dust kicked off her boots — sells floor contact
+  if(t3.py<=0&&t3.slid<=0&&!p.dead){
+    for(var du=0;du<3;du++){var dph=((GS.tick*0.045+du*0.33)%1);
+      FX.fillStyle='rgba(215,195,165,'+(0.30*(1-dph))+')';
+      FX.beginPath();FX.arc(hx-6+du*7-dph*16,gNear+3+dph*4,2+dph*3.5,0,6.28);FX.fill();}}
   if(!p.noteGone&&(p.inv===0||GS.boostT>0||Math.floor(GS.tick/5)%2===0)){
     var bkNm={run:'bkrun',jump:'bkjump',dash:'bkslide'}[p.anim]||p.anim;
     if(!(IMG[bkNm]&&IMG[bkNm].complete&&IMG[bkNm].naturalWidth))bkNm=p.anim;
