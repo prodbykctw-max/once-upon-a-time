@@ -56,8 +56,12 @@ The client shot real reference of the character model: 4 upright stills
 turnaround video, with a README of generation steps. The user will ATTACH
 this zip in chat — ask for it before generating. Photos of a real person:
 NEVER commit them to this public repo; process from the chat upload only.
-OPEN QUESTION for the client before generating: reference outfit is gym
-wear — does the new sprite keep Jande's white-gown look or use this outfit?
+COSTUME DECISION (client-confirmed): the GOWN. Use the reference photos for
+body proportions, skin tone, face, and pose/motion ONLY — the generated
+character wears Jande's stage look from the original side-view art:
+flowing white gown with a high slit, gold belt + gold hem trim, long
+voluminous auburn/copper curls (no beanie), white thigh-high boots,
+white gloves. Match the palette of SPRITES.run in index.html.
 
 ## YOUR FIRST JOB: AutoSprite art pipeline
 This environment has network access to `www.autosprite.io` (that's why this
