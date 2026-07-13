@@ -50,6 +50,15 @@ All art is baked pixel art embedded as base64:
   To swap an asset: regenerate PNG → base64 → replace the entry in
   `TEXDATA`/`SPRITES` (python re.sub on the data URI), keep cell dims stable.
 
+## CHARACTER REFERENCE PACK (user has it as jande_character_ref.zip)
+The client shot real reference of the character model: 4 upright stills
+(front T-pose, straight back, two side profiles) + 8 keyframes from a 360
+turnaround video, with a README of generation steps. The user will ATTACH
+this zip in chat — ask for it before generating. Photos of a real person:
+NEVER commit them to this public repo; process from the chat upload only.
+OPEN QUESTION for the client before generating: reference outfit is gym
+wear — does the new sprite keep Jande's white-gown look or use this outfit?
+
 ## YOUR FIRST JOB: AutoSprite art pipeline
 This environment has network access to `www.autosprite.io` (that's why this
 session exists). The user's AutoSprite account already contains their original
