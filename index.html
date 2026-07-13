@@ -217,6 +217,7 @@ body.mobile .joy-knob{width:64px;height:64px}
   </div>
   <div id="topBtns">
     <div class="tbtn" id="btnMap" style="display:none">🗺</div>
+    <div class="tbtn" id="btnSnd">🔊</div>
     <div class="tbtn" id="btnPause">⏸</div>
   </div>
   <div id="abilityBar">
@@ -229,19 +230,19 @@ body.mobile .joy-knob{width:64px;height:64px}
   <div id="mCtrl">
     <div id="joyWrap"><div class="joy-base" id="joyBase"><div class="joy-knob" id="joyKnob"></div></div></div>
     <div class="mact">
-      <div class="mshoulders">
+      <div class="mshoulders" style="display:none">
         <div class="mshbtn mthrow" id="mTh">THROW</div>
         <div class="mshbtn mblock" id="mB">HOLD</div>
       </div>
       <div class="mdiam">
-        <div class="mfbtn mwave" id="mWv">WAVE</div>
+        <div class="mfbtn mwave" id="mWv" style="display:none">WAVE</div>
         <div class="mfbtn mdash" id="mD">DASH</div>
         <div class="mfbtn mattk" id="mA">⚔</div>
         <div class="mfbtn mjump" id="mJ">JUMP</div>
       </div>
     </div>
   </div>
-  <div id="hint">SPACE/↑/TAP — JUMP (×2 = DOUBLE) · ↓/SWIPE DOWN — SLIDE · P — PAUSE</div>
+  <div id="hint">← → MOVE · SPACE JUMP ×2 · ↓ SLIDE · X STRIKE · SHIFT DASH · P PAUSE · 🔊 TOP-RIGHT</div>
   <div id="bossBar"><div class="bb-n" id="bbN">THE GROOM WHO LIED</div><div class="bb-w"><div class="bb-f" id="bbF" style="width:100%"></div></div><div class="bb-ph" id="bbPh">— PHASE TWO —</div></div>
   <div id="lvlCard">
     <div class="lc-r" id="lcR">STAGE I</div>
@@ -548,11 +549,13 @@ function genAhead(gs,until){
       var run=4+Math.floor(rnd01(c*2.3)*3);
       for(q=0;q<run;q++)groundCol(gs,c+q);
       var gy=FLOOR_R*T,ox=(c+2)*T;
-      // min spacing scales with speed so back-to-back obstacles stay reactable
-      if(ox-(gs.lastObX||0)>300+(gs.speed||6)*30){
+      if(ox-(gs.lastObX||0)>300){
         gs.lastObX=ox;
-        if(rnd01(c*9.1)<0.5)gs.obs.push({x:ox,y:gy-26,w:T+8,h:26,tp:'spike',hit:false});
-        else gs.obs.push({x:ox,y:gy-320,w:28,h:262,tp:'bar',hit:false}); // bottom at gy-58: slide under
+        if(rnd01(c*9.1)<0.55)gs.obs.push({x:ox,y:gy-26,w:T+8,h:26,tp:'spike',hit:false});
+        else{ // ambush pair instead of the old auto-runner gate
+          gs.foes.push({x:ox,y:gy-58,baseY:0,tp:0,anim:(c*7)%60,alive:true});
+          if(rnd01(c*4.3)<0.5)gs.foes.push({x:ox+90,y:gy-190,baseY:gy-190,tp:1,anim:(c*11)%60,alive:true});
+        }
       }
       gs.genC+=run;
     }else{ // FLAT run with sprinkled notes + rare power-up + RPG foes
@@ -568,7 +571,8 @@ function genAhead(gs,until){
   }
 }
 function pruneTrack(gs){
-  var cut=Math.floor(gs.camX/T)-6;
+  var cut=Math.floor(gs.camX/T)-28;gs.pruneC=cut; // keep a screen of backtrack room
+
   gs.tiles=gs.tiles.filter(function(t){if(t.c<cut){delete gs.solid[key(t.c,t.r)];return false;}return true;});
   gs.obs=gs.obs.filter(function(o){return o.x>gs.camX-300;});
   gs.notes=gs.notes.filter(function(s){return !s.got&&s.x>gs.camX-100;});
@@ -779,9 +783,97 @@ function collideV(o,w,h){o.onGround=false;var lft=Math.floor((o.x+2)/T),rgt=Math
   if(o.vy>0){var cB=Math.floor((o.y+h)/T);for(var c=lft;c<=rgt;c++)if(isSolid(c,cB)){o.y=cB*T-h;o.vy=0;o.onGround=true;o.canDash=true;break;}}
   else if(o.vy<0){var cT=Math.floor(o.y/T);for(c=lft;c<=rgt;c++)if(isSolid(c,cT)){o.y=(cT+1)*T;o.vy=0;break;}}}
 
+// ════════════════════════════════════════════════════════════
+//  AUDIO — fully synthesized (WebAudio, zero files, self-contained)
+//  Generative dark-R&B score that transposes per room and reacts to
+//  speed/danger; coin trails play real melodies as you collect them.
+// ════════════════════════════════════════════════════════════
+var AUD={ctx:null,master:null,muted:false,ni:0,noise:null};
+try{AUD.muted=localStorage.getItem('jande_mute')==='1';}catch(x){}
+var STAGE_KEYS=[0,3,5,7,2,8,10,5,7]; // semitone key per room
+function audInit(){
+  if(AUD.ctx){if(AUD.ctx.state==='suspended')AUD.ctx.resume();return;}
+  var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  try{
+    AUD.ctx=new AC();
+    AUD.master=AUD.ctx.createGain();AUD.master.gain.value=AUD.muted?0:0.5;
+    AUD.master.connect(AUD.ctx.destination);
+    var len=AUD.ctx.sampleRate*0.5,buf=AUD.ctx.createBuffer(1,len,AUD.ctx.sampleRate),d=buf.getChannelData(0);
+    for(var i=0;i<len;i++)d[i]=Math.random()*2-1;
+    AUD.noise=buf;
+    MUS.next=AUD.ctx.currentTime+0.1;
+  }catch(x){AUD.ctx=null;}
+}
+function audMute(m){AUD.muted=m;try{localStorage.setItem('jande_mute',m?'1':'0');}catch(x){}
+  if(AUD.master)AUD.master.gain.value=m?0:0.5;}
+function tone(f,dur,type,vol,att,rel,glide,when){
+  var c=AUD.ctx;if(!c||AUD.muted)return;
+  var t=when||c.currentTime;att=att||0.005;rel=rel||dur*0.7;
+  var o=c.createOscillator(),g=c.createGain();
+  o.type=type||'sine';o.frequency.setValueAtTime(f,t);
+  if(glide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+glide),t+dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);
+  g.gain.setTargetAtTime(0,t+Math.max(att,dur-rel),rel/3);
+  o.connect(g);g.connect(AUD.master);
+  o.start(t);o.stop(t+dur+rel+0.05);}
+function hiss(dur,vol,f0,f1,when){
+  var c=AUD.ctx;if(!c||AUD.muted||!AUD.noise)return;
+  var t=when||c.currentTime;
+  var s=c.createBufferSource(),bp=c.createBiquadFilter(),g=c.createGain();
+  s.buffer=AUD.noise;s.loop=true;bp.type='bandpass';bp.Q.value=0.9;
+  bp.frequency.setValueAtTime(f0,t);bp.frequency.exponentialRampToValueAtTime(Math.max(60,f1),t+dur);
+  g.gain.setValueAtTime(vol,t);g.gain.setTargetAtTime(0,t+dur*0.4,dur/4);
+  s.connect(bp);bp.connect(g);g.connect(AUD.master);
+  s.start(t);s.stop(t+dur+0.1);}
+function rootHz(oct){return 110*Math.pow(2,((STAGE_KEYS[(GS.ai||0)%9])/12))*(oct||1);}
+var PENT=[0,2,4,7,9,12,14,16,19,24];
+function sfx(n){
+  if(!AUD.ctx||AUD.muted)return;
+  var c=AUD.ctx,t=c.currentTime,r=rootHz(2);
+  switch(n){
+    case 'jump': tone(240,0.15,'square',0.15,0.004,0.1,320);break;
+    case 'jump2':tone(340,0.13,'square',0.13,0.004,0.09,420);break;
+    case 'land': hiss(0.06,0.10,500,120);tone(85,0.09,'sine',0.18);break;
+    case 'slide':hiss(0.20,0.10,1800,300);break;
+    case 'dash': hiss(0.16,0.13,2600,500);tone(200,0.1,'square',0.08,0.003,0.07,140);break;
+    case 'note': var f=rootHz(2)*Math.pow(2,PENT[AUD.ni++%PENT.length]/12);
+                 tone(f,0.20,'triangle',0.15,0.004,0.16);tone(f*2,0.10,'sine',0.045);break;
+    case 'gem':  tone(1560,0.28,'sine',0.09);tone(1566,0.28,'sine',0.07);tone(2340,0.2,'sine',0.04,0.02);break;
+    case 'pw':   [0,4,7,12].forEach(function(iv,k){tone(r*Math.pow(2,iv/12),0.16,'triangle',0.12,0.004,0.12,0,t+k*0.07);});break;
+    case 'strike':hiss(0.08,0.16,3200,900);tone(170,0.1,'square',0.13,0.002,0.07,110);break;
+    case 'kill': tone(520,0.12,'square',0.12,0.002,0.09,680);hiss(0.07,0.08,2000,600);break;
+    case 'hurt': tone(120,0.24,'sawtooth',0.18,0.002,0.18,-45);hiss(0.14,0.12,900,200);break;
+    case 'death':[0,-3,-7,-12].forEach(function(iv,k){tone(r*Math.pow(2,iv/12),0.3,'triangle',0.13,0.01,0.24,0,t+k*0.16);});
+                 hiss(0.8,0.05,1200,150);break;
+    case 'turn': hiss(0.22,0.13,1400,250);tone(660,0.16,'triangle',0.10,0.01,0.12);break;
+    case 'fanfare':[0,4,7,12,16].forEach(function(iv,k){tone(r*Math.pow(2,iv/12),0.22,'triangle',0.13,0.005,0.17,0,t+k*0.09);});break;
+    case 'revive':tone(r/2,0.7,'sine',0.14,0.05,0.4,r);[12,16,19,24].forEach(function(iv,k){tone(r*Math.pow(2,iv/12),0.3,'sine',0.07,0.01,0.24,0,t+0.3+k*0.09);});break;
+    case 'ui':   tone(880,0.05,'sine',0.07);break;
+  }}
+// ── generative score: Am–F–C–G pad in the current room's key, reactive ──
+var MUS={step:0,next:0,cut:600};
+var MUS_CH=[[0,3,7],[-4,0,3],[-7,-3,0],[-2,2,5]];
+function musTick(){
+  var c=AUD.ctx;if(!c||AUD.muted||!running||GS.paused)return;
+  var sd=0.3261; // 8th notes @ 92 BPM
+  if(MUS.next<c.currentTime-0.6)MUS.next=c.currentTime+0.05; // resync after tab-sleep
+  while(MUS.next<c.currentTime+0.4){
+    var s=MUS.step,t=MUS.next,root=rootHz(1),ch=MUS_CH[Math.floor(s/8)%4];
+    var danger=(MODE==='temple'&&GS.t3&&GS.t3.chase>0);
+    if(s%8===0)ch.forEach(function(iv){ // warm pad, opens up with speed
+      var f=root*2*Math.pow(2,(iv+(danger?-1:0))/12);
+      tone(f,2.4,'sawtooth',0.028,0.5,1.4,0,t);tone(f*1.005,2.4,'triangle',0.03,0.5,1.4,0,t);});
+    if(s%4===0)tone(root*Math.pow(2,ch[0]/12),0.30,'sine',0.15,0.01,0.22,0,t);      // bass pulse
+    if(s%4===2)tone(root*Math.pow(2,ch[0]/12)/2,0.18,'sine',0.07,0.01,0.13,0,t);    // ghost sub
+    if(s%2===1&&(GS.speed>6.5||s%4===3))hiss(0.03,0.035,7000,3500,t);               // hats ride the speed
+    if(danger&&s%8===4)tone(root*2*Math.pow(2,1/12),1.2,'sawtooth',0.03,0.3,0.8,0,t); // tension rub
+    if(GS.boostT>0&&s%2===0)tone(root*4*Math.pow(2,PENT[s%6]/12),0.12,'triangle',0.05,0.004,0.09,0,t); // boost arps
+    MUS.step=(MUS.step+1)%32;MUS.next+=sd;
+  }}
+
 // ---------- input ----------
 var K={},TC={l:0,r:0,u:0,a:0,d:0,b:0,jb:0,st:0,hold:0,ml:0,mr:0,_lk:0,_rk:0};
-document.addEventListener('keydown',function(e){K[e.code]=1;
+document.addEventListener('keydown',function(e){K[e.code]=1;audInit();
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab'].indexOf(e.code)>=0)e.preventDefault();
   if(running){if(e.code==='KeyP'||e.code==='Escape')GS.paused=!GS.paused;}});
 document.addEventListener('keyup',function(e){K[e.code]=0;});
@@ -808,19 +900,33 @@ function update(){
   if(GS.pwrMsgT>0)GS.pwrMsgT--;
   if(GS.levelUpT>0)GS.levelUpT--;
   if(p.dead){
-    if(!p.noteGone){p.noteGone=true;noteBurst(p.x+PW/2,Math.min(p.y+PH/2,GS.LH*T-50),26);if(navigator.vibrate)navigator.vibrate([120,50,160]);}
+    if(!p.noteGone){p.noteGone=true;sfx('death');noteBurst(p.x+PW/2,Math.min(p.y+PH/2,GS.LH*T-50),26);if(navigator.vibrate)navigator.vibrate([120,50,160]);}
     p.deadT++;if(p.deadT>110)showOver(false);return;}
 
-  // ── AUTO-RUN: speed ramps with distance ──
-  GS.speed=Math.min(11.5,5.2+GS.dist*0.0045);
+  // ── FREE-CONTROL ACTION RPG: distance = furthest progress into the mansion ──
   var pm=Math.floor(GS.dist);
-  GS.dist+=GS.speed/T;
+  GS.dist=Math.max(GS.dist,(p.x-3*T)/T);
   if(Math.floor(GS.dist)>pm){GS.score+=Math.round(12*runMult());misAdd('dist',Math.floor(GS.dist)-pm);checkAch();if(Math.floor(GS.dist)%20===0)updateHUD();}
-  p.vx=GS.speed;p.faceL=false;
+  GS.speed=Math.abs(p.vx); // for HUD/FX only
 
-  // ── THEME SHIFT: crossfade to the next room every 500m (no blackout) ──
   if(GS.dist>=GS.nextTheme)themeShift();
   tickFx();
+
+  // ── MOVE (she goes where you point her) ──
+  if(p.dashCd>0)p.dashCd--;
+  if(p.dashing){p.vx=p.dashVx;p.vy*=0.2;p.dashT--;if(p.dashT<=0){p.dashing=false;p.vx*=0.4;}}
+  else if(p.atkT<=0){
+    var tgt=iR()?6.4:iL()?-6.4:0;
+    p.vx+=(tgt-p.vx)*0.3;
+    if(iL())p.faceL=true;else if(iR())p.faceL=false;
+    if(p.sliding)p.vx*=0.96; // slides carry momentum
+  }
+
+  // ── DASH (Shift/C or DASH button): burst + i-frames ──
+  if((K.ShiftLeft||K.ShiftRight||K.KeyC||TC.d)&&!lX&&!p.dashing&&p.dashCd<=0){
+    p.dashing=true;p.dashT=13;p.dashVx=p.faceL?-13.5:13.5;p.dashCd=34;p.inv=Math.max(p.inv,14);
+    sfx('dash');ptcl(p.x+PW/2,p.y+PH/2,'dash');if(navigator.vibrate)navigator.vibrate(25);}
+  lX=(K.ShiftLeft||K.ShiftRight||K.KeyC||TC.d)?1:0;
 
   // ── JUMP (buffered + coyote time) + DOUBLE JUMP ──
   if(p.onGround)p.coyote=8;else if(p.coyote>0)p.coyote--;
@@ -828,37 +934,46 @@ function update(){
   var jc=(iU()||TC.hold>0)?1:0;
   if(iU()&&!lJ)TC.jb=12;
   if(TC.jb>0){
-    if(p.onGround||p.coyote>0){p.vy=-12.8;p.onGround=false;p.coyote=0;p.airJumps=1;TC.jb=0;TC.hold=Math.max(TC.hold,14);misAdd('jumps',1);ptcl(p.x+PW/2,p.y+PH,'jdust');if(navigator.vibrate)navigator.vibrate(40);}
-    else if(p.airJumps>0){p.vy=-11.2;p.airJumps--;GS.stats.dj++;TC.jb=0;TC.hold=Math.max(TC.hold,12);ptcl(p.x+PW/2,p.y+PH/2,'wjump');if(navigator.vibrate)navigator.vibrate(30);}
+    if(p.onGround||p.coyote>0){p.vy=-12.8;p.onGround=false;p.coyote=0;p.airJumps=1;TC.jb=0;TC.hold=Math.max(TC.hold,14);misAdd('jumps',1);sfx('jump');ptcl(p.x+PW/2,p.y+PH,'jdust');if(navigator.vibrate)navigator.vibrate(40);}
+    else if(p.airJumps>0){p.vy=-11.2;p.airJumps--;GS.stats.dj++;TC.jb=0;TC.hold=Math.max(TC.hold,12);sfx('jump2');ptcl(p.x+PW/2,p.y+PH/2,'wjump');if(navigator.vibrate)navigator.vibrate(30);}
     else TC.jb--;
   }
   if(!jc&&p.vy<-4.5)p.vy=-4.5;lJ=iU()?1:0;
   if(TC.st>0)TC.st--;
 
   // ── SLIDE ──
-  if(iD()&&p.onGround&&!p.sliding){p.sliding=true;p.slideT=0;GS.stats.sl++;misAdd('slides',1);ptcl(p.x+PW/2,p.y+PH,'dash');if(navigator.vibrate)navigator.vibrate(20);}
-  if(p.sliding){p.slideT++;if(!iD()&&p.slideT>16)p.sliding=false;if(!p.onGround&&p.vy>3)p.sliding=false;}
+  if(iD()&&p.onGround&&!p.sliding&&Math.abs(p.vx)>1.5){p.sliding=true;p.slideT=0;GS.stats.sl++;misAdd('slides',1);sfx('slide');ptcl(p.x+PW/2,p.y+PH,'dash');if(navigator.vibrate)navigator.vibrate(20);}
+  if(p.sliding){p.slideT++;if(!iD()&&p.slideT>16)p.sliding=false;if(!p.onGround&&p.vy>3)p.sliding=false;if(Math.abs(p.vx)<0.8)p.sliding=false;}
 
-  // ── MIC STRIKE (swipe → / X / Z / J): dash-attack that smashes foes ──
-  var akey=K.KeyX||K.KeyZ||K.KeyJ;
+  // ── MIC STRIKE (⚔ button / X / Z / J / swipe →): melee in her facing direction ──
+  var akey=K.KeyX||K.KeyZ||K.KeyJ||TC.a;
   if((TC.mr>0||(akey&&!lA))&&p.atkT<=0&&!p.sliding){TC.mr=0;p.atkT=16;
-    ptcl(p.x+PW,p.y+30,'slash');if(navigator.vibrate)navigator.vibrate(30);}
+    p.vx+=(p.faceL?-4:4); // lunge
+    sfx('strike');ptcl(p.x+(p.faceL?-6:PW),p.y+30,'slash');if(navigator.vibrate)navigator.vibrate(30);}
   lA=akey?1:0;TC.ml=0;if(TC.mr>1)TC.mr=1;
-  if(p.atkT>0){p.atkT--;p.vx=GS.speed+6;
+  if(p.atkT>0){p.atkT--;
+    var ax0=p.faceL?p.x-80:p.x+PW-8,ax1=p.faceL?p.x+12:p.x+PW+84;
     for(var afi=0;afi<GS.foes.length;afi++){var AF=GS.foes[afi];if(!AF.alive)continue;
-      if(AF.x<p.x+PW+76&&AF.x+44>p.x+PW-12&&AF.y<p.y+PH+8&&AF.y+56>p.y-8)killFoe(AF);}}
+      if(AF.x+44>ax0&&AF.x<ax1&&AF.y<p.y+PH+8&&AF.y+56>p.y-8)killFoe(AF);}}
 
-  // ── FOES: heartbreak imps walk at her, cupid skulls dive-bob ──
+  // ── FOES: imps hunt her down, cupid skulls dive at her ──
   for(var ffi=GS.foes.length-1;ffi>=0;ffi--){var fo=GS.foes[ffi];if(!fo.alive)continue;
     fo.anim++;
-    if(fo.tp===0)fo.x-=0.7;
-    else{fo.x-=1.15;fo.y=fo.baseY+Math.sin(fo.anim*0.055)*32;}
-    if(fo.x<GS.camX-170)continue;
+    var fdx=p.x-fo.x;
+    if(fo.tp===0){ // imp: accelerates toward her when close
+      var want=Math.abs(fdx)<340?(fdx>0?1.9:-1.9):(fo.anim%160<80?0.7:-0.7);
+      fo.vx=(fo.vx||0)*0.9+want*0.1;fo.x+=fo.vx;
+    }else{ // skull: bobs, then dives when near
+      fo.x+=Math.abs(fdx)<300?(fdx>0?1.6:-1.6):-0.9;
+      var wantY=Math.abs(fdx)<170?(p.y+10):fo.baseY;
+      fo.y+=(wantY+Math.sin(fo.anim*0.055)*26-fo.y)*0.05;
+    }
+    if(fo.x<GS.camX-200||fo.x>GS.camX+W+300)continue;
     if(p.x<fo.x+44&&p.x+PW>fo.x+8&&p.y<fo.y+52&&p.y+PH>fo.y+6){
       if(p.vy>3&&p.y+PH<fo.y+28){killFoe(fo);p.vy=-10.5;p.airJumps=1;}       // stomp
-      else if(p.atkT>0)killFoe(fo);
-      else if(p.inv===0&&GS.shieldT<=0){GS.masks--;p.inv=75;p.vy=-6;updateHUD();
-        ptcl(p.x+PW/2,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);
+      else if(p.atkT>0||p.dashing)killFoe(fo);                               // strike or dash through
+      else if(p.inv===0&&GS.shieldT<=0){GS.masks--;p.inv=75;p.vy=-6;p.vx=fdx>0?-7:7;updateHUD();
+        sfx('hurt');ptcl(p.x+PW/2,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);
         if(GS.masks<=0){p.dead=true;p.vy=-10;return;}}
     }}
   if(GS.comboT>0){GS.comboT--;if(GS.comboT<=0)GS.combo=0;}
@@ -868,7 +983,8 @@ function update(){
   p.vy=Math.min(p.vy+GRAV,16);
   p.x+=p.vx;collideH(p,PW,PH);
   var _pvy=p.vy,_pg=p.onGround;p.y+=p.vy;collideV(p,PW,PH);
-  if(!_pg&&p.onGround){p.airJumps=1;if(_pvy>3&&navigator.vibrate)navigator.vibrate(25);}
+  if(!_pg&&p.onGround){p.airJumps=1;if(_pvy>3){sfx('land');if(navigator.vibrate)navigator.vibrate(25);}}
+  p.x=Math.max((GS.pruneC||0)*T+T,p.x); // pruned world behind — no walking into the void
   if(p.y>GS.LH*T+150){p.dead=true;p.vy=-10;GS.masks=0;updateHUD();if(navigator.vibrate)navigator.vibrate([100,40,100]);return;}
   if(p.inv>0)p.inv--;
 
@@ -877,31 +993,33 @@ function update(){
   for(var oi=0;oi<GS.obs.length;oi++){var o=GS.obs[oi];if(o.hit)continue;
     if(p.x<o.x+o.w&&p.x+PW>o.x&&hbT<o.y+o.h&&hbT+hbH>o.y){
       o.hit=true;
-      if(GS.shieldT>0){ptcl(o.x+o.w/2,o.y+o.h*0.7,'dash');}
-      else if(p.inv===0){GS.masks--;p.inv=75;p.vy=-6;ptcl(p.x+PW/2,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);updateHUD();
+      if(GS.shieldT>0||p.dashing){ptcl(o.x+o.w/2,o.y+o.h*0.7,'dash');}
+      else if(p.inv===0){GS.masks--;p.inv=75;p.vy=-6;sfx('hurt');ptcl(p.x+PW/2,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);updateHUD();
         if(GS.masks<=0){p.dead=true;p.vy=-10;return;}}
     }}
 
-  // ── ANIMATION ──
-  var newAnim=p.atkT>0?'attack':!p.onGround?'jump':p.sliding?'dash':'run';
+  // ── ANIMATION (idle + dance easter egg when she stands still) ──
+  var newAnim=p.atkT>0?'attack':p.dashing?'dash':!p.onGround?'jump':p.sliding?'dash':Math.abs(p.vx)>0.6?'run':(p.idleT>420?'dance':'idle');
   if(newAnim!==p.anim){p.anim=newAnim;p.frame=0;p.animT=0;}
-  var spd={run:4,jump:7,dash:4,attack:2}[p.anim]||6;
+  p.idleT=(p.onGround&&Math.abs(p.vx)<0.6&&p.atkT<=0)?p.idleT+1:0;
+  var spd={idle:9,run:4,jump:7,dash:4,attack:2,dance:6}[p.anim]||6;
   p.animT++;if(p.animT>=spd){p.animT=0;var nf=SPRITES[p.anim].frames;
     if(p.anim==='jump'||p.anim==='attack'){p.frame=Math.min(p.frame+1,nf-1);}else p.frame=(p.frame+1)%nf;}
 
-  // ── CAMERA (hero locked at 30% of screen) ──
-  GS.camX+=(p.x-W*0.30-GS.camX)*0.18;GS.camY+=(p.y-H*0.55-GS.camY)*0.09;
+  // ── CAMERA: leads in the direction she faces ──
+  var lead=p.faceL?0.62:0.38;
+  GS.camX+=(p.x-W*lead-GS.camX)*0.10;GS.camY+=(p.y-H*0.55-GS.camY)*0.09;
   GS.camX=Math.max(0,GS.camX);GS.camY=Math.max(0,Math.min(GS.camY,GS.LH*T-H));
 
-  // ── TRACK: generate ahead, prune behind ──
+  // ── TRACK: generate ahead, prune far behind ──
   genAhead(GS,Math.floor((GS.camX+W)/T)+24);
   if(GS.tick%30===0)pruneTrack(GS);
 
   // ── GRACE NOTES + POWER-UPS ──
   for(var si=0;si<GS.notes.length;si++){var s=GS.notes[si];if(s.got)continue;s.anim++;
-    if(p.x<s.x+20&&p.x+PW>s.x-4&&p.y<s.y+20&&p.y+PH>s.y){s.got=true;GS.res=Math.min(GS.resMax,GS.res+8);GS.totalNotes++;misAdd('notes',1);GS.score+=Math.round(70*runMult());ptcl(s.x+4,s.y,'note');updateHUD();}}
+    if(p.x<s.x+20&&p.x+PW>s.x-4&&p.y<s.y+20&&p.y+PH>s.y){s.got=true;GS.res=Math.min(GS.resMax,GS.res+8);GS.totalNotes++;misAdd('notes',1);GS.score+=Math.round(70*runMult());sfx('note');ptcl(s.x+4,s.y,'note');updateHUD();}}
   for(var pwi=0;pwi<GS.pwr.length;pwi++){var pw=GS.pwr[pwi];if(pw.got)continue;pw.anim++;
-    if(p.x<pw.x+26&&p.x+PW>pw.x-2&&p.y<pw.y+26&&p.y+PH>pw.y){pw.got=true;applyPowerup(pw.type);ptcl(pw.x+12,pw.y+12,'gbk');}}
+    if(p.x<pw.x+26&&p.x+PW>pw.x-2&&p.y<pw.y+26&&p.y+PH>pw.y){pw.got=true;applyPowerup(pw.type);sfx('pw');ptcl(pw.x+12,pw.y+12,'gbk');}}
 
   var _po=0;for(var pi=0;pi<GS.ptcl.length;pi++){var pp=GS.ptcl[pi];pp.x+=pp.vx;pp.y+=pp.vy;pp.vy+=pp.g||0;pp.vx*=pp.dr||0.95;pp.life-=pp.d;if(pp.life>0)GS.ptcl[_po++]=pp;}GS.ptcl.length=_po;
 }
@@ -931,7 +1049,7 @@ function updateT(){
         p.dead=false;p.deadT=0;p.inv=160;p.noteGone=false;t3.chase=0;t3.grabT=0;GS.masks=Math.max(GS.masks,2);updateHUD();
         // sweep hazards ahead so she gets a clean restart lane
         t3.obs=t3.obs.filter(function(o){return o.z>700||o.tp==='turn'&&o.done;});
-        GS.toasts.push({txt:'✦ SHE RISES AGAIN ✦',sub:'1 GEM SPENT',t:200,max:200});
+        GS.toasts.push({txt:'✦ SHE RISES AGAIN ✦',sub:'1 GEM SPENT',t:200,max:200});sfx('revive');
         if(navigator.vibrate)navigator.vibrate([20,30,80]);}
       if(t3.revT<=0)t3.revAsk=false;
       return;}
@@ -958,7 +1076,7 @@ function updateT(){
     if(tt2.tp==='turn'&&!tt2.done&&tt2.z<320){turn=tt2;break;}}
   if(turn&&(TC.ml>0||TC.mr>0)){
     var sd=TC.ml>0?-1:1;TC.ml=TC.mr=0;
-    if(sd===turn.dir){turn.done=true;t3.turnFx=22*turn.dir;
+    if(sd===turn.dir){turn.done=true;t3.turnFx=22*turn.dir;sfx('turn');
       GS.score+=Math.round(150*mult);GS.stats.tn=(GS.stats.tn||0)+1;misAdd('turns',1);
       if(navigator.vibrate)navigator.vibrate([15,15,45]);}
     else stumbleT(); // wrong way into the corner wall
@@ -973,12 +1091,12 @@ function updateT(){
   if(iU()&&!lJ)TC.jb=9;
   lJ=iU()?1:0;
   if(TC.jb>0){
-    if(t3.py<=0){t3.vy=13.5;t3.py=0.01;TC.jb=0;misAdd('jumps',1);if(navigator.vibrate)navigator.vibrate(40);}
+    if(t3.py<=0){t3.vy=13.5;t3.py=0.01;TC.jb=0;misAdd('jumps',1);sfx('jump');if(navigator.vibrate)navigator.vibrate(40);}
     else TC.jb--;
   }
-  if(t3.py>0){t3.vy-=0.62;t3.py+=t3.vy;if(t3.py<=0){t3.py=0;t3.vy=0;if(navigator.vibrate)navigator.vibrate(25);}}
+  if(t3.py>0){t3.vy-=0.62;t3.py+=t3.vy;if(t3.py<=0){t3.py=0;t3.vy=0;sfx('land');if(navigator.vibrate)navigator.vibrate(25);}}
   if(TC.st>0)TC.st--;
-  if(iD()&&t3.py<=0&&t3.slid<=0){t3.slid=26;GS.stats.sl++;misAdd('slides',1);if(navigator.vibrate)navigator.vibrate(20);}
+  if(iD()&&t3.py<=0&&t3.slid<=0){t3.slid=26;GS.stats.sl++;misAdd('slides',1);sfx('slide');if(navigator.vibrate)navigator.vibrate(20);}
   if(t3.slid>0)t3.slid--;
 
   // ── SPAWN table: obstacles · turns · power-ups · gems · tiered coin runs ──
@@ -1018,14 +1136,14 @@ function updateT(){
     if(o.tp==='pw'||o.tp==='gem'){
       if(!o.hit&&o.z<34&&o.z>-34&&Math.abs(t3.laneX-o.lane)<0.6&&t3.py<70){o.hit=true;
         if(o.tp==='gem'){var wg=wallet();wg.gems++;setWallet(wg);GS.gemsLive=wg.gems;misAdd('gems',1);
-          GS.score+=Math.round(200*mult);if(navigator.vibrate)navigator.vibrate([10,10,30]);}
+          GS.score+=Math.round(200*mult);sfx('gem');if(navigator.vibrate)navigator.vibrate([10,10,30]);}
         else{misAdd('pws',1);GS.stats.pw=(GS.stats.pw||0)+1;
           if(o.kind===0){GS.magT=620;GS.pwrMsg='🧲 NOTE MAGNET';}
           else if(o.kind===1){GS.boostT=320;p.inv=Math.max(p.inv,320);GS.pwrMsg='⚡ CRESCENDO — full sprint!';}
           else if(o.kind===2){GS.x2T=640;GS.pwrMsg='✖2 SCORE';}
           else if(o.kind===3){GS.shieldT=520;GS.pwrMsg='♬ HIGH NOTE — shielded!';}
           else{var bn=15;GS.totalNotes+=bn;GS.res=GS.resMax;GS.score+=Math.round(70*bn*mult);misAdd('notes',bn);GS.pwrMsg='♪ ENCORE — +'+bn+' NOTES!';}
-          GS.pwrMsgT=150;updateHUD();if(navigator.vibrate)navigator.vibrate([10,10,40]);}}
+          GS.pwrMsgT=150;updateHUD();sfx('pw');if(navigator.vibrate)navigator.vibrate([10,10,40]);}}
       continue;}
     // hazards
     if(o.z<26&&o.z>-26&&!o.hit&&Math.round(t3.laneX)===o.lane){
@@ -1041,7 +1159,7 @@ function updateT(){
     var grab=GS.magT>0?(cn.z<60&&cn.z>-60&&Math.abs(t3.laneX-cn.lane)<0.9)
                       :(cn.z<30&&cn.z>-30&&Math.abs(t3.laneX-cn.lane)<0.55&&t3.py<60);
     if(grab){var v=cn.v||1;t3.coins.splice(ci2,1);
-      GS.res=Math.min(GS.resMax,GS.res+6*v);GS.totalNotes+=v;misAdd('notes',v);
+      GS.res=Math.min(GS.resMax,GS.res+6*v);GS.totalNotes+=v;misAdd('notes',v);sfx('note');
       GS.score+=Math.round(70*v*mult);updateHUD();}
   }
   // chaser drifts toward her lane
@@ -1486,7 +1604,7 @@ var ACH_GOT=loadAch();
 function checkAch(){
   for(var i=0;i<ACH.length;i++){var a=ACH[i];if(ACH_GOT[a.id])continue;
     var ok=false;try{ok=a.f(GS);}catch(x){}
-    if(ok){ACH_GOT[a.id]=1;try{localStorage.setItem('jande_ach',JSON.stringify(ACH_GOT));}catch(x){}
+    if(ok){ACH_GOT[a.id]=1;sfx('fanfare');try{localStorage.setItem('jande_ach',JSON.stringify(ACH_GOT));}catch(x){}
       GS.toasts.push({txt:'🏆 '+a.n,sub:a.d.toUpperCase(),t:260,max:260});
       GS.newAch.push(a.n);GS.score+=500;
       if(navigator.vibrate)navigator.vibrate([30,20,30]);}}}
@@ -1501,7 +1619,7 @@ function themeShift(){
   GS.prevPc=ps.pc;GS.prevAc=ps.ac;GS.blendT=0;
   _bgW=null;_bgF=null;_bgV=null;_bgP=null;
   var ns=STAGES[GS.ai];
-  GS.toasts.push({txt:'◆ '+ns.n+' ◆',sub:ns.theme.toUpperCase()+' · +250',t:240,max:240});
+  GS.toasts.push({txt:'◆ '+ns.n+' ◆',sub:ns.theme.toUpperCase()+' · +250',t:240,max:240});sfx('pw');
   GS.score+=250;updateHUD();
   if(navigator.vibrate)navigator.vibrate([20,30,60]);}
 function drawToasts(){
@@ -1548,7 +1666,7 @@ var MIS_S=misState();
 function misAdd(k,amt){var chg=false;
   for(var i=0;i<MIS.length;i++){var m=MIS[i];if(m.k!==k||MIS_S.done[m.id])continue;
     MIS_S.prog[m.id]=(MIS_S.prog[m.id]||0)+amt;chg=true;
-    if(MIS_S.prog[m.id]>=m.goal){MIS_S.done[m.id]=1;
+    if(MIS_S.prog[m.id]>=m.goal){MIS_S.done[m.id]=1;sfx('fanfare');
       GS.toasts.push({txt:'★ OBJECTIVE COMPLETE',sub:m.n.toUpperCase()+' — MULTIPLIER UP!',t:260,max:260});
       if(navigator.vibrate)navigator.vibrate([30,20,30]);}}
   if(chg){try{localStorage.setItem('jande_mis',JSON.stringify(MIS_S));}catch(x){}}}
@@ -1560,10 +1678,10 @@ function runMult(){return misMult()*(GS.x2T>0?2:1);}
 function stumbleT(){var t3=GS.t3,p=GS.p;
   if(GS.shieldT>0||GS.boostT>0||p.inv>0)return;
   if(t3.chase>90){caughtT();return;}
-  t3.chase=480;GS.masks--;p.inv=60;updateHUD();
+  t3.chase=480;GS.masks--;p.inv=60;updateHUD();sfx('hurt');
   if(navigator.vibrate)navigator.vibrate([80,30,80]);
   if(GS.masks<=0)caughtT();}
-function caughtT(){var p=GS.p;p.dead=true;p.deadT=0;GS.t3.grabT=44;GS.masks=Math.min(GS.masks,0);updateHUD();
+function caughtT(){var p=GS.p;sfx('death');p.dead=true;p.deadT=0;GS.t3.grabT=44;GS.masks=Math.min(GS.masks,0);updateHUD();
   if(navigator.vibrate)navigator.vibrate([120,50,160]);}
 
 // ── ACTION RPG (side mode): persistent level, combo kills, damage pops ──
@@ -1571,12 +1689,12 @@ function rpgLoad(){try{return JSON.parse(localStorage.getItem('jande_rpg')||'{"l
 var RPG=rpgLoad();
 function rpgXP(a){RPG.xp+=a;var up=false;
   while(RPG.xp>=RPG.next){RPG.xp-=RPG.next;RPG.lvl++;RPG.next=Math.floor(RPG.next*1.3);up=true;}
-  if(up){GS.toasts.push({txt:'⬆ LEVEL '+RPG.lvl,sub:'HER VOICE GROWS STRONGER',t:220,max:220});
+  if(up){sfx('fanfare');GS.toasts.push({txt:'⬆ LEVEL '+RPG.lvl,sub:'HER VOICE GROWS STRONGER',t:220,max:220});
     GS.masks=Math.min(GS.maxMasks,GS.masks+1);updateHUD();
     if(navigator.vibrate)navigator.vibrate([20,20,50]);}
   try{localStorage.setItem('jande_rpg',JSON.stringify(RPG));}catch(x){}}
 function addPop(x,y,txt){GS.pops.push({x:x,y:y,txt:''+txt,t:52});}
-function killFoe(f){f.alive=false;
+function killFoe(f){f.alive=false;sfx('kill');
   GS.combo++;GS.comboT=130;
   var cm=1+0.25*Math.min(GS.combo-1,8);
   var sc=Math.round((f.tp?160:120)*runMult()*cm);
@@ -1732,8 +1850,8 @@ function draw(){
     var hyy=H*0.62;FX.fillRect(W/2-200,hyy-20,400,66);
     FX.strokeStyle='rgba(255,215,0,0.5)';FX.lineWidth=1;FX.strokeRect(W/2-200,hyy-20,400,66);
     FX.fillStyle='rgba(255,235,180,0.95)';FX.font='9px "Press Start 2P",monospace';FX.textAlign='center';
-    FX.fillText('TAP / SWIPE ▲ = JUMP (×2 DOUBLE)',W/2,hyy+2);
-    FX.fillText('SWIPE ▼ SLIDE · SWIPE ▶ MIC STRIKE',W/2,hyy+26);
+    FX.fillText('STICK/← → MOVE · TAP/▲ JUMP ×2',W/2,hyy+2);
+    FX.fillText('⚔ STRIKE · DASH THROUGH FOES · ▼ SLIDE',W/2,hyy+26);
     FX.globalAlpha=1;}
   if(GS.levelUpT>0)drawLevelUp();
   if(GS.paused)drawPause();
@@ -1770,7 +1888,7 @@ function drawDist(ac){
   FX.fillStyle='rgba(255,215,0,0.92)';FX.fillText(m+'m',W/2,56);
   FX.font='7px "Press Start 2P",monospace';FX.fillStyle='rgba(255,255,255,0.3)';
   var ml=runMult();
-  FX.fillText('SPEED '+GS.speed.toFixed(1)+(ml>1?'   ✦ ×'+(ml%1?ml.toFixed(1):ml):''),W/2,74);
+  FX.fillText((MODE==='temple'?'SPEED '+GS.speed.toFixed(1)+'  ':'')+(ml>1?'✦ ×'+(ml%1?ml.toFixed(1):ml):''),W/2,74);
   // gem wallet + RPG level, top-left under hearts
   FX.textAlign='left';FX.font='10px "Press Start 2P",monospace';
   FX.fillStyle='rgba(190,120,255,0.9)';FX.fillText('◆ '+(GS.gemsLive||0),14,52);
@@ -2411,7 +2529,7 @@ function loop(ts){if(!running)return;
     var steps=0;
     while(_acc>=16.6&&steps<3){update();_acc-=16.6;steps++;}
     if(_acc>=16.6)_acc=0; // device can't keep up — drop backlog, never spiral
-    draw();
+    draw();musTick();
   }catch(e){console.error('loop:',e);}
   requestAnimationFrame(loop);}
 function startGame(){
@@ -2420,19 +2538,40 @@ function startGame(){
   document.getElementById('gameWrap').classList.add('on');
   document.getElementById('topBtns').style.display='flex';
   document.getElementById('hint').classList.add('on');
-  if(/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||('ontouchstart' in window)||innerWidth<760){
-    document.body.classList.add('mobile');
+  var isTouch=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||('ontouchstart' in window)||innerWidth<760;
+  if(isTouch)document.body.classList.add('mobile');
+  // ACTION RPG gets stick + buttons; Temple View stays swipe-only
+  document.getElementById('mCtrl').classList.toggle('on',isTouch&&MODE==='side');
+  if(isTouch&&!window._rpgCtrl){window._rpgCtrl=true;
+    // horizontal joystick: drag left/right to run, pull down to slide
+    (function(){
+      var jB=document.getElementById('joyBase'),jK=document.getElementById('joyKnob');
+      if(!jB)return;var jR=36,act=false;
+      function mv(tx,ty){var r=jB.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+        var dx=tx-cx,dy=ty-cy,d=Math.hypot(dx,dy);if(d>jR){dx=dx/d*jR;dy=dy/d*jR;}
+        jK.style.transform='translate(calc(-50% + '+Math.round(dx)+'px),calc(-50% + '+Math.round(dy)+'px))';
+        TC.l=dx<-jR*0.24?1:0;TC.r=dx>jR*0.24?1:0;
+        if(dy>jR*0.5)TC.st=8; // held-down = keep sliding
+        if(dy<-jR*0.55)TC.jb=Math.max(TC.jb,10); // flick up = jump
+      }
+      function rst(){act=false;jK.style.transform='translate(-50%,-50%)';TC.l=TC.r=0;}
+      jB.addEventListener('touchstart',function(e){act=true;audInit();mv(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+      jB.addEventListener('touchmove',function(e){if(act)mv(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+      jB.addEventListener('touchend',rst,{passive:false});
+      jB.addEventListener('touchcancel',rst,{passive:false});
+    })();
+    tbind('mJ','u');tbind('mA','a');tbind('mD','d');
   }
   // ── TEMPLE-RUN TOUCH: swipe ▲ jump · ▼ slide · ◀ ▶ lanes (temple view) · tap = jump ──
   // preventDefault + touch-action:none stop iOS/Android gestures (double-tap zoom,
   // scroll, rubber-band) from eating taps; low thresholds = instant swipe response.
   if(!window._swipeBound){window._swipeBound=true;
     var gw=document.getElementById('gameWrap'),swX=0,swY=0,swT=0,swActed=false;
-    var swIgnore=function(e){var t2=e.target;return t2.closest&&t2.closest('#topBtns,.ov-btn,button,input');};
+    var swIgnore=function(e){var t2=e.target;return t2.closest&&t2.closest('#topBtns,#mCtrl,.ov-btn,button,input');};
     var swEnd=function(e){if(swIgnore(e))return;
       if(!swActed&&Date.now()-swT<450)TC.jb=12; // tap = jump
       swActed=false;};
-    gw.addEventListener('touchstart',function(e){if(swIgnore(e))return;e.preventDefault();
+    gw.addEventListener('touchstart',function(e){audInit();if(swIgnore(e))return;e.preventDefault();
       var t2=e.touches[0];swX=t2.clientX;swY=t2.clientY;swT=Date.now();swActed=false;},{passive:false});
     gw.addEventListener('touchmove',function(e){if(swIgnore(e))return;e.preventDefault();
       if(swActed)return;var t2=e.touches[0],dx=t2.clientX-swX,dy=t2.clientY-swY;
@@ -2441,7 +2580,7 @@ function startGame(){
     gw.addEventListener('touchend',swEnd,{passive:true});
     gw.addEventListener('touchcancel',swEnd,{passive:true});
     // desktop: click anywhere = jump
-    gw.addEventListener('mousedown',function(e){if(swIgnore(e))return;TC.jb=12;});
+    gw.addEventListener('mousedown',function(e){audInit();if(swIgnore(e))return;TC.jb=12;});
   }
   if(!GL){initGL();}
   resize();
@@ -2460,12 +2599,14 @@ function wire(){
     saveLocal(nm,em);msg.style.color='rgba(0,255,238,.8)';msg.textContent=EJ_LIVE?'Entering...':'Saved! Loading...';
     if(EJ_LIVE&&window.emailjs){emailjs.send(EJ_S,EJ_T,{from_name:nm||'Anonymous',from_email:em,reply_to:em,message:'Signup: '+nm+' | '+em}).then(function(){setTimeout(showModeSel,800);}).catch(function(){setTimeout(showModeSel,800);});}else setTimeout(showModeSel,800);};
   document.getElementById('lSkip').onclick=showModeSel;
-  document.getElementById('msSide').onclick=function(){MODE='side';startGame();};
-  document.getElementById('msTemple').onclick=function(){MODE='temple';startGame();};
+  document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';startGame();};
+  document.getElementById('msTemple').onclick=function(){audInit();sfx('ui');MODE='temple';startGame();};
   document.getElementById('ovR').onclick=function(){document.getElementById('overlay').classList.remove('on');GS={};initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;loop();}});};
   document.getElementById('ovM2').onclick=function(){['overlay','bossBar','hint','abilityBar','mCtrl'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('btnPause').onclick=function(){GS.paused=!GS.paused;};
   document.getElementById('btnMap').onclick=function(){GS.mapOpen=!GS.mapOpen;};
+  var _sb=document.getElementById('btnSnd');_sb.textContent=AUD.muted?'🔇':'🔊';
+  _sb.onclick=function(){audInit();audMute(!AUD.muted);_sb.textContent=AUD.muted?'🔇':'🔊';};
   // ability bar taps
   [['ab1','Digit1'],['ab2','Digit2'],['ab3','Digit3'],['ab4','Digit4'],['ab5','Digit5']].forEach(function(pair){
     var el=document.getElementById(pair[0]);if(!el)return;
