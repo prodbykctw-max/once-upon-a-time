@@ -51,7 +51,9 @@ All art is baked pixel art embedded as base64:
   `TEXDATA`/`SPRITES` (python re.sub on the data URI), keep cell dims stable.
 
 ## CHARACTER REFERENCE PACK (user has it as jande_character_ref.zip)
-The client shot real reference of the character model: 4 upright stills
+The reference subject IS Jandé herself (the artist — first-party likeness,
+provided by her for this game). Fidelity to her actual look matters:
+face shape, skin tone, build. The client shot real reference: 4 upright stills
 (front T-pose, straight back, two side profiles) + 8 keyframes from a 360
 turnaround video, with a README of generation steps. The user will ATTACH
 this zip in chat — ask for it before generating. Photos of a real person:
