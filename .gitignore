@@ -24,7 +24,6 @@ npm-debug.log*
 .env
 .env.local
 
-# Never commit: real-person reference photos (public repo) + session config
-assets/jande_character_ref.zip
-assets/charref/
+# Never commit: real-person reference photos + 3D source assets (public repo) + session config
+assets/
 .claude/
