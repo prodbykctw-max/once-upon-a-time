@@ -1,102 +1,105 @@
-# HANDOFF — Jandé: Once Upon A Time (continue here)
+# HANDOFF v2 — Jandé: Once Upon A Time (3D era)
 
-You are continuing a paid, professional-grade promo game for the R&B artist
-**Jandé** (always accented: Jandé / JANDÉ). The client is delivering this to a
-label ($5k upfront + $5k on delivery). Quality bar is commercial.
+Paid, professional-grade promo game for the R&B artist **Jandé** (always
+accented: Jandé / JANDÉ). $5k upfront + $5k on delivery. Commercial bar.
 
-## Ground rules (do not break)
-1. The ENTIRE game is one self-contained file: **`index.html`**. No build step,
-   no external requests at runtime (all assets are base64-embedded). It must
-   stay deployable as a single static file.
-2. **Never modify or replace Jandé's original side-view sprite art**
-   (`SPRITES.idle/run/jump/attack/dash/block/dance`) — the artist made it.
-   Only the `bk*` back-view slots are replaceable.
-3. Develop on branch **`claude/hand-painted-architecture-bg-0MAiy`**, deploy by
-   copying `index.html` onto **`gh-pages`** and pushing both.
-   Live URL: https://prodbykctw-max.github.io/once-upon-a-time/
-4. Never commit API keys. The user pastes the AutoSprite key in chat.
-5. Mobile is the primary device: keep the fixed-timestep loop, DPR cap, and
-   touch-action lockouts intact. Test with Playwright before every deploy.
+## ⚠ BRANCH DISCIPLINE (a real incident, don't repeat it)
+A previous session committed 10 game changes ONLY to `gh-pages`, splitting the
+live game from the dev branch. That is now reconciled. The rule:
+- **Develop on `claude/hand-painted-architecture-bg-0MAiy`** — every game
+  change lands here first.
+- **`gh-pages` is deploy-only**: `git checkout <dev-branch> -- index.html`,
+  commit, push. Never author changes there.
+- Before starting work, ALWAYS `git fetch` and check BOTH branches for
+  commits you don't have (other sessions + the user's laptop push here too).
 
-## What exists (all working, all deployed)
-Two selectable modes after the registration screen (`#modeScreen`):
-- **ACTION RPG** (side-scroll, `MODE==='side'`): auto-runner + combat.
-  Mic Strike (swipe→/X/Z/J), stomp kills, Heartbreak Imp + Cupid Skull foes
-  (`TEX.foes`), persistent RPG level in localStorage `jande_rpg`, combos,
-  damage pops, coyote time, double jump, slide.
-- **TEMPLE VIEW** (`MODE==='temple'`): full Temple Run — 3 lanes, swipe
-  up/down/left/right, corner TURNS with arrow gates + camera swing, chaser
-  ("The Groom's Shadow", `TEX.chaser`) with stumble-twice-caught rule,
-  power-ups (magnet/boost/x2/shield/encore via `TEX.items`), 3 coin tiers,
-  gems + RISE AGAIN revive, textured perspective corridor.
-Shared systems: 9 themed rooms crossfade every 500m (`themeShift`), toasts,
-11 achievements (`ACH`), 10 objectives w/ permanent score multiplier (`MIS`),
-top-10 leaderboard (`jande_runs`), gem wallet (`jande_wallet`), death = body
-blooms into music notes (`noteBurst`).
+## Ground rules
+1. The game is ONE self-contained file, **`index.html`** (~2.4MB). No runtime
+   network requests; all assets base64-embedded. Watch total size — quantize
+   PNGs (palette mode) before embedding when sheets get heavy.
+2. **Never modify Jandé's original side-view sprite art**
+   (`SPRITES.idle/run/jump/attack/dash/block/dance`). Back-view `bk*` slots
+   and everything else is fair game.
+3. Never commit API keys, and never commit photos of Jandé (real person,
+   public repo). Process reference from chat uploads only.
+4. Mobile first: fixed-timestep loop, DPR cap, touch-action lockouts stay.
+   Playwright-test before every deploy (recipe below).
 
-## Asset pipeline (the important part)
-All art is baked pixel art embedded as base64:
-- `TEXDATA` → `TEX` images: `walls` (9 cells, 144x192 each — 2.5D shaded,
-  composed from components), `floors` (9 cells 96x96), `decor` (9 props
-  144x240), `chaser` (4 frames 176x224), `foes` (6 cells 136x152), `items`
-  (8 icons 64x64).
-- `SPRITES.bkrun/bkjump/bkslide`: back-view Jandé placeholder (144x208 cells,
-  8/4/2 frames) used by Temple View; renderer falls back to side art if a bk
-  sheet is missing. Drawn crisp via `imageSmoothingEnabled=false` when the
-  sheet name starts with `bk`.
-- Generator scripts live in `tools/` (`bake_25d.py` = walls/floors with the
-  lighting compositor; `bake_decor.py` = props+foes; `bake_sprite.py` =
-  back-view placeholder; `bake_world.py` = chaser/items). Python + Pillow.
-  To swap an asset: regenerate PNG → base64 → replace the entry in
-  `TEXDATA`/`SPRITES` (python re.sub on the data URI), keep cell dims stable.
+## CURRENT DIRECTION: Temple View goes 3D
+The user has, on their laptop: Blender (with blender-mcp), a **Rodin AI 3D
+model of Jandé**, and a working **lattice-deformation animation pipeline**
+that already produced the current bkrun/bkjump/bkslide sheets (3D renders →
+sprite strips). "Going 3D" means evolving Temple View from the canvas-2D
+pseudo-perspective into real 3D rendering while KEEPING the single-file rule.
 
-## CHARACTER REFERENCE PACK (user has it as jande_character_ref.zip)
-The reference subject IS Jandé herself (the artist — first-party likeness,
-provided by her for this game). Fidelity to her actual look matters:
-face shape, skin tone, build. The client shot real reference: 4 upright stills
-(front T-pose, straight back, two side profiles) + 8 keyframes from a 360
-turnaround video, with a README of generation steps. The user will ATTACH
-this zip in chat — ask for it before generating. Photos of a real person:
-NEVER commit them to this public repo; process from the chat upload only.
-COSTUME DECISION (client-confirmed): the GOWN. Use the reference photos for
-body proportions, skin tone, face, and pose/motion ONLY — the generated
-character wears Jande's stage look from the original side-view art:
-flowing white gown with a high slit, gold belt + gold hem trim, long
-voluminous auburn/copper curls (no beanie), white thigh-high boots,
-white gloves. Match the palette of SPRITES.run in index.html.
+Recommended phased architecture (no three.js — a custom minimal WebGL
+renderer keeps us self-contained; there is already GL scaffolding in the file:
+`initGL`, `VERT`/`FRAG`, `glC` canvas under the 2D `fxC` canvas):
+- **Phase 1 — GL corridor**: true perspective-projected corridor geometry
+  (two wall quads, floor, vaulted ceiling) textured from the existing TEX
+  atlas, depth fog, real camera yaw swing on corner turns. Gameplay logic in
+  `updateT` stays byte-identical; only drawT's world layer moves to GL.
+  HUD/toasts/sprites stay on the 2D canvas above.
+- **Phase 2 — 3D obstacles**: hurdles/gates/walls as textured boxes in the
+  same GL scene (replaces billboard rects), coins/pickups stay billboards.
+- **Phase 3 — character**: EITHER keep the Rodin-rendered sprite billboards
+  (near-identical at this camera, cheap) OR embed a minified glTF of the
+  Rodin model + a tiny skinned-mesh renderer. Billboards recommended unless
+  the user insists — realtime skinning in hand-rolled GL is a big lift.
+Division of labor: the user's LAPTOP session (Blender/Rodin) is the asset
+factory — request renders/sheets from the user; cloud sessions integrate.
 
-## YOUR FIRST JOB: AutoSprite art pipeline
-This environment has network access to `www.autosprite.io` (that's why this
-session exists). The user's AutoSprite account already contains their original
-Jandé character. Auth: `Authorization: Bearer <key from user's chat message>`.
-- REST + MCP endpoint: `https://www.autosprite.io/api/mcp` (MCP over HTTP; the
-  REST API uses the same key — docs at autosprite.io/docs).
-- Useful MCP tools observed: `list_characters`, `get_character`,
-  `generate_spritesheet`, `regenerate_single_spritesheet`, `animate_asset`,
-  `get_job_status`, `get_spritesheet`, `create_asset`, `remove_asset_background`.
-Pipeline to run:
-1. `list_characters` → find the Jandé character.
-2. Generate BACK-VIEW sheets (character seen from behind, running away from
-   camera, transparent background): run cycle 8 frames, jump 4 (crouch/rise/
-   peak/fall), slide 2 (low crouch). Any resolution ≥128px per frame.
-3. Poll job status, download PNGs, normalize with Pillow into horizontal
-   strips with uniform cells (match aspect ~144:208), transparent bg.
-4. Swap into `SPRITES.bkrun/bkjump/bkslide` (keep `frames`, update `cw/ch` to
-   the new cells — the renderer scales by ch, so any consistent size works).
-5. Playwright-test Temple View, screenshot, deploy, show the user.
-Then (in priority order, confirm with user between steps):
-6. Themed enemy sprites for the Action RPG (replace `TEX.foes`, 3-frame walk +
-   3-frame fly minimum; keep or grow cell grid, update the drawImage calls).
-7. Boss sheet for "The Groom's Shadow" (replace `TEX.chaser`, 4+ frames).
-8. Per-room decor upgrades via AutoSprite if the pixel props need more polish.
+## What exists (all live at https://prodbykctw-max.github.io/once-upon-a-time/)
+- **ACTION RPG** (side, free control — NOT an auto-runner): stick/arrows move
+  her both ways, dash w/ i-frames kills on contact, Mic Strike, stomps,
+  hunting imps + diving cupid skulls, persistent RPG level (`jande_rpg`),
+  combos, damage pops, idle + dance easter egg, joystick+buttons on touch.
+- **TEMPLE VIEW** (3-lane Temple Run): corner turns w/ camera swing, The
+  Groom's Shadow chaser (stumble-twice rule), magnet/boost/x2/shield/encore,
+  3 coin tiers, gems + RISE AGAIN revive, vaulted ceilings + pillars + 3D
+  obstacle rendering (previous session's upgrade), Rodin-rendered character.
+- **Shared**: 9 themed rooms w/ 500m crossfades, 2.5D component-built
+  wall/floor/decor assets used by BOTH modes, achievements (11), objectives
+  w/ permanent multiplier (10), local top-10 leaderboard, gem wallet,
+  death-into-music-notes bloom, synthesized WebAudio score (transposes per
+  room, reacts to speed/danger/boost; coin pickups walk a pentatonic scale)
+  + full SFX kit + mute toggle (`jande_mute`).
 
-## Testing recipe (Playwright, headless Chromium at /opt/pw-browsers/chromium)
-Boot flow: goto file:// → click `#tPress` → force-end the `<video>` + dispatch
-'ended' → click element containing "play without" → click `#msSide` or
-`#msTemple` → wait ~3.2s (level card) → play/screenshot.
-For state manipulation append a debug hook before `})();`:
-`window._dbg=function(fn){fn(GS);};` — REMOVE IT before committing.
-Keyboard: Space jump, ArrowDown slide, X strike, Arrows lanes/turns, P pause.
+## Design principles (binding — mitigations for speed-game pitfalls)
+1. Reaction budget ≥0.3s: difficulty scales via density/variety, never via
+   reaction time below the floor (spacing already scales with speed).
+2. Readability first: every hazard grounded (contact shadows, plinths,
+   floor-scroll synced to entity speed — do not break `wz`).
+3. Forgive inputs: coyote time, buffers, generous pickups, tight hazards,
+   i-frames. All implemented — preserve them.
+4. Juice every verb. NEXT: hitstop on kills (2-3 frames), micro-screenshake.
+5. Fail fast, retry faster. NEXT: instant tap-to-retry on death (<2s loop).
+6. Teach one verb at a time (coins-only <40m, turns >130m). Keep.
+7. NEXT: adaptive difficulty — thin spawns after repeated early deaths,
+   thicken for cruisers; pity gem after 3 quick deaths.
+8. NEXT: near-miss bonus (graze an obstacle → small score + sound).
+9. Session loop: runs ~60-90s, objectives tick every run. NEXT: daily streak.
+10. Frame rate is a mechanic: keep 60Hz fixed timestep and draw budgets.
+
+## Asset pipeline
+- `TEXDATA`→`TEX`: walls (9×144x192, 2.5D shaded), floors (9×96x96), decor
+  (9×144x240), chaser (4×176x224), foes (6×136x152), items (8×64x64).
+- `SPRITES.bkrun/bkjump/bkslide`: Rodin-model renders (current), swappable.
+- `tools/` has the Python/Pillow bakers for every procedural asset.
+- Swap recipe: new PNG → base64 → re.sub the data URI in TEXDATA/SPRITES;
+  keep cell dims stable or update the drawImage source rects.
+
+## Character reference
+Reference subject IS Jandé (first-party likeness). Costume: the GOWN (white,
+high slit, gold belt/hem, auburn curls down, white boots/gloves) — reference
+photos are for proportions/likeness only. User holds jande_character_ref.zip
+(4 stills + 8 turnaround keyframes); ask for it in chat when needed.
+
+## Testing recipe (Playwright, /opt/pw-browsers/chromium)
+file:// → click `#tPress` → force-end `<video>` + dispatch 'ended' → click
+"play without" → `#msSide` / `#msTemple` → wait ~3.2s → play/screenshot.
+Debug hook (REMOVE before commit): `window._dbg=function(fn){fn(GS);};`
+Keys: Space jump · ArrowDown slide · X strike · Shift dash · Arrows · P pause.
 
 ## Deploy recipe
 ```
@@ -105,11 +108,10 @@ git checkout gh-pages && git checkout claude/hand-painted-architecture-bg-0MAiy 
   && git commit -m "Deploy: ..." && git push -u origin gh-pages \
   && git checkout claude/hand-painted-architecture-bg-0MAiy
 ```
-(If gh-pages doesn't exist locally: `git checkout -b gh-pages origin/gh-pages`.)
 
-## Backlog after art (user-approved directions)
-- Store: spend banked Grace Notes on power-up duration upgrades (Temple Run's
-  last missing system). Wallet + objectives already exist to hang it on.
-- Sound design (music-reactive; it's a promo for the song "Once Upon A Time").
-- Global online leaderboard (user has a Cloudflare connector — Workers+KV/D1).
-- Custom domain + EmailJS keys for the registration form (business polish).
+## Backlog (user-approved)
+- 3D Temple phases 1→3 (above) — CURRENT FOCUS
+- Gameplay: hitstop, instant retry, adaptive difficulty, near-miss, streak
+- Store: spend Grace Notes on power-up upgrades
+- Global leaderboard (user has Cloudflare connector: Workers + KV/D1)
+- Custom domain + EmailJS keys for registration
