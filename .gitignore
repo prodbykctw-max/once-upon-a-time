@@ -23,3 +23,8 @@ npm-debug.log*
 # Env (if you add EmailJS keys later)
 .env
 .env.local
+
+# Never commit: real-person reference photos (public repo) + session config
+assets/jande_character_ref.zip
+assets/charref/
+.claude/
