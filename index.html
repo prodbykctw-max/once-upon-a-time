@@ -2629,9 +2629,12 @@ function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A
 function drawHero(p){
   var sp=SPRITES[p.anim];if(!sp||!IMG[p.anim])return;
   var img=IMG[p.anim],fr=Math.min(p.frame,sp.frames-1),cw=sp.cw,ch=sp.ch;
-  // draw scaled so sprite height ~ PH*1.5 (sprite art includes flowing dress/hair)
-  var drawH=PH*1.55, scale=drawH/ch, drawW=cw*scale;
-  var dx=p.x+PW/2-drawW/2, dy=p.y+PH-drawH+6;
+  // normalize FIGURE size across animations: the attack art crouches to 72%
+  // of its cell, so it rendered smaller than idle/run. Scale each sheet so
+  // her body is the same size in every state (measured content fractions).
+  var fit=(p.anim==='attack')?{h:0.721,b:0.987}:{h:0.974,b:0.987};
+  var drawH=PH*1.55*(0.974/fit.h), scale=drawH/ch, drawW=cw*scale;
+  var dx=p.x+PW/2-drawW/2, dy=p.y+PH+6-drawH*fit.b;
   // ground shadow
   if(p.onGround){FX.fillStyle='rgba(0,0,0,0.25)';FX.beginPath();FX.ellipse(p.x+PW/2,p.y+PH,16,5,0,0,6.28);FX.fill();}
   // BELT IT OUT aura
