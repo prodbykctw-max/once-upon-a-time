@@ -1469,17 +1469,29 @@ function drawT(){
       FX.fillStyle='rgba('+pc+',0.7)';FX.fillRect(ex-hw/2-2*es,ey-3*es,hw+4*es,3*es);
       FX.fillStyle='rgba(0,0,0,0.45)';FX.fillRect(ex-hw/2-2*es,ey,hw+4*es,Math.max(1,2*es));
     }else if(e.tp==='gate'){
-      var gw=laneW*es*1.9,gh=150*es,gap=62*es;
+      var gw=laneW*es*1.9,gh=130*es,gap=95*es;
       // archway header with gradient
       var gaG=FX.createLinearGradient(ex,ey-gap-gh,ex,ey-gap);
       gaG.addColorStop(0,'rgba('+pc+',0.98)');gaG.addColorStop(1,'rgba('+pc+',0.75)');
       FX.fillStyle=gaG;FX.fillRect(ex-gw/2,ey-gap-gh,gw,gh);
-      // accent band
-      FX.fillStyle='rgba('+ac+',0.85)';FX.fillRect(ex-gw/2,ey-gap-8*es,gw,8*es);
+      // pulsing danger edge along the header underside
+      var gPu=0.55+0.35*Math.sin(GS.tick*0.2);
+      FX.fillStyle='rgba(255,84,36,'+gPu+')';FX.fillRect(ex-gw/2,ey-gap-6*es,gw,Math.max(2,6*es));
       // pointed arch spikes with glow
       FX.fillStyle='rgba(255,240,200,0.9)';
       for(var sp2=0;sp2<3;sp2++){var spx=ex-gw/2+sp2*gw/3;
         FX.beginPath();FX.moveTo(spx,ey-gap);FX.lineTo(spx+gw/6,ey-gap+12*es);FX.lineTo(spx+gw/3,ey-gap);FX.closePath();FX.fill();}
+      // SLIDE cue: animated down-chevron on the header face
+      var dcW=gw*0.20,dcH=Math.max(6,gh*0.34),dcY=ey-gap-gh*0.52,dcA=0.45+0.55*(0.5+0.5*Math.sin(GS.tick*0.2));
+      FX.lineJoin='round';FX.lineCap='round';
+      FX.beginPath();FX.moveTo(ex-dcW,dcY-dcH/2);FX.lineTo(ex,dcY+dcH/2);FX.lineTo(ex+dcW,dcY-dcH/2);
+      FX.strokeStyle='rgba(0,0,0,0.85)';FX.lineWidth=Math.max(2.5,11*es);FX.stroke();
+      FX.strokeStyle='rgba(70,235,255,'+dcA+')';FX.lineWidth=Math.max(1.5,6.5*es);FX.stroke();
+      FX.lineJoin='miter';FX.lineCap='butt';
+      // safe-slot glow on the floor under the gate
+      var sgG=FX.createRadialGradient(ex,ey,2,ex,ey,gw*0.52);
+      sgG.addColorStop(0,'rgba(70,235,255,'+(0.30*es)+')');sgG.addColorStop(1,'rgba(70,235,255,0)');
+      FX.fillStyle=sgG;FX.beginPath();FX.ellipse(ex,ey,gw*0.52,gw*0.15,0,0,6.28);FX.fill();
       // gate pillars with 3D shading
       for(var gSide=-1;gSide<=1;gSide+=2){
         var gpX=gSide<0?ex-gw/2-5*es:ex+gw/2,gpW=5*es;
