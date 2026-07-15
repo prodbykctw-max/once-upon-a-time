@@ -88,6 +88,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .ov-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
 .ov-btn{background:transparent;border:1px solid rgba(255,215,0,.4);color:rgba(255,215,0,.8);font-family:'Press Start 2P';font-size:clamp(6px,1.1vw,8px);padding:13px 26px;border-radius:6px;cursor:pointer;letter-spacing:1px}
 .ov-btn.prim{background:linear-gradient(135deg,#7a1fd0,#ff2d8a);border-color:transparent;color:#fff}
+#pauseMenu{position:absolute;inset:0;z-index:52;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,0,12,.82);backdrop-filter:blur(3px)}
+#pauseMenu.on{display:flex}
+.pm-t{font-family:Cinzel,serif;font-weight:900;font-size:clamp(30px,6vw,52px);color:rgba(255,215,0,.9);margin-bottom:26px;letter-spacing:2px}
+#pauseMenu .ov-btn{width:min(240px,70vw)}
+.pm-hint{margin-top:24px;font-family:'Press Start 2P';font-size:clamp(6px,1vw,8px);color:rgba(200,150,255,.55)}
 #bossBar{position:absolute;bottom:74px;left:0;right:0;z-index:22;display:none;flex-direction:column;align-items:center}
 #bossBar.on{display:flex}
 .bb-n{font-family:'Cinzel';font-weight:700;font-size:clamp(8px,1.5vw,13px);color:rgba(255,40,130,.9);letter-spacing:4px;margin-bottom:7px;text-transform:uppercase}
@@ -256,6 +261,15 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="ov-m" id="ovM">She rose again.</div>
     <div id="ovBoard"></div>
     <div class="ov-btns"><button class="ov-btn prim" id="ovR">TRY AGAIN</button><button class="ov-btn" id="ovM2">MAIN MENU</button></div>
+  </div>
+  <div id="pauseMenu">
+    <div class="pm-t">PAUSED</div>
+    <div class="ov-btns" style="flex-direction:column;gap:12px">
+      <button class="ov-btn prim" id="pmResume">▶&nbsp;&nbsp;RESUME</button>
+      <button class="ov-btn" id="pmRestart">↻&nbsp;&nbsp;RESTART RUN</button>
+      <button class="ov-btn" id="pmMenu">⌂&nbsp;&nbsp;MAIN MENU</button>
+    </div>
+    <div class="pm-hint" id="pmHint">P / ESC — RESUME</div>
   </div>
   <div id="loadMsg"><div class="spin"></div><div>SUMMONING THE QUEEN...</div></div>
 </div>
@@ -888,7 +902,7 @@ function musTick(){
 var K={},TC={l:0,r:0,u:0,a:0,d:0,b:0,jb:0,st:0,hold:0,ml:0,mr:0,_lk:0,_rk:0};
 document.addEventListener('keydown',function(e){K[e.code]=1;audInit();
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab'].indexOf(e.code)>=0)e.preventDefault();
-  if(running){if(e.code==='KeyP'||e.code==='Escape')GS.paused=!GS.paused;}});
+  if(running){if(e.code==='KeyP'||e.code==='Escape'){GS.paused=!GS.paused;syncPauseMenu();}}});
 document.addEventListener('keyup',function(e){K[e.code]=0;});
 function tbind(id,p){var el=document.getElementById(id);if(!el)return;
   el.addEventListener('touchstart',function(e){TC[p]=1;e.preventDefault();},{passive:false});
@@ -1654,7 +1668,7 @@ function drawT(){
     FX.fillText('SWIPE ▲ JUMP · SWIPE ▼ SLIDE',W/2,hyy+26);
     FX.fillText('DON\'T STUMBLE TWICE — HE\'S BEHIND YOU',W/2,hyy+52);
     FX.globalAlpha=1;}
-  if(GS.paused)drawPause();
+  syncPauseMenu();if(GS.paused)drawPause();
 }
 
 function updateEnemies(){
@@ -2080,7 +2094,7 @@ function draw(){
     FX.fillText('⚔ STRIKE · DASH THROUGH FOES · ▼ SLIDE',W/2,hyy+26);
     FX.globalAlpha=1;}
   if(GS.levelUpT>0)drawLevelUp();
-  if(GS.paused)drawPause();
+  syncPauseMenu();if(GS.paused)drawPause();
 }
 
 // ── runner obstacles ──
@@ -2673,6 +2687,12 @@ function drawPowerHUD(ac){
   var bx=18,by=H-78,byy=by;if(GS.dmgT>0){FX.font='bold 9px "Press Start 2P",monospace';FX.fillStyle='rgba(255,45,138,0.9)';FX.textAlign='left';FX.fillText('♫ BELT '+Math.ceil(GS.dmgT/60)+'s',bx,byy);byy-=14;}
   if(GS.shieldT>0){FX.font='bold 9px "Press Start 2P",monospace';FX.fillStyle='rgba(0,255,238,0.9)';FX.textAlign='left';FX.fillText('♬ HIGH NOTE '+Math.ceil(GS.shieldT/60)+'s',bx,byy);}}
 function drawLevelUp(){var a=Math.min(1,GS.levelUpT/30);FX.font='900 36px Cinzel,serif';FX.fillStyle='rgba(255,215,0,'+a+')';FX.textAlign='center';FX.fillText('LEVEL '+GS.level+'!',W/2,H*0.4);FX.font='300 italic 15px Raleway,serif';FX.fillStyle='rgba(255,245,220,'+a+')';FX.fillText(GS.level%2===0?'+1 Life':GS.level%3===0?'Stronger Vocals':'Her range expands',W/2,H*0.4+30);}
+function syncPauseMenu(){
+  var el=document.getElementById('pauseMenu');
+  var want=!!(GS.paused&&!GS.mapOpen&&running);
+  if(want!==el.classList.contains('on')){
+    el.classList[want?'add':'remove']('on');
+    if(want)document.getElementById('pmHint').textContent=MODE==='side'?'P / ESC — RESUME · M / TAB — MAP':'P / ESC — RESUME';}}
 function drawPause(){FX.fillStyle='rgba(8,0,18,0.85)';FX.fillRect(0,0,W,H);FX.font='900 52px Cinzel,serif';FX.fillStyle='rgba(255,215,0,0.9)';FX.textAlign='center';FX.fillText('PAUSED',W/2,H*0.42);FX.font='10px "Press Start 2P",monospace';FX.fillStyle='rgba(200,150,255,0.7)';FX.fillText('P / ESC — RESUME',W/2,H*0.42+50);FX.fillText('M / TAB — MAP',W/2,H*0.42+72);FX.font='300 italic 14px Raleway,serif';FX.fillStyle='rgba(255,255,255,0.5)';FX.fillText('Level '+GS.level+'  ·  Score '+GS.score.toLocaleString()+'  ·  Notes '+GS.totalNotes,W/2,H*0.42+104);}
 function drawMap(ac){var st=STAGES[GS.ai];FX.fillStyle='rgba(8,0,18,0.92)';FX.fillRect(0,0,W,H);FX.font='900 30px Cinzel,serif';FX.fillStyle='rgba(255,215,0,0.9)';FX.textAlign='center';FX.fillText(st.n+' — MAP',W/2,60);FX.font='8px "Press Start 2P",monospace';FX.fillStyle='rgba(200,150,255,0.6)';FX.fillText('M / TAB to close',W/2,84);
   var mw=W*0.8,mh=H*0.5,mx=(W-mw)/2,my=H*0.22,sc=Math.min(mw/(GS.LW*T),mh/(GS.LH*T));FX.save();FX.translate(mx,my);
@@ -2831,8 +2851,11 @@ function wire(){
   document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';startGame();};
   document.getElementById('msTemple').onclick=function(){audInit();sfx('ui');MODE='temple';startGame();};
   document.getElementById('ovR').onclick=function(){document.getElementById('overlay').classList.remove('on');GS={};initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;loop();}});};
-  document.getElementById('ovM2').onclick=function(){['overlay','bossBar','hint','abilityBar','mCtrl'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
-  document.getElementById('btnPause').onclick=function(){GS.paused=!GS.paused;};
+  document.getElementById('ovM2').onclick=function(){['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
+  document.getElementById('pmResume').onclick=function(){GS.paused=false;syncPauseMenu();};
+  document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;loop();}});};
+  document.getElementById('pmMenu').onclick=function(){GS.paused=false;syncPauseMenu();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
+  document.getElementById('btnPause').onclick=function(){GS.paused=!GS.paused;syncPauseMenu();};
   document.getElementById('btnMap').onclick=function(){GS.mapOpen=!GS.mapOpen;};
   var _sb=document.getElementById('btnSnd');_sb.textContent=AUD.muted?'🔇':'🔊';
   _sb.onclick=function(){audInit();audMute(!AUD.muted);_sb.textContent=AUD.muted?'🔇':'🔊';};
