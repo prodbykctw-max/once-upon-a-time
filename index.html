@@ -1521,12 +1521,21 @@ function drawT(){
   FX.fillStyle='rgba(0,0,0,'+(shA*0.45)+')';FX.beginPath();FX.ellipse(hx,gNear+5,shW2*1.5,10,0,0,6.28);FX.fill();
   FX.fillStyle='rgba(0,0,0,'+shA+')';FX.beginPath();FX.ellipse(hx,gNear+5,shW2,6.5,0,0,6.28);FX.fill();
   // floor reflection of hero (polished floor effect)
+  // bk-sheet frame cadence: run cycles all 25 frames with speed-scaled clock;
+  // jump maps the sheet arc onto the real jump physics (vy: +launch .. -land)
+  function bkFrame(nm,spd){
+    if(nm==='bkslide')return (Math.floor(GS.tick/6)%2)?9:3;
+    if(nm==='bkjump'&&t3.py>0){var jp=Math.max(0,Math.min(1,(1-t3.vy/13.5)/2));
+      return Math.min(24,Math.floor((0.2+jp*0.72)*25));}
+    if(nm.slice(0,2)==='bk')return Math.floor(GS.tick*(0.7+GS.speed*0.08))%25;
+    return Math.min(p.frame%spd.frames,spd.frames-1);
+  }
   if(!p.noteGone&&!p.dead){
     var rbkNm={run:'bkrun',jump:'bkjump',dash:'bkslide'}[p.anim]||p.anim;
     if(!(IMG[rbkNm]&&IMG[rbkNm].complete&&IMG[rbkNm].naturalWidth))rbkNm=p.anim;
     var rBk=rbkNm.slice(0,2)==='bk',rSpd=SPRITES[rbkNm];
     if(rSpd&&IMG[rbkNm]){var rImg=IMG[rbkNm];
-      var rfr=rbkNm==='bkslide'?(Math.floor(GS.tick/6)%2):Math.min(p.frame%rSpd.frames,rSpd.frames-1);
+      var rfr=bkFrame(rbkNm,rSpd);
       var rCols=rSpd.cols||rSpd.frames,rsx=(rfr%rCols)*rSpd.cw,rsy=Math.floor(rfr/rCols)*rSpd.ch;
       var rdh=H*0.26*(t3.slid>0?0.72:1)*0.7,rsc=rdh/rSpd.ch,rdw=rSpd.cw*rsc;
       FX.save();FX.globalAlpha=0.12;FX.translate(hx,gNear+8);FX.scale(1,-0.6);
@@ -1545,7 +1554,7 @@ function drawT(){
     if(!(IMG[bkNm]&&IMG[bkNm].complete&&IMG[bkNm].naturalWidth))bkNm=p.anim;
     var isBk=bkNm.slice(0,2)==='bk',spd2=SPRITES[bkNm];
     if(spd2&&IMG[bkNm]){var img=IMG[bkNm];
-      var fr=bkNm==='bkslide'?(Math.floor(GS.tick/6)%2):Math.min(p.frame%spd2.frames,spd2.frames-1);
+      var fr=bkFrame(bkNm,spd2);
       var fCols=spd2.cols||spd2.frames,fsx=(fr%fCols)*spd2.cw,fsy=Math.floor(fr/fCols)*spd2.ch;
       var dh=H*0.26*(t3.slid>0?0.72:1),sc2=dh/spd2.ch,dw=spd2.cw*sc2;
       if(GS.shieldT>0){var spz=Math.sin(GS.tick*0.25)*0.2+0.6;FX.strokeStyle='rgba(0,255,238,'+spz+')';FX.lineWidth=2.5;FX.beginPath();FX.arc(hx,hy-dh*0.45,dh*0.5,0,6.28);FX.stroke();}
