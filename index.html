@@ -1420,10 +1420,29 @@ function drawT(){
       else{FX.fillStyle='rgba('+pc+',0.95)';FX.fillRect(vpX-twW/2,ey-twH,twW,twH);}
       FX.fillStyle='rgba(0,0,0,'+Math.max(0,0.5-es*0.4)+')';FX.fillRect(vpX-twW/2,ey-twH,twW,twH);
       FX.fillStyle='rgba('+ac+',0.85)';FX.fillRect(vpX-twW/2,ey-twH,twW,7*es);FX.fillRect(vpX-twW/2,ey-4*es,twW,4*es);
-      var aw=Math.max(20,110*es),ax2=vpX+(e.dir<0?-aw*0.35:aw*0.35);
-      var pulse=0.72+0.28*Math.sin(GS.tick*0.18);
-      if(TEX.items){FX.globalAlpha=pulse;
-        FX.drawImage(TEX.items,(e.dir<0?5:6)*64,0,64,64,ax2-aw/2,ey-twH*0.62-aw/2,aw,aw);FX.globalAlpha=1;}
+      // BIG marching chevrons on a dark backing band — readable at any distance
+      var tDir=e.dir<0?-1:1;
+      var bandH=twH*0.30,bandW=twW*0.62,bandY=ey-twH*0.66,bandX=vpX-bandW/2;
+      FX.fillStyle='rgba(6,3,12,0.62)';FX.fillRect(bandX,bandY,bandW,bandH);
+      FX.strokeStyle='rgba('+ac+',0.55)';FX.lineWidth=Math.max(1,2.5*es);
+      FX.strokeRect(bandX,bandY,bandW,bandH);
+      var chH=bandH*0.68,chW=chH*0.60,gap=chW*1.75,cyc2=bandY+bandH/2;
+      FX.lineJoin='round';FX.lineCap='round';
+      for(var cv=0;cv<3;cv++){
+        var cx2=vpX+(cv-1)*gap*tDir;
+        var cA=0.30+0.70*(0.5+0.5*Math.sin(GS.tick*0.22-cv*1.15));
+        FX.beginPath();
+        FX.moveTo(cx2-tDir*chW*0.5,cyc2-chH*0.5);
+        FX.lineTo(cx2+tDir*chW*0.5,cyc2);
+        FX.lineTo(cx2-tDir*chW*0.5,cyc2+chH*0.5);
+        FX.strokeStyle='rgba(0,0,0,0.85)';FX.lineWidth=Math.max(3,chW*0.55);FX.stroke();
+        FX.strokeStyle='rgba(255,196,40,'+cA+')';FX.lineWidth=Math.max(2,chW*0.38);FX.stroke();
+        FX.strokeStyle='rgba(255,246,214,'+(cA*0.9)+')';FX.lineWidth=Math.max(1,chW*0.14);FX.stroke();
+      }
+      FX.lineJoin='miter';FX.lineCap='butt';
+      // pulsing edge glow strips reinforce the wall
+      var eg=0.5+0.35*Math.sin(GS.tick*0.22);
+      FX.fillStyle='rgba(255,196,40,'+eg+')';FX.fillRect(vpX-twW/2,ey-twH,twW,Math.max(2,7*es));FX.fillRect(vpX-twW/2,ey-Math.max(2,5*es),twW,Math.max(2,5*es));
     }else if(e.tp==='pw'||e.tp==='gem'){ // floating pickup icon
       if(e.hit)continue;
       var isz=Math.max(14,58*es),icy=ey-46*es-Math.sin((GS.tick+e.z)*0.08)*8*es;
