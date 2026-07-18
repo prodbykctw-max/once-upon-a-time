@@ -25,6 +25,31 @@ live game from the dev branch. That is now reconciled. The rule:
 4. Mobile first: fixed-timestep loop, DPR cap, touch-action lockouts stay.
    Playwright-test before every deploy (recipe below).
 
+## ART DIRECTION PIVOT (client-directed): WHIMSICAL PRINCESS FAIRYTALE
+The dark mansion is out. New vibe: sunshine, fairies, sparkles, birds,
+water fountains, statues, outdoor stages — bright pastel fairytale. A full
+approved starter kit is committed at `assets_whimsy/` (same cell dims as
+current TEXDATA — drop-in): `walls_whimsy.png`, `floors_whimsy.png`, and
+`ambient_whimsy.png` (fairy x2, bird x2, sparkle x3, petal — for an ambient
+overlay particle system: drifting fairies, birds crossing sky rooms,
+sparkle trail behind Jandé, falling petals). Baker: `tools/bake_whimsy.py`.
+The 9 rooms, re-themed as a day-cycle that ends in her concert:
+  0 THE SUNLIT LIBRARY — Morning Pages          (honey wood, sky window, butterflies)
+  1 ROSE GARDEN WALTZ — Courtyard of Roses      (outdoor: hedge, roses, doves)
+  2 BLOSSOM PROMENADE — Petals in the Wind      (cherry canopy, red bridge)
+  3 THE CRYSTAL BALLROOM — First Dance          (pastel pink, mirrors, chandelier)
+  4 FOUNTAIN PLAZA — Wishes in the Water        (tiered fountain, rainbow, statue)
+  5 SWAN LAKE TERRACE — Grace on the Water      (lake, swans, willow) [swap w/ 6 for day-cycle order]
+  6 STARLIGHT CONSERVATORY — Fireflies at Dusk  (glass, glow flowers, fireflies)
+  7 GALLERY OF DREAMS — Once Upon a Canvas      (pastel paintings, sun medallion)
+  8 THE SUNSET STAGE — Her Encore               (outdoor concert finale: truss lights,
+                                                 confetti, crowd with phone lights)
+Update STAGES names/themes/pc/ac to pastels+gold; skies go bright; keep the
+chaser DARK (the one shadow in a bright world = drama). Music: transpose the
+generative score to MAJOR keys / brighter timbres to match. Decor/props and
+side-mode background should be re-baked in this palette next (extend
+bake_whimsy.py with decor cells mirroring bake_decor.py's slots).
+
 ## CURRENT DIRECTION: Temple View goes 3D
 The user has, on their laptop: Blender (with blender-mcp), a **Rodin AI 3D
 model of Jandé**, and a working **lattice-deformation animation pipeline**
