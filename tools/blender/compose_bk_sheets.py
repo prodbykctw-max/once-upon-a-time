@@ -3,8 +3,8 @@ import numpy as np
 
 # Compose 25 x 512px frames into 1280x1280 sheets (5x5 grid of 256px cells).
 # Grid row 0 = TOP (canvas convention); Blender pixels start bottom-left.
-FRAMES = r"C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner--claude\0a631432-ca18-4d2f-a7d7-f3ab3dc7507f\scratchpad\overhaul\jande_frames"
-OUT = r"C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner--claude\0a631432-ca18-4d2f-a7d7-f3ab3dc7507f\scratchpad\overhaul"
+FRAMES = r"C:\Users\Owner\Documents\once-upon-a-time\assets\renders\jande_frames"
+OUT = r"C:\Users\Owner\Documents\once-upon-a-time\assets\renders"
 
 for anim in ('run', 'jump', 'slide'):
     sheet = np.zeros((1280, 1280, 4), dtype=np.float32)
