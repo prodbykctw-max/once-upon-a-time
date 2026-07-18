@@ -905,9 +905,9 @@ function sfx(n){
     case 'revive':tone(r/2,0.7,'sine',0.14,0.05,0.4,r);[12,16,19,24].forEach(function(iv,k){tone(r*Math.pow(2,iv/12),0.3,'sine',0.07,0.01,0.24,0,t+0.3+k*0.09);});break;
     case 'ui':   tone(880,0.05,'sine',0.07);break;
   }}
-// ── generative score: Am–F–C–G pad in the current room's key, reactive ──
+// ── generative score: bright C–G–Am–F (I–V–vi–IV) major pad, reactive ──
 var MUS={step:0,next:0,cut:600};
-var MUS_CH=[[0,3,7],[-4,0,3],[-7,-3,0],[-2,2,5]];
+var MUS_CH=[[0,4,7],[-5,-1,2],[-3,0,4],[-7,-3,0]]; // major-key fairytale progression
 function musTick(){
   var c=AUD.ctx;if(!c||AUD.muted||!running||GS.paused)return;
   var sd=0.3261; // 8th notes @ 92 BPM
@@ -917,7 +917,7 @@ function musTick(){
     var danger=(MODE==='temple'&&GS.t3&&GS.t3.chase>0);
     if(s%8===0)ch.forEach(function(iv){ // warm pad, opens up with speed
       var f=root*2*Math.pow(2,(iv+(danger?-1:0))/12);
-      tone(f,2.4,'sawtooth',0.028,0.5,1.4,0,t);tone(f*1.005,2.4,'triangle',0.03,0.5,1.4,0,t);});
+      tone(f,2.4,'triangle',0.032,0.5,1.4,0,t);tone(f*1.005,2.4,'sine',0.03,0.5,1.4,0,t);});
     if(s%4===0)tone(root*Math.pow(2,ch[0]/12),0.30,'sine',0.15,0.01,0.22,0,t);      // bass pulse
     if(s%4===2)tone(root*Math.pow(2,ch[0]/12)/2,0.18,'sine',0.07,0.01,0.13,0,t);    // ghost sub
     if(s%2===1&&(GS.speed>6.5||s%4===3))hiss(0.03,0.035,7000,3500,t);               // hats ride the speed
