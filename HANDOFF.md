@@ -46,9 +46,12 @@ The 9 rooms, re-themed as a day-cycle that ends in her concert:
                                                  confetti, crowd with phone lights)
 Update STAGES names/themes/pc/ac to pastels+gold; skies go bright; keep the
 chaser DARK (the one shadow in a bright world = drama). Music: transpose the
-generative score to MAJOR keys / brighter timbres to match. Decor/props and
-side-mode background should be re-baked in this palette next (extend
-bake_whimsy.py with decor cells mirroring bake_decor.py's slots).
+generative score to MAJOR keys / brighter timbres to match.
+▶ ACTIVE ART TASK (client-directed): generate the production versions of
+this pack through AUTOSPRITE — the complete brief with all 27+ prompts,
+processing spec, size budget, and QA gates is at
+`assets_whimsy/AUTOSPRITE_BRIEF.md`. Execute it top to bottom; show the
+user the preview contact sheet before embedding anything into index.html.
 
 ## CURRENT DIRECTION: Temple View goes 3D
 The user has, on their laptop: Blender (with blender-mcp), a **Rodin AI 3D
