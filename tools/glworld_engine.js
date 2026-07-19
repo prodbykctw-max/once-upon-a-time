@@ -12,7 +12,7 @@ var GLWORLD=(function(){
   var texGround=[],texProps=null,texBlob=null;
   var propPool=[],curShift=0;
   var LOOK=[
-    {fog:[0.86,0.76,0.58],skyTop:[0.55,0.42,0.30],sun:[0.5,0.30,1.0,0.5],tint:[1.05,0.98,0.88],hill:0,props:[]},
+    {fog:[0.93,0.80,0.56],skyTop:[0.70,0.50,0.28],sun:[0.5,0.33,1.4,1.0],tint:[0.80,0.62,0.42],hill:0,props:[12,13,14]},
     {fog:[0.98,0.85,0.70],skyTop:[0.44,0.62,0.94],sun:[0.30,0.30,1.0,0.85],tint:[1,1,1],hill:60,props:[0,1,11]},
     {fog:[0.99,0.90,0.92],skyTop:[0.55,0.70,0.95],sun:[0.72,0.26,0.9,0.7],tint:[0.86,0.96,0.82],hill:44,props:[2,2,11]},
     {fog:[0.88,0.95,0.99],skyTop:[0.40,0.64,0.97],sun:[0.6,0.22,1.0,0.8],tint:[0.98,1.02,0.98],hill:34,props:[4,6,5]},
@@ -102,7 +102,7 @@ var GLWORLD=(function(){
     var quads=[],shadows=[];
     for(i=0;i<propPool.length;i++){
       p=propPool[i];var z=p.zw-wz;if(z<-60||z>1500)continue;
-      var wx=p.xn*corrW,u0=p.kind/12,u1=(p.kind+1)/12;
+      var wx=p.xn*corrW,u0=p.kind/16,u1=(p.kind+1)/16;
       var pw=340*ps*p.s,ph=560*ps*p.s;
       var hop=p.critter?Math.abs(Math.sin(wz*0.05+p.seq))*26*ps:0;
       quads.push([wx-pw/2,0+hop,z,wx+pw/2,ph+hop,z,u0,u1]);
