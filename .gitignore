@@ -27,3 +27,5 @@ npm-debug.log*
 # Never commit: real-person reference photos + 3D source assets (public repo) + session config
 assets/
 .claude/
+
+tools/captures/
