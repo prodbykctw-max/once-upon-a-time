@@ -34,8 +34,9 @@ print(f'foes 9 cells -> {len(fb.getvalue())//1024} KB')
 idx = os.path.join(ROOT, 'index.html')
 src = io.open(idx, encoding='utf-8').read()
 
-# GLWDATA.props: swap just the props value, keep the ground textures
-m = re.search(r'(var GLWDATA=\{grounds:\[.*?\],props:")([^"]*)("\};)', src, re.S)
+# GLWDATA.props: swap just the props value, keep the ground textures.
+# Do not anchor on the closing brace — wall/ceil may follow props.
+m = re.search(r'(var GLWDATA=\{grounds:\[.*?\],props:")([^"]*)(")', src, re.S)
 assert m, 'GLWDATA props not found'
 src = src[:m.start(2)] + props_b64 + src[m.end(2):]
 

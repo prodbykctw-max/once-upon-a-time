@@ -12,7 +12,7 @@ var GLWORLD=(function(){
   var texGround=[],texProps=null,texBlob=null,texWall=null,texCeil=null;
   var propPool=[],curShift=0;
   var LOOK=[
-    {fog:[0.93,0.80,0.56],skyTop:[0.70,0.50,0.28],sun:[0.5,0.33,1.4,1.0],tint:[0.86,0.72,0.52],hill:0,props:[13,14,13],hall:1},
+    {fog:[0.93,0.80,0.56],skyTop:[0.70,0.50,0.28],sun:[0.5,0.33,0.0,0.0],tint:[0.86,0.72,0.52],hill:0,props:[13,14,13],hall:1},
     {fog:[0.98,0.85,0.70],skyTop:[0.44,0.62,0.94],sun:[0.30,0.30,1.0,0.85],tint:[1,1,1],hill:60,props:[0,1,11]},
     {fog:[0.99,0.90,0.92],skyTop:[0.55,0.70,0.95],sun:[0.72,0.26,0.9,0.7],tint:[0.86,0.96,0.82],hill:44,props:[2,2,11]},
     {fog:[0.88,0.95,0.99],skyTop:[0.40,0.64,0.97],sun:[0.6,0.22,1.0,0.8],tint:[0.98,1.02,0.98],hill:34,props:[4,6,5]},
@@ -53,9 +53,12 @@ var GLWORLD=(function(){
     'varying vec2 vUV;varying float vZ;'+
     'void main(){float zw=aP.z+uWz;float wx=aP.x*uWallX;float wy=aP.y*uWallH;float z=aP.z;'+
     'vUV=vec2(zw*uUVz,aUV.y);vZ=z;'+PROJ+'}';
+  // uWrapY: walls tile the bookcase vertically (tall two-tier casework) while
+  // the ceiling clamps, since its V runs across the hall and must not wrap.
   var FS_H='precision mediump float;uniform sampler2D uTex;uniform vec3 uFog;uniform vec3 uTint;'+
-    'uniform float uFogStart,uFogEnd;varying vec2 vUV;varying float vZ;'+
-    'void main(){vec3 c=texture2D(uTex,vec2(fract(vUV.x),clamp(vUV.y,0.01,0.99))).rgb*uTint;'+
+    'uniform float uFogStart,uFogEnd,uWrapY;varying vec2 vUV;varying float vZ;'+
+    'void main(){float yy=uWrapY>0.5?fract(vUV.y):clamp(vUV.y,0.01,0.99);'+
+    'vec3 c=texture2D(uTex,vec2(fract(vUV.x),yy)).rgb*uTint;'+
     'float f=smoothstep(uFogStart,uFogEnd,vZ);gl_FragColor=vec4(mix(c,uFog,f),1.0);}';
 
   function zRow(r,rows){var t=r/rows;return -60+1560*t*t*0.75+1560*t*0.25;}
@@ -66,7 +69,7 @@ var GLWORLD=(function(){
     for(var s=0;s<2;s++){
       var sgn=s?1:-1,base=s*(rows+1)*5;
       for(r=0;r<=rows;r++){var z=zRow(r,rows);
-        for(c2=0;c2<=4;c2++){var yf=c2/4;vw.push(sgn,yf,z,0,yf);}}
+        for(c2=0;c2<=4;c2++){var yf=c2/4;vw.push(sgn,yf,z,0,yf*2.0);}}
       for(r=0;r<rows;r++)for(c2=0;c2<4;c2++){
         var a=base+r*5+c2,b=a+1,c3=a+5,d=c3+1;
         if(sgn<0)iw.push(a,b,c3,b,d,c3);else iw.push(a,c3,b,b,c3,d);}
@@ -92,14 +95,17 @@ var GLWORLD=(function(){
     gl.useProgram(progH);setProj(progH);
     gl.uniform1f(gl.getUniformLocation(progH,'uWz'),wz);
     gl.uniform1f(gl.getUniformLocation(progH,'uWallX'),corrW*1.18);
-    gl.uniform1f(gl.getUniformLocation(progH,'uWallH'),Hp*0.60);
+    // tall enough that the ceiling passes above the top of frame near the
+    // camera — otherwise you see over it and the "room" leaks open sky
+    gl.uniform1f(gl.getUniformLocation(progH,'uWallH'),Hp*0.95);
     gl.uniform3fv(gl.getUniformLocation(progH,'uFog'),L.fog);
     gl.uniform3fv(gl.getUniformLocation(progH,'uTint'),L.tint);
     gl.uniform1f(gl.getUniformLocation(progH,'uFogStart'),420.0);
     gl.uniform1f(gl.getUniformLocation(progH,'uFogEnd'),1300.0);
     var aP=gl.getAttribLocation(progH,'aP'),aUV=gl.getAttribLocation(progH,'aUV');
-    function drawPart(m,tex,uvz){
+    function drawPart(m,tex,uvz,wrapY){
       gl.uniform1f(gl.getUniformLocation(progH,'uUVz'),uvz);
+      gl.uniform1f(gl.getUniformLocation(progH,'uWrapY'),wrapY?1:0);
       gl.bindTexture(gl.TEXTURE_2D,tex);
       gl.bindBuffer(gl.ARRAY_BUFFER,m.vb);
       gl.enableVertexAttribArray(aP);gl.enableVertexAttribArray(aUV);
@@ -108,8 +114,8 @@ var GLWORLD=(function(){
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.ib);
       gl.drawElements(gl.TRIANGLES,m.n,gl.UNSIGNED_SHORT,0);
     }
-    drawPart(meshH.wall,texWall,0.0034);
-    drawPart(meshH.ceil,texCeil,0.0030);
+    drawPart(meshH.wall,texWall,0.0034,true);
+    drawPart(meshH.ceil,texCeil,0.0030,false);
   }
 
   function buildTerrain(){
@@ -137,12 +143,19 @@ var GLWORLD=(function(){
   }
   function seedProps(stage){
     propPool=[];var pk=LOOK[stage].props;if(!pk.length)return;
+    var hall=LOOK[stage].hall?1:0;
     for(var i=0;i<26;i++){
       var seq=i,kind=(seq%5===4)?pk[2]:(seq%2?pk[1]:pk[0]);
       var side=(seq%2)*2-1,far=(seq%3===2),critter=(kind===10||kind===11);
       var s=(critter?0.5:1)*(far?0.62:1)*(0.85+((seq*29)%30)/100);
+      // indoors these are furniture, not forest trees: much smaller, and set
+      // in against the bookcase walls so they line the aisle instead of
+      // towering over it.
+      if(hall)s*=0.46;
       propPool.push({zw:i*115+((i*37)%60),kind:kind,side:side,
-        xn:(far?1.65:1.0)*side+((seq*13)%9-4)*0.03,s:s,critter:critter,seq:seq});
+        xn:hall?((far?1.05:0.82)*side+((seq*13)%9-4)*0.02)
+               :((far?1.65:1.0)*side+((seq*13)%9-4)*0.03),
+        s:s,critter:critter,seq:seq});
     }
   }
   function setProj(pr){
