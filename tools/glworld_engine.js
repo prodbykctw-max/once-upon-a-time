@@ -8,11 +8,11 @@
 // ════════════════════════════════════════════════════════════
 var GLWORLD=(function(){
   var gl,cv,Wp,Hp,vpY,gNear,corrW,ps;
-  var progT,progS,progP,meshT,skyBuf,dynBuf=null;
-  var texGround=[],texProps=null,texBlob=null;
+  var progT,progS,progP,progH,meshT,meshH,skyBuf,dynBuf=null;
+  var texGround=[],texProps=null,texBlob=null,texWall=null,texCeil=null;
   var propPool=[],curShift=0;
   var LOOK=[
-    {fog:[0.93,0.80,0.56],skyTop:[0.70,0.50,0.28],sun:[0.5,0.33,1.4,1.0],tint:[0.80,0.62,0.42],hill:0,props:[12,13,14]},
+    {fog:[0.93,0.80,0.56],skyTop:[0.70,0.50,0.28],sun:[0.5,0.33,1.4,1.0],tint:[0.86,0.72,0.52],hill:0,props:[13,14,13],hall:1},
     {fog:[0.98,0.85,0.70],skyTop:[0.44,0.62,0.94],sun:[0.30,0.30,1.0,0.85],tint:[1,1,1],hill:60,props:[0,1,11]},
     {fog:[0.99,0.90,0.92],skyTop:[0.55,0.70,0.95],sun:[0.72,0.26,0.9,0.7],tint:[0.86,0.96,0.82],hill:44,props:[2,2,11]},
     {fog:[0.88,0.95,0.99],skyTop:[0.40,0.64,0.97],sun:[0.6,0.22,1.0,0.8],tint:[0.98,1.02,0.98],hill:34,props:[4,6,5]},
@@ -45,6 +45,73 @@ var GLWORLD=(function(){
     'void main(){float wx=aQ.x;float wy=aQ.y;float z=aQ.z;vUV=aUV;vZ=z;'+PROJ+'}';
   var FS_P='precision mediump float;uniform sampler2D uTex;uniform vec3 uFog;uniform float uFogStart,uFogEnd;uniform float uAlpha;varying vec2 vUV;varying float vZ;'+
     'void main(){vec4 c=texture2D(uTex,vUV);if(c.a<0.35)discard;float f=smoothstep(uFogStart,uFogEnd,vZ);gl_FragColor=vec4(mix(c.rgb,uFog,f),c.a*uAlpha);}';
+  // ── HALL: an interior stage needs to be an enclosed room. Billboard
+  // bookcases standing on open terrain read as beams in a field, so stage 0
+  // gets real wall + ceiling geometry in the same projection.
+  var VS_H='attribute vec3 aP;attribute vec2 aUV;'+
+    'uniform float uW,uH,uVpy,uGnear,uShift,uWz,uWallX,uWallH,uUVz;'+
+    'varying vec2 vUV;varying float vZ;'+
+    'void main(){float zw=aP.z+uWz;float wx=aP.x*uWallX;float wy=aP.y*uWallH;float z=aP.z;'+
+    'vUV=vec2(zw*uUVz,aUV.y);vZ=z;'+PROJ+'}';
+  var FS_H='precision mediump float;uniform sampler2D uTex;uniform vec3 uFog;uniform vec3 uTint;'+
+    'uniform float uFogStart,uFogEnd;varying vec2 vUV;varying float vZ;'+
+    'void main(){vec3 c=texture2D(uTex,vec2(fract(vUV.x),clamp(vUV.y,0.01,0.99))).rgb*uTint;'+
+    'float f=smoothstep(uFogStart,uFogEnd,vZ);gl_FragColor=vec4(mix(c,uFog,f),1.0);}';
+
+  function zRow(r,rows){var t=r/rows;return -60+1560*t*t*0.75+1560*t*0.25;}
+
+  function buildHall(){
+    var rows=64,vw=[],iw=[],vc=[],ic=[],r,c2;
+    // walls: 4 vertical segments per side
+    for(var s=0;s<2;s++){
+      var sgn=s?1:-1,base=s*(rows+1)*5;
+      for(r=0;r<=rows;r++){var z=zRow(r,rows);
+        for(c2=0;c2<=4;c2++){var yf=c2/4;vw.push(sgn,yf,z,0,yf);}}
+      for(r=0;r<rows;r++)for(c2=0;c2<4;c2++){
+        var a=base+r*5+c2,b=a+1,c3=a+5,d=c3+1;
+        if(sgn<0)iw.push(a,b,c3,b,d,c3);else iw.push(a,c3,b,b,c3,d);}
+    }
+    // ceiling: spans the hall, uv runs across
+    for(r=0;r<=rows;r++){var z2=zRow(r,rows);
+      for(c2=0;c2<=6;c2++){var xf=-1+2*c2/6;vc.push(xf,1,z2,0,xf*0.5+0.5);}}
+    for(r=0;r<rows;r++)for(c2=0;c2<6;c2++){
+      var a2=r*7+c2,b2=a2+1,c4=a2+7,d2=c4+1;ic.push(a2,b2,c4,b2,d2,c4);}
+    function mk(v,i){
+      var vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);
+      gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(v),gl.STATIC_DRAW);
+      var ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(i),gl.STATIC_DRAW);
+      return {vb:vb,ib:ib,n:i.length};
+    }
+    return {wall:mk(vw,iw),ceil:mk(vc,ic)};
+  }
+
+  function drawHall(stage,wz){
+    var L=LOOK[stage];
+    if(!L.hall||!meshH||!texWall||!texCeil)return;
+    gl.useProgram(progH);setProj(progH);
+    gl.uniform1f(gl.getUniformLocation(progH,'uWz'),wz);
+    gl.uniform1f(gl.getUniformLocation(progH,'uWallX'),corrW*1.18);
+    gl.uniform1f(gl.getUniformLocation(progH,'uWallH'),Hp*0.60);
+    gl.uniform3fv(gl.getUniformLocation(progH,'uFog'),L.fog);
+    gl.uniform3fv(gl.getUniformLocation(progH,'uTint'),L.tint);
+    gl.uniform1f(gl.getUniformLocation(progH,'uFogStart'),420.0);
+    gl.uniform1f(gl.getUniformLocation(progH,'uFogEnd'),1300.0);
+    var aP=gl.getAttribLocation(progH,'aP'),aUV=gl.getAttribLocation(progH,'aUV');
+    function drawPart(m,tex,uvz){
+      gl.uniform1f(gl.getUniformLocation(progH,'uUVz'),uvz);
+      gl.bindTexture(gl.TEXTURE_2D,tex);
+      gl.bindBuffer(gl.ARRAY_BUFFER,m.vb);
+      gl.enableVertexAttribArray(aP);gl.enableVertexAttribArray(aUV);
+      gl.vertexAttribPointer(aP,3,gl.FLOAT,false,20,0);
+      gl.vertexAttribPointer(aUV,2,gl.FLOAT,false,20,12);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.ib);
+      gl.drawElements(gl.TRIANGLES,m.n,gl.UNSIGNED_SHORT,0);
+    }
+    drawPart(meshH.wall,texWall,0.0034);
+    drawPart(meshH.ceil,texCeil,0.0030);
+  }
+
   function buildTerrain(){
     var rows=72,cols=30,verts=[],idx=[],r,c2;
     for(r=0;r<=rows;r++){var t=r/rows,z=-60+1560*t*t*0.75+1560*t*0.25;
@@ -133,7 +200,8 @@ var GLWORLD=(function(){
     gl=cv.getContext('webgl',{alpha:false,antialias:true,depth:true})||cv.getContext('experimental-webgl');
     if(!gl)throw 'no webgl';
     progT=prog2(VS_T,FS_T);progS=prog2(VS_S,FS_S);progP=prog2(VS_P,FS_P);
-    meshT=buildTerrain();
+    progH=prog2(VS_H,FS_H);
+    meshT=buildTerrain();meshH=buildHall();
     skyBuf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,skyBuf);
     gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,-1,1,1,-1,1]),gl.STATIC_DRAW);
     var bc=document.createElement('canvas');bc.width=bc.height=64;
@@ -144,9 +212,11 @@ var GLWORLD=(function(){
     texBlob=mkTex(bc,false);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
   }
-  function setTextures(groundImgs,propsImg){
+  function setTextures(groundImgs,propsImg,wallImg,ceilImg){
     for(var i=0;i<groundImgs.length;i++)texGround[i]=groundImgs[i]?mkTex(groundImgs[i],true):null;
     if(propsImg)texProps=mkTex(propsImg,false);
+    if(wallImg)texWall=mkTex(wallImg,true);
+    if(ceilImg)texCeil=mkTex(ceilImg,true);
   }
   function render(stage,wz,shift){
     curShift=shift||0;
@@ -181,6 +251,7 @@ var GLWORLD=(function(){
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,meshT.ib);
       gl.drawElements(gl.TRIANGLES,meshT.n,gl.UNSIGNED_SHORT,0);
     }
+    drawHall(stage,wz);
     drawProps(stage,wz);
   }
   function look(stage){return LOOK[stage]||LOOK[0];}
@@ -191,9 +262,9 @@ var GLWORLD=(function(){
 // world actually rendered (drawT uses that to skip its 2D background).
 var GLW=(function(){
   var booted=false,failed=false,texset=false,lastStage=-1;
-  var imgs=new Array(9),propsImg=null,pend=10;
+  var imgs=new Array(9),propsImg=null,wallImg=null,ceilImg=null,pend=12;
   function done(){if(--pend>0)return;
-    try{GLWORLD.setTextures(imgs,propsImg);texset=true;}catch(e){failed=true;}}
+    try{GLWORLD.setTextures(imgs,propsImg,wallImg,ceilImg);texset=true;}catch(e){failed=true;}}
   function boot(){
     if(booted||failed)return;booted=true;
     try{GLWORLD.init(document.getElementById('glC'));}catch(e){failed=true;return;}
@@ -202,8 +273,12 @@ var GLW=(function(){
       im.src=GLWDATA.grounds[k];})(i);
     var pm=new Image();pm.onload=function(){propsImg=pm;done();};pm.onerror=done;
     pm.src=GLWDATA.props;
+    var wm=new Image();wm.onload=function(){wallImg=wm;done();};wm.onerror=done;
+    wm.src=GLWDATA.wall;
+    var cm=new Image();cm.onload=function(){ceilImg=cm;done();};cm.onerror=done;
+    cm.src=GLWDATA.ceil;
   }
-  return {draw:function(stage,wz,shift){
+  return {ready:function(){return texset;},draw:function(stage,wz,shift){
     if(failed)return false;
     if(!booted){boot();return false;}
     if(!texset)return false;
