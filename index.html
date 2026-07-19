@@ -2128,10 +2128,28 @@ function drawMansionBG(st){
   var pc=hexS(st.pc),ac=hexS(st.ac),cam=GS.camX,ai=GS.ai,tick=GS.tick;
   var floorY=H*0.82;
   var groundY=Math.min(floorY,14*32-(GS.camY||0)); // top of the track tiles
-  // ── base + layered depth ──
+  // ── base: fairytale daytime sky ──
   var bgG=FX.createLinearGradient(0,0,0,H);
-  bgG.addColorStop(0,shade(pc,0.05));bgG.addColorStop(0.3,shade(pc,0.12));bgG.addColorStop(0.7,shade(pc,0.08));bgG.addColorStop(1,'rgb(4,2,8)');
+  bgG.addColorStop(0,'rgb(150,212,255)');bgG.addColorStop(0.32,'rgb(216,240,255)');
+  bgG.addColorStop(0.6,shade(pc,0.9));bgG.addColorStop(1,shade(pc,0.55));
   FX.fillStyle=bgG;FX.fillRect(0,0,W,H);
+  // sun + halo
+  var sunX=W*0.78,sunY=H*0.09;
+  var sg=FX.createRadialGradient(sunX,sunY,4,sunX,sunY,H*0.3);
+  sg.addColorStop(0,'rgba(255,250,220,0.95)');sg.addColorStop(0.25,'rgba(255,240,180,0.5)');sg.addColorStop(1,'rgba(255,240,180,0)');
+  FX.fillStyle=sg;FX.fillRect(sunX-H*0.3,sunY-H*0.3,H*0.6,H*0.6);
+  // slow parallax clouds
+  var clSp=520,offC=(-cam*0.03)%clSp;
+  for(var cxp=offC-clSp;cxp<W+clSp;cxp+=clSp){
+    FX.fillStyle='rgba(255,255,255,0.8)';
+    for(var cd=0;cd<4;cd++)FX.beginPath(),FX.ellipse(cxp+cd*26-40,H*0.07+(cd%2)*8,26-cd*3,13-cd*2,0,0,6.28),FX.fill();}
+  // drifting sun rays
+  for(var sr2=0;sr2<3;sr2++){
+    var rx0=((sr2*430+tick*0.2)% (W+500))-250;
+    var rg2=FX.createLinearGradient(rx0,0,rx0+180,H*0.7);
+    rg2.addColorStop(0,'rgba(255,248,210,0.10)');rg2.addColorStop(1,'rgba(255,248,210,0)');
+    FX.fillStyle=rg2;
+    FX.beginPath();FX.moveTo(rx0,0);FX.lineTo(rx0+120,0);FX.lineTo(rx0+300,H*0.75);FX.lineTo(rx0+180,H*0.75);FX.closePath();FX.fill();}
   // distant depth arches with filled glow
   var archSp=440,off0=(-cam*0.06)%archSp;
   for(var ax=off0-archSp;ax<W+archSp;ax+=archSp){
@@ -2141,7 +2159,7 @@ function drawMansionBG(st){
     FX.beginPath();FX.moveTo(ax-aW/2,ay+aH);FX.lineTo(ax-aW/2,ay+aH*0.3);
     FX.bezierCurveTo(ax-aW/2,ay,ax+aW/2,ay,ax+aW/2,ay+aH*0.3);
     FX.lineTo(ax+aW/2,ay+aH);FX.closePath();FX.fill();
-    FX.strokeStyle='rgba(255,240,200,0.07)';FX.lineWidth=2;FX.stroke();
+    FX.strokeStyle='rgba(255,255,255,0.12)';FX.lineWidth=2;FX.stroke();
     // keystone accent
     FX.fillStyle='rgba('+ac+',0.06)';FX.fillRect(ax-4,ay,8,12);}
   // mid-depth pillars (between arches and wall band)
@@ -2165,7 +2183,7 @@ function drawMansionBG(st){
     FX.imageSmoothingEnabled=true;
     // atmosphere: push the wall back behind the play space
     var dg=FX.createLinearGradient(0,wTop,0,groundY);
-    dg.addColorStop(0,'rgba(4,2,8,0.5)');dg.addColorStop(0.45,'rgba(4,2,8,0.18)');dg.addColorStop(1,'rgba(4,2,8,0.34)');
+    dg.addColorStop(0,'rgba(255,250,235,0.16)');dg.addColorStop(0.5,'rgba(255,250,235,0.02)');dg.addColorStop(1,'rgba(96,72,52,0.16)');
     FX.fillStyle=dg;FX.fillRect(0,0,W,groundY);
   }
   // ── warm chandelier/torch light pools ──
@@ -2193,14 +2211,43 @@ function drawMansionBG(st){
       FX.drawImage(TEX.decor,ai*144,0,144,240,px5,groundY-dh2,dw2,dh2);}
     FX.imageSmoothingEnabled=true;
   }
-  // ── cobwebs in the upper corners ──
-  FX.strokeStyle='rgba(200,190,170,0.12)';FX.lineWidth=0.8;var cwSz=76;
-  [[0,0],[W,0]].forEach(function(c){var cx=c[0],cy=c[1];
-    for(var ci=0;ci<6;ci++){var r=cwSz*(0.3+ci*0.12);FX.beginPath();FX.arc(cx,cy,r,cx?Math.PI*0.5:0,cx?Math.PI:Math.PI*0.5);FX.stroke();}
-    for(var sp=0;sp<5;sp++){var a1=(cx?Math.PI*0.5:0),a2=(cx?Math.PI:Math.PI*0.5),ang=a1+(a2-a1)*sp/4;FX.beginPath();FX.moveTo(cx,cy);FX.lineTo(cx+Math.cos(ang)*cwSz,cy+Math.sin(ang)*cwSz);FX.stroke();}});
+  // ── flower garland swags along the top ──
+  var gaSp=240,offG=(-cam*0.5)%gaSp;
+  FX.strokeStyle='rgba(126,188,110,0.75)';FX.lineWidth=2.5;
+  for(var gx2=offG-gaSp;gx2<W+gaSp;gx2+=gaSp){
+    FX.beginPath();FX.moveTo(gx2,4);FX.quadraticCurveTo(gx2+gaSp/2,34,gx2+gaSp,4);FX.stroke();
+    for(var gp=1;gp<6;gp++){var gt=gp/6;
+      var gxx=gx2+gaSp*gt,gyy=4+(34-4)*4*gt*(1-gt)*0.95;
+      FX.fillStyle=gp%2?'rgba(255,150,180,0.9)':'rgba(255,205,120,0.9)';
+      FX.beginPath();FX.arc(gxx,gyy,3.2,0,6.28);FX.fill();
+      FX.fillStyle='rgba(255,255,255,0.6)';FX.beginPath();FX.arc(gxx-1,gyy-1,1.1,0,6.28);FX.fill();}}
+  // ── ambient magic: sparkles, drifting fairies, birds ──
+  for(var sk2=0;sk2<12;sk2++){
+    var tw=Math.sin(tick*0.11+sk2*2.1);if(tw<0.2)continue;
+    var sxx=(sk2*211+((sk2%2)?-1:1)*tick*0.4)%W;if(sxx<0)sxx+=W;
+    var syy=30+(sk2*97)%Math.round(H*0.55);
+    FX.fillStyle='rgba(255,255,255,'+(0.55*tw)+')';
+    FX.fillRect(sxx-3,syy-0.7,6,1.4);FX.fillRect(sxx-0.7,syy-3,1.4,6);}
+  for(var fy2=0;fy2<3;fy2++){
+    var fxp=((fy2*380+tick*(0.7+fy2*0.2))%(W+120))-60;
+    var fyp=H*(0.2+fy2*0.13)+Math.sin(tick*0.03+fy2*2)*26;
+    FX.fillStyle='rgba(255,244,180,0.28)';FX.beginPath();FX.arc(fxp,fyp,8,0,6.28);FX.fill();
+    FX.fillStyle='rgba(255,226,120,0.95)';FX.beginPath();FX.arc(fxp,fyp,2.4,0,6.28);FX.fill();
+    var wf2=(Math.floor(tick/6)%2)?3.5:1.5;
+    FX.fillStyle='rgba(230,246,255,0.85)';
+    FX.beginPath();FX.ellipse(fxp-3.5,fyp-2,2.2,wf2,-0.5,0,6.28);FX.fill();
+    FX.beginPath();FX.ellipse(fxp+3.5,fyp-2,2.2,wf2,0.5,0,6.28);FX.fill();
+    FX.fillStyle='rgba(255,240,170,0.4)';
+    for(var tr2=1;tr2<5;tr2++)FX.fillRect(fxp-tr2*7,fyp+Math.sin(tick*0.03+fy2*2-tr2*0.4)*6,2,2);}
+  for(var bd2=0;bd2<2;bd2++){
+    var bxp=((bd2*640+tick*1.1)%(W+160))-80,byp=H*(0.06+bd2*0.05)+Math.sin(tick*0.02+bd2)*10;
+    var wu=(Math.floor(tick/8)%2)?-2:2;
+    FX.strokeStyle='rgba(90,110,140,0.7)';FX.lineWidth=1.6;
+    FX.beginPath();FX.moveTo(bxp-5,byp+wu);FX.quadraticCurveTo(bxp-2,byp-2,bxp,byp);
+    FX.quadraticCurveTo(bxp+2,byp-2,bxp+5,byp+wu);FX.stroke();}
   // ── floor base gradient (polished wood / stone) ──
   var flG=FX.createLinearGradient(0,floorY,0,H);
-  flG.addColorStop(0,'rgba('+pc+',0.18)');flG.addColorStop(0.3,'rgba('+pc+',0.08)');flG.addColorStop(1,'rgba(0,0,0,0.6)');
+  flG.addColorStop(0,'rgba(255,235,190,0.20)');flG.addColorStop(0.3,'rgba('+pc+',0.12)');flG.addColorStop(1,'rgba(70,48,26,0.5)');
   FX.fillStyle=flG;FX.fillRect(0,floorY,W,H-floorY);
   // parquet herringbone pattern
   FX.strokeStyle='rgba(0,0,0,0.10)';FX.lineWidth=1;
@@ -2250,7 +2297,17 @@ function draw(){
   // death bloom — she becomes music
   stepNotes();drawNotes();
   // HERO (sprite)
-  var p=GS.p;if(!p.noteGone){if(p.inv>0&&GS.shieldT<=0)FX.globalAlpha=0.55+0.3*Math.sin(GS.tick*0.7);drawHero(p);FX.globalAlpha=1;}
+  var p=GS.p;
+  // fairytale sparkle trail while she runs
+  if(!p.dead&&Math.abs(p.vx)>2.5){
+    var dir3=p.vx>0?1:-1;
+    for(var st3=0;st3<5;st3++){
+      var ph3=((GS.tick*0.09+st3*0.2)%1);
+      var tx3=p.x+PW/2-dir3*(12+ph3*46),ty3=p.y+PH*0.55+Math.sin(GS.tick*0.2+st3*1.7)*10-ph3*8;
+      var al3=0.5*(1-ph3);
+      FX.fillStyle=st3%2?'rgba(255,224,130,'+al3+')':'rgba(255,255,255,'+al3+')';
+      FX.fillRect(tx3-2,ty3-0.6,4,1.2);FX.fillRect(tx3-0.6,ty3-2,1.2,4);}}
+  if(!p.noteGone){if(p.inv>0&&GS.shieldT<=0)FX.globalAlpha=0.55+0.3*Math.sin(GS.tick*0.7);drawHero(p);FX.globalAlpha=1;}
   FX.restore();
   // combo meter
   if(GS.combo>1&&GS.comboT>0){
@@ -2260,7 +2317,7 @@ function draw(){
   // abyss below the track (tall screens / pits)
   var gy2=GS.LH*T-GS.camY;
   if(gy2<H){var ab2=FX.createLinearGradient(0,gy2,0,Math.min(H,gy2+140));
-    ab2.addColorStop(0,'rgba(6,2,10,0.55)');ab2.addColorStop(1,'rgba(2,0,5,0.97)');
+    ab2.addColorStop(0,'rgba(96,66,88,0.35)');ab2.addColorStop(1,'rgba(44,28,46,0.85)');
     FX.fillStyle=ab2;FX.fillRect(0,gy2,W,H-gy2);}
   drawLyric(ac);drawPowerHUD(ac);drawDist(ac);drawToasts();
   // how-to overlay (first ~5s of a run)
