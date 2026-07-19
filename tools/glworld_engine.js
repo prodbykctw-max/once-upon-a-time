@@ -183,7 +183,8 @@ var GLWORLD=(function(){
     }
     drawProps(stage,wz);
   }
-  return {init:init,setTextures:setTextures,render:render,seedProps:seedProps};
+  function look(stage){return LOOK[stage]||LOOK[0];}
+  return {init:init,setTextures:setTextures,render:render,seedProps:seedProps,look:look};
 })();
 // GLW — lazy bootstrap wrapper: decodes GLWDATA textures once, then renders
 // the outdoor world into #glC each frame. draw() returns true only when the

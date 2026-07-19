@@ -8,9 +8,13 @@ os.makedirs(CAPS, exist_ok=True)
 
 # rAF shim for hidden-tab verification: replaces requestAnimationFrame with a
 # timer-driven pump so the game loop advances even when the pane is hidden.
-SHIM = (b"<script>(function(){var q=[];window.requestAnimationFrame=function(cb){"
+SHIM = (b"<script>(function(){window.__err=[];window.addEventListener('error',function(e){"
+        b"window.__err.push((e.message||'')+' @'+(e.lineno||0)+':'+(e.colno||0));});"
+        b"var q=[];window.requestAnimationFrame=function(cb){"
         b"q.push(cb);return q.length;};function pump(){var c=q;q=[];var t=performance.now();"
-        b"for(var i=0;i<c.length;i++){try{c[i](t)}catch(e){}}setTimeout(pump,33);}pump();})();</script>")
+        b"for(var i=0;i<c.length;i++){try{c[i](t)}catch(e){"
+        b"window.__err.push('RAF '+(e&&e.message)+' | '+String(e&&e.stack).slice(0,300));}}"
+        b"setTimeout(pump,33);}pump();})();</script>")
 
 class H(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):

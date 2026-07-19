@@ -8,6 +8,8 @@ import numpy as np
 #   sleeves: follow arms                            boots: follow legs
 OUT = r"C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner--claude\0a631432-ca18-4d2f-a7d7-f3ab3dc7507f\scratchpad\overhaul\jande_frames"
 TEST_ONLY = '--test' in sys.argv
+# NOTE: the camera below (+Y, yaw 180) already looks at her BACK — these frames
+# are the Temple View runner sheets. Camera at -Y would be her face.
 
 sc = bpy.context.scene
 base = bpy.data.objects['JandeModel']
@@ -16,12 +18,25 @@ for nm in ('ChkCam', 'ChkSun', 'Cube', 'Light', 'Camera', 'Lat', 'PrevCam'):
     if o: bpy.data.objects.remove(o, do_unlink=True)
 
 # ── 1. curves -> mesh, join all costume, record per-vertex group ──
+# NOTE: bpy.ops.object.select_all needs a window context and fails headless;
+# deselect by hand so this runs under --background --factory-startup.
+def deselect_all():
+    for x in bpy.context.view_layer.objects:
+        x.select_set(False)
+
+# convert/join operators can't poll without a window, so do it through the
+# data API: evaluate each curve (modifiers included) into a real mesh object.
+import bmesh
+
 for o in list(bpy.data.objects):
     if o.type == 'CURVE':
-        bpy.ops.object.select_all(action='DESELECT')
-        o.select_set(True)
-        bpy.context.view_layer.objects.active = o
-        bpy.ops.object.convert(target='MESH')
+        dg = bpy.context.evaluated_depsgraph_get()
+        me = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
+        nm, mw, colls = o.name, o.matrix_world.copy(), list(o.users_collection)
+        bpy.data.objects.remove(o, do_unlink=True)
+        nb = bpy.data.objects.new(nm, me)
+        nb.matrix_world = mw
+        for c in (colls or [sc.collection]): c.objects.link(nb)
 
 def centroid(o):
     vs = np.empty(len(o.data.vertices) * 3)
@@ -43,20 +58,28 @@ for o in list(bpy.data.objects):
     else: g = GRP_SKIRT
     costume.append((o, g))
 
+# manual join: append each costume mesh (modifiers evaluated, transformed into
+# base local space) in the SAME order the group map is built, so vertex indices
+# stay aligned with grp.
 grp_list = [np.zeros(len(base.data.vertices), dtype=np.int32)]
+bm = bmesh.new()
+bm.from_mesh(base.data)
+base_inv = base.matrix_world.inverted()
 for o, g in costume:
-    bpy.ops.object.select_all(action='DESELECT')
-    o.select_set(True)
-    bpy.context.view_layer.objects.active = o
-    for md in list(o.modifiers):
-        try: bpy.ops.object.modifier_apply(modifier=md.name)
-        except Exception: o.modifiers.remove(md)
-    grp_list.append(np.full(len(o.data.vertices), g, dtype=np.int32))
-    bpy.ops.object.select_all(action='DESELECT')
-    base.select_set(True)
-    o.select_set(True)
-    bpy.context.view_layer.objects.active = base
-    bpy.ops.object.join()
+    dg = bpy.context.evaluated_depsgraph_get()
+    tmp = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
+    tmp.transform(base_inv @ o.matrix_world)
+    off = len(base.data.materials)
+    for m in tmp.materials: base.data.materials.append(m)
+    if off:
+        for poly in tmp.polygons: poly.material_index += off
+    grp_list.append(np.full(len(tmp.vertices), g, dtype=np.int32))
+    bm.from_mesh(tmp)
+    bpy.data.meshes.remove(tmp)
+    bpy.data.objects.remove(o, do_unlink=True)
+bm.to_mesh(base.data)
+bm.free()
+base.data.update()
 grp = np.concatenate(grp_list)
 me = base.data
 n = len(me.vertices)
