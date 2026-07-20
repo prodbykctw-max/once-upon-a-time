@@ -64,6 +64,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .hud-c{text-align:center}
 .hud-name{font-family:Poppins;font-weight:700;font-size:clamp(12px,2.2vw,17px);color:rgba(255,215,0,.9);letter-spacing:4px}
 .hud-act{font-family:Poppins;font-size:clamp(5px,.85vw,7px);color:rgba(200,150,255,.7);margin-top:4px;letter-spacing:1px}
+/* Chapter track: one node per stage, crown riding the one she is in.
+   Deliberately low-contrast in the HUD so it reads as ambient progress and
+   never competes with the playfield; the pause menu gets the full-size copy. */
+.chapbar{display:flex;gap:7px;justify-content:center;margin-top:6px;opacity:.6}
+.chslot{position:relative;height:15px;display:flex;align-items:flex-end}
+.chdot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.22);transition:background .3s,box-shadow .3s}
+.chslot.done .chdot{background:rgba(255,211,110,.5)}
+.chslot.now .chdot{background:#ffd36e;box-shadow:0 0 7px rgba(255,211,110,.85)}
+.chcrown{position:absolute;left:50%;top:0;transform:translate(-50%,0);
+  font-size:9px;line-height:1;color:#ffd36e;opacity:0;pointer-events:none;
+  text-shadow:0 0 7px rgba(255,211,110,.75);transition:opacity .3s}
+.chslot.now .chcrown{opacity:1;animation:chFloat 2.4s ease-in-out infinite}
+@keyframes chFloat{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-3px)}}
+.chapbar.big{gap:16px;opacity:1;margin:18px 0 2px}
+.chapbar.big .chslot{height:30px}
+.chapbar.big .chdot{width:10px;height:10px}
+.chapbar.big .chcrown{font-size:18px}
+.chap-name{font-family:Poppins;font-weight:600;font-size:clamp(8px,1.4vw,11px);
+  color:rgba(255,232,170,.8);letter-spacing:2px;margin-bottom:6px}
 .hud-r{text-align:right;font-family:Poppins;font-size:clamp(5px,.9vw,8px)}
 /* XP track mirrors RESONANCE so the two read as one status block; gold
    distinguishes progression from the pink resonance meter. */
@@ -275,7 +294,8 @@ body.mobile .joy-knob{width:64px;height:64px}
   <canvas id="fxC"></canvas>
   <div id="hud">
     <div class="hud-masks" id="hudMasks"></div>
-    <div class="hud-c"><div class="hud-name">JANDÉ</div><div class="hud-act" id="hudAct">THE GRAND LIBRARY · I</div></div>
+    <div class="hud-c"><div class="hud-name">JANDÉ</div><div class="hud-act" id="hudAct">THE GRAND LIBRARY · I</div>
+      <div class="chapbar" id="chapHud"></div></div>
     <div class="hud-r"><div class="hud-sc" id="hudSc">0</div>
       <div class="sbar"><span class="slbl">RESONANCE</span><div class="strk"><div class="sfil" id="sfil" style="width:0%"></div></div></div>
       <div class="sbar"><span class="slbl" id="lvlLbl">LV 1</span><div class="strk"><div class="xfil" id="xfil" style="width:0%"></div></div></div>
@@ -331,6 +351,8 @@ body.mobile .joy-knob{width:64px;height:64px}
   </div>
   <div id="pauseMenu">
     <div class="pm-t">PAUSED</div>
+    <div class="chapbar big" id="chapPause"></div>
+    <div class="chap-name" id="chapName"></div>
     <div class="ov-btns" style="flex-direction:column;gap:12px">
       <button class="ov-btn prim" id="pmResume">▶&nbsp;&nbsp;RESUME</button>
       <button class="ov-btn" id="pmRestart">↻&nbsp;&nbsp;RESTART RUN</button>
@@ -3504,7 +3526,9 @@ function syncPauseMenu(){
   var want=!!(GS.paused&&!GS.mapOpen&&running);
   if(want!==el.classList.contains('on')){
     el.classList[want?'add':'remove']('on');
-    if(want)document.getElementById('pmHint').textContent=MODE==='side'?'P / ESC — RESUME · M / TAB — MAP':'P / ESC — RESUME';}}
+    if(want){document.getElementById('pmHint').textContent=MODE==='side'?'P / ESC — RESUME · M / TAB — MAP':'P / ESC — RESUME';
+      renderChapters();}   // refresh on open: the stage may have changed since
+  }}
 function drawPause(){FX.fillStyle='rgba(8,0,18,0.85)';FX.fillRect(0,0,W,H);FX.font='900 52px Poppins,sans-serif';FX.fillStyle='rgba(255,215,0,0.9)';FX.textAlign='center';FX.fillText('PAUSED',W/2,H*0.42);FX.font='10px Poppins,sans-serif';FX.fillStyle='rgba(200,150,255,0.7)';FX.fillText('P / ESC — RESUME',W/2,H*0.42+50);FX.fillText('M / TAB — MAP',W/2,H*0.42+72);FX.font='300 italic 14px Poppins,sans-serif';FX.fillStyle='rgba(255,255,255,0.5)';FX.fillText('Level '+GS.level+'  ·  Score '+GS.score.toLocaleString()+'  ·  Notes '+GS.totalNotes,W/2,H*0.42+104);}
 function drawMap(ac){var st=STAGES[GS.ai];FX.fillStyle='rgba(8,0,18,0.92)';FX.fillRect(0,0,W,H);FX.font='900 30px Poppins,sans-serif';FX.fillStyle='rgba(255,215,0,0.9)';FX.textAlign='center';FX.fillText(st.n+' — MAP',W/2,60);FX.font='8px Poppins,sans-serif';FX.fillStyle='rgba(200,150,255,0.6)';FX.fillText('M / TAB to close',W/2,84);
   var mw=W*0.8,mh=H*0.5,mx=(W-mw)/2,my=H*0.22,sc=Math.min(mw/(GS.LW*T),mh/(GS.LH*T));FX.save();FX.translate(mx,my);
@@ -3534,7 +3558,35 @@ function updateHUD(){
   if(lb&&xf&&typeof RPG!=='undefined'&&RPG){
     lb.textContent='LV '+RPG.lvl;
     xf.style.width=(Math.max(0,Math.min(1,RPG.xp/RPG.next))*100)+'%';
-  }}
+  }
+  renderChapters();}
+// ── chapter track ─────────────────────────────────────────────────────────
+// One node per stage with a crown over the current one. Nodes are built once
+// and then only reclassified, so the crown's float animation is never
+// restarted mid-run by a DOM rebuild.
+function renderChapters(){
+  var ids=['chapHud','chapPause'];
+  for(var b=0;b<ids.length;b++){
+    var bar=document.getElementById(ids[b]);
+    if(!bar)continue;
+    if(bar.childElementCount!==STAGES.length){
+      bar.innerHTML='';
+      for(var i=0;i<STAGES.length;i++){
+        var sl=document.createElement('div');sl.className='chslot';
+        sl.innerHTML='<div class="chcrown">♛</div><div class="chdot"></div>';
+        sl.title=STAGES[i].n;
+        bar.appendChild(sl);
+      }
+    }
+    for(var k=0;k<bar.children.length;k++){
+      var c=bar.children[k];
+      c.className='chslot'+(k<GS.ai?' done':k===GS.ai?' now':'');
+    }
+  }
+  var nm=document.getElementById('chapName');
+  var rn=(typeof ROMAN!=='undefined'&&ROMAN[GS.ai])||'';
+  if(nm&&STAGES[GS.ai])nm.textContent='CHAPTER '+rn+' · '+STAGES[GS.ai].n;
+}
 function syncAbilityBar(){var p=GS.p;
   setCd('cd1',p.throwCd,22);setCd('cd2',p.waveCd,26);setCd('cd3',p.dashCd,32);setCd('cd4',GS.blocking?1:0,1);setCd('cd5',p.atkT,14);}
 function setCd(id,v,mx){var el=document.getElementById(id);if(el)el.style.height=(Math.max(0,Math.min(1,v/mx))*100)+'%';}
