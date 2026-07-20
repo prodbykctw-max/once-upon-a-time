@@ -38,9 +38,12 @@ def shelf_books(x0, x1, z, depth, n, seed):
 
 def build(idx):
     sc = reset_scene()
-    w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
-    w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.26
-    w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.72, 0.64, 0.50, 1)
+    # glasshouse capture: real sun through a glazed roof, which is exactly the
+    # light the Sunlit Library is meant to sit in.
+    if not hdri_world('library', strength=1.4, rot_z=math.radians(-25)):
+        w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
+        w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.26
+        w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.72, 0.64, 0.50, 1)
     random.seed(idx * 17 + 5)
     oak = wood_mat('Oak', (0.24, 0.13, 0.06), grain_scale=5, rough=0.5)
     warm = wood_mat('Warm', (0.32, 0.19, 0.09), grain_scale=7, rough=0.45)
@@ -110,9 +113,9 @@ def build(idx):
         sphere((0.78, 0.10, 1.66), 0.10, emissive_mat('Bulb', (1, 0.86, 0.55), 14.0))
 
     # warm window light raking from the left, cool fill, gentle top bounce
-    area_light((-2.6, -2.2, 3.0), 300, 3.0, (1, 0.90, 0.68), (math.radians(52), 0, math.radians(-38)))
-    area_light((2.2, -2.4, 1.2), 110, 2.4, (0.72, 0.80, 0.96), (math.radians(66), 0, math.radians(34)))
-    area_light((0, 2.6, 2.4), 130, 2.6, (1, 0.92, 0.74), (math.radians(-60), 0, math.radians(180)))
+    area_light((-2.6, -2.2, 3.0), 110, 3.0, (1, 0.90, 0.68), (math.radians(52), 0, math.radians(-38)))
+    area_light((2.2, -2.4, 1.2), 40, 2.4, (0.72, 0.80, 0.96), (math.radians(66), 0, math.radians(34)))
+    area_light((0, 2.6, 2.4), 50, 2.6, (1, 0.92, 0.74), (math.radians(-60), 0, math.radians(180)))
     decor_cam()
     render_to(os.path.join(OUT, f'prop_{idx}.png'), 288, 480, transparent=True, samples=110)
     print(f'LIBPROP_{idx}_DONE')

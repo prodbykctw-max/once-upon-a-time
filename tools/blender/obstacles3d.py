@@ -382,14 +382,23 @@ only = None
 for a in sys.argv:
     if a.startswith('--only='): only = a.split('=', 1)[1]
 
+# Image-based lighting: each stage's obstacles are lit by a real captured sky
+# matching that world's time of day. The lamps drop to a soft shaping key on
+# top — the HDRI now supplies ambient, sun colour, and reflections.
+HDRI = ['library', 'meadow', 'blossom', 'rose', 'lake', 'glade', 'sunflower', 'clouds', 'sunset']
+HDRI_STR = [1.5, 1.1, 1.0, 0.9, 1.3, 2.2, 0.9, 0.8, 1.6]   # dim captures pushed up
+
 for kind in ('low', 'gate', 'wall'):
     for i in range(9):
         if only and only != f'{kind}{i}': continue
         random.seed(i * 31 + hash(kind) % 97)
         reset_scene()
         col, key, amb = LIGHT[i]
-        world_bg(0.45, amb)
-        lights(col, key)
+        if hdri_world(HDRI[i], strength=HDRI_STR[i], rot_z=math.radians(-40)):
+            lights(col, key * 0.30)      # shaping only; IBL carries the rest
+        else:
+            world_bg(0.45, amb)
+            lights(col, key)
         BUILDERS[kind](i)
         rx, ry = cam_rig(kind)
         render_to(os.path.join(OUT, f'{kind}_{i}.png'), rx, ry, transparent=True, samples=100)

@@ -209,6 +209,52 @@ def point_light(loc, energy=150, color=(1,0.75,0.4), radius=0.15):
     lo.location = loc
     return lo
 
+HDRI_DIR = r"C:\Users\Owner\Documents\once-upon-a-time\assets\hdri"
+
+def hdri_world(name, strength=1.0, rot_z=0.0, tint=None):
+    """Light the scene with a CC0 Poly Haven HDRI (image-based lighting).
+
+    This is the realism lever that lamps can't pull: a real sky gradient, a
+    correctly-coloured sun at a real elevation, and true environment
+    reflections/occlusion. `name` is a stem in assets/hdri (e.g. 'meadow').
+    rot_z swings the sun around the subject; tint nudges it toward the stage
+    palette without losing the captured light's character.
+    Returns the world, or None if the file is missing (caller keeps its lamps).
+    """
+    path = os.path.join(HDRI_DIR, f'{name}.hdr')
+    if not os.path.exists(path):
+        print('HDRI MISSING:', path)
+        return None
+    sc = bpy.context.scene
+    w = bpy.data.worlds.new(f'HDRI_{name}')
+    sc.world = w
+    w.use_nodes = True
+    nt = w.node_tree
+    for n in list(nt.nodes):
+        if n.type != 'OUTPUT_WORLD':
+            nt.nodes.remove(n)
+    out = nt.nodes['World Output']
+    env = nt.nodes.new('ShaderNodeTexEnvironment')
+    env.image = bpy.data.images.load(path)
+    tc = nt.nodes.new('ShaderNodeTexCoord')
+    mp = nt.nodes.new('ShaderNodeMapping')
+    mp.inputs['Rotation'].default_value = (0, 0, rot_z)
+    nt.links.new(tc.outputs['Generated'], mp.inputs['Vector'])
+    nt.links.new(mp.outputs['Vector'], env.inputs['Vector'])
+    bg = nt.nodes.new('ShaderNodeBackground')
+    bg.inputs['Strength'].default_value = strength
+    src = env.outputs['Color']
+    if tint:
+        mix = nt.nodes.new('ShaderNodeMixRGB')
+        mix.blend_type = 'MULTIPLY'
+        mix.inputs['Fac'].default_value = 1.0
+        mix.inputs['Color2'].default_value = (*tint, 1)
+        nt.links.new(src, mix.inputs['Color1'])
+        src = mix.outputs['Color']
+    nt.links.new(src, bg.inputs['Color'])
+    nt.links.new(bg.outputs['Background'], out.inputs['Surface'])
+    return w
+
 def warm_rig():
     # warm key from upper-left-front, cool fill from right, subtle rim
     area_light((-2.2,-3.0,2.4), 500, 3.5, (1,0.9,0.75), (math.radians(60),0,math.radians(-28)))

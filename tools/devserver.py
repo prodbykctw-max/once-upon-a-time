@@ -54,7 +54,9 @@ class H(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
-port = int(sys.argv[1]) if len(sys.argv) > 1 else 9123
+# Port: explicit argv wins, else the harness-assigned PORT env var, else 9123.
+# Honouring PORT is what lets launch.json use "autoPort" and dodge collisions.
+port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get('PORT', 9123))
 with socketserver.ThreadingTCPServer(('127.0.0.1', port), H) as srv:
     srv.allow_reuse_address = True
     print(f'devserver on {port}')

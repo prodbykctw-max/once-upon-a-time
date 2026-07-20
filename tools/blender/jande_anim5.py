@@ -10,6 +10,12 @@ OUT = r"C:\Users\Owner\AppData\Local\Temp\claude\C--Users-Owner--claude\0a631432
 TEST_ONLY = '--test' in sys.argv
 # NOTE: the camera below (+Y, yaw 180) already looks at her BACK — these frames
 # are the Temple View runner sheets. Camera at -Y would be her face.
+# --reunion: ONE front-facing standing frame for the ending tableau. The finale
+# stands her beside a front-facing prince, so a back-view running frame reads as
+# collapsed there. No pose call is made: the model's rest pose IS standing.
+REUNION = '--reunion' in sys.argv
+if REUNION:
+    OUT = r"C:\Users\Owner\Documents\once-upon-a-time\assets\renders\reunion"
 
 sc = bpy.context.scene
 base = bpy.data.objects['JandeModel']
@@ -316,26 +322,59 @@ cam_data.type = 'ORTHO'
 cam_data.ortho_scale = 2.2
 cam = bpy.data.objects.new('AnimCam', cam_data)
 sc.collection.objects.link(cam)
-cam.location = (0, 3.2, -0.02)
-cam.rotation_euler = (math.pi / 2, 0, math.pi)
+if REUNION:
+    # BACK view, deliberately. Her front is not presentable: the projected face
+    # smears and the gown collapses into flat slabs from the front, so the
+    # ending is composed over her shoulder — she reaches him, he faces us.
+    cam.location = (0, 3.2, -0.02)
+    cam.rotation_euler = (math.pi / 2, 0, math.pi)
+else:
+    cam.location = (0, 3.2, -0.02)
+    cam.rotation_euler = (math.pi / 2, 0, math.pi)
 sc.camera = cam
 def area(loc, e, size, col, rot):
     ld = bpy.data.lights.new('L', 'AREA'); ld.energy = e; ld.size = size; ld.color = col
     lo = bpy.data.objects.new('L', ld); sc.collection.objects.link(lo)
     lo.location = loc; lo.rotation_euler = rot
-area((-1.8, 2.6, 1.6), 260, 2.6, (1, 0.93, 0.83), (math.radians(-55), 0, math.radians(-155)))
-area((2.0, 2.2, 0.6), 90, 2.2, (0.65, 0.72, 0.95), (math.radians(-65), 0, math.radians(150)))
-area((0, 0.5, 2.6), 70, 2.0, (1, 0.85, 0.6), (0, 0, 0))
-w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
-w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.25
-w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.5, 0.5, 0.6, 1)
+if REUNION:
+    # Golden-hour HDRI matching HER ENCORE + a soft front key so her face
+    # reads. Kept low: the earlier 4-lamp front rig blew her out to white.
+    hp = r"C:\Users\Owner\Documents\once-upon-a-time\assets\hdri\sunset.hdr"
+    w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
+    nt = w.node_tree
+    if os.path.exists(hp):
+        for n in list(nt.nodes):
+            if n.type != 'OUTPUT_WORLD': nt.nodes.remove(n)
+        env = nt.nodes.new('ShaderNodeTexEnvironment')
+        env.image = bpy.data.images.load(hp)
+        bg = nt.nodes.new('ShaderNodeBackground')
+        bg.inputs['Strength'].default_value = 1.3
+        nt.links.new(env.outputs['Color'], bg.inputs['Color'])
+        nt.links.new(bg.outputs['Background'], nt.nodes['World Output'].inputs['Surface'])
+    else:
+        nt.nodes['Background'].inputs['Strength'].default_value = 0.6
+    # sun ahead of her (where he stands) rims her shoulders and hair
+    area((-1.6, -2.6, 1.8), 130, 2.6, (1, 0.90, 0.74), (math.radians(58), 0, math.radians(-28)))
+    area((1.8, 2.4, 0.9), 60, 2.2, (0.72, 0.80, 0.96), (math.radians(-66), 0, math.radians(160)))
+else:
+    area((-1.8, 2.6, 1.6), 260, 2.6, (1, 0.93, 0.83), (math.radians(-55), 0, math.radians(-155)))
+    area((2.0, 2.2, 0.6), 90, 2.2, (0.65, 0.72, 0.95), (math.radians(-65), 0, math.radians(150)))
+    area((0, 0.5, 2.6), 70, 2.0, (1, 0.85, 0.6), (0, 0, 0))
+    w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
+    w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.25
+    w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.5, 0.5, 0.6, 1)
 
 os.makedirs(OUT, exist_ok=True)
 def render_frame(name, i):
     sc.render.filepath = os.path.join(OUT, f'{name}_{i:02d}.png')
     bpy.ops.render.render(write_still=True)
 
-if TEST_ONLY:
+if REUNION:
+    # deliberately NO pose call — rest pose is her standing upright
+    sc.render.resolution_x = 512; sc.render.resolution_y = 640
+    render_frame('reunion', 0)
+    print('REUNION_DONE')
+elif TEST_ONLY:
     pose_run(0.25); render_frame('t5run', 0)
     pose_run(0.75); render_frame('t5run', 1)
     pose_jump(0.5); render_frame('t5jump', 2)

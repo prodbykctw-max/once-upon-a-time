@@ -14,9 +14,12 @@ def leafball(x, y, z, r, mat_):
 
 def build(idx):
     sc = reset_scene()
-    w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
-    w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.35
-    w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.7, 0.8, 0.9, 1)
+    # These props are shared by all nine stages, so they get one neutral bright
+    # daylight capture; the GL world re-tints and fogs them per stage.
+    if not hdri_world('blossom', strength=1.0, rot_z=math.radians(-30)):
+        w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
+        w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.35
+        w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.7, 0.8, 0.9, 1)
     random.seed(idx * 7 + 3)
     trunk = wood_mat('Trunk', (0.17, 0.10, 0.05), grain_scale=3, rough=0.8)
     leafG = fabric_mat('LeafG', (0.16, 0.36, 0.10), rough=0.9)
@@ -122,8 +125,9 @@ def build(idx):
         em = fabric_mat('Eye', (0.08, 0.05, 0.04), rough=0.4)
         for sgn in (-1, 1):
             sphere((sgn * 0.08, -0.45, 0.66), 0.028, em)
-    area_light((-1.8, -2.6, 2.6), 300, 3.0, (1, 0.95, 0.86), (math.radians(52), 0, math.radians(-30)))
-    area_light((2.0, -2.2, 1.2), 110, 2.5, (0.7, 0.78, 0.95), (math.radians(65), 0, math.radians(35)))
+    # soft shaping key only — the HDRI supplies ambient, sun colour, reflections
+    area_light((-1.8, -2.6, 2.6), 90, 3.0, (1, 0.95, 0.86), (math.radians(52), 0, math.radians(-30)))
+    area_light((2.0, -2.2, 1.2), 35, 2.5, (0.7, 0.78, 0.95), (math.radians(65), 0, math.radians(35)))
     decor_cam()
     render_to(os.path.join(OUT, f'prop_{idx}.png'), 288, 480, transparent=True, samples=110)
     print(f'PROP_{idx}_DONE')
