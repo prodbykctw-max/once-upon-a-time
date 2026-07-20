@@ -16,6 +16,18 @@ for kind, (cw, ch) in KINDS.items():
         im = Image.open(p).convert('RGBA')
         if im.size != (cw, ch):
             im = im.resize((cw, ch), Image.LANCZOS)
+        # Fill the cell with actual content. Blender leaves headroom, and it
+        # varies per stage (low_0 filled 63% of its height, low_6 filled 100%),
+        # so obstacles drew both too small AND inconsistently sized between
+        # stages while collision still used the full rect. Crop to the content
+        # bbox, scale to fit, and bottom-anchor so it stays on the floor.
+        bb = im.getbbox()
+        if bb:
+            c = im.crop(bb)
+            s = min(cw / c.width, ch / c.height)
+            c = c.resize((max(1, int(c.width * s)), max(1, int(c.height * s))), Image.LANCZOS)
+            im = Image.new('RGBA', (cw, ch), (0, 0, 0, 0))
+            im.paste(c, ((cw - c.width) // 2, ch - c.height), c)
         sheet.paste(im, (i * cw, 0))
     b = io.BytesIO()
     sheet.save(b, 'WEBP', quality=86, method=6)
