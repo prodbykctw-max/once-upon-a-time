@@ -149,12 +149,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .mb:active{background:rgba(255,255,255,.22)}
 .mact{display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:auto}
 .mfbtn{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:manipulation;font-family:Poppins;font-size:7px;color:#fff}
-.mdiam{position:relative;width:170px;height:170px}
+.mdiam{position:relative;width:190px;height:120px}
 .mshoulders{display:flex;gap:8px;margin-bottom:2px}
 .mshbtn{height:28px;padding:0 13px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:manipulation;font-family:Poppins;font-size:5px;color:#fff}
-.mjump{width:62px;height:62px;left:54px;bottom:0;background:rgba(130,0,255,.3);border:1.5px solid rgba(130,0,255,.6)}
-.mattk{width:52px;height:52px;right:0;top:59px;background:rgba(255,40,130,.3);border:1.5px solid rgba(255,40,130,.6);font-size:18px}
-.mdash{width:52px;height:52px;left:0;top:59px;background:rgba(0,255,238,.16);border:1.5px solid rgba(0,255,238,.4);color:rgba(0,255,238,.85)}
+/* Thumb-arc, not a diamond. The old layout put JUMP bottom-centre with ATTACK
+   and DASH level on either side, so DASH sat on the INNER edge -- the furthest
+   point from the right thumb's pivot and the closest to the left-hand pads
+   (it clipped them on a 390px screen). These now fan up-and-left from the
+   bottom-right corner along the arc a thumb actually sweeps, ordered by how
+   often each is pressed: JUMP nearest and largest, then ATTACK, then DASH.
+   The empty top slot is gone, so the cluster no longer reserves dead height. */
+.mjump{width:66px;height:66px;right:4px;bottom:4px;background:rgba(130,0,255,.3);border:1.5px solid rgba(130,0,255,.6);font-size:8px}
+.mattk{width:56px;height:56px;right:78px;bottom:16px;background:rgba(255,40,130,.3);border:1.5px solid rgba(255,40,130,.6);font-size:20px}
+.mdash{width:50px;height:50px;right:140px;bottom:54px;background:rgba(0,255,238,.16);border:1.5px solid rgba(0,255,238,.4);color:rgba(0,255,238,.85);font-size:7px}
 .mblock{background:rgba(255,200,0,.16);border:1.5px solid rgba(255,200,0,.4);color:rgba(255,200,0,.85)}
 .mthrow{background:rgba(200,160,255,.25);border:1.5px solid rgba(200,160,255,.5)}
 #hint{position:absolute;bottom:62px;left:50%;transform:translateX(-50%);z-index:21;font-family:Poppins;font-size:6px;color:rgba(255,255,255,.2);white-space:nowrap;display:none;text-align:center}
@@ -172,22 +179,28 @@ body.mobile #mCtrl{bottom:calc(18px + env(safe-area-inset-bottom,0px));
   padding-left:calc(16px + env(safe-area-inset-left,0px));
   padding-right:calc(16px + env(safe-area-inset-right,0px));
   align-items:flex-end}
-body.mobile .mdiam{width:194px;height:194px}
-body.mobile .mjump{width:74px;height:74px;left:60px;bottom:0;font-size:9px}
-body.mobile .mattk{width:60px;height:60px;right:0;top:67px;font-size:22px}
-body.mobile .mwave{width:60px;height:60px;left:67px;top:0}
-body.mobile .mdash{width:60px;height:60px;left:0;top:67px;font-size:8px}
+body.mobile .mdiam{width:206px;height:132px}
+/* Single source of truth for the phone arc. A second body.mobile block used to
+   follow this one with the OLD diamond coordinates (left:60 / right:0;top:67);
+   equal specificity meant the later rules silently won and the arc never
+   applied. Font sizes from that block are folded in here. */
+body.mobile .mjump{width:72px;height:72px;right:4px;bottom:4px;font-size:9px}
+body.mobile .mattk{width:60px;height:60px;right:84px;bottom:18px;font-size:22px}
+body.mobile .mdash{width:52px;height:52px;right:148px;bottom:56px;font-size:8px}
+body.mobile .mwave{display:none!important}
 body.mobile .mshbtn{height:32px;padding:0 15px;font-size:6px}
 body.mobile .bb-w{width:66vw}
 body.mobile #bossBar{bottom:150px}
 /* landscape phones: tuck controls into corners, lower */
 @media (orientation:landscape) and (max-height:500px){
   body.mobile #mCtrl{bottom:10px}
-  body.mobile .mdiam{width:140px;height:140px}
-  body.mobile .mjump{width:52px;height:52px;left:44px;bottom:0}
-  body.mobile .mwave{width:44px;height:44px;left:48px;top:0}
-  body.mobile .mdash{width:44px;height:44px;left:0;top:48px}
-  body.mobile .mattk{width:44px;height:44px;right:0;top:48px}
+  /* landscape: same arc, tightened. Offsets must stay inside .mdiam's width
+     or DASH overflows the cluster and collides with the run pads. */
+  body.mobile .mdiam{width:158px;height:100px}
+  body.mobile .mjump{width:56px;height:56px;right:2px;bottom:2px}
+  body.mobile .mattk{width:48px;height:48px;right:62px;bottom:12px}
+  body.mobile .mdash{width:44px;height:44px;right:114px;bottom:42px}
+  body.mobile .mwave{display:none!important}
 }
 .mwave{left:59px;top:0;background:rgba(139,0,255,.3);border:1.5px solid rgba(139,0,255,.6)}
 /* ── Neumorphic joystick ── */
