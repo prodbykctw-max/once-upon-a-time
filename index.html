@@ -1050,6 +1050,7 @@ var lJ=0,lA=0,lX=0;
 // ════════════════════════════════════════════════════════════
 function update(){
   if(GS.paused||GS.mapOpen)return;
+  if(GS.hitstop>0){GS.hitstop--;return;} // impact freeze — sells every hit
   if(MODE==='temple')return updateT();
   GS.tick++;GS.lyricT++;
   var p=GS.p;
@@ -1327,6 +1328,10 @@ function updateT(){
       var dodged=(o.tp==='low'&&t3.py>34)||(o.tp==='gate'&&t3.slid>0)||GS.boostT>0||GS.shieldT>0;
       if(!dodged){o.hit=true;stumbleT();if(p.dead)return;}
       else if(GS.boostT>0||GS.shieldT>0)o.hit=true;
+      else if(!o.nm){o.nm=true; // NEAR-MISS: grazed it clean — reward the thrill
+        GS.score+=Math.round(25*mult);t3.nmT=26;
+        if(AUD.ctx&&!AUD.muted){tone(1560,0.06,'triangle',0.09);tone(2080,0.05,'sine',0.05);}
+        if(navigator.vibrate)navigator.vibrate(8);}
     }
   }
   // coins (magnet pulls whole rows to her lane)
@@ -2393,6 +2398,12 @@ function drawT(){
       FX.fillStyle='rgba(255,215,0,0.8)';FX.fillRect(px3-11,106,22*pips[pi3][1],2.5);
       px3+=34;}
     FX.imageSmoothingEnabled=true;}
+  // near-miss flash
+  if(t3.nmT>0){t3.nmT--;
+    var nmA=Math.min(1,t3.nmT/10);
+    FX.font='900 20px Poppins,sans-serif';FX.textAlign='center';
+    FX.fillStyle='rgba(0,0,0,'+(0.5*nmA)+')';FX.fillText('CLOSE! +25',vpX+2,H*0.56+2-(26-t3.nmT)*1.2);
+    FX.fillStyle='rgba(120,240,255,'+nmA+')';FX.fillText('CLOSE! +25',vpX,H*0.56-(26-t3.nmT)*1.2);}
   // ── revive prompt ──
   if(t3.revAsk&&t3.revT>0){
     FX.fillStyle='rgba(8,0,16,0.66)';FX.fillRect(0,0,W,H);
@@ -2647,7 +2658,7 @@ function runMult(){return misMult()*(GS.x2T>0?2:1);}
 function stumbleT(){var t3=GS.t3,p=GS.p;
   if(GS.shieldT>0||GS.boostT>0||p.inv>0)return;
   if(t3.chase>90){caughtT();return;}
-  t3.chase=480;GS.masks--;p.inv=60;updateHUD();sfx('hurt');
+  t3.chase=480;GS.masks--;p.inv=60;GS.hitstop=4;updateHUD();sfx('hurt');
   if(navigator.vibrate)navigator.vibrate([80,30,80]);
   if(GS.masks<=0)caughtT();}
 function caughtT(){var p=GS.p;sfx('death');p.dead=true;p.deadT=0;GS.t3.grabT=44;GS.masks=Math.min(GS.masks,0);updateHUD();
@@ -2664,7 +2675,7 @@ function rpgXP(a){RPG.xp+=a;var up=false;
   else updateHUD();   // refresh the XP bar on every gain, not only on level-up
   try{localStorage.setItem('jande_rpg',JSON.stringify(RPG));}catch(x){}}
 function addPop(x,y,txt){GS.pops.push({x:x,y:y,txt:''+txt,t:52});}
-function killFoe(f){f.alive=false;sfx('kill');
+function killFoe(f){f.alive=false;sfx('kill');GS.hitstop=3;
   GS.combo++;GS.comboT=130;
   var cm=1+0.25*Math.min(GS.combo-1,8);
   var sc=Math.round((f.tp?160:120)*runMult()*cm);
@@ -3704,6 +3715,7 @@ function showOver(won){
     var pr2=Math.min(m2.goal,MIS_S.prog[m2.id]||0);
     bh+='<div class="bd-row"><span>◈ '+esc(m2.n)+'</span><span>'+pr2+' / '+m2.goal+'</span></div>';shown++;}
   if(!shown)bh+='<div class="bd-ach">ALL OBJECTIVES COMPLETE 👑</div>';
+  bh+='<div class="bd-sub" style="color:#7CFFB2">TAP ANYWHERE — RUN IT BACK</div>';
   bh+='<div class="bd-sub">TROPHIES '+Object.keys(ACH_GOT).length+' / '+ACH.length+' · ◆ GEMS '+wallet().gems+'</div>';
   document.getElementById('ovBoard').innerHTML=bh;
   running=false;}
@@ -3845,6 +3857,12 @@ function wire(){
   document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';startGame();};
   document.getElementById('msTemple').onclick=function(){audInit();sfx('ui');MODE='temple';startGame();};
   document.getElementById('ovR').onclick=function(){document.getElementById('overlay').classList.remove('on');GS={};initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;loop();}});};
+  document.getElementById('overlay').addEventListener('click',function(e){
+    var ov=document.getElementById('overlay');
+    if(!ov.classList.contains('on'))return;                     // already restarting
+    if(e.target&&e.target.closest&&e.target.closest('#ovM2'))return; // menu wins
+    if(e.target&&e.target.closest&&e.target.closest('#ovBoard'))return; // let them read scores
+    var r=document.getElementById('ovR');if(r&&r.onclick)r.onclick();});
   document.getElementById('ovM2').onclick=function(){['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('pmResume').onclick=function(){GS.paused=false;syncPauseMenu();};
   document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;loop();}});};
