@@ -20,6 +20,21 @@ class H(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=ROOT, **kw)
 
+    def end_headers(self):
+        # The http-server this replaced ran with -c-1 (caching off). Without
+        # this, SimpleHTTPRequestHandler sends Last-Modified and answers
+        # If-Modified-Since with 304, so the browser keeps serving a stale
+        # index.html and you appear to be testing an old build.
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        super().end_headers()
+
+    def send_header(self, k, v):
+        if k.lower() == 'last-modified':
+            return          # suppress: it is what enables the 304 path
+        super().send_header(k, v)
+
     def do_GET(self):
         if self.path.startswith('/index.html') and 'shim=1' in self.path:
             with open(os.path.join(ROOT, 'index.html'), 'rb') as f:

@@ -22,3 +22,17 @@ print(f'props {len(b.getvalue())//1024}KB')
 js = 'var GLWDATA={grounds:[' + ','.join('"%s"' % g for g in gout) + '],props:"%s"};' % props
 open(os.path.join(ROOT, 'tools', 'glwdata.js'), 'w').write(js)
 print('total JS', len(js)//1024, 'KB')
+
+# Splice into index.html IN PLACE. This step used to be missing -- the script
+# only wrote glwdata.js, so re-rendered grounds never reached the game and an
+# old stage kept loading. Replace only `grounds` and `props`; wall/ceil are
+# appended by embed_hall_prince.py and must survive untouched.
+import re
+idx = os.path.join(ROOT, 'index.html')
+src = io.open(idx, encoding='utf-8').read()
+m = re.search(r'var GLWDATA=\{grounds:\[.*?\],props:"[^"]*"', src, re.S)
+assert m, 'GLWDATA grounds/props block not found'
+new = 'var GLWDATA={grounds:[' + ','.join('"%s"' % g for g in gout) + '],props:"%s"' % props
+src = src[:m.start()] + new + src[m.end():]
+io.open(idx, 'w', encoding='utf-8', newline='\n').write(src)
+print('index.html now', len(src)//1024, 'KB')

@@ -210,7 +210,13 @@ var GLWORLD=(function(){
   }
   function init(canvas){
     cv=canvas;
-    gl=cv.getContext('webgl',{alpha:false,antialias:true,depth:true})||cv.getContext('experimental-webgl');
+    // preserveDrawingBuffer is OFF in normal play (it costs fill rate on
+    // phones). Without it the GL canvas reads back EMPTY after the frame, so
+    // any drawImage(glC)/toDataURL capture shows a black world that looks
+    // exactly like a broken stage. ?cap=1 turns it on for verification.
+    var _cap=false;try{_cap=/[?&]cap=1/.test(location.search);}catch(e){}
+    gl=cv.getContext('webgl',{alpha:false,antialias:true,depth:true,preserveDrawingBuffer:_cap})
+      ||cv.getContext('experimental-webgl');
     if(!gl)throw 'no webgl';
     progT=prog2(VS_T,FS_T);progS=prog2(VS_S,FS_S);progP=prog2(VS_P,FS_P);
     progH=prog2(VS_H,FS_H);
@@ -276,11 +282,16 @@ var GLWORLD=(function(){
 var GLW=(function(){
   var booted=false,failed=false,texset=false,lastStage=-1;
   var imgs=new Array(9),propsImg=null,wallImg=null,ceilImg=null,pend=12;
+  // These catches used to be silent. A throw here drops the entire GL world
+  // and the 2D fallback quietly paints a different-looking stage, which is
+  // indistinguishable from "an old build is loading". Record it instead.
+  function fail(where,e){failed=true;
+    try{window._glError=where+': '+((e&&e.stack)||e);console.error('GLWORLD '+where+' failed:',e);}catch(_){}}
   function done(){if(--pend>0)return;
-    try{GLWORLD.setTextures(imgs,propsImg,wallImg,ceilImg);texset=true;}catch(e){failed=true;}}
+    try{GLWORLD.setTextures(imgs,propsImg,wallImg,ceilImg);texset=true;}catch(e){fail('setTextures',e);}}
   function boot(){
     if(booted||failed)return;booted=true;
-    try{GLWORLD.init(document.getElementById('glC'));}catch(e){failed=true;return;}
+    try{GLWORLD.init(document.getElementById('glC'));}catch(e){fail('init',e);return;}
     for(var i=0;i<9;i++)(function(k){var im=new Image();
       im.onload=function(){imgs[k]=im;done();};im.onerror=done;
       im.src=GLWDATA.grounds[k];})(i);
@@ -291,7 +302,13 @@ var GLW=(function(){
     var cm=new Image();cm.onload=function(){ceilImg=cm;done();};cm.onerror=done;
     cm.src=GLWDATA.ceil;
   }
-  return {ready:function(){return texset;},draw:function(stage,wz,shift){
+  return {ready:function(){return texset;},
+    // exposed for headless verification: tells you whether the world is
+    // actually live or whether you are looking at the 2D fallback
+    dbg:function(){return {booted:booted,failed:failed,texset:texset,pend:pend,lastStage:lastStage,
+      imgs:imgs.filter(Boolean).length,props:!!propsImg,wall:!!wallImg,ceil:!!ceilImg,
+      err:(typeof window!=='undefined'&&window._glError)||null};},
+    draw:function(stage,wz,shift){
     if(failed)return false;
     if(!booted){boot();return false;}
     if(!texset)return false;

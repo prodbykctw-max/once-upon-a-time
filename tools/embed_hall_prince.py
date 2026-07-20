@@ -32,6 +32,24 @@ START, END = 'var GLWORLD=(function(){', '// ── world light-wrap for the her
 a, b = src.index(START), src.index(END)
 assert a < b, 'engine anchors out of order'
 body = engine[engine.index(START):]
+
+# This span covers BOTH GLWORLD and the GLW bootstrap wrapper, so anything
+# hand-edited into it inside index.html is silently reverted here. That is a
+# real "my fix disappeared" trap, so shout about it rather than doing it
+# quietly. tools/glworld_engine.js is the source of truth for this region.
+old_span = src[a:b]
+if old_span.strip() and old_span.strip() != body.strip():
+    import difflib
+    lost = [l for l in difflib.unified_diff(body.splitlines(), old_span.splitlines(), lineterm='', n=0)
+            if l.startswith('+') and not l.startswith('+++')]
+    if lost:
+        print(f'  NOTE: overwriting {len(lost)} line(s) present in index.html but NOT in')
+        print('        tools/glworld_engine.js -- edit the .js, not the inlined copy:')
+        for l in lost[:6]:
+            print('          ' + l[1:].strip()[:96])
+        if len(lost) > 6:
+            print(f'          ... and {len(lost)-6} more')
+
 src = src[:a] + body + '\n' + src[b:]
 print(f'engine re-synced ({len(body)//1024} KB)')
 

@@ -41,7 +41,7 @@ BOOKCOLS = [(0.72, 0.16, 0.18), (0.16, 0.34, 0.66), (0.62, 0.48, 0.16),
 def wall_tex():
     sc = reset_scene()
     w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
-    w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.55
+    w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.09
     w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.80, 0.70, 0.54, 1)
     oak = flat('Oak', (0.30, 0.17, 0.08), 0.55)
     warm = flat('Warm', (0.40, 0.24, 0.11), 0.5)
@@ -66,12 +66,24 @@ def wall_tex():
         cube((sx, -0.06, 0), (0.06, 0.14, 2.0), oak)
     cube((0, 0.12, 0.98), (2.0, 0.44, 0.10), warm)           # cornice
     cube((0, 0.12, -0.97), (2.0, 0.44, 0.12), warm)          # base
-    area_light((0, -3.0, 0), 520, 5.0, (1, 0.95, 0.86), (math.radians(90), 0, 0))
-    area_light((-2.0, -2.0, 1.6), 140, 2.4, (1, 0.90, 0.70), (math.radians(60), 0, math.radians(-30)))
+    # Exposure calibration (same lesson as ground_pbr): a lambertian surface
+    # renders near albedo*(P/(4*pi*d^2)/pi + world). At 520W/140W/0.55 that
+    # came to ~2.5x and bleached the book spines to pastel. These land near 1.0
+    # so the deep reds/blues/golds in BOOKCOLS actually survive.
+    # Measured, not guessed: at 210W a 0.16-green book spine rendered green=164
+    # (sRGB) against an expected 111, i.e. 2.34x hot with red/blue railed at
+    # 255 -- which is what "no matter how low I go it stays pastel" actually
+    # was. These values are the measured ratio applied.
+    area_light((0, -3.0, 0), 90, 5.0, (1, 0.95, 0.86), (math.radians(90), 0, 0))
+    area_light((-2.0, -2.0, 1.6), 23, 2.4, (1, 0.90, 0.70), (math.radians(60), 0, math.radians(-30)))
     d = bpy.data.cameras.new('C'); d.type = 'ORTHO'; d.ortho_scale = 2.0
     c = bpy.data.objects.new('C', d); sc.collection.objects.link(c)
     c.location = (0, -5.0, 0); c.rotation_euler = (math.radians(90), 0, 0)
     sc.camera = c
+    # Standard, not Filmic: these are TEXTURES, not lit photographs. Filmic
+    # desaturates hard, which is why deep book spines kept coming out pastel
+    # no matter how far the lights came down. (ground_pbr.py does the same.)
+    sc.view_settings.view_transform = 'Standard'
     render_to(os.path.join(REN, 'hall', 'wall.png'), 512, 512, samples=110)
     print('HALL_WALL_DONE')
 
@@ -90,11 +102,12 @@ def ceil_tex():
     for (px, pz) in ((-0.5, -0.5), (0.5, -0.5), (-0.5, 0.5), (0.5, 0.5)):
         cube((px, 0.06, pz), (0.62, 0.20, 0.62), flat('In', (0.70, 0.58, 0.40), 0.7))
         sphere((px, -0.10, pz), 0.10, glowm('Lamp', (1, 0.86, 0.58), 6.0))
-    area_light((0, -3.0, 0), 700, 5.0, (1, 0.94, 0.82), (math.radians(90), 0, 0))
+    area_light((0, -3.0, 0), 105, 5.0, (1, 0.94, 0.82), (math.radians(90), 0, 0))   # see wall_tex note
     d = bpy.data.cameras.new('C'); d.type = 'ORTHO'; d.ortho_scale = 2.0
     c = bpy.data.objects.new('C', d); sc.collection.objects.link(c)
     c.location = (0, -5.0, 0); c.rotation_euler = (math.radians(90), 0, 0)
     sc.camera = c
+    sc.view_settings.view_transform = 'Standard'   # texture, not a photograph
     render_to(os.path.join(REN, 'hall', 'ceil.png'), 512, 512, samples=100)
     print('HALL_CEIL_DONE')
 
