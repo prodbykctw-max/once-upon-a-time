@@ -238,6 +238,22 @@ body.mobile .joy-knob{width:64px;height:64px}
 #loadMsg{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:#04000c;font-family:Poppins;font-size:10px;color:rgba(255,215,0,.7);flex-direction:column;gap:16px}
 .spin{width:30px;height:30px;border:3px solid rgba(255,215,0,.2);border-top-color:rgba(255,215,0,.8);border-radius:50%;animation:sp 0.8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* ══ PIXEL-ART BUTTON SKIN (client request): hard edges, stepped bevels, no blur ══ */
+.dbtn{border-radius:0!important;background:#f4e4c0!important;color:#4a2c34!important;
+  border:3px solid #3a2430!important;text-shadow:none;
+  box-shadow:inset 4px 4px 0 #fff8e6,inset -4px -4px 0 #cf9f5e,0 5px 0 #3a2430,0 5px 0 1px #241018;
+  image-rendering:pixelated;font-weight:900}
+.dbtn.hit{background:#ffd682!important;transform:translateY(4px)!important;
+  box-shadow:inset 4px 4px 0 #cf9f5e,inset -4px -4px 0 #fff0c8,0 1px 0 #3a2430;}
+.mfbtn{border-radius:0!important}
+.mdsh{background:#9df0e6!important;color:#0e4a44!important;border:3px solid #123a36!important;
+  box-shadow:inset 4px 4px 0 #dffdf9,inset -4px -4px 0 #4fb8ac,0 5px 0 #123a36;
+  font-weight:900;letter-spacing:1px;font-family:monospace;font-size:12px!important}
+.mattk{background:#ffb7d5!important;color:#6b1436!important;border:3px solid #571030!important;
+  box-shadow:inset 4px 4px 0 #ffe3ef,inset -4px -4px 0 #e07ba6,0 5px 0 #571030}
+.mdsh:active,.mattk:active,.mdsh.hit,.mattk.hit{transform:translateY(4px);
+  box-shadow:inset 4px 4px 0 rgba(0,0,0,.18),inset -4px -4px 0 rgba(255,255,255,.5),0 1px 0 #241018}
 </style>
 </head>
 <body>
