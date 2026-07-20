@@ -100,13 +100,17 @@ factory — request renders/sheets from the user; cloud sessions integrate.
    floor-scroll synced to entity speed — do not break `wz`).
 3. Forgive inputs: coyote time, buffers, generous pickups, tight hazards,
    i-frames. All implemented — preserve them.
-4. Juice every verb. NEXT: hitstop on kills (2-3 frames), micro-screenshake.
-5. Fail fast, retry faster. NEXT: instant tap-to-retry on death (<2s loop).
+4. Juice every verb. DONE: hitstop on kills/stumbles (GS.hitstop).
+5. Fail fast, retry faster. DONE: tap-anywhere-to-retry on the overlay.
 6. Teach one verb at a time (coins-only <40m, turns >130m). Keep.
-7. NEXT: adaptive difficulty — thin spawns after repeated early deaths,
-   thicken for cruisers; pity gem after 3 quick deaths.
-8. NEXT: near-miss bonus (graze an obstacle → small score + sound).
-9. Session loop: runs ~60-90s, objectives tick every run. NEXT: daily streak.
+7. DONE: adaptive difficulty (jande_adapt: early-death counter widens
+   spawn spacing via adaptF(), cruisers >800m get +pressure; pity gem
+   after 3 quick deaths). 8. DONE: near-miss bonus (+25x, CLOSE! flash).
+9. DONE: daily streak (jande_streak: consecutive days pay 1-5 gems).
+   THE BOUTIQUE (jande_shop): banked Grace Notes (wallet.notes, banked
+   at game over) buy power-up duration levels + Devotion Hearts; UI on
+   the mode screen (msShop/shopScr); durations read shop() at pickup.
+   Dev hooks (_devStep/_devState) now require #dev in the URL.
 10. Frame rate is a mechanic: keep 60Hz fixed timestep and draw budgets.
 
 ## Asset pipeline

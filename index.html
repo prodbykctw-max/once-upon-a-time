@@ -36,6 +36,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .ms-t{font-family:Poppins;font-size:12px;color:#fff;margin-bottom:12px;letter-spacing:1px}
 .ms-d{font-family:Poppins,sans-serif;font-size:12.5px;color:rgba(255,255,255,.55);line-height:1.6}
 .ms-stats{margin-top:24px;font-family:Poppins;font-size:8px;color:rgba(255,215,0,.7);letter-spacing:1px}
+#shopScr{position:absolute;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(8,2,16,.86)}
+#shopScr.on{display:flex}
+.sh-box{background:#1a0a2e;border:1.5px solid rgba(255,215,0,.4);border-radius:16px;padding:22px 26px;width:min(440px,92vw);max-height:86vh;overflow-y:auto;text-align:center}
+.sh-h{font-family:Poppins;color:#FFD700;font-size:15px;letter-spacing:3px;margin-bottom:6px}
+.sh-bal{color:#7CFFB2;font-size:12px;margin-bottom:12px;font-family:Poppins}
+.sh-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 6px;border-bottom:1px solid rgba(255,255,255,.08);font-family:Poppins;font-size:12.5px;color:#fff}
+.sh-pips{color:#FFD700;font-size:10px;letter-spacing:2px}
+.sh-buy{background:linear-gradient(90deg,#FF2D8A,#8B00FF);border:none;color:#fff;border-radius:8px;padding:8px 13px;font-family:Poppins;font-size:11.5px;cursor:pointer;white-space:nowrap}
+.sh-buy[disabled]{opacity:.35;cursor:default}
 #ovBoard{margin:14px auto 4px;width:min(420px,86vw);font-family:Poppins;font-size:7px;color:rgba(255,255,255,.75);text-align:left;max-height:34vh;overflow-y:auto}
 #ovBoard .bd-h{color:#FFD700;font-size:8px;text-align:center;margin:10px 0 6px;letter-spacing:2px}
 #ovBoard .bd-row{display:flex;justify-content:space-between;gap:8px;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.09);line-height:1.5}
@@ -290,6 +299,7 @@ body.mobile .joy-knob{width:64px;height:64px}
       </div>
     </div>
     <div class="ms-stats" id="msStats"></div>
+    <div class="ms-card" id="msShop" style="margin-top:16px;width:auto;display:inline-block;padding:13px 26px"><span style="font-family:Poppins;font-size:12px;color:#FFD700">✦ THE BOUTIQUE — SPEND YOUR NOTES</span></div>
   </div>
 </div>
 <div id="gameWrap">
@@ -344,6 +354,12 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="lc-l" id="lcL">Ancient Knowledge</div>
     <div class="lc-ld">— entering —</div>
   </div>
+  <div id="shopScr"><div class="sh-box">
+    <div class="sh-h">✦ THE BOUTIQUE ✦</div>
+    <div class="sh-bal" id="shBal"></div>
+    <div id="shRows"></div>
+    <button class="ov-btn" id="shClose" style="margin-top:14px">BACK</button>
+  </div></div>
   <div id="overlay">
     <div class="ov-t" id="ovT">GAME OVER</div>
     <div class="ov-m" id="ovM">She rose again.</div>
@@ -646,7 +662,8 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
   // dev: ?fin=1 on the last chapter jumps straight to the finale run-in
   var _fin=false;try{_fin=/[?&]fin=1/.test(location.search);}catch(_e2){}
   var sc=GS.score||0, gn=GS.totalNotes||0, lvl=GS.level||1, xp=GS.xp||0, mm=GS.permMax||MASKS, dmg=GS.dmg||1;
-  GS={ai:ai,score:sc,totalNotes:gn,masks:mm,maxMasks:mm,permMax:mm,res:0,resMax:200,
+  var hpB=shop().hp||0;
+  GS={ai:ai,score:sc,totalNotes:gn,masks:mm+hpB,maxMasks:mm+hpB,permMax:mm,res:0,resMax:200,
     level:lvl,xp:xp,xpNext:GS.xpNext||100,dmg:dmg,
     camX:0,camY:0,tick:0,lyricT:0,titleT:210,won:false,finale:0,endT:0,trans:false,paused:false,mapOpen:false,blocking:false,blockHits:0,
     dmgT:0,shieldT:0,pwrMsg:'',pwrMsgT:0,levelUpT:0,
@@ -705,7 +722,7 @@ function genAhead(gs,until){
       var run=4+Math.floor(rnd01(c*2.3)*3);
       for(q=0;q<run;q++)groundCol(gs,c+q);
       var gy=FLOOR_R*T,ox=(c+2)*T;
-      if(ox-(gs.lastObX||0)>300){
+      if(ox-(gs.lastObX||0)>300*adaptF()){
         gs.lastObX=ox;
         if(rnd01(c*9.1)<0.55)gs.obs.push({x:ox,y:gy-26,w:T+8,h:26,tp:'spike',hit:false});
         else{ // ambush pair instead of the old auto-runner gate
@@ -720,7 +737,7 @@ function genAhead(gs,until){
       for(q=0;q<run2;q++)groundCol(gs,c+q);
       if(rnd01(c*6.1)<0.5)for(n=0;n<3;n++)gs.notes.push({x:(c+1+n)*T+10,y:(FLOOR_R-2)*T,anim:(n*11)%60,got:false});
       if(rnd01(c*8.3)<0.06)gs.pwr.push({x:(c+2)*T,y:(FLOOR_R-3)*T,type:rnd01(c*2.9)<0.5?'DEVOTION':'HIGHNOTE',anim:0,got:false});
-      if(c>50&&rnd01(c*3.7)<0.42){ // thorn goblin, cursed raven, nightshade sprite
+      if(c>50&&rnd01(c*3.7)<0.42/adaptF()){ // thorn goblin, cursed raven, nightshade sprite
         var _fr=rnd01(c*5.1),ftp=_fr<0.50?0:_fr<0.80?1:2,fby=FLOOR_R*T-160-rnd01(c*6.3)*70;
         gs.foes.push({x:(c+2)*T,y:ftp?fby:FLOOR_R*T-58,baseY:fby,tp:ftp,anim:(c*7)%60,alive:true});}
       gs.genC+=run2;
@@ -1280,7 +1297,7 @@ function updateT(){
     var sinceTurn=GS.dist-t3.lastTurnD;
     if(!GS.finale&&GS.dist>130&&sinceTurn>240&&rnd01(GS.tick*7.7)<0.32){ // CORNER TURN
       t3.obs.push({z:1500,lane:0,tp:'turn',dir:rnd01(GS.tick*3.3)<0.5?-1:1,done:false});
-      t3.lastTurnD=GS.dist;t3.nextZ=560+GS.speed*42;
+      t3.lastTurnD=GS.dist;t3.nextZ=(560+GS.speed*42)*adaptF();
     }else{
       if(GS.finale){ // the road to him is clear — coins only
         for(var fci=0;fci<6;fci++)t3.coins.push({z:1500+fci*55,lane:lane,anim:fci*8,v:3});
@@ -1296,7 +1313,7 @@ function updateT(){
         else{var tier=GS.dist>800?(rnd01(GS.tick)<0.3?3:2):GS.dist>300?(rnd01(GS.tick)<0.4?2:1):1;
           for(var ci=0;ci<6;ci++)t3.coins.push({z:1500+ci*55,lane:lane,anim:ci*8,v:tier});}
       }else for(ci=0;ci<6;ci++)t3.coins.push({z:1500+ci*55,lane:lane,anim:ci*8,v:1});
-      t3.nextZ=330+GS.speed*30+rnd01(GS.tick*5.3)*240;
+      t3.nextZ=(330+GS.speed*30+rnd01(GS.tick*5.3)*240)*adaptF();
     }
   }
 
@@ -1316,10 +1333,10 @@ function updateT(){
         if(o.tp==='gem'){var wg=wallet();wg.gems++;setWallet(wg);GS.gemsLive=wg.gems;misAdd('gems',1);
           GS.score+=Math.round(200*mult);sfx('gem');if(navigator.vibrate)navigator.vibrate([10,10,30]);}
         else{misAdd('pws',1);GS.stats.pw=(GS.stats.pw||0)+1;
-          if(o.kind===0){GS.magT=620;GS.pwrMsg='🧲 NOTE MAGNET';}
-          else if(o.kind===1){GS.boostT=320;p.inv=Math.max(p.inv,320);GS.pwrMsg='⚡ CRESCENDO — full sprint!';}
-          else if(o.kind===2){GS.x2T=640;GS.pwrMsg='✖2 SCORE';}
-          else if(o.kind===3){GS.shieldT=520;GS.pwrMsg='♬ HIGH NOTE — shielded!';}
+          if(o.kind===0){GS.magT=620+shop().mag*90;GS.pwrMsg='🧲 NOTE MAGNET';}
+          else if(o.kind===1){GS.boostT=320+shop().bst*50;p.inv=Math.max(p.inv,GS.boostT);GS.pwrMsg='⚡ CRESCENDO — full sprint!';}
+          else if(o.kind===2){GS.x2T=640+shop().x2*100;GS.pwrMsg='✖2 SCORE';}
+          else if(o.kind===3){GS.shieldT=520+shop().shd*80;GS.pwrMsg='♬ HIGH NOTE — shielded!';}
           else{var bn=15;GS.totalNotes+=bn;GS.res=GS.resMax;GS.score+=Math.round(70*bn*mult);misAdd('notes',bn);GS.pwrMsg='♪ ENCORE — +'+bn+' NOTES!';}
           GS.pwrMsgT=150;updateHUD();sfx('pw');if(navigator.vibrate)navigator.vibrate([10,10,40]);}}
       continue;}
@@ -2520,7 +2537,7 @@ function applyPowerup(type){
   if(type==='DEVOTION'){GS.masks=Math.min(GS.maxMasks,GS.masks+2);GS.pwrMsg='♥ DEVOTION — +2 LIFE!';}
   else if(type==='VOICE'){GS.res=GS.resMax;GS.pwrMsg='♪ FULL VOICE';}
   else if(type==='BELT'){GS.dmgT=600;GS.pwrMsg='♫ BELT IT OUT — Double damage 10s!';}
-  else if(type==='HIGHNOTE'){GS.shieldT=480;GS.pwrMsg='♬ HIGH NOTE — Shielded 8s!';}
+  else if(type==='HIGHNOTE'){GS.shieldT=480+shop().shd*80;GS.pwrMsg='♬ HIGH NOTE — Shielded!';}
   GS.pwrMsgT=150;updateHUD();}
 
 function ptcl(x,y,tp){var r=Math.random;
@@ -2627,6 +2644,31 @@ function saveRun(){
 // ── WALLET (gems persist across runs; start with 1 free gem) ──
 function wallet(){try{return JSON.parse(localStorage.getItem('jande_wallet')||'{"gems":1}');}catch(x){return{gems:1};}}
 function setWallet(w){try{localStorage.setItem('jande_wallet',JSON.stringify(w));}catch(x){}}
+
+// ── THE BOUTIQUE: spend banked Grace Notes on permanent upgrades ──
+function shop(){try{return JSON.parse(localStorage.getItem('jande_shop')||'{"mag":0,"shd":0,"bst":0,"x2":0,"hp":0}');}catch(x){return{mag:0,shd:0,bst:0,x2:0,hp:0};}}
+function setShop(v){try{localStorage.setItem('jande_shop',JSON.stringify(v));}catch(x){}}
+var SHOP_ITEMS=[
+  {k:'mag',n:'🧲 Note Magnet',   d:'lasts longer each level', max:5,cost:function(l){return 150*Math.pow(2,l);}},
+  {k:'shd',n:'♬ High Note Shield',d:'lasts longer each level',max:5,cost:function(l){return 150*Math.pow(2,l);}},
+  {k:'bst',n:'⚡ Crescendo Boost',d:'lasts longer each level', max:5,cost:function(l){return 180*Math.pow(2,l);}},
+  {k:'x2', n:'✖2 Score',         d:'lasts longer each level', max:5,cost:function(l){return 180*Math.pow(2,l);}},
+  {k:'hp', n:'♥ Devotion Heart', d:'+1 starting heart',       max:2,cost:function(l){return 500*Math.pow(3,l);}}];
+// ── ADAPTIVE DIFFICULTY: struggle earns breathing room, cruising earns pressure ──
+function adaptGet(){try{return JSON.parse(localStorage.getItem('jande_adapt')||'{"early":0,"pity":0}');}catch(x){return{early:0,pity:0};}}
+function adaptSet(v){try{localStorage.setItem('jande_adapt',JSON.stringify(v));}catch(x){}}
+function adaptF(){var e=Math.min(3,(GS.adaptEarly||0));var f=1+e*0.15;if(GS.dist>800)f*=0.9;return f;}
+// ── DAILY STREAK ──
+function streakGet(){try{return JSON.parse(localStorage.getItem('jande_streak')||'{"last":"","n":0,"paid":""}');}catch(x){return{last:'',n:0,paid:''};}}
+function streakTick(){
+  var d=new Date(),today=d.toISOString().slice(0,10);
+  var y=new Date(d.getTime()-864e5).toISOString().slice(0,10);
+  var st=streakGet();
+  if(st.last!==today){st.n=(st.last===y)?st.n+1:1;st.last=today;}
+  var grant=0;
+  if(st.paid!==today){grant=Math.min(5,st.n);st.paid=today;}
+  try{localStorage.setItem('jande_streak',JSON.stringify(st));}catch(x){}
+  return {n:st.n,g:grant};}
 
 // ── OBJECTIVES — each completion permanently raises the score multiplier ──
 var MIS=[
@@ -3700,6 +3742,13 @@ function showOver(won){
   try{best=parseInt(localStorage.getItem('jande_best')||'0',10);
     if(Math.floor(GS.dist)>best){best=Math.floor(GS.dist);isPB=true;localStorage.setItem('jande_best',''+best);}}catch(x){}
   var sv=saveRun();
+  // bank this run's Grace Notes for the Boutique
+  var wN=wallet();wN.notes=(wN.notes||0)+GS.totalNotes;setWallet(wN);
+  // adaptive difficulty: consecutive early deaths earn breathing room
+  var ad=adaptGet();
+  if(Math.floor(GS.dist)<150)ad.early=(ad.early||0)+1;
+  else if(Math.floor(GS.dist)>=300){ad.early=0;ad.pity=0;}
+  adaptSet(ad);
   document.getElementById('overlay').classList.add('on');
   document.getElementById('ovT').textContent=isPB?'NEW BEST RUN ✦':'RUN OVER';
   document.getElementById('ovM').textContent=Math.floor(GS.dist)+'m · '+GS.totalNotes+' notes · '+GS.score.toLocaleString()+' pts';
@@ -3716,7 +3765,7 @@ function showOver(won){
     bh+='<div class="bd-row"><span>◈ '+esc(m2.n)+'</span><span>'+pr2+' / '+m2.goal+'</span></div>';shown++;}
   if(!shown)bh+='<div class="bd-ach">ALL OBJECTIVES COMPLETE 👑</div>';
   bh+='<div class="bd-sub" style="color:#7CFFB2">TAP ANYWHERE — RUN IT BACK</div>';
-  bh+='<div class="bd-sub">TROPHIES '+Object.keys(ACH_GOT).length+' / '+ACH.length+' · ◆ GEMS '+wallet().gems+'</div>';
+  bh+='<div class="bd-sub">TROPHIES '+Object.keys(ACH_GOT).length+' / '+ACH.length+' · ◆ '+wallet().gems+' · ♪ BANK '+(wallet().notes||0)+'</div>';
   document.getElementById('ovBoard').innerHTML=bh;
   running=false;}
 
@@ -3734,9 +3783,33 @@ function initTitleBG(){var bc=document.getElementById('bgC'),c2=bc.getContext('2
 var running=false;
 var MODE='side'; // 'side' = side-scroll runner · 'temple' = behind-the-back corridor
 function showHowTo(){show('howToScreen');}
-function showModeSel(){
+function shopRender(){
+  var sp=shop(),w=wallet(),rows=document.getElementById('shRows'),h='';
+  document.getElementById('shBal').textContent='♪ '+(w.notes||0)+' GRACE NOTES BANKED · ◆ '+(w.gems||0)+' GEMS';
+  SHOP_ITEMS.forEach(function(it,i){
+    var lv=sp[it.k]||0,maxed=lv>=it.max,c=maxed?0:Math.round(it.cost(lv));
+    var pips='';for(var pi2=0;pi2<it.max;pi2++)pips+=pi2<lv?'●':'○';
+    h+='<div class="sh-row"><div style="text-align:left"><div>'+it.n+'</div>'+
+       '<div style="opacity:.55;font-size:10.5px">'+it.d+'</div>'+
+       '<div class="sh-pips">'+pips+'</div></div>'+
+       (maxed?'<span style="color:#7CFFB2;font-size:11px">MAX</span>'
+             :'<button class="sh-buy" data-k="'+i+'"'+(((w.notes||0)<c)?' disabled':'')+'>♪ '+c+'</button>')+'</div>';});
+  rows.innerHTML=h;
+  Array.prototype.forEach.call(rows.querySelectorAll('.sh-buy'),function(b){b.onclick=function(){
+    var it=SHOP_ITEMS[+b.getAttribute('data-k')],sp2=shop(),w2=wallet(),lv2=sp2[it.k]||0;
+    var c2=Math.round(it.cost(lv2));
+    if((w2.notes||0)<c2||lv2>=it.max)return;
+    w2.notes-=c2;sp2[it.k]=lv2+1;setWallet(w2);setShop(sp2);sfx('pw');shopRender();};});}
+function refreshModeStats(){
   try{var b=parseInt(localStorage.getItem('jande_best')||'0',10);
-    document.getElementById('msStats').textContent=(b>0?'BEST '+b+'m  ·  ':'')+'🏆 '+Object.keys(ACH_GOT).length+'/'+ACH.length+'  ·  ✦ ×'+misMult().toFixed(1)+'  ·  ◆ '+wallet().gems;}catch(x){}
+    var stv=streakGet();
+    document.getElementById('msStats').textContent=(b>0?'BEST '+b+'m  ·  ':'')+'🏆 '+Object.keys(ACH_GOT).length+'/'+ACH.length+'  ·  ✦ ×'+misMult().toFixed(1)+'  ·  ◆ '+wallet().gems+'  ·  ♪ '+(wallet().notes||0)+(stv.n>1?'  ·  🔥 '+stv.n:'');}catch(x){}
+  var msh=document.getElementById('msShop');
+  if(msh&&!msh._wired){msh._wired=true;
+    msh.onclick=function(){audInit();sfx('ui');document.getElementById('shopScr').classList.add('on');shopRender();};
+    document.getElementById('shClose').onclick=function(){sfx('ui');document.getElementById('shopScr').classList.remove('on');refreshModeStats();};}}
+function showModeSel(){
+  refreshModeStats();
   show('modeScreen');}
 // fixed-timestep: physics always advance at 60Hz regardless of render FPS,
 // so slow phones don't turn jumps into slow-motion mush
@@ -3754,13 +3827,13 @@ function loop(ts){if(!running)return;
   requestAnimationFrame(loop);}
 // Dev hook: the preview pane suspends rAF while backgrounded, so headless
 // verification can't rely on the loop running. Drives N frames synchronously.
-window._devStep=function(n){for(var i=0;i<(n||1);i++){try{update();}catch(e){}}try{draw();musTick();}catch(e){}return 'stepped '+(n||1);};
+if(location.hash.indexOf('dev')<0){window._devStep=window._devState=function(){return 'add #dev to the URL to enable dev hooks';};}else{window._devStep=function(n){for(var i=0;i<(n||1);i++){try{update();}catch(e){}}try{draw();musTick();}catch(e){}return 'stepped '+(n||1);};
 window._glDbg=function(){try{return GLW.dbg();}catch(e){return 'err: '+e.message;}};
 window._devState=function(){var t=GS.t3||{},p=GS.p||{};return {mode:MODE,ai:GS.ai,finale:GS.finale,won:GS.won,
   glwOK:(typeof glwOK!=='undefined')?glwOK:null,gl:(function(){try{return GLW.dbg();}catch(e){return null;}})(),
   zoom:ZOOM,VW:Math.round(VW),VH:Math.round(VH),camX:Math.round(GS.camX||0),
   laneX:t.laneX,lane:t.lane,py:t.py,slid:t.slid,anim:p.anim,dead:p.dead,noteGone:p.noteGone,inv:p.inv,
-  obs:(t.obs||[]).map(function(o){return o.tp+'@'+Math.round(o.z)+'L'+o.lane;}).slice(0,12)};};
+  obs:(t.obs||[]).map(function(o){return o.tp+'@'+Math.round(o.z)+'L'+o.lane;}).slice(0,12)};};}
 function startGame(){
   // hide ALL fullscreen overlays so the game canvas is visible
   var scr=document.querySelectorAll('.screen');for(var si=0;si<scr.length;si++)scr[si].classList.remove('active');
@@ -3840,7 +3913,16 @@ function startGame(){
   resize();
   var lm=document.getElementById('loadMsg');
   try{localStorage.setItem('jande_mode_'+MODE,'1');}catch(x){} // for BOTH WORLDS trophy
-  function begin(){if(lm)lm.style.display='none';GS={};initGS(0);showLevelCard(0,function(){running=true;loop();});}
+  function begin(){if(lm)lm.style.display='none';GS={};initGS(0);
+    GS.adaptEarly=adaptGet().early||0;
+    var stk=streakTick();
+    if(stk.g>0){var w3=wallet();w3.gems+=stk.g;setWallet(w3);GS.gemsLive=w3.gems;
+      GS.toasts.push({txt:'🔥 DAY '+stk.n+' STREAK',sub:'+'+stk.g+' GEM'+(stk.g>1?'S':'')+' — SEE YOU TOMORROW',t:280,max:280});}
+    var ad2=adaptGet();
+    if((ad2.early||0)>=3&&!ad2.pity){ad2.pity=1;adaptSet(ad2);
+      var w4=wallet();w4.gems++;setWallet(w4);GS.gemsLive=w4.gems;
+      GS.toasts.push({txt:'🧚 A FAIRY LEAVES A GIFT',sub:'+1 GEM — BREATHE, THEN RUN',t:280,max:280});}
+    showLevelCard(0,function(){running=true;loop();});}
   if(imagesReady)begin();else loadSprites(begin);
 }
 
@@ -3880,6 +3962,10 @@ function wire(){
   window.addEventListener('resize',function(){if(document.getElementById('gameWrap').classList.contains('on'))resize();});
   // init FX 2D canvas context up front (used by all drawing)
   FXC=document.getElementById('fxC');FX=FXC.getContext('2d');
+  try{var _msEl=document.getElementById('modeScreen');
+    new MutationObserver(function(){if(_msEl.classList.contains('active'))refreshModeStats();})
+      .observe(_msEl,{attributes:true,attributeFilter:['class']});
+    refreshModeStats();}catch(x){}
   initTitleBG();
   loadBGs();     // photoreal backdrops (no-op until BG_DATA is filled)
   loadTex();     // pixel-art world pack
