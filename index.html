@@ -333,7 +333,6 @@ body.mobile .joy-knob{width:64px;height:64px}
         <div class="dbtn dup"    id="mUp"    aria-label="jump">▲</div>
         <div class="dbtn dleft"  id="mLeft"  aria-label="move left">◀</div>
         <div class="dbtn dright" id="mRight" aria-label="move right">▶</div>
-        <div class="dbtn ddown"  id="mS"     aria-label="slide">▼</div>
       </div>
     </div>
     <div class="mact">
@@ -2992,7 +2991,7 @@ function draw(){
     FX.strokeStyle='rgba(255,215,0,0.5)';FX.lineWidth=1;FX.strokeRect(W/2-200,hyy-20,400,66);
     FX.fillStyle='rgba(255,235,180,0.95)';FX.font='9px Poppins,sans-serif';FX.textAlign='center';
     FX.fillText('◀ ▶ MOVE · TAP/▲ JUMP ×2',W/2,hyy+2);
-    FX.fillText('⚔ STRIKE · DASH THROUGH FOES · ▼ SLIDE',W/2,hyy+26);
+    FX.fillText('⚔ STRIKE · DASH THROUGH FOES',W/2,hyy+26);
     // (the on-screen pads replaced the old drag-stick; keep wording generic)
     FX.globalAlpha=1;}
   if(GS.levelUpT>0)drawLevelUp();
@@ -3886,9 +3885,8 @@ function startGame(){
         // UP is a discrete press, not a hold -- set() only fires on the
         // transition, so buffering the jump here gives one jump per tap
         else if(id==='mUp'){if(on)TC.jb=Math.max(TC.jb,10);}
-        else if(id==='mS'){if(on)TC.st=8;}
       }
-      var PADS=['mUp','mLeft','mRight','mS'];
+      var PADS=['mUp','mLeft','mRight'];
       function clearAll(){PADS.forEach(function(i){set(i,false);});held={};}
       function idAt(x,y){
         var e=document.elementFromPoint(x,y);
@@ -3912,8 +3910,6 @@ function startGame(){
       pad.addEventListener('touchmove',function(e){refresh(e);e.preventDefault();},{passive:false});
       pad.addEventListener('touchend',function(e){refresh(e);e.preventDefault();},{passive:false});
       pad.addEventListener('touchcancel',function(e){clearAll();},{passive:false});
-      // holding the slide pad keeps her sliding
-      setInterval(function(){if(held.mS)TC.st=8;},60);
     })();
     tbind('mA','a');tbind('mDash','d');
   }
