@@ -29,3 +29,7 @@ assets/
 .claude/
 
 tools/captures/
+
+# stray debug frame grabs dropped in the repo root
+image-*.jpg
+image-*.png
