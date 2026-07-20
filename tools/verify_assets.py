@@ -68,7 +68,11 @@ check('TEXDATA.foes', enc(os.path.join(VA, 'foes_sheet.png'), 'RGBA', None, 'WEB
       embedded('foes', "'") or embedded('foes'))
 check('TEXDATA.boss', enc(os.path.join(VA, 'boss_sheet.png'), 'RGBA', None, 'WEBP', quality=88, method=6),
       embedded('boss'))
-check('TEXDATA.chaser', enc(os.path.join(VA, 'chaser_sheet.png'), 'RGBA', None, 'WEBP', quality=88, method=6),
+# chaser: the ORIGINAL purple Groom's Shadow is the shipping art. The
+# AutoSprite black-tailcoat version lives on in villain_as/chaser_sheet.png
+# but was reverted at request -- point the check at what actually ships.
+check('TEXDATA.chaser',
+      enc(os.path.join(REN, 'chaser', 'chaser_sheet_purple.png'), 'RGBA', None, 'WEBP', quality=88, method=6),
       embedded('chaser', "'") or embedded('chaser'))
 
 # prince: three 384x480 frames laid in one row
