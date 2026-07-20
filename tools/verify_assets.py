@@ -101,6 +101,15 @@ for kind, (cw, ch) in {'low': (256, 96), 'gate': (256, 192), 'wall': (256, 224)}
         im = Image.open(p).convert('RGBA')
         if im.size != (cw, ch):
             im = im.resize((cw, ch), Image.LANCZOS)
+        # must mirror embed_obstacles.py's content normalisation exactly, or
+        # this reports a phantom regression on every correctly-built sheet
+        bb = im.getbbox()
+        if bb:
+            c = im.crop(bb)
+            k = min(cw / c.width, ch / c.height)
+            c = c.resize((max(1, int(c.width * k)), max(1, int(c.height * k))), Image.LANCZOS)
+            im = Image.new('RGBA', (cw, ch), (0, 0, 0, 0))
+            im.paste(c, ((cw - c.width) // 2, ch - c.height), c)
         s.paste(im, (i * cw, 0))
     w = None
     if good:
