@@ -65,6 +65,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .hud-name{font-family:Poppins;font-weight:700;font-size:clamp(12px,2.2vw,17px);color:rgba(255,215,0,.9);letter-spacing:4px}
 .hud-act{font-family:Poppins;font-size:clamp(5px,.85vw,7px);color:rgba(200,150,255,.7);margin-top:4px;letter-spacing:1px}
 .hud-r{text-align:right;font-family:Poppins;font-size:clamp(5px,.9vw,8px)}
+/* XP track mirrors RESONANCE so the two read as one status block; gold
+   distinguishes progression from the pink resonance meter. */
+.xfil{height:100%;background:linear-gradient(90deg,#ffd36e,#fff3c9);border-radius:inherit;transition:width .2s ease}
+#lvlLbl{color:rgba(255,215,0,.85);font-weight:700}
 .hud-sc{color:rgba(255,215,0,.85)}
 .sbar{display:flex;align-items:center;gap:7px;margin-top:5px;justify-content:flex-end}
 .slbl{font-family:Poppins;font-size:5px;color:rgba(200,150,255,.5)}
@@ -274,6 +278,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="hud-c"><div class="hud-name">JANDÉ</div><div class="hud-act" id="hudAct">THE GRAND LIBRARY · I</div></div>
     <div class="hud-r"><div class="hud-sc" id="hudSc">0</div>
       <div class="sbar"><span class="slbl">RESONANCE</span><div class="strk"><div class="sfil" id="sfil" style="width:0%"></div></div></div>
+      <div class="sbar"><span class="slbl" id="lvlLbl">LV 1</span><div class="strk"><div class="xfil" id="xfil" style="width:0%"></div></div></div>
     </div>
   </div>
   <div id="topBtns">
@@ -2615,6 +2620,7 @@ function rpgXP(a){RPG.xp+=a;var up=false;
   if(up){sfx('fanfare');GS.toasts.push({txt:'⬆ LEVEL '+RPG.lvl,sub:'HER VOICE GROWS STRONGER',t:220,max:220});
     GS.masks=Math.min(GS.maxMasks,GS.masks+1);updateHUD();
     if(navigator.vibrate)navigator.vibrate([20,20,50]);}
+  else updateHUD();   // refresh the XP bar on every gain, not only on level-up
   try{localStorage.setItem('jande_rpg',JSON.stringify(RPG));}catch(x){}}
 function addPop(x,y,txt){GS.pops.push({x:x,y:y,txt:''+txt,t:52});}
 function killFoe(f){f.alive=false;sfx('kill');
@@ -2907,9 +2913,8 @@ function drawDist(ac){
   // gem wallet + RPG level, top-left under hearts
   FX.textAlign='left';FX.font='10px Poppins,sans-serif';
   FX.fillStyle='rgba(190,120,255,0.9)';FX.fillText('◆ '+(GS.gemsLive||0),14,52);
-  if(MODE==='side'){FX.fillStyle='rgba(255,215,0,0.85)';FX.fillText('LV '+RPG.lvl,14,70);
-    FX.fillStyle='rgba(255,255,255,0.25)';FX.fillRect(14,76,60,3);
-    FX.fillStyle='rgba(255,215,0,0.7)';FX.fillRect(14,76,60*Math.min(1,RPG.xp/RPG.next),3);}
+  // (level/XP moved to the status bar so it shows in BOTH modes -- this canvas
+  //  copy was side-scroller only and duplicated it)
   FX.textAlign='center';
 }
 
@@ -3521,7 +3526,15 @@ function updateHUD(){
     sv.innerHTML=i<GS.masks?'<path d="M12 2C8 2 4 5.5 4 9.5C4 15.5 7 18.5 12 21C17 18.5 20 15.5 20 9.5C20 5.5 16 2 12 2Z" fill="#FF2D8A" stroke="rgba(255,100,150,0.5)" stroke-width="1"/>':'<path d="M12 2C8 2 4 5.5 4 9.5C4 15.5 7 18.5 12 21C17 18.5 20 15.5 20 9.5C20 5.5 16 2 12 2Z" fill="#1A0008" stroke="rgba(80,0,30,0.4)" stroke-width="1"/>';mc.appendChild(sv);}
   document.getElementById('hudSc').textContent=GS.score.toLocaleString();
   document.getElementById('hudAct').textContent=STAGES[GS.ai].n+' · '+Math.floor(GS.dist)+'m';
-  document.getElementById('sfil').style.width=(GS.res/GS.resMax*100)+'%';}
+  document.getElementById('sfil').style.width=(GS.res/GS.resMax*100)+'%';
+  // Level/XP in the status bar, both modes. RPG (not GS.level) is the real
+  // progression: it persists to localStorage and is what kills feed, whereas
+  // GS.level belongs to the legacy platformer path.
+  var lb=document.getElementById('lvlLbl'),xf=document.getElementById('xfil');
+  if(lb&&xf&&typeof RPG!=='undefined'&&RPG){
+    lb.textContent='LV '+RPG.lvl;
+    xf.style.width=(Math.max(0,Math.min(1,RPG.xp/RPG.next))*100)+'%';
+  }}
 function syncAbilityBar(){var p=GS.p;
   setCd('cd1',p.throwCd,22);setCd('cd2',p.waveCd,26);setCd('cd3',p.dashCd,32);setCd('cd4',GS.blocking?1:0,1);setCd('cd5',p.atkT,14);}
 function setCd(id,v,mx){var el=document.getElementById(id);if(el)el.style.height=(Math.max(0,Math.min(1,v/mx))*100)+'%';}
