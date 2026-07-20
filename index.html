@@ -2120,6 +2120,7 @@ function drawT(){
   if(!glwOK){FX.fillStyle='rgba(0,0,0,'+(isOut?0.08:0.5)+')';FX.fillRect(-100,0,W+200,vpY*0.5);}
   // ── ENTITIES far → near ──
   FX.imageSmoothingEnabled=false;
+  var obW=Math.max(laneW,H*0.125)*1.1; // hazard size basis: never starved by portrait width
   var ents=[];
   for(var i=0;i<t3.obs.length;i++)ents.push(t3.obs[i]);
   for(i=0;i<t3.coins.length;i++)ents.push(t3.coins[i]);
@@ -2128,7 +2129,7 @@ function drawT(){
     var es=prjT(e.z),ey=vpY+(gNear-vpY)*es,ex=vpX+(e.lane||0)*laneW*es*2.6;
     // CONTACT SHADOW — pins every object to the floor plane
     if(e.tp!=='turn'&&!e.hit){
-      var shw=(e.tp==='low'||e.tp==='gate'||e.tp==='wall')?laneW*es*1.0:24*es;
+      var shw=(e.tp==='low'||e.tp==='gate'||e.tp==='wall')?obW*es*1.0:24*es;
       FX.fillStyle='rgba(0,0,0,0.16)';FX.beginPath();FX.ellipse(ex,ey,shw*1.4,shw*0.30,0,0,6.28);FX.fill();
       FX.fillStyle='rgba(0,0,0,0.30)';FX.beginPath();FX.ellipse(ex,ey,shw,shw*0.20,0,0,6.28);FX.fill();
     }
@@ -2180,7 +2181,7 @@ function drawT(){
     }else if(e.tp==='low'){
       // JUMP-OVER: Cycles-rendered barrier themed to this world (hedge, log,
       // hay bales, monitor wedges...). Falls back to the painted bar.
-      var hw=laneW*es*2.2,hh=hw*0.375;
+      var hw=obW*es*2.2,hh=hw*0.375;
       if(TEX.oblow){
         FX.drawImage(TEX.oblow,ai*256,0,256,96,ex-hw/2,ey-hh,hw,hh);
         continue;
@@ -2205,7 +2206,7 @@ function drawT(){
       // The cyan chevron + floor glow stay on top — they are what make the
       // slide cue readable at speed.
       if(TEX.obgate){
-        var agw=laneW*es*2.3,agh=agw*0.75,agap=agh*0.42;
+        var agw=obW*es*2.3,agh=agw*0.75,agap=agh*0.42;
         FX.drawImage(TEX.obgate,ai*256,0,256,192,ex-agw/2,ey-agh,agw,agh);
         var acY=ey-agh+agh*0.30,acW=agw*0.16,acH=Math.max(5,agh*0.16);
         var acA=0.45+0.55*(0.5+0.5*Math.sin(GS.tick*0.2));
@@ -2219,7 +2220,7 @@ function drawT(){
         FX.fillStyle=asG;FX.beginPath();FX.ellipse(ex,ey,agw*0.52,agw*0.15,0,0,6.28);FX.fill();
         continue;
       }
-      var gw=laneW*es*1.9,gh=130*es,gap=95*es;
+      var gw=obW*es*1.9,gh=130*es,gap=95*es;
       // archway header with gradient
       var gaG=FX.createLinearGradient(ex,ey-gap-gh,ex,ey-gap);
       gaG.addColorStop(0,'rgba('+pc+',0.98)');gaG.addColorStop(1,'rgba('+pc+',0.75)');
@@ -2257,11 +2258,11 @@ function drawT(){
       // FULL BLOCKER: switch lanes. Rendered per-world (hedge, colonnade,
       // stage flat...) instead of a tiled interior wall panel.
       if(TEX.obwall){
-        var aww=laneW*es*2.15,awh=aww*0.875;
+        var aww=obW*es*2.15,awh=aww*0.875;
         FX.drawImage(TEX.obwall,ai*256,0,256,224,ex-aww/2,ey-awh,aww,awh);
         continue;
       }
-      var ww=laneW*es*1.8,wh2=190*es;
+      var ww=obW*es*1.8,wh2=190*es;
       if(TEX.walls){FX.drawImage(TEX.walls,ai*144,0,144,144,ex-ww/2,ey-wh2,ww,wh2);}
       else{FX.fillStyle='rgba('+pc+',0.98)';FX.fillRect(ex-ww/2,ey-wh2,ww,wh2);}
       // depth shading gradient
