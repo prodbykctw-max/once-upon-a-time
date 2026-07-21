@@ -2361,8 +2361,7 @@ function drawT(){
       FX.fillStyle='rgba('+pc+',0.6)';FX.fillRect(ex-ww/2-2*es,ey-3*es,ww+4*es,3*es);
       FX.fillStyle='rgba(0,0,0,0.45)';FX.fillRect(ex-ww/2-2*es,ey,ww+4*es,Math.max(1,2*es));
     }else{ // coin — tier colors: gold ×1 · rose ×2 · cyan ×3
-      // notes read as a vivid blue (was gold, which vanished on bright worlds)
-      var v=e.v||1,cc=v===3?'120,235,255':v===2?'255,110,150':'54,150,255';
+      var v=e.v||1,cc=v===3?'80,220,255':v===2?'255,110,150':'255,215,0';
       var cr=13*es,cy2=ey-40*es-Math.sin((e.anim||0)*0.1)*8*es;
       // outer glow ring
       FX.fillStyle='rgba('+cc+',0.15)';FX.beginPath();FX.arc(ex,cy2,cr*2.2,0,6.28);FX.fill();
@@ -2371,7 +2370,7 @@ function drawT(){
       var coinG=FX.createRadialGradient(ex-cr*0.3,cy2-cr*0.3,0,ex,cy2,cr);
       coinG.addColorStop(0,'rgba(255,255,255,0.4)');coinG.addColorStop(0.5,'rgba('+cc+',0.95)');coinG.addColorStop(1,'rgba('+cc+',0.7)');
       FX.fillStyle=coinG;FX.beginPath();FX.arc(ex,cy2,cr,0,6.28);FX.fill();
-      FX.fillStyle='rgba(255,255,255,0.95)';FX.font='bold '+Math.max(8,Math.round(16*es))+'px serif';FX.textAlign='center';FX.fillText('♪',ex,cy2+5*es);
+      FX.fillStyle='rgba(60,40,0,0.85)';FX.font='bold '+Math.max(8,Math.round(16*es))+'px serif';FX.textAlign='center';FX.fillText('♪',ex,cy2+5*es);
     }
   }
   // ── THE GROOM'S SHADOW (chaser) — appears when she stumbles ──
@@ -3011,16 +3010,8 @@ function draw(){
     ab2.addColorStop(0,'rgba(96,66,88,0.35)');ab2.addColorStop(1,'rgba(44,28,46,0.85)');
     FX.fillStyle=ab2;FX.fillRect(0,gy2,W,H-gy2);}
   drawLyric(ac);drawPowerHUD(ac);drawDist(ac);drawToasts();
-  // how-to overlay (first ~5s of a run)
-  if(GS.tick<300){var ha=GS.tick>240?(300-GS.tick)/60:1;
-    FX.globalAlpha=ha*0.85;FX.fillStyle='rgba(8,0,18,0.72)';
-    var hyy=H*0.62;FX.fillRect(W/2-200,hyy-20,400,66);
-    FX.strokeStyle='rgba(255,215,0,0.5)';FX.lineWidth=1;FX.strokeRect(W/2-200,hyy-20,400,66);
-    FX.fillStyle='rgba(255,235,180,0.95)';FX.font='9px Storyboo,sans-serif';FX.textAlign='center';
-    FX.fillText('MOVE WITH THE PAD · TAP OR UP = JUMP ×2',W/2,hyy+2);
-    FX.fillText('STRIKE · DASH THROUGH FOES',W/2,hyy+26);
-    // (the on-screen pads replaced the old drag-stick; keep wording generic)
-    FX.globalAlpha=1;}
+  // (start-of-run instruction banner removed at request — the how-to page
+  //  before play covers controls)
   if(GS.levelUpT>0)drawLevelUp();
   stageBanner();
   syncPauseMenu();if(GS.paused)drawPause();
@@ -3131,7 +3122,7 @@ function drawNote(sh,ac){var x=sh.x,y=sh.y+Math.sin(sh.anim*.07)*4.5,p2=Math.sin
   noteShape('rgba(46,22,58,0.95)',5);
   FX.fillStyle='rgba(46,22,58,0.95)';
   FX.beginPath();FX.ellipse(x+1,y+10,6.2,4.6,-0.4,0,6.28);FX.fill();
-  var gc='rgba('+ac+','+(.85+p2*.15)+')';
+  var gc='rgba(54,150,255,'+(.85+p2*.15)+')';   // notes always blue for visibility (was stage accent)
   noteShape(gc,2.2);
   FX.fillStyle=gc;FX.beginPath();FX.ellipse(x+1,y+10,4.6,3.2,-0.4,0,6.28);FX.fill();
   FX.fillStyle='rgba(255,255,255,'+(.5+p2*.4)+')';
