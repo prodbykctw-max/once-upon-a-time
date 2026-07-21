@@ -2435,8 +2435,8 @@ function drawT(){
   var p=GS.p,hx=vpX+t3.laneX*laneW*2.6,hy=gNear-t3.py;
   // grounded shadow: stays on the floor, shrinks + fades as she rises — the jump-timing anchor
   var shA=Math.max(0.10,0.36-t3.py*0.0011),shW2=38*(1-Math.min(0.5,t3.py/340));
-  FX.fillStyle='rgba(0,0,0,'+(shA*0.45)+')';FX.beginPath();FX.ellipse(hx,gNear+5,shW2*1.5,10,0,0,6.28);FX.fill();
-  FX.fillStyle='rgba(0,0,0,'+shA+')';FX.beginPath();FX.ellipse(hx,gNear+5,shW2,6.5,0,0,6.28);FX.fill();
+  FX.fillStyle='rgba(0,0,0,'+(shA*0.45)+')';FX.beginPath();FX.ellipse(hx,gNear+3,shW2*1.5,10,0,0,6.28);FX.fill();
+  FX.fillStyle='rgba(0,0,0,'+shA+')';FX.beginPath();FX.ellipse(hx,gNear+3,shW2,6.5,0,0,6.28);FX.fill();
   // floor reflection of hero (polished floor effect)
   // bk-sheet frame cadence: run cycles all 25 frames with speed-scaled clock;
   // jump maps the sheet arc onto the real jump physics (vy: +launch .. -land)
@@ -2474,10 +2474,11 @@ function drawT(){
       var fr=bkFrame(bkNm,spd2);
       var fCols=spd2.cols||spd2.frames,fsx=(fr%fCols)*spd2.cw,fsy=Math.floor(fr/fCols)*spd2.ch;
       var dh=H*0.26*(t3.slid>0?0.72:1),sc2=dh/spd2.ch,dw=spd2.cw*sc2;
-      if(GS.shieldT>0){var spz=Math.sin(GS.tick*0.25)*0.2+0.6;FX.strokeStyle='rgba(0,255,238,'+spz+')';FX.lineWidth=2.5;FX.beginPath();FX.arc(hx,hy-dh*0.45,dh*0.5,0,6.28);FX.stroke();}
-      if(GS.boostT>0){var bg2=FX.createRadialGradient(hx,hy-dh*0.4,4,hx,hy-dh*0.4,dh*0.7);
+      var footPad=dh*0.155; // empty space below feet in the cell → drop her onto the floor
+      if(GS.shieldT>0){var spz=Math.sin(GS.tick*0.25)*0.2+0.6;FX.strokeStyle='rgba(0,255,238,'+spz+')';FX.lineWidth=2.5;FX.beginPath();FX.arc(hx,hy-dh*0.45+footPad,dh*0.5,0,6.28);FX.stroke();}
+      if(GS.boostT>0){var bg2=FX.createRadialGradient(hx,hy-dh*0.4+footPad,4,hx,hy-dh*0.4+footPad,dh*0.7);
         bg2.addColorStop(0,'rgba(255,200,60,0.30)');bg2.addColorStop(1,'rgba(255,200,60,0)');
-        FX.fillStyle=bg2;FX.fillRect(hx-dh*0.7,hy-dh*1.1,dh*1.4,dh*1.4);}
+        FX.fillStyle=bg2;FX.fillRect(hx-dh*0.7,hy-dh*1.1+footPad,dh*1.4,dh*1.4);}
       FX.imageSmoothingEnabled=isBk;
       // i-frame feedback: soft alpha pulse, never fully invisible (no pulse under shield/boost)
       if(p.inv>0&&GS.boostT<=0&&GS.shieldT<=0)FX.globalAlpha=0.55+0.3*Math.sin(GS.tick*0.7);
@@ -2487,12 +2488,12 @@ function drawT(){
         // with the sprite's own motion and read as lurching side to side.
         var rt=GS.tick*0.35,cyc=3;
         var rBob=Math.sin(rt*cyc)*1.5, rSway=0;
-        FX.save();FX.translate(hx+rSway,hy-dh*0.5+rBob);
+        FX.save();FX.translate(hx+rSway,hy-dh*0.5+rBob+footPad);
         if(glwOK)drawHeroLit(img,fsx,fsy,spd2.cw,spd2.ch,-dw/2,-dh*0.5,dw,dh,ai);
         else FX.drawImage(img,fsx,fsy,spd2.cw,spd2.ch,-dw/2,-dh*0.5,dw,dh);
         FX.restore();
       } else {
-        FX.drawImage(img,fsx,fsy,spd2.cw-(isBk?0:4),spd2.ch,hx-dw/2,hy-dh,dw,dh);
+        FX.drawImage(img,fsx,fsy,spd2.cw-(isBk?0:4),spd2.ch,hx-dw/2,hy-dh+footPad,dw,dh);
       }
       FX.globalAlpha=1;
       FX.imageSmoothingEnabled=true;
