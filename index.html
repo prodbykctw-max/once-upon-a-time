@@ -343,6 +343,15 @@ body.mobile .joy-knob{width:64px;height:64px}
   box-shadow:inset 0 2px 0 rgba(255,248,214,.6),0 3px 0 #2a1608}
 .ht-back:active{transform:translateY(2px);box-shadow:inset 0 2px 0 rgba(255,248,214,.6),0 1px 0 #2a1608}
 .ht-back img{height:12px;image-rendering:pixelated}
+#ovName{margin:4px auto 8px;text-align:center}
+.ovn-lbl{display:block;font-family:var(--body);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(240,200,105,.72);margin-bottom:6px}
+.ovn-row{display:flex;gap:8px;justify-content:center;align-items:center}
+#ovNameInput{background:rgba(20,10,4,.6);border:1.5px solid #7a5326;border-radius:8px;padding:9px 12px;color:#f0e2c0;font-family:var(--body);font-size:15px;width:min(190px,46vw);outline:none;text-align:center}
+#ovNameInput:focus{border-color:rgba(240,200,105,.8)}
+#ovNameInput::placeholder{color:rgba(205,180,136,.5);font-style:italic}
+.ovn-save{font-family:var(--body);font-weight:700;font-size:11px;letter-spacing:1px;color:#3a2412;background:var(--gold);border:2px solid #3a2412;border-radius:8px;padding:9px 15px;cursor:pointer;box-shadow:0 2px 0 #2a1608}
+.ovn-save:active{transform:translateY(2px);box-shadow:none}
+.ovn-ok{color:#7CFFB2;font-family:var(--body);font-size:10px;letter-spacing:1px;margin-top:6px;min-height:13px}
 </style>
 </head>
 <body>
@@ -468,6 +477,11 @@ body.mobile .joy-knob{width:64px;height:64px}
   <div id="overlay">
     <div class="ov-t" id="ovT">GAME OVER</div>
     <div class="ov-m" id="ovM">She rose again.</div>
+    <div id="ovName">
+      <span class="ovn-lbl">Leaderboard name</span>
+      <div class="ovn-row"><input id="ovNameInput" maxlength="16" placeholder="Your name…" autocomplete="off" spellcheck="false"><button class="ovn-save" id="ovNameSave">SAVE</button></div>
+      <div class="ovn-ok" id="ovNameOk"></div>
+    </div>
     <div id="ovBoard"></div>
     <div class="ov-btns"><button class="ov-btn prim" id="ovR">TRY AGAIN</button><button class="ov-btn" id="ovM2">MAIN MENU</button></div>
   </div>
@@ -2778,12 +2792,11 @@ function drawToasts(){
 function saveRun(){
   var stamp=Date.now(),runs=[];
   try{runs=JSON.parse(localStorage.getItem('jande_runs')||'[]');}catch(x){}
-  var nm='';try{var sg=JSON.parse(localStorage.getItem('jande_signups')||'[]');if(sg.length)nm=(sg[sg.length-1].name||'').slice(0,14);}catch(x){}
-  var _lastRun={n:nm||'JANDÉ FAN',d:Math.floor(GS.dist),s:GS.score,g:GS.totalNotes,m:MODE,t:stamp};
+  var _lastRun={n:lbName(),d:Math.floor(GS.dist),s:GS.score,g:GS.totalNotes,m:MODE,t:stamp};
   runs.push(_lastRun);
   runs.sort(function(a,b){return b.d-a.d||b.s-a.s;});runs=runs.slice(0,10);
   try{localStorage.setItem('jande_runs',JSON.stringify(runs));}catch(x){}
-  lbSubmit(_lastRun);
+  LB_LAST=_lastRun;lbSubmit(_lastRun);
   return{runs:runs,stamp:stamp,me:_lastRun};}
 // ── GLOBAL LEADERBOARD — the only online feature; silently falls back to the
 //    local top-10 when the endpoint is unset or unreachable. Set the Worker
@@ -2805,6 +2818,23 @@ function lbTop(mode,n,cb){
     .then(function(r){return r.json();})
     .then(function(j){fin(j&&j.ok?j.runs:null);})
     .catch(function(){fin(null);});}catch(x){fin(null);}}
+// leaderboard display name: explicit jande_name → registration name → default
+var LB_LAST=null;
+function lbName(){
+  try{var n=localStorage.getItem('jande_name');if(n&&n.trim())return n.trim().slice(0,16);}catch(x){}
+  try{var sg=JSON.parse(localStorage.getItem('jande_signups')||'[]');if(sg.length&&sg[sg.length-1].name)return String(sg[sg.length-1].name).slice(0,16);}catch(x){}
+  return 'JANDÉ FAN';}
+function setLbName(v){v=String(v||'').replace(/[^\p{L}\p{N} .!'\-]/gu,'').trim().slice(0,16);
+  try{localStorage.setItem('jande_name',v);}catch(x){}return v||lbName();}
+function fillGlobalBoard(me){
+  if(!lbOn())return;me=me||{};
+  lbTop(MODE,8,function(rows){
+    var hdr=document.getElementById('lbHdr'),body=document.getElementById('lbRows');
+    if(!hdr||!body||!rows||!rows.length)return;
+    var html='';rows.forEach(function(r,i){
+      var mine=(r.n===me.n&&r.d===me.d&&r.s===me.s);
+      html+='<div class="bd-row'+(mine?' me':'')+'"><span>'+(i+1)+'. '+esc(r.n)+'</span><span>'+r.d+'m · '+(r.s||0).toLocaleString()+'</span></div>';});
+    body.innerHTML=html;hdr.style.display='';});}
 
 // ── WALLET (gems persist across runs; start with 1 free gem) ──
 function wallet(){try{return JSON.parse(localStorage.getItem('jande_wallet')||'{"gems":1}');}catch(x){return{gems:1};}}
@@ -3974,13 +4004,9 @@ function showOver(won){
   bh+='<div class="bd-sub" style="color:#7CFFB2">TAP ANYWHERE — RUN IT BACK</div>';
   bh+='<div class="bd-sub">TROPHIES '+Object.keys(ACH_GOT).length+' / '+ACH.length+' · ◆ '+wallet().gems+' · ♪ BANK '+(wallet().notes||0)+'</div>';
   document.getElementById('ovBoard').innerHTML=bh;
-  if(lbOn()){var _me=sv.me||{};lbTop(MODE,8,function(rows){
-    var hdr=document.getElementById('lbHdr'),body=document.getElementById('lbRows');
-    if(!hdr||!body||!rows||!rows.length)return;
-    var html='';rows.forEach(function(r,i){
-      var mine=(r.n===_me.n&&r.d===_me.d&&r.s===_me.s);
-      html+='<div class="bd-row'+(mine?' me':'')+'"><span>'+(i+1)+'. '+esc(r.n)+'</span><span>'+r.d+'m · '+(r.s||0).toLocaleString()+'</span></div>';});
-    body.innerHTML=html;hdr.style.display='';});}
+  var _nmIn=document.getElementById('ovNameInput');if(_nmIn)_nmIn.value=lbName();
+  var _nmOk=document.getElementById('ovNameOk');if(_nmOk)_nmOk.textContent='';
+  fillGlobalBoard(sv.me);
   running=false;applyTouchMode();}
 
 // ---------- title BG ----------
@@ -4154,6 +4180,14 @@ function wire(){
   document.getElementById('lSkip').onclick=showModeSel;
   document.getElementById('htGo').onclick=function(){audInit();sfx('ui');startGame();};
   document.getElementById('htBack').onclick=function(){sfx('ui');showModeSel();};
+  (function(){var inp=document.getElementById('ovNameInput'),btn=document.getElementById('ovNameSave'),ok=document.getElementById('ovNameOk');
+    if(!inp||!btn)return;
+    function save(){var v=setLbName(inp.value);inp.value=v;
+      if(LB_LAST){LB_LAST.n=v;lbSubmit(LB_LAST);fillGlobalBoard(LB_LAST);}
+      if(ok){ok.textContent='SAVED — name updated';setTimeout(function(){if(ok)ok.textContent='';},1800);}
+      inp.blur();sfx('ui');}
+    btn.onclick=save;
+    inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();save();}});})();
   document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';showHowTo();};
   document.getElementById('msTemple').onclick=function(){audInit();sfx('ui');MODE='temple';showHowTo();};
   document.getElementById('ovR').onclick=function(){document.getElementById('overlay').classList.remove('on');GS={};initGS(CHECKPOINT);if(MODE==='side'&&CHECKPOINT_X>8*T)respawnAt(CHECKPOINT_X);updateHUD();showLevelCard(CHECKPOINT,function(){if(!running){running=true;applyTouchMode();loop();}});};
@@ -4162,6 +4196,7 @@ function wire(){
     if(!ov.classList.contains('on'))return;                     // already restarting
     if(e.target&&e.target.closest&&e.target.closest('#ovM2'))return; // menu wins
     if(e.target&&e.target.closest&&e.target.closest('#ovBoard'))return; // let them read scores
+    if(e.target&&e.target.closest&&e.target.closest('#ovName'))return; // name input isn't a retry tap
     var r=document.getElementById('ovR');if(r&&r.onclick)r.onclick();});
   document.getElementById('ovM2').onclick=function(){['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('pmResume').onclick=function(){GS.paused=false;syncPauseMenu();};
