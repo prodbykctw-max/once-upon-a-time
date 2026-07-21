@@ -13,6 +13,24 @@ live game from the dev branch. That is now reconciled. The rule:
 - Before starting work, ALWAYS `git fetch` and check BOTH branches for
   commits you don't have (other sessions + the user's laptop push here too).
 
+## ⚠ TYPOGRAPHY — two-tier system (don't flatten it back)
+A cloud session established a type SYSTEM after the client called the
+all-Storyboo look "AI slop". Storyboo is now the **display** face only:
+the JANDÉ wordmark, the one hero heading per screen (`.tw-j`, `.lb-h`,
+`.ms-h`, `.ht-title`, in-game `.lc-t`), and big canvas titles. **Body/UI
+text — sub-copy, labels, inputs, hints, card descriptions, buttons — uses
+`var(--body)`** (a system humanist sans, defined in `:root`, no web
+request). Do NOT put Storyboo back on body copy; a novelty face on running
+text is exactly what read as "slop". Add new UI text with `var(--body)`
+and reach for `var(--disp)` only for a genuine display moment.
+
+## ⚠ INTRO CUTSCENE — removed + archived (client-directed)
+The old intro video no longer fits the game's direction and is retired.
+It's archived at `archive/intro/` (mp4 + the exact markup/JS + a restore
+README). `#tPress` now goes straight to `#loginScreen`. A NEW intro will
+be produced later — when it exists, follow `archive/intro/README.md` to
+re-wire it. Don't resurrect the old one.
+
 ## Ground rules
 1. The game is ONE self-contained file, **`index.html`** (~2.4MB). No runtime
    network requests; all assets base64-embedded. Watch total size — quantize
