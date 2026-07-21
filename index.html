@@ -68,7 +68,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 #gameWrap.on{display:block}
 #glC{position:absolute;inset:0;width:100%;height:100%;display:block}
 #fxC{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:5}
-#hud{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;padding:10px 18px;align-items:flex-start;justify-content:space-between;background:linear-gradient(180deg,rgba(0,0,0,.85),transparent);pointer-events:none}
+/* right padding reserves the top-right corner for #topBtns (pause/sound) so
+   the score and the enlarged meters can never sit under those buttons */
+#hud{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;padding:10px 68px 10px 18px;align-items:flex-start;justify-content:space-between;background:linear-gradient(180deg,rgba(0,0,0,.85),transparent);pointer-events:none}
 .hud-masks{display:flex;gap:5px}
 .hud-c{text-align:center}
 .hud-name{font-family:Poppins;font-weight:700;font-size:clamp(12px,2.2vw,17px);color:rgba(255,215,0,.9);letter-spacing:4px}
@@ -642,6 +644,9 @@ var FX, FXC, W, H, DPR=Math.min(2,window.devicePixelRatio||1);
 // ZOOM scales the side-scroller world; VW/VH are the world units on screen.
 // UI/HUD keep drawing in screen space, so they ignore these.
 var ZOOM=1, VW=0, VH=0;
+// Death checkpoint: the stage the player reached. Retry after death resumes
+// here instead of sending them back to stage 1. Reset on a fresh game.
+var CHECKPOINT=0;
 // Touch detection. Deliberately NOT `ontouchstart in window` or a width
 // threshold: plenty of desktops expose touch events, and a narrow desktop
 // window is still a desktop. `pointer:coarse` asks the real question -- is the
@@ -2355,7 +2360,8 @@ function drawT(){
       FX.fillStyle='rgba('+pc+',0.6)';FX.fillRect(ex-ww/2-2*es,ey-3*es,ww+4*es,3*es);
       FX.fillStyle='rgba(0,0,0,0.45)';FX.fillRect(ex-ww/2-2*es,ey,ww+4*es,Math.max(1,2*es));
     }else{ // coin — tier colors: gold ×1 · rose ×2 · cyan ×3
-      var v=e.v||1,cc=v===3?'80,220,255':v===2?'255,110,150':'255,215,0';
+      // notes read as a vivid blue (was gold, which vanished on bright worlds)
+      var v=e.v||1,cc=v===3?'120,235,255':v===2?'255,110,150':'54,150,255';
       var cr=13*es,cy2=ey-40*es-Math.sin((e.anim||0)*0.1)*8*es;
       // outer glow ring
       FX.fillStyle='rgba('+cc+',0.15)';FX.beginPath();FX.arc(ex,cy2,cr*2.2,0,6.28);FX.fill();
@@ -2364,7 +2370,7 @@ function drawT(){
       var coinG=FX.createRadialGradient(ex-cr*0.3,cy2-cr*0.3,0,ex,cy2,cr);
       coinG.addColorStop(0,'rgba(255,255,255,0.4)');coinG.addColorStop(0.5,'rgba('+cc+',0.95)');coinG.addColorStop(1,'rgba('+cc+',0.7)');
       FX.fillStyle=coinG;FX.beginPath();FX.arc(ex,cy2,cr,0,6.28);FX.fill();
-      FX.fillStyle='rgba(60,40,0,0.85)';FX.font='bold '+Math.max(8,Math.round(16*es))+'px serif';FX.textAlign='center';FX.fillText('♪',ex,cy2+5*es);
+      FX.fillStyle='rgba(255,255,255,0.95)';FX.font='bold '+Math.max(8,Math.round(16*es))+'px serif';FX.textAlign='center';FX.fillText('♪',ex,cy2+5*es);
     }
   }
   // ── THE GROOM'S SHADOW (chaser) — appears when she stumbles ──
@@ -3745,7 +3751,7 @@ function showLevelCard(ai,cb){var st=STAGES[ai];document.getElementById('lcR').t
   document.getElementById('lcDiv').style.background='linear-gradient(90deg,transparent,#'+st.ac.slice(1)+',transparent)';
   document.getElementById('lcL').textContent=st.lyr;var lc=document.getElementById('lvlCard');lc.classList.add('on');setTimeout(function(){lc.classList.remove('on');if(cb)cb();},2200);}
 function toRoman(n){return ['I','II','III','IV','V','VI','VII','VIII','IX'][n-1]||n;}
-function nextStage(){var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;updateHUD();showLevelCard(ai,function(){});}
+function nextStage(){var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;CHECKPOINT=ai;updateHUD();showLevelCard(ai,function(){});}
 // ── THE REUNION ── the run's real ending: she reaches her prince. Drawn as a
 // tableau (his sprite + her back-view turning to him) over a gold bloom, then
 // the normal results board underneath so the run still scores.
@@ -3995,7 +4001,7 @@ function startGame(){
   resize();
   var lm=document.getElementById('loadMsg');
   try{localStorage.setItem('jande_mode_'+MODE,'1');}catch(x){} // for BOTH WORLDS trophy
-  function begin(){if(lm)lm.style.display='none';GS={};initGS(0);
+  function begin(){if(lm)lm.style.display='none';GS={};CHECKPOINT=0;initGS(0);
     GS.adaptEarly=adaptGet().early||0;
     var stk=streakTick();
     if(stk.g>0){var w3=wallet();w3.gems+=stk.g;setWallet(w3);GS.gemsLive=w3.gems;}
@@ -4019,7 +4025,7 @@ function wire(){
   document.getElementById('htGo').onclick=function(){audInit();sfx('ui');startGame();};
   document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';showHowTo();};
   document.getElementById('msTemple').onclick=function(){audInit();sfx('ui');MODE='temple';showHowTo();};
-  document.getElementById('ovR').onclick=function(){document.getElementById('overlay').classList.remove('on');GS={};initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
+  document.getElementById('ovR').onclick=function(){document.getElementById('overlay').classList.remove('on');GS={};initGS(CHECKPOINT);updateHUD();showLevelCard(CHECKPOINT,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('overlay').addEventListener('click',function(e){
     var ov=document.getElementById('overlay');
     if(!ov.classList.contains('on'))return;                     // already restarting
