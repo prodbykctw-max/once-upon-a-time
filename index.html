@@ -178,7 +178,7 @@ body.mobile .chap-stage{font-size:7px;letter-spacing:1px}
 .lc-div{width:110px;height:0.5px;margin:18px auto}
 .lc-l{font-family:Storyboo;font-weight:300;font-style:italic;font-size:clamp(13px,2.2vw,18px);color:rgba(255,255,255,.6);text-align:center;max-width:500px;padding:0 24px;line-height:1.7}
 .lc-ld{font-family:Storyboo;font-size:6px;color:rgba(255,255,255,.2);margin-top:28px;animation:bl .9s step-end infinite}
-#overlay{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,0,12,.9)}
+#overlay{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:clamp(14px,5vh,60px) 12px calc(28px + env(safe-area-inset-bottom,0px));background:rgba(4,0,12,.9)}
 #overlay.on{display:flex}
 .ov-t{font-family:Storyboo;font-weight:900;font-size:clamp(32px,8.5vw,70px);color:rgba(255,215,0,.92);letter-spacing:4px;text-align:center}
 .ov-m{font-family:Storyboo;font-weight:300;font-style:italic;font-size:clamp(13px,2vw,16px);color:rgba(255,255,255,.6);margin:14px 0 30px;text-align:center;line-height:1.9;max-width:420px;padding:0 20px;white-space:pre-line}
@@ -1335,9 +1335,19 @@ function update(){
   var lead=p.faceL?0.62:0.38;
   // camera works in WORLD units (VW/VH), not screen pixels — otherwise a
   // zoomed-out phone would centre her wrongly and clamp to the wrong bounds
-  GS.camX+=(p.x-VW*lead-GS.camX)*0.10;GS.camY+=(p.y-VH*0.55-GS.camY)*0.09;
+  GS.camX+=(p.x-VW*lead-GS.camX)*0.10;
   GS.camX=Math.max(0,GS.camX);
-  GS.camY=Math.max(0,Math.min(GS.camY,GS.LH*T-VH));   // VW/VH == W/H at zoom 1
+  if(VH>GS.LH*T){
+    // PORTRAIT: the visible height is taller than the whole level, so the old
+    // clamp pinned the camera to the top of the world and left a dead ground
+    // band below the floor. Anchor the ground row near the lower screen (sky
+    // fills above); this keeps the tile floor aligned with drawMansionBG's
+    // groundY (which also references FLOOR_R*T - camY).
+    GS.camY+=((FLOOR_R*T-VH*0.82)-GS.camY)*0.14;
+  }else{
+    GS.camY+=(p.y-VH*0.55-GS.camY)*0.09;
+    GS.camY=Math.max(0,Math.min(GS.camY,GS.LH*T-VH));   // VW/VH == W/H at zoom 1
+  }
 
   // ── TRACK: generate ahead, prune far behind ──
   genAhead(GS,Math.floor((GS.camX+VW)/T)+24);
