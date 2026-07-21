@@ -171,7 +171,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
    The empty top slot is gone, so the cluster no longer reserves dead height. */
 .mattk{width:var(--ak);height:var(--ak);right:0;bottom:0;background:rgba(255,40,130,.3);border:1.5px solid rgba(255,40,130,.6);font-size:20px}
 .mblock{background:rgba(255,200,0,.16);border:1.5px solid rgba(255,200,0,.4);color:rgba(255,200,0,.85)}
-.mthrow{background:rgba(200,160,255,.25);border:1.5px solid rgba(200,160,255,.5)}
 #hint{position:absolute;bottom:62px;left:50%;transform:translateX(-50%);z-index:21;font-family:Poppins;font-size:6px;color:rgba(255,255,255,.2);white-space:nowrap;display:none;text-align:center}
 #hint.on{display:block}
 /* ===== MOBILE-OPTIMIZED LAYOUT ===== */
@@ -254,6 +253,12 @@ body.mobile .joy-knob{width:64px;height:64px}
   box-shadow:inset 4px 4px 0 #ffe3ef,inset -4px -4px 0 #e07ba6,0 5px 0 #571030}
 .mdsh:active,.mattk:active,.mdsh.hit,.mattk.hit{transform:translateY(4px);
   box-shadow:inset 4px 4px 0 rgba(0,0,0,.18),inset -4px -4px 0 rgba(255,255,255,.5),0 1px 0 #241018}
+
+/* ══ PIXEL ARROWS — replace every system/emoji directional glyph ══ */
+.pxa{height:0.95em;width:auto;image-rendering:pixelated;vertical-align:-0.1em}
+#mUp{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAA/UlEQVR4nO3aMUoDQRiAUSMeIKVFymApHsGjewSxDClTWHoDvUCSj4FZ1oX3yiXMhI+B4YfZPazkuH/+Hfn9+ed7t9R/uedxjU23RKAgUBAoCBSelt7g1m31cjiMLnV1naVvNycoCBQECgIFgcK0G2DibTXkdLlc/T7rdnOCgkBBoCBQECgIFAQKAgWBgkBBoDA8r6w1c42aNaM5QUGgIFAQKAgUBAoCBYGCQEGgIFC4OZdsZeYaNTqjOUFBoCBQECgIFAQKAgWBgkBBoCBQGH5p//76NmXjj6/PKesszQkKAgWBgkBBoDDtdcdWeN0xmUBBoCBQEAgAAIB/5w/dnCXVbMFdLgAAAABJRU5ErkJggg==)!important;background-size:54% 54%!important;background-position:center!important;background-repeat:no-repeat!important}
+#mLeft{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABAUlEQVR4nO3bMUoDURRA0SizAEuLlGIpLsH9L0EsU6R0B9pLJpcvX8YJ55Qp5ieXB48hM4cDAOzV3dZf4Kenh8evGdf5+DxP+W33My5yywQKAgWBgkBh+esDRrfS8/E46+iL545uNxMUBAoCBYGCQGF4i224lTZhgoJAQaAgUBAorG6xtW219600ygQFgYJAQaAgUFhsq+tMUBAoCBQECgIFgYJAQaAgUBAoCBSWK0877OIe7e3l9eLn76fTlOuboCBQECgIFAQKq/+LjW63Nf9t640yQUGgIFAQKAgUhp9R/MV7WLveeiYoCBQECgIFgYK3noMJCgIFgYJAQSAAuFnfyOoiU1cgSx0AAAAASUVORK5CYII=)!important;background-size:54% 54%!important;background-position:center!important;background-repeat:no-repeat!important}
+#mRight{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCUlEQVR4nO3bMQrCQBQG4SgewNIipXgY8Rye0yOIZbBMYekN9AK7Di+8JYnMV4qJMiz8ELTrJElaq03WjY77wyfjPs/3K+07ZdjO/QWWzkDAQMBAwEBgF72gtlbX86X4/tvjHv2I0Bq2Xj1PEDAQMBAwEDAQCK9Ya6e+j17SdPU8QcBAwEDAQMBAYHErFpW1erV18wQBAwEDAQMBA4G0FZvw5HAWP1avuG6eIGAgYCBgIGAgYCBgIGAgYCBgIGAgsPonilHDOBZf94niRAYCBgIGAgYCq1+x2irV+OuOZAYCBgIGAgYCi1ux1qsU5QkCBgIGAgYCBgL+6xl4goCBgIGAgYCBJEn6W184WCzKwp9lwAAAAABJRU5ErkJggg==)!important;background-size:54% 54%!important;background-position:center!important;background-repeat:no-repeat!important}
 </style>
 </head>
 <body>
@@ -280,7 +285,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="lb-sub">Be first to receive Jandé's<br><strong>"Once Upon A Time"</strong> — dropping soon.</div>
     <input class="lb-i" id="lName" type="text" placeholder="Your name..." maxlength="40"/>
     <input class="lb-i" id="lEmail" type="email" placeholder="Email address..."/>
-    <button class="lb-btn" id="lBtn">ENTER THE KINGDOM ▶</button>
+    <button class="lb-btn" id="lBtn">ENTER THE KINGDOM <img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCklEQVR4nO3bwQnCQBBA0SgW4NGzmDZSnzVYjm1EgnjyaAfaQJbPyCzuyn9HMSF8BoYsOgySJPVqk3Wj0/7wzrjP7fVMe6YM218/QOsMBAwEDAQMBHbRC0rbar6f1y94XEL3H6chtA1rbz0nCBgIGAgYCBgIhLdYbfP1GPp+7a3nBAEDAQMBAwEDgea2WFTW1ittNycIGAgYCBgIGAiET+OKJ4rBbdKacVpWP3eCgIGAgYCBgIGAgYCBgIGAgYCBgIFA9yeKUaV3Lk8Uv2QgYCBgIGAg0P0WK22lEn/dkcxAwEDAQMBAoLktVnsrRTlBwEDAQMBAwEDAfz0DJwgYCBgIGAgYSJKkv/UBISAtfORnlNgAAAAASUVORK5CYII=" alt=""></button>
     <div class="lb-msg" id="lMsg"></div>
     <div class="lb-skip" id="lSkip">play without registering</div>
   </div>
@@ -291,13 +296,13 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="ht-title">HELP JANDÉ MAKE IT<br>TO HER PRINCE!</div>
     <div class="ht-sub">The Groom Who Lied is chasing her. Run, leap and slide through the enchanted halls — and don't get caught.</div>
     <div class="ht-moves">
-      <div class="ht-move"><span class="ht-key">◀ ▶</span><span class="ht-txt">Move left &amp; right between lanes</span></div>
-      <div class="ht-move"><span class="ht-key">▲ / SPACE</span><span class="ht-txt">Jump over obstacles</span></div>
-      <div class="ht-move"><span class="ht-key">▼</span><span class="ht-txt">Slide under gates</span></div>
+      <div class="ht-move"><span class="ht-key"><img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABAUlEQVR4nO3bMUoDURRA0SizAEuLlGIpLsH9L0EsU6R0B9pLJpcvX8YJ55Qp5ieXB48hM4cDAOzV3dZf4Kenh8evGdf5+DxP+W33My5yywQKAgWBgkBh+esDRrfS8/E46+iL545uNxMUBAoCBYGCQGF4i224lTZhgoJAQaAgUBAorG6xtW219600ygQFgYJAQaAgUFhsq+tMUBAoCBQECgIFgYJAQaAgUBAoCBSWK0877OIe7e3l9eLn76fTlOuboCBQECgIFAQKq/+LjW63Nf9t640yQUGgIFAQKAgUhp9R/MV7WLveeiYoCBQECgIFgYK3noMJCgIFgYJAQSAAuFnfyOoiU1cgSx0AAAAASUVORK5CYII=" alt=""> <img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCUlEQVR4nO3bMQrCQBQG4SgewNIipXgY8Rye0yOIZbBMYekN9AK7Di+8JYnMV4qJMiz8ELTrJElaq03WjY77wyfjPs/3K+07ZdjO/QWWzkDAQMBAwEBgF72gtlbX86X4/tvjHv2I0Bq2Xj1PEDAQMBAwEDAQCK9Ya6e+j17SdPU8QcBAwEDAQMBAYHErFpW1erV18wQBAwEDAQMBA4G0FZvw5HAWP1avuG6eIGAgYCBgIGAgYCBgIGAgYCBgIGAgsPonilHDOBZf94niRAYCBgIGAgYCq1+x2irV+OuOZAYCBgIGAgYCi1ux1qsU5QkCBgIGAgYCBgL+6xl4goCBgIGAgYCBJEn6W184WCzKwp9lwAAAAABJRU5ErkJggg==" alt=""></span><span class="ht-txt">Move left &amp; right between lanes</span></div>
+      <div class="ht-move"><span class="ht-key"><img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAA/UlEQVR4nO3aMUoDQRiAUSMeIKVFymApHsGjewSxDClTWHoDvUCSj4FZ1oX3yiXMhI+B4YfZPazkuH/+Hfn9+ed7t9R/uedxjU23RKAgUBAoCBSelt7g1m31cjiMLnV1naVvNycoCBQECgIFgcK0G2DibTXkdLlc/T7rdnOCgkBBoCBQECgIFAQKAgWBgkBBoDA8r6w1c42aNaM5QUGgIFAQKAgUBAoCBYGCQEGgIFC4OZdsZeYaNTqjOUFBoCBQECgIFAQKAgWBgkBBoCBQGH5p//76NmXjj6/PKesszQkKAgWBgkBBoDDtdcdWeN0xmUBBoCBQEAgAAIB/5w/dnCXVbMFdLgAAAABJRU5ErkJggg==" alt=""> / SPACE</span><span class="ht-txt">Jump over obstacles</span></div>
+      <div class="ht-move"><span class="ht-key"><img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABDUlEQVR4nO3bMQrCQBBA0SgewNIipViKR/CcnkOscwSxFMsUlt5AL5Dxu7CTBfmvDBjXz+IyBrtOkiRJkjS3RekLtuvNO2Mhc3m8nkWfeZm1kH9hIGAgYCBgIBB+o0en1a7v81bzxXF/qHKf0+U8eT063dxBwEDAQMBAwEBg1XoBvxpu1ybv6w4CBgIGAgYCBgIGAgYCBgIGAgYCBgLVnou1+qUxch/Hyes+F6vMQMBAwEDAQMBAwEDAQMBAwEDAQKB4Fou0mtFqzVwRdxAwEDAQMBAwEDAQMBAwEDAQMBAwEKg2i0VqzWjZM1fEHQQMBAwEDAQMBNJPsUjpv6ezT6uIOwgYCBgIGAgYCHwAkowm15Hv3IcAAAAASUVORK5CYII=" alt=""></span><span class="ht-txt">Slide under gates</span></div>
       <div class="ht-move"><span class="ht-key">SWIPE</span><span class="ht-txt">On touch: swipe to move, jump &amp; slide</span></div>
       <div class="ht-move ht-coin"><span class="ht-key">✦</span><span class="ht-txt">Collect coins to earn power-ups!</span></div>
     </div>
-    <button class="ht-go" id="htGo">GO ▶</button>
+    <button class="ht-go" id="htGo">GO <img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCklEQVR4nO3bwQnCQBBA0SgW4NGzmDZSnzVYjm1EgnjyaAfaQJbPyCzuyn9HMSF8BoYsOgySJPVqk3Wj0/7wzrjP7fVMe6YM218/QOsMBAwEDAQMBHbRC0rbar6f1y94XEL3H6chtA1rbz0nCBgIGAgYCBgIhLdYbfP1GPp+7a3nBAEDAQMBAwEDgea2WFTW1ittNycIGAgYCBgIGAiET+OKJ4rBbdKacVpWP3eCgIGAgYCBgIGAgYCBgIGAgYCBgIFA9yeKUaV3Lk8Uv2QgYCBgIGAg0P0WK22lEn/dkcxAwEDAQMBAoLktVnsrRTlBwEDAQMBAwEDAfz0DJwgYCBgIGAgYSJKkv/UBISAtfORnlNgAAAAASUVORK5CYII=" alt=""></button>
   </div>
 </div>
 <div id="modeScreen" class="screen">
@@ -307,12 +312,12 @@ body.mobile .joy-knob{width:64px;height:64px}
       <div class="ms-card" id="msSide">
         <div class="ms-ico">🏃‍♀️</div>
         <div class="ms-t">ACTION RPG</div>
-        <div class="ms-d">Side-scroll combat dash.<br>Swipe ▶ Mic Strike · stomp foes · level up.</div>
+        <div class="ms-d">Side-scroll combat dash.<br>Swipe <img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCUlEQVR4nO3bMQrCQBQG4SgewNIipXgY8Rye0yOIZbBMYekN9AK7Di+8JYnMV4qJMiz8ELTrJElaq03WjY77wyfjPs/3K+07ZdjO/QWWzkDAQMBAwEBgF72gtlbX86X4/tvjHv2I0Bq2Xj1PEDAQMBAwEDAQCK9Ya6e+j17SdPU8QcBAwEDAQMBAYHErFpW1erV18wQBAwEDAQMBA4G0FZvw5HAWP1avuG6eIGAgYCBgIGAgYCBgIGAgYCBgIGAgsPonilHDOBZf94niRAYCBgIGAgYCq1+x2irV+OuOZAYCBgIGAgYCi1ux1qsU5QkCBgIGAgYCBgL+6xl4goCBgIGAgYCBJEn6W184WCzKwp9lwAAAAABJRU5ErkJggg==" alt=""> Mic Strike · stomp foes · level up.</div>
       </div>
       <div class="ms-card" id="msTemple">
         <div class="ms-ico">🏛️</div>
         <div class="ms-t">TEMPLE VIEW</div>
-        <div class="ms-d">Behind-the-back corridor run.<br>Swipe ◀ ▶ lanes · ▲ jump · ▼ slide.</div>
+        <div class="ms-d">Behind-the-back corridor run.<br>Swipe <img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABAUlEQVR4nO3bMUoDURRA0SizAEuLlGIpLsH9L0EsU6R0B9pLJpcvX8YJ55Qp5ieXB48hM4cDAOzV3dZf4Kenh8evGdf5+DxP+W33My5yywQKAgWBgkBh+esDRrfS8/E46+iL545uNxMUBAoCBYGCQGF4i224lTZhgoJAQaAgUBAorG6xtW219600ygQFgYJAQaAgUFhsq+tMUBAoCBQECgIFgYJAQaAgUBAoCBSWK0877OIe7e3l9eLn76fTlOuboCBQECgIFAQKq/+LjW63Nf9t640yQUGgIFAQKAgUhp9R/MV7WLveeiYoCBQECgIFgYK3noMJCgIFgYJAQSAAuFnfyOoiU1cgSx0AAAAASUVORK5CYII=" alt=""><img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCUlEQVR4nO3bMQrCQBQG4SgewNIipXgY8Rye0yOIZbBMYekN9AK7Di+8JYnMV4qJMiz8ELTrJElaq03WjY77wyfjPs/3K+07ZdjO/QWWzkDAQMBAwEBgF72gtlbX86X4/tvjHv2I0Bq2Xj1PEDAQMBAwEDAQCK9Ya6e+j17SdPU8QcBAwEDAQMBAYHErFpW1erV18wQBAwEDAQMBA4G0FZvw5HAWP1avuG6eIGAgYCBgIGAgYCBgIGAgYCBgIGAgsPonilHDOBZf94niRAYCBgIGAgYCq1+x2irV+OuOZAYCBgIGAgYCi1ux1qsU5QkCBgIGAgYCBgL+6xl4goCBgIGAgYCBJEn6W184WCzKwp9lwAAAAABJRU5ErkJggg==" alt=""> lanes · <img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAA/UlEQVR4nO3aMUoDQRiAUSMeIKVFymApHsGjewSxDClTWHoDvUCSj4FZ1oX3yiXMhI+B4YfZPazkuH/+Hfn9+ed7t9R/uedxjU23RKAgUBAoCBSelt7g1m31cjiMLnV1naVvNycoCBQECgIFgcK0G2DibTXkdLlc/T7rdnOCgkBBoCBQECgIFAQKAgWBgkBBoDA8r6w1c42aNaM5QUGgIFAQKAgUBAoCBYGCQEGgIFC4OZdsZeYaNTqjOUFBoCBQECgIFAQKAgWBgkBBoCBQGH5p//76NmXjj6/PKesszQkKAgWBgkBBoDDtdcdWeN0xmUBBoCBQEAgAAIB/5w/dnCXVbMFdLgAAAABJRU5ErkJggg==" alt=""> jump · <img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABDUlEQVR4nO3bMQrCQBBA0SgewNIipViKR/CcnkOscwSxFMsUlt5AL5Dxu7CTBfmvDBjXz+IyBrtOkiRJkjS3RekLtuvNO2Mhc3m8nkWfeZm1kH9hIGAgYCBgIBB+o0en1a7v81bzxXF/qHKf0+U8eT063dxBwEDAQMBAwEBg1XoBvxpu1ybv6w4CBgIGAgYCBgIGAgYCBgIGAgYCBgLVnou1+qUxch/Hyes+F6vMQMBAwEDAQMBAwEDAQMBAwEDAQKB4Fou0mtFqzVwRdxAwEDAQMBAwEDAQMBAwEDAQMBAwEKg2i0VqzWjZM1fEHQQMBAwEDAQMBNJPsUjpv6ezT6uIOwgYCBgIGAgYCHwAkowm15Hv3IcAAAAASUVORK5CYII=" alt=""> slide.</div>
       </div>
     </div>
     <div class="ms-stats" id="msStats"></div>
@@ -337,7 +342,6 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="tbtn" id="btnPause">⏸</div>
   </div>
   <div id="abilityBar">
-    <div class="ab" id="ab1"><div class="ab-cd" id="cd1"></div><div class="ab-k" style="color:#C8A0FF">1</div><div class="ab-n">THROW</div></div>
     <div class="ab" id="ab2"><div class="ab-cd" id="cd2"></div><div class="ab-k" style="color:#8B00FF">2</div><div class="ab-n">WAVE</div></div>
     <div class="ab" id="ab3"><div class="ab-cd" id="cd3"></div><div class="ab-k" style="color:#00FFEE">3</div><div class="ab-n">DASH</div></div>
     <div class="ab" id="ab4"><div class="ab-cd" id="cd4"></div><div class="ab-k" style="color:#00FFEE">4</div><div class="ab-n">HOLD</div></div>
@@ -346,23 +350,19 @@ body.mobile .joy-knob{width:64px;height:64px}
   <div id="mCtrl">
     <div id="joyWrap">
       <div class="dpad">
-        <div class="dbtn dup"    id="mUp"    aria-label="jump">▲</div>
-        <div class="dbtn dleft"  id="mLeft"  aria-label="move left">◀</div>
-        <div class="dbtn dright" id="mRight" aria-label="move right">▶</div>
+        <div class="dbtn dup"    id="mUp"    aria-label="jump"></div>
+        <div class="dbtn dleft"  id="mLeft"  aria-label="move left"></div>
+        <div class="dbtn dright" id="mRight" aria-label="move right"></div>
       </div>
     </div>
     <div class="mact">
-      <div class="mshoulders" style="display:none">
-        <div class="mshbtn mthrow" id="mTh">THROW</div>
-        <div class="mshbtn mblock" id="mB">HOLD</div>
-      </div>
       <div class="mdiam">
         <div class="mfbtn mdsh" id="mDash" aria-label="dash">DASH</div>
         <div class="mfbtn mattk" id="mA" aria-label="attack">⚔</div>
       </div>
     </div>
   </div>
-  <div id="hint">← → MOVE · SPACE JUMP ×2 · ↓ SLIDE · X STRIKE · SHIFT DASH · 🎮 GAMEPAD OK · P PAUSE · 🔊 TOP-RIGHT</div>
+  <div id="hint">ARROWS MOVE · SPACE JUMP ×2 · DOWN SLIDE · X STRIKE · SHIFT DASH · 🎮 GAMEPAD OK · P PAUSE · 🔊 TOP-RIGHT</div>
   <div id="bossBar"><div class="bb-n" id="bbN">THE GROOM WHO LIED</div><div class="bb-w"><div class="bb-f" id="bbF" style="width:100%"></div></div><div class="bb-ph" id="bbPh">— PHASE TWO —</div></div>
   <div id="lvlCard">
     <div class="lc-r" id="lcR">STAGE I</div>
@@ -388,7 +388,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="chapbar big" id="chapPause"></div>
     <div class="chap-name" id="chapName"></div>
     <div class="ov-btns" style="flex-direction:column;gap:12px">
-      <button class="ov-btn prim" id="pmResume">▶&nbsp;&nbsp;RESUME</button>
+      <button class="ov-btn prim" id="pmResume"><img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCklEQVR4nO3bwQnCQBBA0SgW4NGzmDZSnzVYjm1EgnjyaAfaQJbPyCzuyn9HMSF8BoYsOgySJPVqk3Wj0/7wzrjP7fVMe6YM218/QOsMBAwEDAQMBHbRC0rbar6f1y94XEL3H6chtA1rbz0nCBgIGAgYCBgIhLdYbfP1GPp+7a3nBAEDAQMBAwEDgea2WFTW1ittNycIGAgYCBgIGAiET+OKJ4rBbdKacVpWP3eCgIGAgYCBgIGAgYCBgIGAgYCBgIFA9yeKUaV3Lk8Uv2QgYCBgIGAg0P0WK22lEn/dkcxAwEDAQMBAoLktVnsrRTlBwEDAQMBAwEDAfz0DJwgYCBgIGAgYSJKkv/UBISAtfORnlNgAAAAASUVORK5CYII=" alt="">&nbsp;&nbsp;RESUME</button>
       <button class="ov-btn" id="pmRestart">↻&nbsp;&nbsp;RESTART RUN</button>
       <button class="ov-btn" id="pmMenu">⌂&nbsp;&nbsp;MAIN MENU</button>
     </div>
@@ -684,7 +684,7 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
     level:lvl,xp:xp,xpNext:GS.xpNext||100,dmg:dmg,
     camX:0,camY:0,tick:0,lyricT:0,titleT:210,won:false,finale:0,endT:0,trans:false,paused:false,mapOpen:false,blocking:false,blockHits:0,
     dmgT:0,shieldT:0,pwrMsg:'',pwrMsgT:0,levelUpT:0,
-    solid:{},tiles:[],bkbl:[],enemies:[],notes:[],pwr:[],threads:[],ptcl:[],boss:null,bossActive:false,
+    solid:{},tiles:[],bkbl:[],enemies:[],notes:[],pwr:[],ptcl:[],boss:null,bossActive:false,
     gateOpen:false,gateFlash:0,gateCol:88,arrowT:0,LW:1e9,LH:18,
     speed:5.2,dist:0,nextTheme:(_fin?12:330),obs:[],genC:0,groundR:14,
     stats:{dj:0,sl:0},toasts:[],newAch:[],blendT:1,prevPc:null,prevAc:null,prevAi:0,
@@ -697,7 +697,7 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
        atk:false,atkT:0,atkDir:'r',dead:false,deadT:0,inv:0,
        dashing:false,dashT:0,dashVx:0,dashCd:0,canDash:true,diving:false,
        sliding:false,slideT:0,airJumps:1,coyote:0,
-       waveCd:0,throwCd:0,screamT:0,idleT:0}};
+       screamT:0,idleT:0}};
   if(MODE==='side')buildRunner(GS);
   GS.gemsLive=wallet().gems;
   updateHUD();
@@ -3006,7 +3006,7 @@ function draw(){
     var hyy=H*0.62;FX.fillRect(W/2-200,hyy-20,400,66);
     FX.strokeStyle='rgba(255,215,0,0.5)';FX.lineWidth=1;FX.strokeRect(W/2-200,hyy-20,400,66);
     FX.fillStyle='rgba(255,235,180,0.95)';FX.font='9px Poppins,sans-serif';FX.textAlign='center';
-    FX.fillText('◀ ▶ MOVE · TAP/▲ JUMP ×2',W/2,hyy+2);
+    FX.fillText('MOVE WITH THE PAD · TAP OR UP = JUMP ×2',W/2,hyy+2);
     FX.fillText('⚔ STRIKE · DASH THROUGH FOES',W/2,hyy+26);
     // (the on-screen pads replaced the old drag-stick; keep wording generic)
     FX.globalAlpha=1;}
@@ -3120,15 +3120,6 @@ function drawPwr(pw){var x=pw.x+12,y=pw.y+12+Math.sin(pw.anim*0.06)*5;
   FX.fillStyle='rgba(255,255,255,0.5)';FX.beginPath();FX.moveTo(x,y-7);FX.lineTo(x+5,y-2);FX.lineTo(x,y);FX.lineTo(x-5,y-2);FX.closePath();FX.fill();
   var gly=pw.type==='DEVOTION'?'♥':pw.type==='VOICE'?'♪':pw.type==='BELT'?'♫':'♬';
   FX.font='bold 11px monospace';FX.fillStyle='#000';FX.textAlign='center';FX.textBaseline='middle';FX.fillText(gly,x,y+1);FX.textBaseline='alphabetic';}
-function drawThread(th){var tx=th.x,ty=th.y;
-  if(th.kind==='throw'){FX.save();FX.translate(tx,ty);FX.rotate(th.spin||0);FX.globalAlpha=th.stuck?.5:Math.min(1,th.life);
-    FX.fillStyle='rgba(200,160,255,0.35)';FX.beginPath();FX.arc(0,0,9,0,6.28);FX.fill();
-    FX.fillStyle='#C8A0FF';FX.beginPath();FX.ellipse(0,2,5,3.5,-0.4,0,6.28);FX.fill();
-    FX.strokeStyle='#C8A0FF';FX.lineWidth=2;FX.beginPath();FX.moveTo(4,2);FX.lineTo(4,-9);FX.stroke();
-    FX.beginPath();FX.moveTo(4,-9);FX.quadraticCurveTo(10,-6,8,-1);FX.stroke();FX.globalAlpha=1;FX.restore();}
-  else{FX.globalAlpha=th.stuck?.4:th.life*.8;FX.strokeStyle='#C8A0FF';FX.lineWidth=2.5;FX.beginPath();FX.arc(tx,ty,6,0,6.28);FX.stroke();
-    FX.globalAlpha*=0.6;FX.lineWidth=1.5;FX.beginPath();FX.arc(tx,ty,11,0,6.28);FX.stroke();FX.globalAlpha*=0.5;FX.beginPath();FX.arc(tx,ty,16,0,6.28);FX.stroke();FX.globalAlpha=1;}}
-
 function drawEnemy(e,ac){var x=e.x,y=e.y,A=e.aT,fl=e.vx<=0;
   FX.save();
   var sc=1.55;
@@ -3703,7 +3694,7 @@ function renderChapters(){
   if(nm&&STAGES[GS.ai])nm.textContent='CHAPTER '+rn+' · '+STAGES[GS.ai].n;
 }
 function syncAbilityBar(){var p=GS.p;
-  setCd('cd1',p.throwCd,22);setCd('cd2',p.waveCd,26);setCd('cd3',p.dashCd,32);setCd('cd4',GS.blocking?1:0,1);setCd('cd5',p.atkT,14);}
+  setCd('cd3',p.dashCd,32);setCd('cd4',GS.blocking?1:0,1);setCd('cd5',p.atkT,14);}
 function setCd(id,v,mx){var el=document.getElementById(id);if(el)el.style.height=(Math.max(0,Math.min(1,v/mx))*100)+'%';}
 
 function showLevelCard(ai,cb){var st=STAGES[ai];document.getElementById('lcR').textContent='STAGE '+toRoman(ai+1);
