@@ -158,8 +158,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .mb:active{background:rgba(255,255,255,.22)}
 .mact{display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:auto}
 .mfbtn{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:manipulation;font-family:Poppins;font-size:7px;color:#fff}
-.mdiam{position:relative;width:var(--ak);height:calc(var(--ak)*1.9);--ak:clamp(58px,18vw,76px)}
-.mdsh{width:calc(var(--ak)*0.82);height:calc(var(--ak)*0.82);right:calc(var(--ak)*0.09);top:0;background:rgba(0,255,238,.18);border:1.5px solid rgba(0,255,238,.5);color:rgba(0,255,238,.9);font-size:11px;font-family:Poppins}
+.mdiam{position:relative;width:calc(var(--ak)*1.9);height:calc(var(--ak)*1.9);--ak:clamp(58px,18vw,76px)}
+.mdsh{width:calc(var(--ak)*0.72);height:calc(var(--ak)*0.72);right:calc(var(--ak)*0.55);bottom:calc(var(--ak)*1.08);background:rgba(0,255,238,.18);border:1.5px solid rgba(0,255,238,.5);color:rgba(0,255,238,.9);font-size:11px}
 .mshoulders{display:flex;gap:8px;margin-bottom:2px}
 .mshbtn{height:28px;padding:0 13px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:manipulation;font-family:Poppins;font-size:5px;color:#fff}
 /* Thumb-arc, not a diamond. The old layout put JUMP bottom-centre with ATTACK
@@ -169,7 +169,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
    bottom-right corner along the arc a thumb actually sweeps, ordered by how
    often each is pressed: JUMP nearest and largest, then ATTACK, then DASH.
    The empty top slot is gone, so the cluster no longer reserves dead height. */
-.mattk{width:var(--ak);height:var(--ak);right:0;bottom:0;background:rgba(255,40,130,.3);border:1.5px solid rgba(255,40,130,.6);font-size:20px}
+.mattk{width:calc(var(--ak)*0.85);height:calc(var(--ak)*0.85);right:calc(var(--ak)*0.98);bottom:calc(var(--ak)*0.28);background:rgba(255,40,130,.3);border:1.5px solid rgba(255,40,130,.6);font-size:20px}
+.mjmp{width:var(--ak);height:var(--ak);right:0;bottom:0}
 .mblock{background:rgba(255,200,0,.16);border:1.5px solid rgba(255,200,0,.4);color:rgba(255,200,0,.85)}
 #hint{position:absolute;bottom:62px;left:50%;transform:translateX(-50%);z-index:21;font-family:Poppins;font-size:6px;color:rgba(255,255,255,.2);white-space:nowrap;display:none;text-align:center}
 #hint.on{display:block}
@@ -211,12 +212,10 @@ body.mobile #bossBar{bottom:150px}
    enormous on a desktop-sized viewport. The cap keeps them thumb-sized on a
    phone and unobtrusive on a big screen. */
 .dpad{position:relative;display:grid;
-  grid-template-columns:repeat(3,var(--dk));grid-template-rows:repeat(3,var(--dk));
-  --dk:clamp(46px,15vw,60px);gap:3px}
-.dup{grid-area:1/2/2/3}
-.dleft{grid-area:2/1/3/2}
-.dright{grid-area:2/3/3/4}
-.ddown{grid-area:3/2/4/3}
+  grid-template-columns:repeat(2,var(--dk));grid-template-rows:var(--dk);
+  --dk:clamp(46px,15vw,60px);gap:6px}
+.dleft{grid-area:1/1/2/2}
+.dright{grid-area:1/2/2/3}
 .dbtn{width:var(--dk);height:var(--dk);border-radius:16px;
   display:flex;align-items:center;justify-content:center;
   font-size:calc(var(--dk)*0.36);color:rgba(255,255,255,.92);
@@ -250,13 +249,20 @@ body.mobile .joy-knob{width:64px;height:64px}
   box-shadow:inset 4px 4px 0 #dffdf9,inset -4px -4px 0 #4fb8ac,0 5px 0 #123a36;
   font-weight:900;letter-spacing:1px;font-family:monospace;font-size:12px!important}
 .mattk{background:#ffb7d5!important;color:#6b1436!important;border:3px solid #571030!important;
-  box-shadow:inset 4px 4px 0 #ffe3ef,inset -4px -4px 0 #e07ba6,0 5px 0 #571030}
-.mdsh:active,.mattk:active,.mdsh.hit,.mattk.hit{transform:translateY(4px);
+  box-shadow:inset 4px 4px 0 #ffe3ef,inset -4px -4px 0 #e07ba6,0 5px 0 #571030;
+  background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABF0lEQVR4nO3asakCQRRA0VUswNBYDLYQA2sQY4syFmswMDIwsoANxNjQDrSAmQvLuDszwj3hon/k8nh8hm0aSVJ2k1IHr+aLT+p3H+/X6L97OvYB/8owwDDAMCDL8o0t2uP5kvz3dpt18GzohezEAMMAwwDDgMGXb99F27bL4FnXPZPPHXohOzHAMMAwwDBgVurgXxZtDk4MMAwwDDAMMAwwDDAMMAwwDPDOFzgxwDDAMMAwoNi1w/V2L3V0L04MMAwwDDAMqOpVs/02/NzhFD7zVbOCDAMMAwwDil071LRoY5wYYBhgGGAYYBhgGGAYYBhgGJDlPd/a/8uNcWKAYYBhgGFAsWuHmhZtjBMDDAMMAwwjSarHF3+RN1c4AO/8AAAAAElFTkSuQmCC)!important;background-size:58% 58%!important;
+  background-repeat:no-repeat!important;background-position:center!important;
+  image-rendering:pixelated}
+.mjmp{background:#ffd682!important;border:3px solid #5a3c10!important;
+  box-shadow:inset 4px 4px 0 #fff2cc,inset -4px -4px 0 #d9a43e,0 5px 0 #5a3c10;
+  background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAA/UlEQVR4nO3aMUoDQRiAUSMeIKVFymApHsGjewSxDClTWHoDvUCSj4FZ1oX3yiXMhI+B4YfZPazkuH/+Hfn9+ed7t9R/uedxjU23RKAgUBAoCBSelt7g1m31cjiMLnV1naVvNycoCBQECgIFgcK0G2DibTXkdLlc/T7rdnOCgkBBoCBQECgIFAQKAgWBgkBBoDA8r6w1c42aNaM5QUGgIFAQKAgUBAoCBYGCQEGgIFC4OZdsZeYaNTqjOUFBoCBQECgIFAQKAgWBgkBBoCBQGH5p//76NmXjj6/PKesszQkKAgWBgkBBoDDtdcdWeN0xmUBBoCBQEAgAAIB/5w/dnCXVbMFdLgAAAABJRU5ErkJggg==)!important;background-size:52% 52%!important;
+  background-repeat:no-repeat!important;background-position:center!important;
+  image-rendering:pixelated}
+.mdsh:active,.mattk:active,.mjmp:active,.mdsh.hit,.mattk.hit,.mjmp.hit{transform:translateY(4px);
   box-shadow:inset 4px 4px 0 rgba(0,0,0,.18),inset -4px -4px 0 rgba(255,255,255,.5),0 1px 0 #241018}
 
 /* ══ PIXEL ARROWS — replace every system/emoji directional glyph ══ */
 .pxa{height:0.95em;width:auto;image-rendering:pixelated;vertical-align:-0.1em}
-#mUp{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAA/UlEQVR4nO3aMUoDQRiAUSMeIKVFymApHsGjewSxDClTWHoDvUCSj4FZ1oX3yiXMhI+B4YfZPazkuH/+Hfn9+ed7t9R/uedxjU23RKAgUBAoCBSelt7g1m31cjiMLnV1naVvNycoCBQECgIFgcK0G2DibTXkdLlc/T7rdnOCgkBBoCBQECgIFAQKAgWBgkBBoDA8r6w1c42aNaM5QUGgIFAQKAgUBAoCBYGCQEGgIFC4OZdsZeYaNTqjOUFBoCBQECgIFAQKAgWBgkBBoCBQGH5p//76NmXjj6/PKesszQkKAgWBgkBBoDDtdcdWeN0xmUBBoCBQEAgAAIB/5w/dnCXVbMFdLgAAAABJRU5ErkJggg==)!important;background-size:54% 54%!important;background-position:center!important;background-repeat:no-repeat!important}
 #mLeft{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABAUlEQVR4nO3bMUoDURRA0SizAEuLlGIpLsH9L0EsU6R0B9pLJpcvX8YJ55Qp5ieXB48hM4cDAOzV3dZf4Kenh8evGdf5+DxP+W33My5yywQKAgWBgkBh+esDRrfS8/E46+iL545uNxMUBAoCBYGCQGF4i224lTZhgoJAQaAgUBAorG6xtW219600ygQFgYJAQaAgUFhsq+tMUBAoCBQECgIFgYJAQaAgUBAoCBSWK0877OIe7e3l9eLn76fTlOuboCBQECgIFAQKq/+LjW63Nf9t640yQUGgIFAQKAgUhp9R/MV7WLveeiYoCBQECgIFgYK3noMJCgIFgYJAQSAAuFnfyOoiU1cgSx0AAAAASUVORK5CYII=)!important;background-size:54% 54%!important;background-position:center!important;background-repeat:no-repeat!important}
 #mRight{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCUlEQVR4nO3bMQrCQBQG4SgewNIipXgY8Rye0yOIZbBMYekN9AK7Di+8JYnMV4qJMiz8ELTrJElaq03WjY77wyfjPs/3K+07ZdjO/QWWzkDAQMBAwEBgF72gtlbX86X4/tvjHv2I0Bq2Xj1PEDAQMBAwEDAQCK9Ya6e+j17SdPU8QcBAwEDAQMBAYHErFpW1erV18wQBAwEDAQMBA4G0FZvw5HAWP1avuG6eIGAgYCBgIGAgYCBgIGAgYCBgIGAgsPonilHDOBZf94niRAYCBgIGAgYCq1+x2irV+OuOZAYCBgIGAgYCi1ux1qsU5QkCBgIGAgYCBgL+6xl4goCBgIGAgYCBJEn6W184WCzKwp9lwAAAAABJRU5ErkJggg==)!important;background-size:54% 54%!important;background-position:center!important;background-repeat:no-repeat!important}
 </style>
@@ -350,7 +356,6 @@ body.mobile .joy-knob{width:64px;height:64px}
   <div id="mCtrl">
     <div id="joyWrap">
       <div class="dpad">
-        <div class="dbtn dup"    id="mUp"    aria-label="jump"></div>
         <div class="dbtn dleft"  id="mLeft"  aria-label="move left"></div>
         <div class="dbtn dright" id="mRight" aria-label="move right"></div>
       </div>
@@ -358,7 +363,8 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="mact">
       <div class="mdiam">
         <div class="mfbtn mdsh" id="mDash" aria-label="dash">DASH</div>
-        <div class="mfbtn mattk" id="mA" aria-label="attack" style="background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABF0lEQVR4nO3asakCQRRA0VUswNBYDLYQA2sQY4syFmswMDIwsoANxNjQDrSAmQvLuDszwj3hon/k8nh8hm0aSVJ2k1IHr+aLT+p3H+/X6L97OvYB/8owwDDAMCDL8o0t2uP5kvz3dpt18GzohezEAMMAwwDDgMGXb99F27bL4FnXPZPPHXohOzHAMMAwwDBgVurgXxZtDk4MMAwwDDAMMAwwDDAMMAwwDPDOFzgxwDDAMMAwoNi1w/V2L3V0L04MMAwwDDAMqOpVs/02/NzhFD7zVbOCDAMMAwwDil071LRoY5wYYBhgGGAYYBhgGGAYYBhgGJDlPd/a/8uNcWKAYYBhgGFAsWuHmhZtjBMDDAMMAwwjSarHF3+RN1c4AO/8AAAAAElFTkSuQmCC);background-size:60% 60%;background-position:center;background-repeat:no-repeat"></div>
+        <div class="mfbtn mjmp" id="mJump" aria-label="jump"></div>
+        <div class="mfbtn mattk" id="mA" aria-label="attack"></div>
       </div>
     </div>
   </div>
@@ -3892,11 +3898,8 @@ function startGame(){
         var el=document.getElementById(id);if(el)el.classList.toggle('hit',!!on);
         if(id==='mLeft')TC.l=on?1:0;
         else if(id==='mRight')TC.r=on?1:0;
-        // UP is a discrete press, not a hold -- set() only fires on the
-        // transition, so buffering the jump here gives one jump per tap
-        else if(id==='mUp'){if(on)TC.jb=Math.max(TC.jb,10);}
       }
-      var PADS=['mUp','mLeft','mRight'];
+      var PADS=['mLeft','mRight'];
       function clearAll(){PADS.forEach(function(i){set(i,false);});held={};}
       function idAt(x,y){
         var e=document.elementFromPoint(x,y);
@@ -3921,7 +3924,11 @@ function startGame(){
       pad.addEventListener('touchend',function(e){refresh(e);e.preventDefault();},{passive:false});
       pad.addEventListener('touchcancel',function(e){clearAll();},{passive:false});
     })();
-    tbind('mA','a');tbind('mDash','d');
+    tbind('mA','a');tbind('mDash','d');tbind('mJump','u');
+    // a tap shorter than one 60Hz frame would drop TC.u before update()
+    // samples it -- buffer the jump on the touchstart edge as well
+    (function(){var j=document.getElementById('mJump');
+      if(j)j.addEventListener('touchstart',function(){TC.jb=Math.max(TC.jb,10);},{passive:true});})();
   }
   // ── TEMPLE-RUN TOUCH: swipe ▲ jump · ▼ slide · ◀ ▶ lanes (temple view) · tap = jump ──
   // preventDefault + touch-action:none stop iOS/Android gestures (double-tap zoom,
