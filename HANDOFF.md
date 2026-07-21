@@ -183,3 +183,6 @@ git checkout gh-pages && git checkout claude/hand-painted-architecture-bg-0MAiy 
 - Store: spend Grace Notes on power-up upgrades
 - Global leaderboard (user has Cloudflare connector: Workers + KV/D1)
 - Custom domain + EmailJS keys for registration
+
+## Cross-session log
+- RESOLVED (laptop session): RESONANCE/LV meters vs #topBtns overlap. Fixed by dropping .hud-r below the 40px top-button row (vertical clearance), not horizontal padding (the map button makes #topBtns too wide to reserve). Verified no overlap desktop+mobile.

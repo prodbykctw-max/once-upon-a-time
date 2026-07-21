@@ -92,9 +92,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 #gameWrap.on{display:block}
 #glC{position:absolute;inset:0;width:100%;height:100%;display:block}
 #fxC{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:5}
-/* right padding reserves the top-right corner for #topBtns (pause/sound) so
-   the score and the enlarged meters can never sit under those buttons */
-#hud{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;padding:10px 68px 10px 18px;align-items:flex-start;justify-content:space-between;background:linear-gradient(180deg,rgba(0,0,0,.85),transparent);pointer-events:none}
+#hud{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;padding:10px 18px;align-items:flex-start;justify-content:space-between;background:linear-gradient(180deg,rgba(0,0,0,.85),transparent);pointer-events:none}
 .hud-masks{display:flex;gap:5px}
 .hud-c{text-align:center}
 .hud-name{font-family:Storyboo;font-weight:700;font-size:clamp(12px,2.2vw,17px);color:rgba(255,215,0,.9);letter-spacing:4px}
@@ -118,7 +116,12 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 .chapbar.big .chcrown{font-size:18px}
 .chap-name{font-family:Storyboo;font-weight:600;font-size:clamp(8px,1.4vw,11px);
   color:rgba(255,232,170,.8);letter-spacing:2px;margin-bottom:6px}
-.hud-r{text-align:right;font-family:Storyboo;font-size:clamp(5px,.9vw,8px)}
+/* drop the score+meters below the 40px top-button row (#topBtns, top:10) so
+   they clear the map/sound/pause cluster regardless of button count or screen
+   width -- horizontal padding could not, since the map button makes #topBtns
+   too wide to reserve without crushing the meters on mobile */
+.hud-r{text-align:right;font-family:Storyboo;font-size:clamp(5px,.9vw,8px);margin-top:42px}
+body.mobile .hud-r{margin-top:46px}
 /* XP track mirrors RESONANCE so the two read as one status block; gold
    distinguishes progression from the pink resonance meter. */
 .xfil{height:100%;background:linear-gradient(90deg,#ffd36e,#fff3c9);border-radius:inherit;transition:width .2s ease}
