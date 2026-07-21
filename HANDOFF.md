@@ -24,6 +24,12 @@ live game from the dev branch. That is now reconciled. The rule:
    public repo). Process reference from chat uploads only.
 4. Mobile first: fixed-timestep loop, DPR cap, touch-action lockouts stay.
    Playwright-test before every deploy (recipe below).
+5. NO STOCK GLYPHS IN GAME UI (client directive, learned the hard way):
+   never use Unicode arrows/symbols/emoji as visual elements — the OS
+   renders them as generic system/emoji art, off-theme. Anything visual
+   is a MADE asset in the game's pixel style (see the baked data-URI
+   arrows in the CSS, tools/ bakers) or plain words. This applies to
+   buttons, cards, hints, canvas text, toasts — everywhere.
 
 ## ART DIRECTION PIVOT (client-directed): WHIMSICAL PRINCESS FAIRYTALE
 The dark mansion is out. New vibe: sunshine, fairies, sparkles, birds,
