@@ -3,6 +3,18 @@
 Paid, professional-grade promo game for the R&B artist **Jandé** (always
 accented: Jandé / JANDÉ). $5k upfront + $5k on delivery. Commercial bar.
 
+## 🐞 OPEN BUG for the LAPTOP session (your HUD area, so you own the fix)
+The enlarged RESONANCE/level meters from `c3286be` ("larger health/power
+meters") now **overlap the top-right sound + pause buttons** (`#topBtns`).
+On mobile `.strk` is 128px wide and the `.slbl` labels ("RESONANCE" / "LV
+N") in `.hud-r` collide with the two round buttons — visible in both RPG
+and Temple. A cloud session found this while integrating and is
+deliberately NOT touching it to avoid clashing with your active HUD work.
+Fix by capping `.hud-r` width or nudging `#topBtns` clear (or shrink the
+meters a touch). NB: the top-CENTER band under the distance meter is the
+power-up chip HUD (`drawFxChips`) — leave room for it, don't move meters
+into it.
+
 ## ⚠ BRANCH DISCIPLINE (a real incident, don't repeat it)
 A previous session committed 10 game changes ONLY to `gh-pages`, splitting the
 live game from the dev branch. That is now reconciled. The rule:
