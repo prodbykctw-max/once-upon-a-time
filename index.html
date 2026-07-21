@@ -2801,7 +2801,7 @@ function saveRun(){
 // ── GLOBAL LEADERBOARD — the only online feature; silently falls back to the
 //    local top-10 when the endpoint is unset or unreachable. Set the Worker
 //    URL once via ?lb=<url> (persists) or bake it into LB_URL below. ──
-var LB_URL='';
+var LB_URL='https://jande-leaderboard.prodbykctw.workers.dev';
 try{LB_URL=localStorage.getItem('jande_lb')||LB_URL;}catch(x){}
 (function(){try{var m=(location.search.match(/[?&]lb=([^&#]+)/)||[])[1];
   if(m){LB_URL=decodeURIComponent(m).replace(/\/+$/,'');localStorage.setItem('jande_lb',LB_URL);}}catch(x){}})();
