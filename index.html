@@ -315,6 +315,11 @@ body.mobile .joy-knob{width:64px;height:64px}
 .pxa{height:0.95em;width:auto;image-rendering:pixelated;vertical-align:-0.1em}
 #mLeft{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABAUlEQVR4nO3bMUoDURRA0SizAEuLlGIpLsH9L0EsU6R0B9pLJpcvX8YJ55Qp5ieXB48hM4cDAOzV3dZf4Kenh8evGdf5+DxP+W33My5yywQKAgWBgkBh+esDRrfS8/E46+iL545uNxMUBAoCBYGCQGF4i224lTZhgoJAQaAgUBAorG6xtW219600ygQFgYJAQaAgUFhsq+tMUBAoCBQECgIFgYJAQaAgUBAoCBSWK0877OIe7e3l9eLn76fTlOuboCBQECgIFAQKq/+LjW63Nf9t640yQUGgIFAQKAgUhp9R/MV7WLveeiYoCBQECgIFgYK3noMJCgIFgYJAQSAAuFnfyOoiU1cgSx0AAAAASUVORK5CYII=)!important;background-size:54% 54%!important;background-position:center!important;background-repeat:no-repeat!important}
 #mRight{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCUlEQVR4nO3bMQrCQBQG4SgewNIipXgY8Rye0yOIZbBMYekN9AK7Di+8JYnMV4qJMiz8ELTrJElaq03WjY77wyfjPs/3K+07ZdjO/QWWzkDAQMBAwEBgF72gtlbX86X4/tvjHv2I0Bq2Xj1PEDAQMBAwEDAQCK9Ya6e+j17SdPU8QcBAwEDAQMBAYHErFpW1erV18wQBAwEDAQMBA4G0FZvw5HAWP1avuG6eIGAgYCBgIGAgYCBgIGAgYCBgIGAgsPonilHDOBZf94niRAYCBgIGAgYCq1+x2irV+OuOZAYCBgIGAgYCi1ux1qsU5QkCBgIGAgYCBgL+6xl4goCBgIGAgYCBJEn6W184WCzKwp9lwAAAAABJRU5ErkJggg==)!important;background-size:54% 54%!important;background-position:center!important;background-repeat:no-repeat!important}
+.site-footer{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;z-index:6;
+  font-family:var(--body);font-size:11px;letter-spacing:1.5px;color:rgba(240,200,105,.55);
+  text-decoration:none;cursor:pointer;pointer-events:auto;text-transform:uppercase}
+.site-footer:hover{color:rgba(240,200,105,.95);text-decoration:underline;text-underline-offset:3px}
+.site-footer b{font-weight:700;color:rgba(240,200,105,.85);font-style:normal}
 </style>
 </head>
 <body>
@@ -327,6 +332,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="tw-tag">"She traded the veil for the spotlight."</div>
     <div class="tw-press btn-tav" id="tPress">— BEGIN —</div>
   </div>
+  <a class="site-footer" href="https://instagram.com/prodbykctw" target="_blank" rel="noopener noreferrer">PROD BY <b>@PRODBYKCTW</b></a>
 </div>
 <div id="loginScreen" class="screen">
   <div class="lb">
@@ -339,6 +345,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="lb-msg" id="lMsg"></div>
     <div class="lb-skip" id="lSkip">play without registering</div>
   </div>
+  <a class="site-footer" href="https://instagram.com/prodbykctw" target="_blank" rel="noopener noreferrer">PROD BY <b>@PRODBYKCTW</b></a>
 </div>
 <div id="howToScreen" class="screen">
   <div class="ht-wrap">
@@ -361,6 +368,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     </div>
     <button class="ht-go btn-tav" id="htGo">GO</button>
   </div>
+  <a class="site-footer" href="https://instagram.com/prodbykctw" target="_blank" rel="noopener noreferrer">PROD BY <b>@PRODBYKCTW</b></a>
 </div>
 <div id="modeScreen" class="screen">
   <div class="ms-wrap">
@@ -380,6 +388,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="ms-stats" id="msStats"></div>
     <div class="ms-card" id="msShop" style="margin-top:16px;width:auto;display:inline-block;padding:13px 26px"><span style="font-family:Storyboo;font-size:12px;color:#FFD700">✦ THE BOUTIQUE — SPEND YOUR NOTES</span></div>
   </div>
+  <a class="site-footer" href="https://instagram.com/prodbykctw" target="_blank" rel="noopener noreferrer">PROD BY <b>@PRODBYKCTW</b></a>
 </div>
 <div id="gameWrap">
   <canvas id="glC"></canvas>
@@ -2671,10 +2680,9 @@ var ACH_GOT=loadAch();
 function checkAch(){
   for(var i=0;i<ACH.length;i++){var a=ACH[i];if(ACH_GOT[a.id])continue;
     var ok=false;try{ok=a.f(GS);}catch(x){}
-    if(ok){ACH_GOT[a.id]=1;sfx('fanfare');try{localStorage.setItem('jande_ach',JSON.stringify(ACH_GOT));}catch(x){}
-      GS.toasts.push({txt:a.n,sub:a.d.toUpperCase(),t:260,max:260,ico:'trophy'});
-      GS.newAch.push(a.n);GS.score+=500;
-      if(navigator.vibrate)navigator.vibrate([30,20,30]);}}}
+    if(ok){ACH_GOT[a.id]=1;try{localStorage.setItem('jande_ach',JSON.stringify(ACH_GOT));}catch(x){}
+      // no in-game pop-up (distracting) — tallied on the game-over screen + tokens
+      GS.newAch.push(a.n);GS.score+=250;}}}
 // per-frame housekeeping shared by both modes
 function tickFx(){
   if(GS.blendT<1)GS.blendT=Math.min(1,GS.blendT+0.012);
@@ -2800,9 +2808,8 @@ var MIS_S=misState();
 function misAdd(k,amt){var chg=false;
   for(var i=0;i<MIS.length;i++){var m=MIS[i];if(m.k!==k||MIS_S.done[m.id])continue;
     MIS_S.prog[m.id]=(MIS_S.prog[m.id]||0)+amt;chg=true;
-    if(MIS_S.prog[m.id]>=m.goal){MIS_S.done[m.id]=1;sfx('fanfare');
-      GS.toasts.push({txt:'★ OBJECTIVE COMPLETE',sub:m.n.toUpperCase()+' — MULTIPLIER UP!',t:260,max:260});
-      if(navigator.vibrate)navigator.vibrate([30,20,30]);}}
+    if(MIS_S.prog[m.id]>=m.goal){MIS_S.done[m.id]=1;
+      if(!GS.newMis)GS.newMis=[];GS.newMis.push(m.n);}}
   if(chg){try{localStorage.setItem('jande_mis',JSON.stringify(MIS_S));}catch(x){}}}
 function misMult(){return 1+0.5*Object.keys(MIS_S.done).length;}
 function runMult(){return misMult()*(GS.x2T>0?2:1);}
@@ -3893,8 +3900,11 @@ function showOver(won){
   try{best=parseInt(localStorage.getItem('jande_best')||'0',10);
     if(Math.floor(GS.dist)>best){best=Math.floor(GS.dist);isPB=true;localStorage.setItem('jande_best',''+best);}}catch(x){}
   var sv=saveRun();
-  // bank this run's Grace Notes for the Boutique
-  var wN=wallet();wN.notes=(wN.notes||0)+GS.totalNotes;setWallet(wN);
+  // bank this run's Grace Notes for the Boutique + achievement tokens
+  var achTok=(GS.newAch?GS.newAch.length:0)*20;   // 20 Boutique tokens per trophy
+  var wN=wallet();wN.notes=(wN.notes||0)+GS.totalNotes+achTok;
+  if(achTok){wN.gems=(wN.gems||0)+GS.newAch.length;}   // + a gem each
+  setWallet(wN);
   // adaptive difficulty: consecutive early deaths earn breathing room
   var ad=adaptGet();
   if(Math.floor(GS.dist)<150)ad.early=(ad.early||0)+1;
@@ -3907,7 +3917,7 @@ function showOver(won){
   sv.runs.slice(0,5).forEach(function(r,i){
     bh+='<div class="bd-row'+(r.t===sv.stamp?' me':'')+'"><span>'+(i+1)+'. '+(r.m==='temple'?'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABKElEQVR4nO3bsQnCQBhA4SgOYCmWYnqLlOIMTuIwTuIMYpnCXgsr0c4NtE/+BydJjOL7ynBHjsdxxGCyTJIkSfoHg75uPB9PntVr58ett/VUDftewLcyDDAMMAwYpQ5sclhGc0/7WW1cvspq4yJN7ps61x0DDAMMAwwDwsM3OrQO5a42blmskw7LaG5erFOmtn7faG50ILtjgGGAYYBhgGGAYYBhgGGAYUD4Ezx8TXA9dr6YT8ini9o1n3zfYBhgGGAYkPzO9369dLiM7+OOAYYBhgGGAYYBhgGGAYYBhgHJT75t227KpHGbbdHxSmLuGGAYYBhgGGAYYBhgGGAYYBhgGGAYYBhgGGAYYBhgGGAYYBhgGJD8OW/097Nf5BduDRkGGAYYBrwAzcA3NITnyGwAAAAASUVORK5CYII=" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt="">':'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABL0lEQVR4nO3aPw4BQRhA8SUOoJQoiUapkeiUexCHchClTqJRaoReqdZwgJ2XTLKf8e/9ys3aiZfJl7W2qiRJxXXetfC4P3hEXu98u4Z+l27kxX6JYYBhgGFAr8QiqUFbD++ha2yq5hptBrI7BhgGGAYYBnzUne+qHmV9dr25ZJ3n8H0BwwDDAMOAIsM3NWgPp93L151NFo1juQPZHQMMAwwDDAPCh+83DtoUdwwwDDAMMAwIf+abGnizyeItA7kNdwwwDDAMMAwo8odbtOi73BR3DDAMMAwwDDAMMAwwDDAMMAwIv/NNPfPdH7eN81J3r7lS15tPl75qVoJhgGGAYUCrn+q5g3Y+XTaOtRmMJdZ1xwDDAMMAw4AibztEP48tsa47BhgGGAYYRpIkSfprT87IS4ghF4emAAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt="">')+' '+esc(r.n)+'</span><span>'+r.d+'m · '+Number(r.s).toLocaleString()+'</span></div>';});
   if(GS.newAch&&GS.newAch.length){
-    bh+='<div class="bd-h">— UNLOCKED —</div>';
+    bh+='<div class="bd-h">— TROPHIES UNLOCKED · +'+(GS.newAch.length*20)+' ♪ +'+GS.newAch.length+' ◆ —</div>';
     GS.newAch.forEach(function(n){bh+='<div class="bd-ach"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABOElEQVR4nO3bMWoCQRSAYZUUliklTYK417DyIB4gB0i5ZQ6QA3gQK6+hSGxCypSpTA4w74dl57mK/F85yKA/w2PRcTSSJA1unL3h4nH2l71nX4ef796fb5L5Ru6JYYBhgGFA1fCNBu3+871my1TNy1ux1nUge2KAYYBhgGFA5+EbDdrtZlq87nn+VPmW8pyOX8Xaav1brEUD2RMDDAMMAwwD8p98d/OaLVM1y2Ox5pNvJcMAwwDDAMMAwwDDAMMAwwDDAMMAwwDDAMOAq912iL4v7ir63jbibYcLMAwwDDAMeMjeMBp4Q1w/qxm0EU8MMAwwDDAMGOTJd4gf4Wp+XIt4YoBhgGGAYYBhgGGAYYBhgGFA+lWzj/Z2Wr+252LNq2aVDAMMAwwD/Hsx8MQAwwDDAMNIkm7HP2EbPCge4W34AAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""> '+esc(n)+'</div>';});}
   bh+='<div class="bd-h">— OBJECTIVES · ×'+misMult().toFixed(1)+' MULTIPLIER —</div>';
   var shown=0;
