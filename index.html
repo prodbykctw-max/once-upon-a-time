@@ -1757,9 +1757,11 @@ var GLWORLD=(function(){
       // in against the bookcase walls so they line the aisle instead of
       // towering over it.
       if(hall)s*=0.46;
+      // keep décor OUT of the 3-lane play corridor (walls sit at ~1.06*corrW):
+      // near props land beside the lanes, far props further into the scenery.
       propPool.push({zw:i*115+((i*37)%60),kind:kind,side:side,
-        xn:hall?((far?1.05:0.82)*side+((seq*13)%9-4)*0.02)
-               :((far?1.65:1.0)*side+((seq*13)%9-4)*0.03),
+        xn:hall?((far?1.22:1.02)*side+((seq*13)%7-3)*0.02)
+               :((far?1.95:1.38)*side+((seq*13)%7-3)*0.025),
         s:s,critter:critter,seq:seq});
     }
   }
