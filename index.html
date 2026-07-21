@@ -99,9 +99,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 #lvlLbl{color:rgba(255,215,0,.85);font-weight:700}
 .hud-sc{color:rgba(255,215,0,.85)}
 .sbar{display:flex;align-items:center;gap:7px;margin-top:5px;justify-content:flex-end}
-.slbl{font-family:Poppins;font-size:5px;color:rgba(200,150,255,.5)}
-.strk{width:90px;height:5px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
-.sfil{height:100%;background:linear-gradient(90deg,#8B00FF,#C8A0FF);border-radius:3px;transition:width .3s}
+.slbl{font-family:Poppins;font-size:8px;color:rgba(210,165,255,.7);letter-spacing:.5px}
+.strk{width:150px;height:9px;background:rgba(255,255,255,.14);border-radius:5px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
+.sfil{height:100%;background:linear-gradient(90deg,#8B00FF,#C8A0FF);border-radius:5px;transition:width .3s}
 #topBtns{position:absolute;top:10px;right:16px;z-index:25;display:none;gap:8px}
 .tbtn{width:40px;height:40px;border-radius:9px;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-size:18px}
 #btnPause{border:1px solid rgba(255,215,0,.4);color:rgba(255,215,0,.9)}
@@ -179,7 +179,9 @@ body.mobile #abilityBar{display:none!important}   /* redundant on touch */
 body.mobile #hint{display:none!important}
 body.mobile #hud{padding:8px 12px}
 body.mobile .hud-name{font-size:14px;letter-spacing:2px}
-body.mobile .strk{width:70px}
+body.mobile .strk{width:128px;height:10px}
+body.mobile .slbl{font-size:9px}
+body.mobile .hud-masks svg{width:26px;height:26px}
 body.mobile .tbtn{width:46px;height:46px;font-size:20px}  /* bigger tap targets */
 body.mobile #topBtns{top:8px;right:10px;gap:10px}
 /* clear the home indicator and the rounded corners on notched iPhones */
@@ -664,17 +666,17 @@ function resize(){
   glC.width=W*DPR;glC.height=H*DPR;glC.style.width=W+'px';glC.style.height=H+'px';
   FXC.width=W*DPR;FXC.height=H*DPR;FXC.style.width=W+'px';FXC.style.height=H+'px';
   FX.setTransform(DPR,0,0,DPR,0,0);
-  // ── world zoom for the side-scroller ──────────────────────────────────
-  // A phone held UPRIGHT is far narrower than the level needs, so the player
-  // could only see a couple of tiles ahead. Scale the world down until at
-  // least VIEW_W of it is on screen. Clamped at 1 so it never zooms IN —
-  // desktop and landscape framing stay exactly as they were.
-  // Zoom REVERTED at request: framing is 1:1 everywhere again. The world-unit
-  // split below is kept deliberately -- camera follow, bounds and foe culling
-  // read VW/VH rather than raw W/H, which is correct either way and is what
-  // makes re-enabling this a one-line change if it is ever wanted.
-  ZOOM=1;
-  VW=W;VH=H;
+  // ── world zoom for the side-scroller (Mario / Silksong framing) ───────
+  // A constant BASE pull-back makes the hero a smaller, consistent fraction
+  // of the view so more of the level ahead is visible on every device. Narrow
+  // screens pull back further still (min of the axis fits), floored so it
+  // never goes microscopic. Camera/bounds/culling read VW/VH world units.
+  if(MODE==='side'){
+    var BASE=0.78, VIEW_W=520, VIEW_H=320;
+    ZOOM=Math.min(BASE, W/VIEW_W*BASE, H/VIEW_H*BASE);
+    ZOOM=Math.max(0.5,ZOOM);
+  }else{ZOOM=1;}
+  VW=W/ZOOM;VH=H/ZOOM;
 }
 
 // ════════════════════════════════════════════════════════════
