@@ -33,3 +33,7 @@ tools/captures/
 # stray debug frame grabs dropped in the repo root
 image-*.jpg
 image-*.png
+
+# wrangler local state (deploy cache) — never commit
+.wrangler/
+cloudflare/.wrangler/
