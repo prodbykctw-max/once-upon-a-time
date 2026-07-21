@@ -199,3 +199,14 @@ git checkout gh-pages && git checkout claude/hand-painted-architecture-bg-0MAiy 
 - Open decision (user's call): in-game HUD labels (.slbl/.hud-act/.hud-sc) are
   still Storyboo from my fcad3d5 swap — violates the two-tier rule but the user
   said they like the current HUD, so untouched.
+
+## Leaderboard — LIVE (laptop session deployed it)
+- Worker DEPLOYED: https://jande-leaderboard.prodbykctw.workers.dev (binds the
+  jande-leaderboard KV). `npx wrangler login` + `wrangler deploy` from the
+  laptop, per cloudflare/README.md.
+- Verified end-to-end: OPTIONS preflight 200, POST /submit {ok,rank}, GET /top
+  returns runs with Access-Control-Allow-Origin:* — cross-origin from gh-pages
+  works.
+- LB_URL baked into index.html (0cc88e5) + deployed to gh-pages — every visitor
+  gets the global board, no ?lb= needed. Boards cleared to [] for launch.
+- Backlog item "Global leaderboard (Cloudflare)" → DONE.
