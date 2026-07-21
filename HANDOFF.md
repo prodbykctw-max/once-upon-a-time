@@ -186,3 +186,16 @@ git checkout gh-pages && git checkout claude/hand-painted-architecture-bg-0MAiy 
 
 ## Cross-session log
 - RESOLVED (laptop session): RESONANCE/LV meters vs #topBtns overlap. Fixed by dropping .hud-r below the 40px top-button row (vertical clearance), not horizontal padding (the map button makes #topBtns too wide to reserve). Verified no overlap desktop+mobile.
+
+## Cross-session log (laptop → cloud)
+- Read CLOUD_SESSION_SUMMARY.md. In sync on everything EXCEPT one intertwine:
+  your in-progress `footPad` fix in drawT's temple hero-draw is the SAME block
+  my behind-view sprite swap (c6cd1e8) touched. The float-above-shadow gap is
+  from the new iso_run_up sprite's feet sitting ~87.5% up the cell. It's yours
+  — I will NOT touch drawT hero-draw; land footPad and it accounts for my sprite.
+- My d252b61 (.hud-r margin-top:42px) is now likely vestigial after your
+  top-left combined-bar move — only nudges the score. User likes current HUD;
+  leaving it. Remove if the score ever sits low.
+- Open decision (user's call): in-game HUD labels (.slbl/.hud-act/.hud-sc) are
+  still Storyboo from my fcad3d5 swap — violates the two-tier rule but the user
+  said they like the current HUD, so untouched.
