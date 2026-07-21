@@ -30,7 +30,7 @@
 /* Aged-wood panel — storybook card on the dark table */
 .panel-tav{background:var(--wood);border:2px solid var(--woodline);
   border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,220,150,.22),inset 0 0 22px rgba(0,0,0,.45),0 8px 22px rgba(0,0,0,.45)}
-html,body{width:100%;height:100%;overflow:hidden;background:#000}
+html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 .screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column}
 .screen.active{display:flex}
 #titleScreen{background:radial-gradient(ellipse at 50% 30%,#1a0a2e,#04000c 70%);overflow:hidden}
@@ -86,7 +86,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .lb-btn{width:100%;padding:16px;font-size:15px;margin-top:12px}
 .lb-msg{font-family:var(--body);font-weight:500;font-size:12px;letter-spacing:.3px;min-height:20px;margin-top:12px;color:rgba(255,90,110,.95)}
 .lb-skip{font-family:var(--body);font-weight:400;font-style:italic;font-size:13px;letter-spacing:.3px;color:rgba(205,180,136,.55);margin-top:20px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-#gameWrap{position:relative;width:100%;height:100%;display:none;background:#000;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#gameWrap{position:relative;width:100%;height:100%;height:100dvh;display:none;background:#000;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #gameWrap canvas{touch-action:none}
 #gameWrap.on{display:block}
 #glC{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -249,10 +249,13 @@ body.mobile .mshbtn{height:32px;padding:0 15px;font-size:6px}
 body.mobile .bb-w{width:66vw}
 body.mobile #bossBar{bottom:150px}
 /* landscape phones: tuck controls into corners, lower */
-@media (orientation:landscape) and (max-height:500px){
-  body.mobile #mCtrl{bottom:10px}
-  /* landscape: same arc, tightened. Offsets must stay inside .mdiam's width
-     or DASH overflows the cluster and collides with the run pads. */
+@media (orientation:landscape) and (max-height:560px){
+  body.mobile #mCtrl{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+  /* size controls by viewport HEIGHT in landscape so the cluster stays short
+     enough to fit above the home indicator / browser bar */
+  body.mobile .mdiam{--ak:clamp(46px,13.5vh,66px)}
+  body.mobile .dpad{--dk:clamp(40px,11.5vh,56px)}
+  body.mobile #joyWrap{width:auto;height:auto}
 }
 /* ── Neumorphic joystick ── */
 /* iPhone control layout: a floating knob demands precision the thumb can't
