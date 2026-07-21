@@ -392,7 +392,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     </div>
     <div class="hud-r"><div class="hud-sc" id="hudSc">0</div></div>
   </div>
-  <div id="chapWrap"><div class="chap-stage" id="hudAct">THE GRAND LIBRARY</div><div class="chapbar" id="chapHud"></div></div>
+  <div id="chapWrap"><div class="chapbar" id="chapHud"></div></div>
   <div id="topBtns">
     <div class="tbtn" id="btnMap" style="display:none">M</div>
     <div class="tbtn" id="btnSnd"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABDUlEQVR4nO3bMQrCQBBA0SgewNJa9AYpg+fIET2HWHoDxdrSG2ifzIfBDdmA/5UhkPBZhmWjTSNJkiT9g1WtBx+2u8/w2uP9qvY+Q+vaL7BUhgGGAYYBswy7aNBeb+fRfV3bj65lB/LUw9wVAwwDDAMMAzbZG6PhlhUN2hLRu9wv+9F9x1Pz80B2xQDDAMMAw4Bw+GZ3qnPID9rnpM91xQDDAMMAw4D0zreWaKca7WgjJbthVwwwDDAMMAwwDDAMMAwwDDAMWPzOt+TYIbrmmW8hwwDDAMOAcPhGA6pr+yof3LLHDlOfA7tigGGAYYBhgD81A64YYBhgGGAY4J8sgCsGGAYYBhhGkiRJ+mtf9QhQ1vnMbtkAAAAASUVORK5CYII=" style="height:22px;image-rendering:pixelated" alt=""></div>
@@ -1912,7 +1912,7 @@ function stageBanner(){
   var st=STAGES[GS.ai],T0=210,t=GS.titleT/T0;
   var a=Math.min(Math.min(1,(1-t)*7),Math.min(1,t*4.5));   // fade in / fade out
   if(a<=0)return;
-  var sz=Math.max(19,Math.min(46,W*0.050)),cy=H*0.235;
+  var sz=Math.max(19,Math.min(46,W*0.050)),cy=Math.max(H*0.30,212);
   FX.save();
   FX.globalAlpha=a;
   FX.translate(0,(1-Math.min(1,(1-t)*7))*14);              // slight rise on entry
@@ -2904,15 +2904,21 @@ function drawMansionBG(st){
     var wTop=H*0.05,wScale=(groundY-wTop)/192,wW2=144*wScale;
     var offW=(-cam*0.35)%wW2;if(offW>0)offW-=wW2;
     var baseAi=GS.blendT<1?GS.prevAi:ai;
+    var wBandH=groundY-wTop;
     for(var wx=offW;wx<W+wW2;wx+=wW2){
-      FX.drawImage(TEX.walls,baseAi*144,0,144,192,wx,wTop,wW2,192*wScale);
+      var x0=Math.round(wx),x1=Math.round(wx+wW2);   // shared integer edges → seamless
+      FX.drawImage(TEX.walls,baseAi*144,0,144,192,x0,wTop,x1-x0,wBandH);
       if(GS.blendT<1){FX.globalAlpha=GS.blendT;
-        FX.drawImage(TEX.walls,ai*144,0,144,192,wx,wTop,wW2,192*wScale);FX.globalAlpha=1;}}
+        FX.drawImage(TEX.walls,ai*144,0,144,192,x0,wTop,x1-x0,wBandH);FX.globalAlpha=1;}}
     FX.imageSmoothingEnabled=true;
     // atmosphere: push the wall back behind the play space
     var dg=FX.createLinearGradient(0,wTop,0,groundY);
     dg.addColorStop(0,'rgba(255,250,235,0.16)');dg.addColorStop(0.5,'rgba(255,250,235,0.02)');dg.addColorStop(1,'rgba(96,72,52,0.16)');
     FX.fillStyle=dg;FX.fillRect(0,0,W,groundY);
+    // ground-line shadow: reads the wall as clearly BEHIND the play floor
+    var sepG=FX.createLinearGradient(0,groundY-20,0,groundY+4);
+    sepG.addColorStop(0,'rgba(28,16,8,0)');sepG.addColorStop(1,'rgba(28,16,8,0.55)');
+    FX.fillStyle=sepG;FX.fillRect(0,groundY-20,W,24);
   }
   // ── warm chandelier/torch light pools ──
   var lampSp=480,off4=(-cam*0.58)%lampSp;
@@ -3749,7 +3755,7 @@ function updateHUD(){
     hv.src=HEART_ICON.src;hv.className='hlife'+(i<GS.masks?'':' gone');
     mc.appendChild(hv);}
   document.getElementById('hudSc').textContent=GS.score.toLocaleString();
-  document.getElementById('hudAct').textContent=STAGES[GS.ai].n;
+  var _ha=document.getElementById('hudAct');if(_ha)_ha.textContent=STAGES[GS.ai].n;
   document.getElementById('sfil').style.width=(GS.res/GS.resMax*100)+'%';
   // Level/XP in the status bar, both modes. RPG (not GS.level) is the real
   // progression: it persists to localStorage and is what kills feed, whereas
