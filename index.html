@@ -645,9 +645,26 @@ var FX, FXC, W, H, DPR=Math.min(2,window.devicePixelRatio||1);
 // ZOOM scales the side-scroller world; VW/VH are the world units on screen.
 // UI/HUD keep drawing in screen space, so they ignore these.
 var ZOOM=1, VW=0, VH=0;
-// Death checkpoint: the stage the player reached. Retry after death resumes
-// here instead of sending them back to stage 1. Reset on a fresh game.
-var CHECKPOINT=0;
+// Death checkpoint: the stage the player reached AND how far into it. Retry
+// resumes at the exact spot she fell, not the start of the level. Reset on a
+// fresh game and whenever a new stage begins.
+var CHECKPOINT=0, CHECKPOINT_X=0;
+// Put the player back at (or just behind) a world-x, on solid ground, with a
+// grace period. The runner streams terrain per column and is deterministic, so
+// we generate up to the point first, then scan BACK for real ground -- that
+// keeps her out of pits and off the hazard that killed her.
+function respawnAt(px){
+  var p=GS.p,col=Math.floor(px/T);
+  genAhead(GS,col+Math.ceil((VW||W)/T)+24);           // build terrain to here
+  var found=-1,gr=-1;
+  for(var cc=col;cc>2&&found<0;cc--){
+    for(var r=4;r<GS.LH;r++){ if(GS.solid[key(cc,r)]){found=cc;gr=r;break;} }
+  }
+  if(found<0){found=3;gr=GS.groundR||14;}
+  p.x=found*T; p.y=gr*T-PH; p.vx=0; p.vy=0; p.onGround=true;
+  p.dead=false; p.deadT=0; p.inv=150;                  // ~2.5s immune to escape
+  GS.camX=Math.max(0,p.x-(VW||W)*0.38);
+}
 // Touch detection. Deliberately NOT `ontouchstart in window` or a width
 // threshold: plenty of desktops expose touch events, and a narrow desktop
 // window is still a desktop. `pointer:coarse` asks the real question -- is the
@@ -3743,7 +3760,7 @@ function showLevelCard(ai,cb){var st=STAGES[ai];document.getElementById('lcR').t
   document.getElementById('lcDiv').style.background='linear-gradient(90deg,transparent,#'+st.ac.slice(1)+',transparent)';
   document.getElementById('lcL').textContent=st.lyr;var lc=document.getElementById('lvlCard');lc.classList.add('on');setTimeout(function(){lc.classList.remove('on');if(cb)cb();},2200);}
 function toRoman(n){return ['I','II','III','IV','V','VI','VII','VIII','IX'][n-1]||n;}
-function nextStage(){var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;CHECKPOINT=ai;updateHUD();showLevelCard(ai,function(){});}
+function nextStage(){var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;CHECKPOINT=ai;CHECKPOINT_X=0;updateHUD();showLevelCard(ai,function(){});}
 // ── THE REUNION ── the run's real ending: she reaches her prince. Drawn as a
 // tableau (his sprite + her back-view turning to him) over a gold bloom, then
 // the normal results board underneath so the run still scores.
@@ -3812,6 +3829,8 @@ function drawEnding(){
   FX.restore();
 }
 function showOver(won){
+  // record where she fell so the RPG retry resumes at the exact spot
+  if(!won&&MODE==='side'&&GS.p)CHECKPOINT_X=GS.p.x;
   checkAch(); // final pass (score/notes earned at the very end)
   var best=0,isPB=false;
   try{best=parseInt(localStorage.getItem('jande_best')||'0',10);
@@ -3993,7 +4012,7 @@ function startGame(){
   resize();
   var lm=document.getElementById('loadMsg');
   try{localStorage.setItem('jande_mode_'+MODE,'1');}catch(x){} // for BOTH WORLDS trophy
-  function begin(){if(lm)lm.style.display='none';GS={};CHECKPOINT=0;initGS(0);
+  function begin(){if(lm)lm.style.display='none';GS={};CHECKPOINT=0;CHECKPOINT_X=0;initGS(0);
     GS.adaptEarly=adaptGet().early||0;
     var stk=streakTick();
     if(stk.g>0){var w3=wallet();w3.gems+=stk.g;setWallet(w3);GS.gemsLive=w3.gems;}
@@ -4017,7 +4036,7 @@ function wire(){
   document.getElementById('htGo').onclick=function(){audInit();sfx('ui');startGame();};
   document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';showHowTo();};
   document.getElementById('msTemple').onclick=function(){audInit();sfx('ui');MODE='temple';showHowTo();};
-  document.getElementById('ovR').onclick=function(){document.getElementById('overlay').classList.remove('on');GS={};initGS(CHECKPOINT);updateHUD();showLevelCard(CHECKPOINT,function(){if(!running){running=true;applyTouchMode();loop();}});};
+  document.getElementById('ovR').onclick=function(){document.getElementById('overlay').classList.remove('on');GS={};initGS(CHECKPOINT);if(MODE==='side'&&CHECKPOINT_X>8*T)respawnAt(CHECKPOINT_X);updateHUD();showLevelCard(CHECKPOINT,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('overlay').addEventListener('click',function(e){
     var ov=document.getElementById('overlay');
     if(!ov.classList.contains('on'))return;                     // already restarting
@@ -4026,7 +4045,7 @@ function wire(){
     var r=document.getElementById('ovR');if(r&&r.onclick)r.onclick();});
   document.getElementById('ovM2').onclick=function(){['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('pmResume').onclick=function(){GS.paused=false;syncPauseMenu();};
-  document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
+  document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=0;CHECKPOINT_X=0;initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('pmMenu').onclick=function(){GS.paused=false;syncPauseMenu();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('btnPause').onclick=function(){GS.paused=!GS.paused;syncPauseMenu();};
   document.getElementById('btnMap').onclick=function(){GS.mapOpen=!GS.mapOpen;};
