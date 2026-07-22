@@ -1760,14 +1760,19 @@ var GLWORLD=(function(){
     var d0=pk[0], d1=(pk.length>1?pk[1]:pk[0]), crit=(pk.length>2?pk[2]:-1);
     // band lateral offsets: indoors sit INSIDE the bookcases (walls @1.18);
     // outdoors fan across the shoulder, near→far.
-    var BANDS=hall?[0.86,0.98,1.08]:[1.18,1.6,2.25];
+    // The three running lanes reach out to ~1.16*corrW (lane pitch laneW*2.6),
+    // so indoor décor must live BEYOND that — against the bookcase wall (@1.18)
+    // and onto the shoulder — or it lands in the player's path. Tight jitter
+    // indoors keeps the near band from creeping back into a lane.
+    var BANDS=hall?[1.24,1.34,1.48]:[1.18,1.6,2.25];
+    var JIT=hall?0.004:0.011;
     var CYCLE=hall?2600:3200; propCycle=CYCLE;
     var seq=0,z=hall?20:10;
     while(z<CYCLE){
       var h=((seq+1)*2654435761)>>>0;             // deterministic hash
       var side=(h&1)?1:-1;
       var band=(h>>1)%3;                            // 0 near · 1 mid · 2 far
-      var xn=BANDS[band]*side + (((h>>4)%24)-12)*0.011;
+      var xn=BANDS[band]*side + (((h>>4)%24)-12)*JIT;
       var far=(band===2);
       var kind = far? d0 : (((h>>3)&1)? d1 : d0);   // near/mid = detail, far = trees
       var isC=false;
