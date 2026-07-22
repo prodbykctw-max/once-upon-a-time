@@ -1779,6 +1779,13 @@ var GLWORLD=(function(){
       var kind = far? d0 : (((h>>3)&1)? d1 : d0);   // near/mid = detail, far = trees
       var isC=false;
       if(crit>=0 && (h>>6)%8===0){kind=crit;isC=true;xn=BANDS[2]*side+((h>>4)%8)*0.02;}
+      // MONUMENTS (fountain 6 / angel 7 / swan-statue 10) are landmarks, not
+      // groundcover — keep them sparse (~1 in 3 eligible slots); fill the rest
+      // with the stage's foliage (or a default tree) so a statue garden isn't
+      // wall-to-wall statues. This undoes applying plant-density to hard props.
+      if(!isC&&(kind===6||kind===7||kind===10)&&(h>>9)%3!==0){
+        kind=FOLIAGE[d0]?d0:(FOLIAGE[d1]?d1:4);
+      }
       // organic props (foliage) vary in size like real plants; MANUFACTURED
       // props (globe/fountain/statue/swan-statue) are near-uniform — a globe is
       // a globe, they don't come in random sizes.
