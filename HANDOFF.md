@@ -13,6 +13,13 @@ at neutral mid-key colour — the engine now adds per-prop hue variation.
 Placement/composition is already done by the cloud session; this is the
 sprites-detail lever for the "premium" look.
 
+## 🎨 ACTIVE for the BLENDER session: library runner obstacle → reading table
+The library full-blocker (`wall`, cell 0) reads as an abstract wooden board;
+the client wants a clear **library reading table**. Exact spec + a drop-in
+`obstacles3d.py` snippet + the render/embed steps:
+**`tools/blender/OBSTACLE_LIBRARY_TABLE.md`**. No game-code change needed —
+just re-render `wall_0` and re-run `tools/embed_obstacles.py`.
+
 ## 🐞 OPEN BUG for the LAPTOP session (your HUD area, so you own the fix)
 The enlarged RESONANCE/level meters from `c3286be` ("larger health/power
 meters") now **overlap the top-right sound + pause buttons** (`#topBtns`).
