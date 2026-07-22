@@ -223,18 +223,17 @@ body.mobile .chap-stage{font-size:7px;letter-spacing:1px}
 .mb:active{background:rgba(255,255,255,.22)}
 .mact{display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:auto}
 .mfbtn{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:manipulation;font-family:Storyboo;font-size:7px;color:#fff}
-.mdiam{position:relative;width:calc(var(--ak)*1.92);height:calc(var(--ak)*1.95);--ak:clamp(62px,19vw,82px)}
-.mdsh{width:calc(var(--ak)*0.8);height:calc(var(--ak)*0.8);right:calc(var(--ak)*0.1);bottom:calc(var(--ak)*1.12);background:rgba(0,255,238,.18);border:1.5px solid rgba(0,255,238,.5);color:rgba(0,255,238,.9);font-size:11px}
+.mdiam{position:relative;width:calc(var(--ak)*1.98);height:calc(var(--ak)*1.95);--ak:clamp(62px,19vw,82px)}
+.mdsh{width:calc(var(--ak)*0.84);height:calc(var(--ak)*0.84);right:calc(var(--ak)*0.585);bottom:calc(var(--ak)*1.06);background:rgba(0,255,238,.18);border:1.5px solid rgba(0,255,238,.5);color:rgba(0,255,238,.9);font-size:11px}
 .mshoulders{display:flex;gap:8px;margin-bottom:2px}
 .mshbtn{height:28px;padding:0 13px;border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:manipulation;font-family:Storyboo;font-size:5px;color:#fff}
-/* Thumb-arc, not a diamond. The old layout put JUMP bottom-centre with ATTACK
-   and DASH level on either side, so DASH sat on the INNER edge -- the furthest
-   point from the right thumb's pivot and the closest to the left-hand pads
-   (it clipped them on a 390px screen). These now fan up-and-left from the
-   bottom-right corner along the arc a thumb actually sweeps, ordered by how
-   often each is pressed: JUMP nearest and largest, then ATTACK, then DASH.
-   The empty top slot is gone, so the cluster no longer reserves dead height. */
-.mattk{width:calc(var(--ak)*0.84);height:calc(var(--ak)*0.84);right:calc(var(--ak)*1.06);bottom:calc(var(--ak)*0.02);background:rgba(255,40,130,.3);border:1.5px solid rgba(255,40,130,.6);font-size:20px}
+/* Balanced triangle, thumb-anchored at the bottom-right corner. JUMP (pressed
+   most, largest) sits in the corner; ATTACK sits directly left of it, bottom-
+   aligned; DASH is centred ABOVE the pair rather than stacked over JUMP — that
+   killed the lop-sided staircase (dead space above ATTACK) while keeping the
+   whole cluster compact so it never reaches the left-hand pads. All three fall
+   on the arc a right thumb sweeps. */
+.mattk{width:calc(var(--ak)*0.86);height:calc(var(--ak)*0.86);right:calc(var(--ak)*1.08);bottom:0;background:rgba(255,40,130,.3);border:1.5px solid rgba(255,40,130,.6);font-size:20px}
 .mjmp{width:var(--ak);height:var(--ak);right:0;bottom:0}
 .mblock{background:rgba(255,200,0,.16);border:1.5px solid rgba(255,200,0,.4);color:rgba(255,200,0,.85)}
 #hint{position:absolute;bottom:62px;left:50%;transform:translateX(-50%);z-index:21;font-family:Storyboo;font-size:6px;color:rgba(255,255,255,.2);white-space:nowrap;display:none;text-align:center}
@@ -266,7 +265,7 @@ body.mobile #bossBar{bottom:150px}
   body.mobile #mCtrl{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
   /* size controls by viewport HEIGHT in landscape so the cluster stays short
      enough to fit above the home indicator / browser bar */
-  body.mobile .mdiam{--ak:clamp(46px,13.5vh,66px)}
+  body.mobile .mdiam{--ak:clamp(52px,15vh,72px)}
   body.mobile .dpad{--dk:clamp(40px,11.5vh,56px)}
   body.mobile #joyWrap{width:auto;height:auto}
 }
