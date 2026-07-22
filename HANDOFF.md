@@ -20,6 +20,20 @@ accented: Jandé / JANDÉ). $5k upfront + $5k on delivery. Commercial bar.
 4. **`assets/` stays git-ignored** (real photos live there locally only).
 5. TODO (client, not us): rotate the Cloudflare API token — its account cache
    was briefly public before the purge.
+6. **Load/crash state is now controlled.** The retired corridor-backdrop system
+   (data, loader, draw code, 9 image files) is fully removed, and the runner's
+   old procedural-terrain fallback is gone. When the GL world's textures are
+   still streaming, `drawT` paints a clean backdrop in the stage's own sky→fog
+   palette and `updateT` HOLDS the run (no spawns/collisions) until `GLW.ready()`.
+   Never reintroduce a pre-GL placeholder renderer for outdoor stages.
+7. The library no longer has a (nonsensical) grazing bunny — `LOOK[0].props`
+   is `[12,13]` (globe-on-table + topiary only).
+8. **OPEN / OPTIONAL:** stages 1-8 obstacles (oblow/obgate/obwall cells 1-8) are
+   still the older Blender "clay" renders — correct per-stage themes (arbor,
+   marble arch, hedge, hay bales, truss…) but softer than the painted library
+   trio (cell 0). Upgrading them to painted AutoSprite (24 assets) is the last
+   quality-tier gap. Pipeline: generate → `tools/edit_library_assets.py` pattern
+   (surgical per-cell swap into the web/ atlas).
 
 
 ## 🎨 ACTIVE for the BLENDER session: upgrade the Runner décor prop quality
