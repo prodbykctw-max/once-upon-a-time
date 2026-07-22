@@ -3039,11 +3039,20 @@ function drawMansionBG(st){
     var offW=(-cam*0.35)%wW2;if(offW>0)offW-=wW2;
     var baseAi=GS.blendT<1?GS.prevAi:ai;
     var wBandH=groundY-wTop;
+    // MIRROR-TILING: the wall cell isn't edge-matched, so plain repetition left a
+    // vertical seam every ~wW2 px that scrolled across the screen. Flipping every
+    // odd world-tile horizontally makes each shared edge meet its own mirror →
+    // seamless. Parity is keyed to the WORLD tile index so tiles never flip-flash
+    // as the camera scrolls.
     for(var wx=offW;wx<W+wW2;wx+=wW2){
-      var x0=Math.round(wx),x1=Math.round(wx+wW2);   // shared integer edges → seamless
-      FX.drawImage(TEX.walls,baseAi*144,0,144,192,x0,wTop,x1-x0,wBandH);
+      var x0=Math.round(wx),x1=Math.round(wx+wW2),tw=x1-x0;
+      var wk=Math.round((wx+cam*0.35)/wW2);            // stable world-space index
+      FX.save();
+      if(wk&1){FX.translate(x0+tw,0);FX.scale(-1,1);FX.translate(-x0,0);}
+      FX.drawImage(TEX.walls,baseAi*144,0,144,192,x0,wTop,tw,wBandH);
       if(GS.blendT<1){FX.globalAlpha=GS.blendT;
-        FX.drawImage(TEX.walls,ai*144,0,144,192,x0,wTop,x1-x0,wBandH);FX.globalAlpha=1;}}
+        FX.drawImage(TEX.walls,ai*144,0,144,192,x0,wTop,tw,wBandH);FX.globalAlpha=1;}
+      FX.restore();}
     FX.imageSmoothingEnabled=true;
     // atmosphere: push the wall back behind the play space
     var dg=FX.createLinearGradient(0,wTop,0,groundY);
