@@ -2609,6 +2609,18 @@ function updateEnemies(){
       else{if(e.x<e.startX-e.range)e.vx=0.8;if(e.x>e.startX+e.range)e.vx=-0.8;if(Math.abs(e.vx)<0.1)e.vx=0.8;}
     }else{if(aggro){var wv=Math.sin(e.aT*0.05)*1.5;e.vx+=(dx>0?1:-1)*0.1;e.vx=Math.max(-2.3,Math.min(2.3,e.vx));e.vy=(e.vy||0)*0.8+(dy>0?0.35:-0.25)+wv*0.05;}
       else{e.vx*=0.88;e.vy=(e.vy||0)*0.88;if(Math.abs(e.vx)<0.1)e.vx=(e.aT%120<60?1:-1);}}
+    // ── LEDGE AWARENESS: ground foes (not the VOID flyer) never stride off a
+    // platform into a pit. Standing on ground with no floor beyond the next
+    // step, a patroller turns back and a chaser holds at the brink — so they
+    // can't run across a gap the player would fall into. (Airborne = falling,
+    // so this stays off and gravity still claims a foe knocked into a pit.)
+    if(e.tp!=='VOID'&&Math.abs(e.vx)>0.05){
+      var frow=Math.floor((e.y+51)/T);
+      var onFloor=isSolid(Math.floor((e.x+4)/T),frow)||isSolid(Math.floor((e.x+40)/T),frow);
+      if(onFloor&&!isSolid(Math.floor((e.x+(e.vx>0?46:-2))/T),frow)){
+        if(aggro)e.vx=0; else e.vx=-e.vx;
+      }
+    }
     e.x+=e.vx;var er=Math.floor((e.y+25)/T),ecL=Math.floor(e.x/T),ecR=Math.floor((e.x+44)/T);
     if(e.vx>0&&isSolid(ecR,er)){e.x=ecR*T-44;e.vx*=-1;}else if(e.vx<0&&isSolid(ecL,er)){e.x=(ecL+1)*T;e.vx*=-1;}
     if(e.tp!=='VOID'||!aggro)e.vy=(e.vy||0)+GRAV;e.y+=e.vy||0;
@@ -3060,11 +3072,15 @@ function drawMansionBG(st){
   if(TEX.decor){
     var propSp=340,off5=(-cam*0.72)%propSp;
     FX.imageSmoothingEnabled=false;
+    // Every atlas cell carries ~14px of transparent pad below the prop; without
+    // compensating, tall thin props (e.g. the marble statue) read as floating.
+    // Shift down by the scaled pad + 2px so each base plants on the track line.
+    var plant=176*14/240+2;
     for(var px5=off5-propSp;px5<W+propSp;px5+=propSp){
       var dh2=176,dw2=106;
       FX.fillStyle='rgba(0,0,0,0.32)';
       FX.beginPath();FX.ellipse(px5+dw2/2,groundY-2,dw2*0.42,6,0,0,6.28);FX.fill();
-      FX.drawImage(TEX.decor,decorCell(ai)*144,0,144,240,px5,groundY-dh2,dw2,dh2);}
+      FX.drawImage(TEX.decor,decorCell(ai)*144,0,144,240,px5,groundY-dh2+plant,dw2,dh2);}
     FX.imageSmoothingEnabled=true;
   }
   // ── flower garland swags along the top ──
