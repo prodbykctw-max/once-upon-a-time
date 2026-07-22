@@ -4174,19 +4174,17 @@ function startGame(){
   if(!window._swipeBound){window._swipeBound=true;
     var gw=document.getElementById('gameWrap'),swX=0,swY=0,swT=0,swActed=false;
     var swIgnore=function(e){var t2=e.target;return t2.closest&&t2.closest('#topBtns,#mCtrl,.ov-btn,button,input');};
-    var swEnd=function(e){if(swIgnore(e))return;
-      if(!swActed&&Date.now()-swT<450)TC.jb=12; // tap = jump
-      swActed=false;};
+    var swEnd=function(e){if(swIgnore(e))return;swActed=false;};  // tap-to-jump removed (client: accidental deaths)
     gw.addEventListener('touchstart',function(e){audInit();if(swIgnore(e))return;e.preventDefault();
       var t2=e.touches[0];swX=t2.clientX;swY=t2.clientY;swT=Date.now();swActed=false;},{passive:false});
-    gw.addEventListener('touchmove',function(e){if(swIgnore(e))return;e.preventDefault();
+    gw.addEventListener('touchmove',function(e){if(swIgnore(e)||MODE!=='temple')return;e.preventDefault();
       if(swActed)return;var t2=e.touches[0],dx=t2.clientX-swX,dy=t2.clientY-swY;
       if(Math.abs(dy)>20&&Math.abs(dy)>Math.abs(dx)){swActed=true;if(dy<0)TC.jb=12;else TC.st=26;}
       else if(Math.abs(dx)>24&&Math.abs(dx)>Math.abs(dy)){swActed=true;if(dx<0)TC.ml++;else TC.mr++;}},{passive:false});
     gw.addEventListener('touchend',swEnd,{passive:true});
     gw.addEventListener('touchcancel',swEnd,{passive:true});
     // desktop: click anywhere = jump
-    gw.addEventListener('mousedown',function(e){audInit();if(swIgnore(e))return;TC.jb=12;});
+    gw.addEventListener('mousedown',function(e){audInit();});  // no click-to-jump
   }
   if(!GL){initGL();}
   resize();
