@@ -3,6 +3,16 @@
 Paid, professional-grade promo game for the R&B artist **Jandé** (always
 accented: Jandé / JANDÉ). $5k upfront + $5k on delivery. Commercial bar.
 
+## 🎨 ACTIVE for the BLENDER session: upgrade the Runner décor prop quality
+Full brief with the exact drop-in spec, the 16-cell atlas map, per-stage
+usage, workflow, and swap recipe: **`BLENDER_PROPS_BRIEF.md`**. Baseline
+images: `assets_whimsy/outprops_current.png` (+ `_labeled.png`). TL;DR: same
+whimsical style + same 16-cell **1728×240** transparent atlas (108×240 cells,
+bottom-anchored), just far higher fidelity (real bark/marble/petals). Author
+at neutral mid-key colour — the engine now adds per-prop hue variation.
+Placement/composition is already done by the cloud session; this is the
+sprites-detail lever for the "premium" look.
+
 ## 🐞 OPEN BUG for the LAPTOP session (your HUD area, so you own the fix)
 The enlarged RESONANCE/level meters from `c3286be` ("larger health/power
 meters") now **overlap the top-right sound + pause buttons** (`#topBtns`).
