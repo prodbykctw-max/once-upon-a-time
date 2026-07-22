@@ -257,3 +257,20 @@ painted wins decisively for this storybook style.
   canvas rectangles → paint via AutoSprite. THE PRINCE (ending) is Blender
   primitive → paint via AutoSprite. Temple OBSTACLES (hedge/gate/wall) still
   procedural → paint to match props.
+
+## Runner prop system fixes (laptop) + engine-source note
+Fixed client-reported Runner prop issues in index.html:
+- Per-kind world height (new PROPH table) so TREES tower over Jandé and
+  bunnies stay small (was one flat 560 for everything → trees read short).
+- Billboard aspect corrected to the painted cell 0.45 (pw=ph*0.45) — no stretch.
+- Library (stage 0): added the GLOBE (props 13,14,13 → 12,13,14); pushed the
+  bookcase walls out (uWallX 1.18→1.5) and moved décor bands into the shoulder
+  (1.22-1.46) so plants stand on the floor in front of the shelves instead of
+  clipping into them.
+- Wider height + placement variation (hv 0.6-1.57, more jitter/spacing).
+⚠ NOT visually verified — the headless preview suspends the GL world. These are
+best-judgment; the library wall-push + band placement especially may need a
+tuning pass once someone sees it (cloud Playwright on ?stage=0#dev).
+⚠ tools/glworld_engine.js is now STALE vs index.html for the prop system. Do NOT
+re-sync the engine into index.html without re-applying these changes, or it
+reverts them. index.html is authoritative.
