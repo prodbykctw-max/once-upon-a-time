@@ -23,9 +23,14 @@ URLS = {
     9:  'https://im.runware.ai/image/os/a08dlim3/ws/4/ii/8b6d9a98-c790-4f76-a284-c18228736073.png', # daisies
     10: 'https://im.runware.ai/image/os/a08dlim3/ws/4/ii/d0533ee2-d713-43a4-82cc-b4f61d53927e.png', # swan (statue slot)
     11: 'https://im.runware.ai/image/os/a08dlim3/ws/4/ii/d0533ee2-d713-43a4-82cc-b4f61d53927e.png', # swan (live)
+    12: 'https://im.runware.ai/image/os/a10dlim3/ws/4/ii/1dfcf4e7-23c4-422d-9970-ea87eee09977.png', # library globe
+    13: 'https://im.runware.ai/image/os/a08dlim3/ws/4/ii/74d636ee-5142-4798-8a51-932457af896a.png', # topiary
+    14: 'https://im.runware.ai/image/os/a10dlim3/ws/4/ii/18966173-ca5b-4769-ba99-f146740b2c1e.png', # bunny
+    15: 'https://im.runware.ai/image/os/a10dlim3/ws/4/ii/18966173-ca5b-4769-ba99-f146740b2c1e.png', # bunny
 }
 # target height fraction per cell (brief: tree fills, bush lower third, etc.)
-HFRAC = {0:0.96,1:0.97,2:0.95,3:0.95,4:0.96,5:0.58,6:0.80,7:0.82,8:0.72,9:0.72,10:0.70,11:0.46}
+HFRAC = {0:0.96,1:0.97,2:0.95,3:0.95,4:0.96,5:0.58,6:0.80,7:0.82,8:0.72,9:0.72,10:0.70,11:0.46,
+         12:0.82,13:0.80,14:0.52,15:0.52}
 
 
 def dl(url, dest):
