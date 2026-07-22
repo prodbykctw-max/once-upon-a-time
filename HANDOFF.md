@@ -240,3 +240,20 @@ git checkout gh-pages && git checkout claude/hand-painted-architecture-bg-0MAiy 
   flow + GL rAF suspension in the headless preview blocks single-shot GL capture.
   Structurally a pure data swap over unchanged render code, so low risk — but a
   cloud Playwright pass on ?stage=1/4 would be a good confirm if you can.
+
+## PRO AUDIT + prop overhaul → PAINTED (laptop session)
+Ran a full pro audit both modes. Verdict: GL world/ground/characters good;
+PROCEDURAL PROPS + OBSTACLES were the weak link (clay blobs). Proved it with a
+3-way tree test (procedural vs PolyHaven CC0 3D vs AutoSprite 2D) — AutoSprite
+painted wins decisively for this storybook style.
+- EXECUTED: retired the procedural décor. Cells 0-11 are now AutoSprite ULTRA
+  painted props (trees, blossom, willow, rose bush, marble fountain, angel,
+  lamp-flower, daisies, swans), white-keyed + bottom-anchored into the same
+  3456x480 / 16-cell / 0.45-aspect atlas (NO JS change, u=kind/16 holds).
+  GLWDATA.props swapped, 262KB WebP. Contact: assets_whimsy/outprops_painted.png.
+- STILL PROCEDURAL (follow-up): cells 12-15 (indoor globe/topiary/bunny,
+  library-only). Paint later for full consistency.
+- AUDIT items still open (my lane, next): RPG BOSS "The Groom Who Lied" is still
+  canvas rectangles → paint via AutoSprite. THE PRINCE (ending) is Blender
+  primitive → paint via AutoSprite. Temple OBSTACLES (hedge/gate/wall) still
+  procedural → paint to match props.
