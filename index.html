@@ -1749,36 +1749,34 @@ var GLWORLD=(function(){
   function seedProps(stage){
     propPool=[];var pk=LOOK[stage].props;if(!pk.length)return;
     var hall=LOOK[stage].hall?1:0;
-    // ── SPATIAL SPEC ────────────────────────────────────────────────
-    // The 3-lane play corridor ends at ~1.06*corrW (its hard boundary).
-    // Décor lives OUTSIDE that, in two composed shoulder bands mirrored
-    // left+right at every depth slot, so the scene reads as designed:
-    //   NEAR  = detailed décor (statues/bushes) right at the boundary
-    //   FAR   = larger backdrop scenery (trees) for depth
-    // Premium composition: generous spacing, WIDE height variation, and a
-    // subtle per-prop colour tint so the shoulders read as a designed avenue
-    // rather than a repeated wall. Two mirrored bands outside the boundary.
+    // ── PLACEMENT ────────────────────────────────────────────────────
+    // Lane corridor ends at ~1.06*corrW (indoors the bookcase walls at
+    // 1.18*corrW). Décor lives OUTSIDE the lanes but must look HAND-PLACED,
+    // not mirrored/gridded: a hash drives each prop's side, band, offset and
+    // spacing so the composition is organic + asymmetric, yet deterministic.
+    // Dense and layered = lush fairytale, not a sparse avenue.
     var TINTS=[[1,1,1],[0.93,1.0,0.9],[1.07,1.01,0.88],[0.92,0.98,1.04],[1.0,1.06,0.94],[1.09,1.05,0.9]];
     function tnt(k){return TINTS[((k%TINTS.length)+TINTS.length)%TINTS.length];}
-    var NEAR=hall?1.18:1.3, FAR=hall?1.55:2.12, SLOTS=18, SLOTZ=156;
-    propCycle=SLOTS*SLOTZ;
-    var d0=pk[0], d1=(pk.length>1?pk[1]:pk[0]), crit=(pk.length>2?pk[2]:-1), seq=0;
-    for(var i=0;i<SLOTS;i++){
-      var zb=i*SLOTZ;
-      for(var sd=-1;sd<=1;sd+=2){                 // both sides → symmetric composition
-        var nk=((i+(sd>0?1:0))%2)?d1:d0;          // alternate the two décor kinds
-        var hv=0.72+((i*29+(sd>0?11:0))%40)/72;   // height variation ~0.72..1.27
-        propPool.push({zw:zb+((i*37)%50),kind:nk,side:sd,
-          xn:NEAR*sd+((i*11)%3-1)*0.02,
-          s:(hall?0.5:1)*hv,tint:tnt(seq*3+nk),critter:false,seq:seq++});
-        if(i%3!==2){                              // far backdrop on 2 of 3 slots (thinner)
-          var fv=0.66+((i*17)%38)/80;
-          propPool.push({zw:zb+82+((i*23)%50),kind:d0,side:sd,
-            xn:FAR*sd+((i*17)%3-1)*0.04,
-            s:(hall?0.42:0.86)*fv,tint:tnt(seq*3+d0+2),critter:false,seq:seq++});}
-      }
-      if(crit>=0 && i%3===1){var cs=(i%2?1:-1);   // occasional critter, well off the lanes
-        propPool.push({zw:zb+40,kind:crit,side:cs,xn:(hall?1.7:2.5)*cs,s:0.5,tint:[1,1,1],critter:true,seq:seq++});}
+    var d0=pk[0], d1=(pk.length>1?pk[1]:pk[0]), crit=(pk.length>2?pk[2]:-1);
+    // band lateral offsets: indoors sit INSIDE the bookcases (walls @1.18);
+    // outdoors fan across the shoulder, near→far.
+    var BANDS=hall?[0.86,0.98,1.08]:[1.18,1.6,2.25];
+    var CYCLE=hall?2600:3200; propCycle=CYCLE;
+    var seq=0,z=hall?20:10;
+    while(z<CYCLE){
+      var h=((seq+1)*2654435761)>>>0;             // deterministic hash
+      var side=(h&1)?1:-1;
+      var band=(h>>1)%3;                            // 0 near · 1 mid · 2 far
+      var xn=BANDS[band]*side + (((h>>4)%24)-12)*0.011;
+      var far=(band===2);
+      var kind = far? d0 : (((h>>3)&1)? d1 : d0);   // near/mid = detail, far = trees
+      var isC=false;
+      if(crit>=0 && (h>>6)%8===0){kind=crit;isC=true;xn=BANDS[2]*side+((h>>4)%8)*0.02;}
+      var hv=(hall?0.5:1)*(far?0.66:1)*(0.72+((h>>8)%58)/80);   // wide height variety
+      propPool.push({zw:z,kind:kind,side:side,xn:xn,s:hv,
+        tint:isC?[1,1,1]:tnt((h>>12)+kind*5),critter:isC,seq:seq});
+      z += (hall?30:24) + ((h>>16)%(hall?42:54));   // dense, varied spacing
+      seq++;
     }
   }
   function setProj(pr){
