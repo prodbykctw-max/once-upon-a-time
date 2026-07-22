@@ -3,6 +3,25 @@
 Paid, professional-grade promo game for the R&B artist **Jandé** (always
 accented: Jandé / JANDÉ). $5k upfront + $5k on delivery. Commercial bar.
 
+## 🚨 REPO CHANGED — read before you deploy (2026-07-22, laptop session)
+1. **Assets are now EXTERNAL.** `index.html` shrank 4.4 MB → 0.30 MB; every
+   embedded base64 blob ≥1 KB was extracted to **`web/<sha1>.<ext>`** (55 files,
+   content-addressed). Consumers just do `img.src="web/…"`. To re-embed or edit
+   an asset, edit the file in `web/` (or re-run `tools/externalize_assets.py`
+   after re-inlining). The game now REQUIRES the `web/` folder to be deployed.
+2. **gh-pages history was PURGED and force-pushed.** Old deploys had leaked
+   `assets/` (Jandé's real reference photos + 3D-likeness + a Cloudflare account
+   cache) onto the PUBLIC branch via `git add -A`. gh-pages is now a fresh orphan
+   with game files only. If you have a local gh-pages, reset it:
+   `git fetch origin && git branch -f gh-pages origin/gh-pages`.
+3. **DEPLOY ONLY via `bash tools/deploy.sh`.** It publishes index.html + web/ +
+   icons + manifest as a fresh orphan and hard-aborts if anything sensitive is
+   staged. **NEVER `git add -A` on gh-pages** — that is what leaked the photos.
+4. **`assets/` stays git-ignored** (real photos live there locally only).
+5. TODO (client, not us): rotate the Cloudflare API token — its account cache
+   was briefly public before the purge.
+
+
 ## 🎨 ACTIVE for the BLENDER session: upgrade the Runner décor prop quality
 Full brief with the exact drop-in spec, the 16-cell atlas map, per-stage
 usage, workflow, and swap recipe: **`BLENDER_PROPS_BRIEF.md`**. Baseline
