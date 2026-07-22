@@ -227,3 +227,16 @@ git checkout gh-pages && git checkout claude/hand-painted-architecture-bg-0MAiy 
 - LB_URL baked into index.html (0cc88e5) + deployed to gh-pages — every visitor
   gets the global board, no ?lb= needed. Boards cleared to [] for launch.
 - Backlog item "Global leaderboard (Cloudflare)" → DONE.
+
+## Runner prop-quality upgrade — DONE (laptop/Blender session)
+- Executed BLENDER_PROPS_BRIEF.md. All 16 cells re-authored premium in
+  tools/blender/outdoor_props_hq.py: organic displaced canopies clad in leaf
+  cards, procedural bark, HQ marble, real rose blooms, swept angel wings,
+  layered swan feathers. Neutral mid-key (engine aTint untouched).
+- Atlas 3456x480 (16x 216x480, same 0.45 aspect → NO JS change; /16 UV holds),
+  WebP 121KB. Swapped GLWDATA.props. Contact sheet: assets_whimsy/outprops_new.png.
+- Verified: atlas independently (contact sheet — bottom-anchored, correct cells,
+  clean alpha) + syntax. NOT visually confirmed in-engine: the rebuilt pre-game
+  flow + GL rAF suspension in the headless preview blocks single-shot GL capture.
+  Structurally a pure data swap over unchanged render code, so low risk — but a
+  cloud Playwright pass on ?stage=1/4 would be a good confirm if you can.
