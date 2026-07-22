@@ -483,7 +483,7 @@ body.mobile .joy-knob{width:64px;height:64px}
       <div class="ovn-ok" id="ovNameOk"></div>
     </div>
     <div id="ovBoard"></div>
-    <div class="ov-btns"><button class="ov-btn prim" id="ovR">TRY AGAIN</button><button class="ov-btn" id="ovM2">MAIN MENU</button></div>
+    <div class="ov-btns"><button class="ov-btn prim" id="ovR">CONTINUE</button><button class="ov-btn" id="ovRestart">RESTART</button><button class="ov-btn" id="ovM2">MAIN MENU</button></div>
   </div>
   <div id="pauseMenu">
     <div class="pm-t">PAUSED</div>
@@ -710,6 +710,12 @@ var ZOOM=1, VW=0, VH=0;
 // resumes at the exact spot she fell, not the start of the level. Reset on a
 // fresh game and whenever a new stage begins.
 var CHECKPOINT=0, CHECKPOINT_X=0;
+// CONTINUE (unified across both modes): a paid checkpoint that KEEPS the run's
+// score + Grace Notes; RESTART is the free full reset. Cost escalates each time
+// (1,2,3,4,5 gems) and is hard-capped, so continuing is never infinite/free.
+var RUN_CONTINUES=0, MAX_CONTINUES=5;
+function continueCost(){return RUN_CONTINUES+1;}
+function canContinue(){return RUN_CONTINUES<MAX_CONTINUES && (wallet().gems||0)>=continueCost();}
 // Put the player back at (or just behind) a world-x, on solid ground, with a
 // grace period. The runner streams terrain per column and is deterministic, so
 // we generate up to the point first, then scan BACK for real ground -- that
@@ -1379,17 +1385,6 @@ function updateT(){
     if(!p.noteGone){p.noteGone=true;
       noteBurst(W/2+t3.laneX*W*0.185*2.6,H*0.80,26);
       if(navigator.vibrate)navigator.vibrate([120,50,160]);}
-    if(!t3.revAsk&&!t3.revUsed&&GS.gemsLive>0&&p.deadT===0){t3.revAsk=true;t3.revT=210;}
-    if(t3.revAsk&&t3.revT>0){t3.revT--;tickFx();
-      if(TC.jb>0){TC.jb=0;t3.revAsk=false;t3.revUsed=true;
-        var w=wallet();w.gems=Math.max(0,w.gems-1);setWallet(w);GS.gemsLive=w.gems;misAdd('revs',1);
-        p.dead=false;p.deadT=0;p.inv=160;p.noteGone=false;t3.chase=0;t3.grabT=0;GS.masks=Math.max(GS.masks,2);updateHUD();
-        // sweep hazards ahead so she gets a clean restart lane
-        t3.obs=t3.obs.filter(function(o){return o.z>700||o.tp==='turn'&&o.done;});
-        GS.toasts.push({txt:'✦ SHE RISES AGAIN ✦',sub:'1 GEM SPENT',t:200,max:200});sfx('revive');
-        if(navigator.vibrate)navigator.vibrate([20,30,80]);}
-      if(t3.revT<=0)t3.revAsk=false;
-      return;}
     p.deadT++;if(p.deadT>90)showOver(false);return;}
 
   // ── speed + distance (boost runs hotter) ──
@@ -2584,16 +2579,7 @@ function drawT(){
     FX.font='900 20px Storyboo,sans-serif';FX.textAlign='center';
     FX.fillStyle='rgba(0,0,0,'+(0.5*nmA)+')';FX.fillText('CLOSE! +25',vpX+2,H*0.56+2-(26-t3.nmT)*1.2);
     FX.fillStyle='rgba(120,240,255,'+nmA+')';FX.fillText('CLOSE! +25',vpX,H*0.56-(26-t3.nmT)*1.2);}
-  // ── revive prompt ──
-  if(t3.revAsk&&t3.revT>0){
-    FX.fillStyle='rgba(8,0,16,0.66)';FX.fillRect(0,0,W,H);
-    FX.textAlign='center';
-    FX.font='900 34px Storyboo,sans-serif';FX.fillStyle='rgba(255,215,0,0.95)';
-    FX.fillText('RISE AGAIN?',W/2,H*0.40);
-    FX.font='10px Storyboo,sans-serif';FX.fillStyle='rgba(255,255,255,0.85)';
-    FX.fillText('TAP TO SPEND 1 GEM  ('+GS.gemsLive+' LEFT)',W/2,H*0.48);
-    var bw2=W*0.3;FX.fillStyle='rgba(255,255,255,0.2)';FX.fillRect(W/2-bw2/2,H*0.53,bw2,6);
-    FX.fillStyle='rgba(255,215,0,0.9)';FX.fillRect(W/2-bw2/2,H*0.53,bw2*(t3.revT/210),6);}
+  // (revive is now handled on the unified game-over overlay: CONTINUE vs RESTART)
   // (no in-run instruction banner — the how-to page before play covers it)
 // ── WHIMSY foreground: fairies, sparkles, birds ──
   whimsyFairies();whimsySparkles();whimsyBirds(vpX,vpY,gNear);
@@ -4001,6 +3987,38 @@ function drawEnding(){
   FX.globalAlpha=1;
   FX.restore();
 }
+// CONTINUE from the game-over overlay: spend the escalating gem cost, keep the
+// run's score + Grace Notes, and drop back in. Side mode rebuilds the reached
+// stage (initGS preserves score/notes/level/xp/dmg) and respawns where she fell;
+// temple mode rises in place and sweeps the lane clean. Returns false if unaffordable.
+function continueRun(){
+  if(!canContinue())return false;
+  var cost=continueCost();
+  var w=wallet();w.gems=Math.max(0,w.gems-cost);setWallet(w);
+  RUN_CONTINUES++;misAdd('revs',1);
+  document.getElementById('overlay').classList.remove('on');
+  var subT=cost+' GEM'+(cost>1?'S':'')+' SPENT';
+  if(MODE==='temple'){
+    var p=GS.p,t3=GS.t3;
+    p.dead=false;p.deadT=0;p.inv=170;p.noteGone=false;
+    t3.chase=0;t3.grabT=0;t3.revAsk=false;
+    GS.masks=Math.max(GS.masks,2);GS.gemsLive=w.gems;
+    // sweep hazards ahead so she gets a clean lane
+    t3.obs=t3.obs.filter(function(o){return o.z>700||(o.tp==='turn'&&o.done);});
+    GS.toasts.push({txt:'✦ SHE RISES AGAIN ✦',sub:subT,t:200,max:200});
+    sfx('revive');updateHUD();
+    if(navigator.vibrate)navigator.vibrate([20,30,80]);
+    if(!running){running=true;applyTouchMode();loop();}
+  }else{
+    initGS(CHECKPOINT);              // preserves score/notes/level/xp/dmg from prior GS
+    GS.gemsLive=w.gems;
+    if(CHECKPOINT_X>8*T)respawnAt(CHECKPOINT_X);
+    GS.toasts.push({txt:'✦ SHE RISES AGAIN ✦',sub:subT,t:200,max:200});
+    updateHUD();sfx('revive');
+    showLevelCard(CHECKPOINT,function(){if(!running){running=true;applyTouchMode();loop();}});
+  }
+  return true;
+}
 function showOver(won){
   // record where she fell so the RPG retry resumes at the exact spot
   if(!won&&MODE==='side'&&GS.p)CHECKPOINT_X=GS.p.x;
@@ -4035,12 +4053,19 @@ function showOver(won){
     var pr2=Math.min(m2.goal,MIS_S.prog[m2.id]||0);
     bh+='<div class="bd-row"><span>◈ '+esc(m2.n)+'</span><span>'+pr2+' / '+m2.goal+'</span></div>';shown++;}
   if(!shown)bh+='<div class="bd-ach">ALL OBJECTIVES COMPLETE <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABF0lEQVR4nO3awWkCQRSA4TWkAI/eIuI2kAIkacMiPKcEzzlagG0oFpAGNoTEk0c70Hvm/bDurMuQ/N9xcJ/yMzxErCpJkiRJkqS7GOU8PB9PLr/PPs+nzjNLmvfQ9U3/OsMAwwDDgNaLLVpkzfc6eV09fUvOooVX+jxvDDAMMAwwDHjMevq46eljlDfPGwMMAwwDDAPylm9L0bfSkuZFvDHAMMAwwDBgkOXbHGbJWb34KmZexBsDDAMMAwwD8n7zDZZg6aIl7W++NzAMMAwwDBjkm+/P6iU5e3rfd573+rFNznbPy87zIt4YYBhgGGAYMMjyzVm0kb4XbcQbAwwDDAMMA3r/n2/p/J9vJsMAwwDDSJIkSf/aFW42QifsDNZSAAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""></div>';
-  bh+='<div class="bd-sub" style="color:#7CFFB2">TAP ANYWHERE — RUN IT BACK</div>';
   bh+='<div class="bd-sub">TROPHIES '+Object.keys(ACH_GOT).length+' / '+ACH.length+' · ◆ '+wallet().gems+' · ♪ BANK '+(wallet().notes||0)+'</div>';
   document.getElementById('ovBoard').innerHTML=bh;
   var _nmIn=document.getElementById('ovNameInput');if(_nmIn)_nmIn.value=lbName();
   var _nmOk=document.getElementById('ovNameOk');if(_nmOk)_nmOk.textContent='';
   fillGlobalBoard(sv.me);
+  // CONTINUE vs RESTART — two clearly-separate buttons. CONTINUE only when she
+  // fell (not on victory) and the escalating gem cost is affordable.
+  var contBtn=document.getElementById('ovR'),reBtn=document.getElementById('ovRestart');
+  if(contBtn){
+    if(!won&&canContinue()){contBtn.style.display='';
+      contBtn.innerHTML='CONTINUE <span style="opacity:.82;font-size:.86em">— '+continueCost()+' ◆</span>';}
+    else contBtn.style.display='none';}
+  if(reBtn)reBtn.textContent=won?'PLAY AGAIN':'RESTART';
   running=false;applyTouchMode();}
 
 // ---------- title BG ----------
@@ -4113,8 +4138,10 @@ window._devMut=function(f){try{return f(GS,TC);}catch(e){return 'err: '+e.messag
 window._devState=function(){var t=GS.t3||{},p=GS.p||{};return {mode:MODE,ai:GS.ai,finale:GS.finale,won:GS.won,
   glwOK:(typeof glwOK!=='undefined')?glwOK:null,gl:(function(){try{return GLW.dbg();}catch(e){return null;}})(),
   zoom:ZOOM,VW:Math.round(VW),VH:Math.round(VH),camX:Math.round(GS.camX||0),
+  score:GS.score,notes:GS.totalNotes,gems:(wallet().gems||0),cont:RUN_CONTINUES,ovOn:document.getElementById('overlay').classList.contains('on'),
   laneX:t.laneX,lane:t.lane,py:t.py,slid:t.slid,anim:p.anim,dead:p.dead,noteGone:p.noteGone,inv:p.inv,
-  obs:(t.obs||[]).map(function(o){return o.tp+'@'+Math.round(o.z)+'L'+o.lane;}).slice(0,12)};};}
+  obs:(t.obs||[]).map(function(o){return o.tp+'@'+Math.round(o.z)+'L'+o.lane;}).slice(0,12)};};
+window._devWallet=function(g){var w=wallet();if(g!=null)w.gems=g;setWallet(w);if(window.GS&&GS.p)GS.gemsLive=w.gems;return w.gems;};}
 function startGame(){
   // hide ALL fullscreen overlays so the game canvas is visible
   var scr=document.querySelectorAll('.screen');for(var si=0;si<scr.length;si++)scr[si].classList.remove('active');
@@ -4190,7 +4217,7 @@ function startGame(){
   resize();
   var lm=document.getElementById('loadMsg');
   try{localStorage.setItem('jande_mode_'+MODE,'1');}catch(x){} // for BOTH WORLDS trophy
-  function begin(){if(lm)lm.style.display='none';GS={};CHECKPOINT=0;CHECKPOINT_X=0;initGS(0);
+  function begin(){if(lm)lm.style.display='none';GS={};CHECKPOINT=0;CHECKPOINT_X=0;RUN_CONTINUES=0;initGS(0);
     GS.adaptEarly=adaptGet().early||0;
     var stk=streakTick();
     if(stk.g>0){var w3=wallet();w3.gems+=stk.g;setWallet(w3);GS.gemsLive=w3.gems;}
@@ -4222,17 +4249,11 @@ function wire(){
     inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();save();}});})();
   document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';showHowTo();};
   document.getElementById('msTemple').onclick=function(){audInit();sfx('ui');MODE='temple';showHowTo();};
-  document.getElementById('ovR').onclick=function(){document.getElementById('overlay').classList.remove('on');GS={};initGS(CHECKPOINT);if(MODE==='side'&&CHECKPOINT_X>8*T)respawnAt(CHECKPOINT_X);updateHUD();showLevelCard(CHECKPOINT,function(){if(!running){running=true;applyTouchMode();loop();}});};
-  document.getElementById('overlay').addEventListener('click',function(e){
-    var ov=document.getElementById('overlay');
-    if(!ov.classList.contains('on'))return;                     // already restarting
-    if(e.target&&e.target.closest&&e.target.closest('#ovM2'))return; // menu wins
-    if(e.target&&e.target.closest&&e.target.closest('#ovBoard'))return; // let them read scores
-    if(e.target&&e.target.closest&&e.target.closest('#ovName'))return; // name input isn't a retry tap
-    var r=document.getElementById('ovR');if(r&&r.onclick)r.onclick();});
+  document.getElementById('ovR').onclick=function(){sfx('ui');continueRun();};
+  document.getElementById('ovRestart').onclick=function(){sfx('ui');document.getElementById('overlay').classList.remove('on');RUN_CONTINUES=0;GS={};CHECKPOINT=0;CHECKPOINT_X=0;initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('ovM2').onclick=function(){['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('pmResume').onclick=function(){GS.paused=false;syncPauseMenu();};
-  document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=0;CHECKPOINT_X=0;initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
+  document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=0;CHECKPOINT_X=0;RUN_CONTINUES=0;initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('pmMenu').onclick=function(){GS.paused=false;syncPauseMenu();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('btnPause').onclick=function(){GS.paused=!GS.paused;syncPauseMenu();};
   document.getElementById('btnMap').onclick=function(){GS.mapOpen=!GS.mapOpen;};
