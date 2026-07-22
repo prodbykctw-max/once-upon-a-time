@@ -514,19 +514,9 @@ outprops:'web/eb80ab26125a.png',
  items:'web/eedd13408d7e.png'
 };
 var TEX={};
-var CORRIDOR_BG_DATA={
-s0:'web/b600fb9e2efe.jpg',
-s1:'web/f3730a9813d0.jpg',
-s2:'web/3e7cdd53af91.jpg',
-s3:'web/d22b373c9ac0.jpg',
-s4:'web/c633b7415c63.jpg',
-s5:'web/a1213917b8df.jpg',
-s6:'web/be76074d3a63.jpg',
-s7:'web/9a318d2a9526.jpg',
-s8:'web/52e680ea07c0.jpg'
-};
-var CORRIDOR_BG={},CORRIDOR_MAP={}; // whimsy pivot: dark painterly corridors retired; bright procedural sky (pastel pc) shows instead
-function loadCorridorBG(){for(var k in CORRIDOR_BG_DATA){(function(n){var im=new Image();im.onload=function(){CORRIDOR_BG[n]=im;};im.src=CORRIDOR_BG_DATA[n];})(k);}}
+// NOTE: the old painterly corridor backdrops (CORRIDOR_BG/MAP) were retired when
+// every stage became a GL world; their data, loader and 9 image files have been
+// removed so nothing overridden can flash up on a slow load.
 function loadTex(){for(var k in TEXDATA){(function(n){var im=new Image();im.onload=function(){TEX[n]=im;};im.src=TEXDATA[n];})(k);}}
 var SPRITES={
   bkrun:{frames:25,cw:256,ch:256,cols:5,src:'web/73d33193c5ad.webp'},
@@ -1376,6 +1366,13 @@ function update(){
 //  TEMPLE VIEW — behind-the-back 3-lane corridor runner
 // ════════════════════════════════════════════════════════════
 function updateT(){
+  // HOLD the run behind the loading backdrop until the GL world's textures are
+  // in — so the countdown, spawns and collisions never advance while the player
+  // is looking at the plain load state on a slow connection. Failsafe: if WebGL
+  // is unavailable the world never "readies", so don't hold on outright failure.
+  if(STAGES[GS.ai]&&STAGES[GS.ai].out===1){
+    try{if(!GLW.ready()&&!GLW.dbg().failed)return;}catch(e){}
+  }
   GS.tick++;GS.lyricT++;
   var p=GS.p,t3=GS.t3,mult=runMult();
   if(GS.shieldT>0){GS.shieldT--;p.inv=Math.max(p.inv,2);}
@@ -1616,7 +1613,7 @@ var GLWORLD=(function(){
   var texGround=[],texProps=null,texBlob=null,texWall=null,texCeil=null,texGrass=null;
   var propPool=[],curShift=0,propCycle=2816;
   var LOOK=[
-    {fog:[0.93,0.80,0.56],skyTop:[0.70,0.50,0.28],sun:[0.5,0.33,0.0,0.0],tint:[0.86,0.72,0.52],hill:0,props:[12,13,14],hall:1},
+    {fog:[0.93,0.80,0.56],skyTop:[0.70,0.50,0.28],sun:[0.5,0.33,0.0,0.0],tint:[0.86,0.72,0.52],hill:0,props:[12,13],hall:1},
     {fog:[0.98,0.85,0.70],skyTop:[0.44,0.62,0.94],sun:[0.30,0.30,1.0,0.85],tint:[1,1,1],hill:60,props:[0,1,11]},
     {fog:[0.99,0.90,0.92],skyTop:[0.55,0.70,0.95],sun:[0.72,0.26,0.9,0.7],tint:[0.86,0.96,0.82],hill:44,props:[2,2,11]},
     {fog:[0.88,0.95,0.99],skyTop:[0.40,0.64,0.97],sun:[0.6,0.22,1.0,0.8],tint:[0.98,1.02,0.98],hill:34,props:[4,6,5]},
@@ -2135,13 +2132,17 @@ function drawT(){
   if(tfx!==0){var tp2=Math.abs(tfx)/22;tShift=Math.sin(tp2*Math.PI)*(tfx>0?1:-1)*90;}
   // outdoor stages: real GL world rendered into #glC beneath this canvas
   var glwOK=isOut&&GLW.draw(ai,wz,tShift*DPR);
-  // ── painterly corridor background layer ──
-  var cbgKey=CORRIDOR_MAP[ai],cbgImg=cbgKey&&CORRIDOR_BG[cbgKey];
-  if(cbgImg&&!glwOK){
-    var prevKey=GS.prevAi!==undefined?CORRIDOR_MAP[GS.prevAi]:null,prevImg=prevKey?CORRIDOR_BG[prevKey]:null;
-    if(GS.blendT<1&&prevImg&&prevKey!==cbgKey){FX.drawImage(prevImg,0,0,W,H);FX.globalAlpha=GS.blendT;FX.drawImage(cbgImg,0,0,W,H);FX.globalAlpha=1;}
-    else FX.drawImage(cbgImg,0,0,W,H);
-    FX.fillStyle='rgba(0,0,0,'+(isOut?0.03:0.12)+')';FX.fillRect(0,0,W,H);
+  // ── controlled loading backdrop ──
+  // Outdoor stages are GL-only. Until the world's textures stream in (or if WebGL
+  // is unavailable) paint the stage's OWN sky→fog palette, so a slow load reads
+  // as a soft fade-in of the correct world — never overridden or placeholder art.
+  if(isOut&&!glwOK){
+    var _L=null;try{_L=GLWORLD.look(ai);}catch(e){}
+    var _c=function(a){return 'rgb('+Math.round(a[0]*255)+','+Math.round(a[1]*255)+','+Math.round(a[2]*255)+')';};
+    var _bg=FX.createLinearGradient(0,0,0,H);
+    if(_L){_bg.addColorStop(0,_c(_L.skyTop));_bg.addColorStop(0.55,_c(_L.fog));_bg.addColorStop(1,_c(_L.fog));}
+    else{_bg.addColorStop(0,shade(pc,0.9));_bg.addColorStop(1,shade(pc,0.5));}
+    FX.fillStyle=_bg;FX.fillRect(0,0,W,H);
   }
   // ── WHIMSY: sunshine god-rays streaming from the vanishing point ──
   whimsyRays(vpX,vpY);
@@ -2201,30 +2202,10 @@ function drawT(){
     FX.lineTo(vpX+laneW*2.5*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
     FX.lineTo(vpX+laneW*3.3,gNear+20);FX.lineTo(vpX-laneW*3.3,gNear+20);FX.closePath();FX.fill();
   }else if(isOut){
-    // ONE continuous opaque terrain from horizon to feet — no bands, no seams.
-    var gg=FX.createLinearGradient(0,vpY,0,gNear+40);
-    gg.addColorStop(0,shade(pc,0.88));
-    gg.addColorStop(0.4,shade(pc,0.58));
-    gg.addColorStop(1,shade(pc,0.34));
-    FX.fillStyle=gg;FX.fillRect(-100,vpY,W+200,H-vpY+60);
-    // soft dirt path she runs on, blending wide at the feet
-    FX.fillStyle='rgba(255,246,225,0.14)';
-    FX.beginPath();FX.moveTo(vpX-laneW*1.4*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
-    FX.lineTo(vpX+laneW*1.4*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
-    FX.lineTo(vpX+laneW*2.0,gNear+20);FX.lineTo(vpX-laneW*2.0,gNear+20);FX.closePath();FX.fill();
-    // grass tufts streaming past (world-anchored, no banding)
-    var tof=wz%90;
-    for(var gz2=1300;gz2>=-40;gz2-=90){
-      var gzz=gz2-tof,gsp=prjT(Math.max(0,gzz)),gy2=vpY+(gNear-vpY)*gsp;
-      var wi2=Math.round((wz+gzz)/90);
-      for(var k2=0;k2<7;k2++){
-        var hsh=(wi2*97+k2*57)%199;
-        var hx2=vpX+((hsh/199)-0.5)*corrW*3.6*gsp;
-        if(Math.abs(hx2-vpX)<laneW*1.1*gsp*2.6&&hsh%3!==0)continue; // keep the path cleaner
-        var tl2=Math.max(1.5,8*gsp),ta=0.08+gsp*0.14;
-        FX.strokeStyle='rgba(20,60,20,'+ta+')';FX.lineWidth=Math.max(1,1.6*gsp);
-        FX.beginPath();FX.moveTo(hx2,gy2);FX.lineTo(hx2+2.5*gsp,gy2-tl2);FX.stroke();
-        FX.beginPath();FX.moveTo(hx2+1.5*gsp,gy2);FX.lineTo(hx2-1.5*gsp,gy2-tl2*0.8);FX.stroke();}}
+    // GL world still streaming: the clean loading backdrop is already painted
+    // above. Deliberately draw NO procedural terrain here — that gradient +
+    // fake-grass fallback was the old pre-GL placeholder that flashed on slow
+    // loads. Nothing overridden should ever be presented.
   }else{
     var zoff=wz%110;
     for(var z=1450;z>=-70;z-=110){
@@ -4406,7 +4387,6 @@ function wire(){
   initTitleBG();
   loadBGs();     // photoreal backdrops (no-op until BG_DATA is filled)
   loadTex();     // pixel-art world pack
-  loadCorridorBG(); // painterly corridor backgrounds
   loadSprites(); // preload sprites in background
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire);else wire();
