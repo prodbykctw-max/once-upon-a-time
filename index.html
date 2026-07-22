@@ -501,7 +501,7 @@ body.mobile .joy-knob{width:64px;height:64px}
 <script>
 // baked pixel-art world pack (walls/floors per stage, chaser, item icons)
 var TEXDATA={
-oblow:"web/4cea64396139.webp",obgate:"web/617410a988ac.webp",obwall:"web/349e7a4337cf.webp",
+oblow:"web/dc8439784699.webp",obgate:"web/c520915afa36.webp",obwall:"web/349e7a4337cf.webp",
 prince:"web/6bfe5d567826.webp",
 boss:"web/7c4913930c14.webp",
 reunion:"web/cadbc8682d28.webp",obgate:"web/89a69c9b4817.webp",obwall:"web/8e07bebe1759.webp",obgate:"web/23f6b5171a6d.webp",obwall:"web/12d17bc9cc35.webp",
@@ -1601,7 +1601,7 @@ function whimsyBirds(vpX,vpY,gNear){
     FX.quadraticCurveTo(bx+sz*0.3,by-wing,bx+sz,by+wing*0.5);FX.stroke();
   }
 }
-var GLWDATA={grounds:["web/b760dec7c770.jpg","web/ba05ba729d8c.jpg","web/95b0a2ddd5d0.jpg","web/8479de8b4444.jpg","web/9fc1175d9711.jpg","web/e35a2fced987.jpg","web/043d2cb86b50.jpg","web/e6e31e543726.jpg","web/a60a376d8347.jpg"],props:"web/227c86cbc40e.webp",wall:"web/d8808c6c878c.jpg",ceil:"web/f1e1815ed383.jpg",grass:"web/5df7203cca58.webp"};
+var GLWDATA={grounds:["web/b760dec7c770.jpg","web/ba05ba729d8c.jpg","web/95b0a2ddd5d0.jpg","web/8479de8b4444.jpg","web/9fc1175d9711.jpg","web/e35a2fced987.jpg","web/043d2cb86b50.jpg","web/e6e31e543726.jpg","web/a60a376d8347.jpg"],props:"web/90138f3d42cd.webp",wall:"web/d8808c6c878c.jpg",ceil:"web/f1e1815ed383.jpg",grass:"web/5df7203cca58.webp"};
 // ════════════════════════════════════════════════════════════
 //  GLWORLD — Temple-Run-principled outdoor world renderer.
 //  Renders into the #glC WebGL canvas BENEATH fxC; drawT leaves the
@@ -1638,7 +1638,9 @@ var GLWORLD=(function(){
     'float h=uHill*edge*(0.6+0.4*hill(vec2(aXZ.x,zw)))*(0.5+0.5*hill(vec2(aXZ.x*0.7+3.0,zw*0.7)));'+
     'float wy=h;float z=aXZ.y;vUV=vec2(aXZ.x*3.2,zw*0.045);vZ=z;vHgt=h;'+PROJ+'}';
   var FS_T='precision mediump float;uniform sampler2D uTex;uniform vec3 uFog;uniform vec3 uTint;uniform float uFogStart,uFogEnd;varying vec2 vUV;varying float vZ;varying float vHgt;'+
-    'void main(){vec2 uv=abs(fract(vUV*0.5)*2.0-1.0);vec3 c=texture2D(uTex,uv).rgb*uTint;c*=(1.0-min(0.25,vHgt*0.002));'+
+    // domain-warp the UV so the mirror-tile seams bend into organic waves rather
+    // than reading as a straight diamond grid on grass/parquet.
+    'void main(){vec2 wv=vUV+vec2(sin(vUV.y*1.3+vUV.x*0.9),cos(vUV.x*1.1+vUV.y*0.7))*0.14;vec2 uv=abs(fract(wv*0.5)*2.0-1.0);vec3 c=texture2D(uTex,uv).rgb*uTint;c*=(1.0-min(0.25,vHgt*0.002));'+
     'float f=smoothstep(uFogStart,uFogEnd,vZ);gl_FragColor=vec4(mix(c,uFog,f),1.0);}';
   var VS_S='attribute vec2 aP;varying vec2 vP;void main(){vP=aP;gl_Position=vec4(aP,0.9995,1.0);}';
   var FS_S='precision mediump float;uniform vec3 uFog;uniform vec3 uSkyTop;uniform vec4 uSun;uniform float uHorizonY;uniform float uAspect;varying vec2 vP;'+
@@ -1768,19 +1770,22 @@ var GLWORLD=(function(){
       if(isMon(k)){if(mon<0)mon=k;}else if(isLive(k)){if(life<0)life=k;}else fol.push(k);}
     var ave=fol.length?fol[0]:(pk[0]), acc=fol.length>1?fol[1]:ave;
     var LINE=hall?1.30:1.44, ROW2=hall?1.46:2.20, MONX=hall?1.34:1.60, LIFEX=hall?1.22:1.26;
-    var STEP=hall?156:172; propCycle=hall?2808:3440;
-    var seq=0,st=0,z=hall?60:80;
+    var STEP=hall?200:172; propCycle=hall?2800:3440;
+    var seq=0,st=0,z=hall?70:80;
     while(z<propCycle){
       var h=((st+1)*2654435761)>>>0, jit=(((h>>4)%5)-2)*0.004;   // ≈±0.008, barely there
       var akind=(st%3===2)?acc:ave;                              // rhythmic hedge break
-      // avenue: matched pair left + right at this station
+      // avenue: matched pair left + right. Indoors the aisle is intimate — plant
+      // only every OTHER station so a few topiaries breathe, not a wall of them.
+      if(!hall || st%2===0){
       for(var si=0;si<2;si++){var side=si?1:-1,org=FOLIAGE[akind];
         var hv=hall?0.94:(org?(0.92+((h>>(8+si*3))%9)/100):1.0); // even, manicured
         propPool.push({zw:z,kind:akind,side:side,xn:LINE*side+jit*side,s:hv,
           tint:tnt(akind*5+si),critter:false,seq:seq});seq++;}
-      // second row of taller trees for depth (matched pair, every other station)
-      if(st%2===0){for(var s2=0;s2<2;s2++){var sd=s2?1:-1;
-        propPool.push({zw:z+STEP*0.5,kind:ave,side:sd,xn:ROW2*sd+jit*sd,s:hall?0.9:1.06,
+      }
+      // second row of taller trees for depth (outdoors only — a library aisle has no back row)
+      if(!hall && st%2===0){for(var s2=0;s2<2;s2++){var sd=s2?1:-1;
+        propPool.push({zw:z+STEP*0.5,kind:ave,side:sd,xn:ROW2*sd+jit*sd,s:1.06,
           tint:tnt(ave*5+3),critter:false,seq:seq});seq++;}}
       // centrepiece monument: periodic, alternating side (never wall-to-wall)
       if(mon>=0 && st%4===1){var cs=(st%8===1)?1:-1;
@@ -1937,7 +1942,7 @@ var GLWORLD=(function(){
         if((hh>>20)%5<2)continue;            // scatter: drop ~40% for a natural, less-uniform meadow
         var z=zrow-wz+((hh&15)-8)*5;if(z<-40||z>1250)continue;
         var xn=col*0.185+(((hh>>4)%18)-9)*0.016,wx=xn*corrW;
-        var gH=(64+((hh>>8)%46))*ps,gW=gH*0.9;
+        var gH=(52+((hh>>8)%38))*ps,gW=gH*0.95;   // a touch shorter + slightly wider = groundcover, not spears
         var sway=Math.sin(_wt*0.03+hh*0.00013+z*0.004)*gW*0.16;
         var tv=0.92+((hh>>12)%16)/100,r=tv*GT[0],g=GT[1],b=tv*GT[2];
         gq.push(wx-gW/2+sway,gH,z,0,1,r,g,b, wx+gW/2+sway,gH,z,1,1,r,g,b, wx-gW/2,0,z,0,0,r,g,b,
