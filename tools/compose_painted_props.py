@@ -16,7 +16,7 @@ URLS = {
     2:  'https://im.runware.ai/image/os/a07dlim3/ws/4/ii/d2e199db-b645-4f19-bf72-2b8231e1c3b8.png', # blossom
     3:  'https://im.runware.ai/image/os/a08dlim3/ws/4/ii/77dc9730-ce11-4f02-85f7-3bb00501a819.png', # willow
     4:  'https://im.runware.ai/image/os/a01d21/ws/4/ii/77763617-3111-4a13-9609-cf6ef3b1d177.png',  # round oak
-    5:  'https://im.runware.ai/image/os/a08dlim3/ws/4/ii/3a169578-86ad-4e58-83b6-5e633ca8b6a8.png', # rose bush
+    5:  'https://im.runware.ai/image/os/a10dlim3/ws/4/ii/07430003-417c-4276-9397-0d59a55085a1.png', # rose bush v2 (structured, non-blob)
     6:  'https://im.runware.ai/image/os/a08dlim3/ws/4/ii/878ffc64-f7b0-4b4b-8e3e-f27b1987d336.png', # fountain
     7:  'https://im.runware.ai/image/os/a03d21/ws/4/ii/a5196af3-3aef-48f7-9e90-8ebf3fe15283.png',  # angel
     8:  'https://im.runware.ai/image/os/a10dlim3/ws/4/ii/765c79e0-4006-4679-b7ab-1995dd40f56c.png', # glow-flower
