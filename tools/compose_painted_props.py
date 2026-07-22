@@ -50,18 +50,20 @@ def whitekey(im, thresh=36, aggressive=False):
     w, h = rgb.size
     SENT = (255, 0, 255)
     seeds = [(0, 0), (w-1, 0), (0, h-1), (w-1, h-1), (w//2, 0), (w//2, h-1), (0, h//2), (w-1, h//2)]
-    if aggressive:
-        # interior grid: flood only starts where the pixel is near-white, so a
-        # seed landing on the globe's map/gold does nothing.
-        px0 = rgb.load()
-        for gy in range(20, h, 34):
-            for gx in range(20, w, 34):
-                r, g, b = px0[gx, gy]
-                if r > 235 and g > 235 and b > 235:
-                    seeds.append((gx, gy))
     for s in seeds:
         if rgb.getpixel(s) != SENT:
             ImageDraw.floodfill(rgb, s, SENT, thresh=thresh)
+    if aggressive:
+        # ENCLOSED pure-white pockets (globe stand, gaps between stems/arms).
+        # STRICT: only seed on near-pure-white (>247) and flood tight (14), so
+        # a seed landing on a prop's own SHADED white (swan/marble ~235-248)
+        # does nothing and the prop body survives.
+        px0 = rgb.load()
+        for gy in range(12, h, 22):
+            for gx in range(12, w, 22):
+                p = px0[gx, gy]
+                if p != SENT and p[0] > 247 and p[1] > 247 and p[2] > 247:
+                    ImageDraw.floodfill(rgb, (gx, gy), SENT, thresh=14)
     px = rgb.load()
     a = Image.new('L', (w, h), 255); ap = a.load()
     for y in range(h):
@@ -89,8 +91,8 @@ atlas = Image.new('RGBA', (CW*N, CH), (0, 0, 0, 0))
 for i in range(N):
     if i in URLS:
         raw = dl(URLS[i], os.path.join(PROTO, f'painted_{i}.png'))
-        # globe (12) has enclosed white pockets in its stand → grid-seed key
-        cell = fit_cell(whitekey(raw, aggressive=(i == 12)), HFRAC[i])
+        # strict enclosed-white removal on ALL props (safe: only pure-white gets keyed)
+        cell = fit_cell(whitekey(raw, aggressive=True), HFRAC[i])
         print(f'cell {i}: painted')
     else:
         p = os.path.join(HQ, f'prop_{i}.png')
