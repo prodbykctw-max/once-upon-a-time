@@ -815,10 +815,35 @@ function buildRunner(gs){
   gs.genC=0;
   for(var c=0;c<26;c++)groundCol(gs,c); // safe opening runway
   gs.genC=26;
+  gs.stageEnd=108;          // designed run length (cols) before the boss arena
+  gs.bossBuilt=false; gs.bossActive=false; gs.bossDeadT=0;
+  gs.nextTheme=1e9;         // RPG advances by BEATING the stage boss, not by distance
   genAhead(gs,Math.ceil((W||1280)/T)+30);
 }
+// The stage's finale: a locked gate → sealed arena → the boss. Streamed in once
+// the designed run reaches gs.stageEnd (was orphaned in the never-called
+// buildLevel; this restores it for the live RPG). Nothing generates past it.
+function buildBossArena(gs){
+  var g=gs.genC, FL=FLOOR_R, ai=gs.ai, r, c;
+  for(c=g;c<g+5;c++)groundCol(gs,c);                 // solid approach to the gate
+  var gateC=g+5; gs.gateCol=gateC;
+  for(r=4;r<FL;r++)setT(gs,gateC,r,'GATE');          // locked gate wall
+  var aEnd=gateC+18;
+  for(c=gateC+1;c<=aEnd;c++)groundCol(gs,c);         // arena floor
+  for(r=1;r<FL;r++)setT(gs,aEnd,r,'G');              // right wall seals the arena
+  plat(gs,gateC+4,FL-4,3); plat(gs,gateC+12,FL-4,3); // two dodge platforms
+  gs.LW=aEnd;
+  var last=ai===STAGES.length-1, bx=gateC+9;
+  gs.boss={x:bx*T,y:(FL-3)*T,W:70,H:96,hp:last?28:7+ai*2,mhp:last?28:7+ai*2,
+    phase:1,enraged:false,alive:true,vx:0,vy:0,onGround:false,onWall:false,faceL:true,
+    state:'WAIT',stateT:0,stateTimer:60,patIdx:0,hurtCd:0,bullets:[],slamT:0,
+    type:last?'HEARTBREAKER':'REVENANT'};
+  gs.genC=aEnd+1; gs.bossBuilt=true;
+}
 function genAhead(gs,until){
+  if(gs.bossBuilt)return;                            // arena is the end of the stage
   while(gs.genC<until){
+    if(gs.genC>=gs.stageEnd){buildBossArena(gs);return;}
     var c=gs.genC,r=rnd01(c*1.7+gs.ai*13),q,n;
     if(r<0.17&&c>40){ // GAP — jump it (2-4 tiles, notes arc over)
       var gw=2+Math.floor(rnd01(c*3.1)*3);
@@ -1216,6 +1241,10 @@ function update(){
   if(p.dead){
     if(!p.noteGone){p.noteGone=true;sfx('death');noteBurst(p.x+PW/2,Math.min(p.y+PH/2,GS.LH*T-50),26);if(navigator.vibrate)navigator.vibrate([120,50,160]);}
     p.deadT++;if(p.deadT>110)showOver(false);return;}
+  // boss defeated → brief victory beat, then next stage (or the finale ending)
+  if(GS.bossDeadT>0){GS.bossDeadT--;tickFx();
+    if(GS.bossDeadT===0){if(GS.ai>=STAGES.length-1){GS.won=true;showEnding();}else nextStage();}
+    return;}
 
   // ── FREE-CONTROL ACTION RPG: distance = furthest progress into the mansion ──
   var pm=Math.floor(GS.dist);
@@ -1310,6 +1339,28 @@ function update(){
     }}
   if(GS.comboT>0){GS.comboT--;if(GS.comboT<=0)GS.combo=0;}
   for(var ppi=GS.pops.length-1;ppi>=0;ppi--){var pp2=GS.pops[ppi];pp2.y-=0.9;if(--pp2.t<=0)GS.pops.splice(ppi,1);}
+
+  // ── STAGE BOSS (RPG finale): reach the gate → arena seals → strike him down ──
+  if(GS.boss&&GS.boss.alive){
+    var bs=GS.boss;
+    if(!GS.bossActive){
+      if(!GS.gateOpen&&p.x>(GS.gateCol-5)*T){        // she arrives: the gate opens
+        GS.gateOpen=true;GS.gateFlash=45;
+        GS.tiles=GS.tiles.filter(function(t){if(t.t==='GATE'){delete GS.solid[key(t.c,t.r)];return false;}return true;});
+        GS.toasts.push({txt:'BOSS AHEAD',sub:bs.type==='HEARTBREAKER'?'THE GROOM WHO LIED':'THE FALSE SUITOR',t:190,max:190});}
+      if(GS.gateOpen&&p.x>(GS.gateCol+1)*T){         // she steps in: engage + seal behind
+        GS.bossActive=true;
+        for(var _gr=4;_gr<FLOOR_R;_gr++)GS.solid[key(GS.gateCol,_gr)]='G';
+        sfx('strike');if(navigator.vibrate)navigator.vibrate([40,40,120]);}
+    }else{
+      updateBoss();
+      var _bov=p.x<bs.x+bs.W&&p.x+PW>bs.x&&p.y<bs.y+bs.H&&p.y+PH>bs.y;
+      var _reach=p.atkT>0&&Math.abs((p.x+PW/2)-(bs.x+bs.W/2))<bs.W/2+62&&Math.abs((p.y+PH/2)-(bs.y+bs.H/2))<bs.H*0.6;
+      if((p.dashing&&_bov)||_reach)hitB(bs);
+      else if(_bov&&p.vy>3&&p.y+PH<bs.y+bs.H*0.55){hitB(bs);p.vy=-11.5;p.airJumps=1;ptcl(p.x+PW/2,bs.y+10,'kill');}
+      if(!bs.alive){GS.bossActive=false;GS.bossDeadT=64;}
+    }
+  }
 
   // ── PHYSICS ──
   p.vy=Math.min(p.vy+GRAV,16);
@@ -3362,6 +3413,8 @@ function draw(){
     }else{
       FX.drawImage(TEX.foes,ffr*136,0,136,152,fo2.x,fo2.y,fW,fH);
     }}
+  // STAGE BOSS
+  if(GS.boss&&GS.boss.alive)drawBoss(GS.boss,ac);
   // particles
   for(i=0;i<GS.ptcl.length;i++){var pp=GS.ptcl[i];FX.globalAlpha=Math.max(0,pp.life*pp.life);FX.fillStyle='rgba('+pp.col+',1)';FX.beginPath();FX.arc(pp.x,pp.y,pp.r,0,6.28);FX.fill();}
   FX.globalAlpha=1;
@@ -3947,6 +4000,12 @@ var CREAT={
 };
 
 function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A*.09)*.5+.5;
+  // boss projectiles (updated in updateBoss but were never drawn)
+  for(var _bi=0;_bi<b.bullets.length;_bi++){var _bl=b.bullets[_bi];
+    var _bg=FX.createRadialGradient(_bl.x,_bl.y,0,_bl.x,_bl.y,10);
+    _bg.addColorStop(0,'rgba(255,130,70,0.95)');_bg.addColorStop(0.6,'rgba(255,60,30,0.5)');_bg.addColorStop(1,'rgba(255,60,30,0)');
+    FX.fillStyle=_bg;FX.beginPath();FX.arc(_bl.x,_bl.y,10,0,6.28);FX.fill();
+    FX.fillStyle='#fff2c8';FX.beginPath();FX.arc(_bl.x,_bl.y,2.8,0,6.28);FX.fill();}
   // Rendered bosses (row 0 = the Groom, row 1 = the False Suitor). The cells
   // are taller and wider than the 70x96 hit box so the crown, train and mist
   // can overhang without changing collision. Falls back to the painted art.
