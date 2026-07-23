@@ -948,13 +948,15 @@ function genAhead(gs,until){
   }
 }
 function pruneTrack(gs){
-  var cut=Math.floor(gs.camX/T)-28;gs.pruneC=cut; // keep a screen of backtrack room
-
-  gs.tiles=gs.tiles.filter(function(t){if(t.c<cut){delete gs.solid[key(t.c,t.r)];return false;}return true;});
-  gs.obs=gs.obs.filter(function(o){return o.x>gs.camX-300;});
-  gs.notes=gs.notes.filter(function(s){return !s.got&&s.x>gs.camX-100;});
-  gs.pwr=gs.pwr.filter(function(p2){return !p2.got&&p2.x>gs.camX-100;});
-  gs.foes=gs.foes.filter(function(f){return f.alive&&f.x>gs.camX-180;});
+  // ACTION RPG: the stage is a PERSISTENT arena. Nothing behind the camera is
+  // culled within a stage, so you can walk back for a missed Grace Note, power-up
+  // or the hidden cache — and the floor never vanishes behind you. A stage is
+  // bounded (~330 cols + the boss arena) and initGS() resets everything between
+  // stages, so keeping it all costs nothing. Only defeated foes are dropped.
+  gs.pruneC=-1;                                              // floor persists back to col 0
+  gs.notes=gs.notes.filter(function(s){return !s.got;});    // keep uncollected notes (even passed)
+  gs.pwr=gs.pwr.filter(function(p2){return !p2.got;});      // keep uncollected power-ups
+  gs.foes=gs.foes.filter(function(f){return f.alive;});     // drop only defeated foes
 }
 
 // ---------- 9 DISTINCT LEVEL LAYOUTS (legacy platformer, unused in runner mode) ----------
@@ -3599,7 +3601,11 @@ function draw(){
   // RPG FOES (pixel sprites)
   if(TEX.foes)for(i=0;i<GS.foes.length;i++){var fo2=GS.foes[i];if(!fo2.alive)continue;
     var ffr=Math.floor(fo2.anim/7)%6+fo2.tp*6;
-    var fW=76,fH=84;                                    // larger foes for presence (was 52x58 -> 61x68 -> 76x84)
+    // Per-type size so the hand-painted detail actually reads (cells are 136x152;
+    // drawing near-native keeps it crisp). Brutes tower, flyers are lighter — all
+    // far bigger than the old flat 76x84. Anchored to the same 52x58 collider.
+    var FSZ=[[112,124],[100,110],[100,110],[138,152],[88,96],[124,138]];
+    var _fs=FSZ[fo2.tp]||[112,124], fW=_fs[0], fH=_fs[1];
     var fdx2=fo2.x-(fW-52)/2, fdy2=fo2.y-(fH-58);       // grow from the same feet + centre so they stay planted
     if(fo2.face===-1){ // mirror about the sprite's own centre
       FX.save();
@@ -4268,7 +4274,7 @@ function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A
     var bi=b.bi||0, IN=4, DN=5, cw=200, ch=280, col;
     if(b.alive){col=Math.floor(A/10)%IN;}
     else{var prog=1-Math.max(0,GS.bossDeadT)/(GS.bossDeadMax||90);col=IN+Math.min(DN-1,Math.floor(prog*DN));}
-    var bh=b.H*1.75,bw=bh*(cw/ch);
+    var bh=b.H*1.95,bw=bh*(cw/ch);                 // larger so the painted boss detail reads
     var bx=x+b.W/2-bw/2,by=y+b.H-bh;
     var bg3=FX.createRadialGradient(x+b.W/2,y+b.H/2,0,x+b.W/2,y+b.H/2,b.H*0.95);
     bg3.addColorStop(0,'rgba('+(ph2?'255,0,40':ac)+','+(0.16+pulse*0.10)+')');
