@@ -852,7 +852,7 @@ function buildRunner(gs){
   gs.genC=0;
   for(var c=0;c<26;c++)groundCol(gs,c); // safe opening runway
   gs.genC=26;
-  gs.stageEnd=108;          // designed run length (cols) before the boss arena
+  gs.stageEnd=300+gs.ai*24; // designed run length (cols) before the boss arena — a real run first, ramping later stages longer (was 108 = boss far too soon)
   gs.bossBuilt=false; gs.bossActive=false; gs.bossDeadT=0;
   gs.nextTheme=1e9;         // RPG advances by BEATING the stage boss, not by distance
   genAhead(gs,Math.ceil((W||1280)/T)+30);
