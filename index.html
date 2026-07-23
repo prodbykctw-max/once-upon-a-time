@@ -154,6 +154,8 @@ body.mobile .hud-r{margin-top:46px}
   border-radius:10px;padding:7px 11px 8px;box-shadow:0 3px 12px rgba(0,0,0,.45)}
 .hlife{width:22px;height:22px;image-rendering:pixelated;display:block}
 .hlife.gone{filter:grayscale(1) brightness(.42);opacity:.55}
+.hlife.bonus{filter:hue-rotate(38deg) saturate(1.6) brightness(1.22) drop-shadow(0 0 3px rgba(255,210,90,.75))}
+.hlife.bonus.gone{filter:grayscale(1) brightness(.42);opacity:.4}
 #chapWrap{position:absolute;top:7px;left:50%;transform:translateX(-50%);z-index:21;
   display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;
   background:linear-gradient(180deg,rgba(44,26,12,.72),rgba(20,10,4,.72));
@@ -852,7 +854,7 @@ function buildRunner(gs){
   gs.genC=0;
   for(var c=0;c<26;c++)groundCol(gs,c); // safe opening runway
   gs.genC=26;
-  gs.stageEnd=300+gs.ai*24; // designed run length (cols) before the boss arena — a real run first, ramping later stages longer (was 108 = boss far too soon)
+  gs.stageEnd=330;          // run the SAME length the stage used to auto-transition at (old nextTheme=330), then the boss gate — fight through, then beat the boss to proceed(was 108 = boss far too soon)
   gs.bossBuilt=false; gs.bossActive=false; gs.bossDeadT=0;
   gs.nextTheme=1e9;         // RPG advances by BEATING the stage boss, not by distance
   genAhead(gs,Math.ceil((W||1280)/T)+30);
@@ -2889,7 +2891,7 @@ function gainXP(amt){GS.xp+=amt;
     if(GS.level%2===0){GS.permMax++;GS.maxMasks++;GS.masks=GS.maxMasks;}if(GS.level%3===0)GS.dmg++;
     GS.levelUpT=120;for(var i=0;i<20;i++)ptcl(GS.p.x+14,GS.p.y+20,'gbk');}updateHUD();}
 function applyPowerup(type){
-  if(type==='DEVOTION'){GS.masks=Math.min(GS.maxMasks,GS.masks+2);GS.toasts.push({txt:'DEVOTION',sub:'+2 LIVES',t:190,max:190,ico:'heart'});}
+  if(type==='DEVOTION'){GS.masks=Math.min(GS.maxMasks+3,GS.masks+2);GS.toasts.push({txt:'DEVOTION',sub:GS.masks>GS.maxMasks?'EXTRA LIFE BANKED':'+2 LIVES',t:190,max:190,ico:'heart'});}
   else if(type==='VOICE'){GS.res=GS.resMax;GS.toasts.push({txt:'FULL VOICE',sub:'RESONANCE REFILLED',t:190,max:190,ico:'mic'});}
   else if(type==='BELT'){GS.dmgT=600;GS.fxMax.dmgT=600;GS.toasts.push({txt:'BELT IT OUT',sub:'DOUBLE DAMAGE — 10 SECONDS',t:190,max:190,ico:'bolt'});}
   else if(type==='HIGHNOTE'){GS.shieldT=480+shop().shd*80;GS.fxMax.shieldT=GS.shieldT;GS.toasts.push({txt:'HIGH NOTE',sub:'SHIELDED',t:190,max:190,ico:'shield'});}
@@ -4204,8 +4206,11 @@ function drawLyric(ac){var t2=GS.lyricT%900,al=t2<50?t2/50*.3:t2>840?(1-(t2-840)
 function updateHUD(){
   var mc=document.getElementById('hudMasks');if(!mc)return;mc.innerHTML='';
   // lives = pixel-art hearts (black-bordered). Lost lives dim out.
-  for(var i=0;i<GS.maxMasks;i++){var hv=document.createElement('img');
-    hv.src=HEART_ICON.src;hv.className='hlife'+(i<GS.masks?'':' gone');
+  // base slots up to maxMasks, plus any BANKED extra lives (gold) above it.
+  // Damage decrements GS.masks, so the top (banked) hearts are always spent first.
+  var _tot=Math.max(GS.maxMasks,GS.masks);
+  for(var i=0;i<_tot;i++){var hv=document.createElement('img');
+    hv.src=HEART_ICON.src;hv.className='hlife'+(i>=GS.maxMasks?' bonus':'')+(i<GS.masks?'':' gone');
     mc.appendChild(hv);}
   document.getElementById('hudSc').textContent=GS.score.toLocaleString();
   var _ha=document.getElementById('hudAct');if(_ha)_ha.textContent=STAGES[GS.ai].n;
