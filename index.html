@@ -3270,10 +3270,11 @@ function drawMansionBG(st){
     rg2.addColorStop(0,'rgba(255,248,210,0.10)');rg2.addColorStop(1,'rgba(255,248,210,0)');
     FX.fillStyle=rg2;
     FX.beginPath();FX.moveTo(rx0,0);FX.lineTo(rx0+120,0);FX.lineTo(rx0+300,H*0.75);FX.lineTo(rx0+180,H*0.75);FX.closePath();FX.fill();}
-  // ── per-stage distant scenery (replaces the generic arches/pillars that were
-  //    identical on every stage): treeline+castle, blossom rows, hedges+fountain,
-  //    lake+willows, dusk toadstools, sunflower field, cloud islands, palace ──
-  drawFarScene(ai,cam,groundY,tick,ac);
+  // ── per-stage distant scenery. The interim procedural silhouettes read rough
+  //    at premium bar, so they're held back until Phase 5 replaces them with the
+  //    baked side-elevation backdrops (drawFarScene stays defined for that work).
+  //    The per-stage SKY MOOD above (SIDE_SKY) still gives each stage its light.
+  if(window._FARSCENE)drawFarScene(ai,cam,groundY,tick,ac);
   // ── BAKED 2.5D WALL BAND (the same components as Temple View) ──
   if(TEX.walls){
     FX.imageSmoothingEnabled=false;
