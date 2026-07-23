@@ -1276,9 +1276,15 @@ function update(){
     fo.anim++;
     var fdx=p.x-fo.x;
     var foX0=fo.x;
-    if(fo.tp===0){ // thorn goblin: accelerates toward her when close
+    if(fo.tp===0){ // thorn goblin: a GROUND troll — accelerates toward her when close
       var want=Math.abs(fdx)<340?(fdx>0?1.9:-1.9):(fo.anim%160<80?0.7:-0.7);
-      fo.vx=(fo.vx||0)*0.9+want*0.1;fo.x+=fo.vx;
+      fo.vx=(fo.vx||0)*0.9+want*0.1;
+      // Ground-only: it walks, it doesn't fly. Don't let it glide over a pit —
+      // only step onto a column that has floor under the leading edge; otherwise
+      // hold at the brink (the player is safe across a drop). The ravens/sprites
+      // (tp 1/2) fly and are intentionally exempt.
+      var grow=Math.floor((fo.y+58)/T),leadC=Math.floor((fo.vx>0?fo.x+46:fo.x-2)/T);
+      if(isSolid(leadC,grow))fo.x+=fo.vx; else fo.vx=0;
     }else if(fo.tp===1){ // cursed raven: bobs, then dives when near
       fo.x+=Math.abs(fdx)<300?(fdx>0?1.6:-1.6):-0.9;
       var wantY=Math.abs(fdx)<170?(p.y+10):fo.baseY;
