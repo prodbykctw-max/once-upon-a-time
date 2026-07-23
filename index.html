@@ -3537,7 +3537,7 @@ function draw(){
   // RPG FOES (pixel sprites)
   if(TEX.foes)for(i=0;i<GS.foes.length;i++){var fo2=GS.foes[i];if(!fo2.alive)continue;
     var ffr=Math.floor(fo2.anim/7)%6+fo2.tp*6;
-    var fW=61,fH=68;                                    // slightly larger foes (was 52x58)
+    var fW=76,fH=84;                                    // larger foes for presence (was 52x58 -> 61x68 -> 76x84)
     var fdx2=fo2.x-(fW-52)/2, fdy2=fo2.y-(fH-58);       // grow from the same feet + centre so they stay planted
     if(fo2.face===-1){ // mirror about the sprite's own centre
       FX.save();
