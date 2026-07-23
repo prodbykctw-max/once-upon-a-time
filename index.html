@@ -477,12 +477,6 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="lc-l" id="lcL">Ancient Knowledge</div>
     <div class="lc-ld">— entering —</div>
   </div>
-  <div id="shopScr"><div class="sh-box">
-    <div class="sh-h">✦ THE BOUTIQUE ✦</div>
-    <div class="sh-bal" id="shBal"></div>
-    <div id="shRows"></div>
-    <button class="ov-btn" id="shClose" style="margin-top:14px">BACK</button>
-  </div></div>
   <div id="overlay">
     <div class="ov-t" id="ovT">GAME OVER</div>
     <div class="ov-m" id="ovM">She rose again.</div>
@@ -508,6 +502,12 @@ body.mobile .joy-knob{width:64px;height:64px}
   </div>
   <div id="loadMsg"><div class="spin"></div><div>SUMMONING THE QUEEN...</div></div>
 </div>
+<div id="shopScr"><div class="sh-box">
+  <div class="sh-h">✦ THE BOUTIQUE ✦</div>
+  <div class="sh-bal" id="shBal"></div>
+  <div id="shRows"></div>
+  <button class="ov-btn" id="shClose" style="margin-top:14px">BACK</button>
+</div></div>
 <div id="settingsScr"><div class="sh-box">
   <div class="sh-h">⚙ SETTINGS ⚙</div>
   <div class="set-row"><span>DIFFICULTY</span><div class="seg" id="setDiff">
@@ -4635,12 +4635,23 @@ function shopRender(){
        '<div class="sh-pips">'+pips+'</div></div>'+
        (maxed?'<span style="color:#7CFFB2;font-size:11px">MAX</span>'
              :'<button class="sh-buy" data-k="'+i+'"'+(((w.notes||0)<c)?' disabled':'')+'>♪ '+c+'</button>')+'</div>';});
+  // ── THE WANDERER'S ATLAS: buy every stage's map (the 'purchased' half of the
+  //    Wanderer's Map — reveals all hidden caches without hunting each fragment) ──
+  var _maps=mapsOwned(),_own=0;for(var _mi=0;_mi<9;_mi++)if(_maps[_mi])_own++;
+  var _AC=400,_pips='';for(var _pj=0;_pj<9;_pj++)_pips+=(_maps[_pj]?'●':'○');
+  h+='<div class="sh-row"><div style="text-align:left"><div>✦ The Wanderer&#39;s Atlas</div>'+
+     '<div style="opacity:.55;font-size:10.5px">reveals every stage&#39;s hidden cache ('+_own+'/9)</div>'+
+     '<div class="sh-pips">'+_pips+'</div></div>'+
+     (_own>=9?'<span style="color:#7CFFB2;font-size:11px">OWNED</span>'
+            :'<button class="sh-buy" data-atlas="1"'+(((w.notes||0)<_AC)?' disabled':'')+'>♪ '+_AC+'</button>')+'</div>';
   rows.innerHTML=h;
-  Array.prototype.forEach.call(rows.querySelectorAll('.sh-buy'),function(b){b.onclick=function(){
+  Array.prototype.forEach.call(rows.querySelectorAll('.sh-buy[data-k]'),function(b){b.onclick=function(){
     var it=SHOP_ITEMS[+b.getAttribute('data-k')],sp2=shop(),w2=wallet(),lv2=sp2[it.k]||0;
     var c2=Math.round(it.cost(lv2));
     if((w2.notes||0)<c2||lv2>=it.max)return;
-    w2.notes-=c2;sp2[it.k]=lv2+1;setWallet(w2);setShop(sp2);sfx('pw');shopRender();};});}
+    w2.notes-=c2;sp2[it.k]=lv2+1;setWallet(w2);setShop(sp2);sfx('pw');shopRender();};});
+  var _ab=rows.querySelector('.sh-buy[data-atlas]');
+  if(_ab)_ab.onclick=function(){var w4=wallet();if((w4.notes||0)<_AC)return;w4.notes-=_AC;setWallet(w4);for(var _s=0;_s<9;_s++)markMapOwned(_s);sfx('pw');GS&&GS.p&&(GS.mapFound=!!mapsOwned()[GS.ai]);shopRender();};}
 function refreshModeStats(){
   try{var b=parseInt(localStorage.getItem('jande_best')||'0',10);
     var stv=streakGet();
