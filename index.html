@@ -3521,6 +3521,29 @@ function drawMansionBG(st){
   FX.fillStyle=_bgV;FX.fillRect(0,0,W,H);
 }
 // ════════════════════════════════════════════════════════════
+// ── SHADOW OF THE GROOM — every RPG boss curdles the fairytale: the arena dims
+//    and desaturates, shadow-fog drifts through, an ominous red backlight glows,
+//    and a heavy vignette closes. Eases in on bossActive, out on defeat. The dark
+//    wash sits BEHIND the fighters and the vignette on TOP, so she and the boss
+//    stay readable against the gloom (the Silksong mood, only at the villains).
+function drawGroomShadowBg(){
+  var a=GS.bossMood||0;
+  FX.fillStyle='rgba(9,4,16,'+(0.52*a)+')';FX.fillRect(0,0,W,H);
+  for(var i=0;i<4;i++){
+    var fx=((i*300-GS.tick*(0.5+i*0.22))%(W+520))-260, fy=H*(0.22+i*0.17);
+    var g=FX.createRadialGradient(fx,fy,0,fx,fy,230);
+    g.addColorStop(0,'rgba(24,8,34,'+(0.30*a)+')');g.addColorStop(1,'rgba(24,8,34,0)');
+    FX.fillStyle=g;FX.fillRect(fx-230,fy-230,460,460);}
+  var r=FX.createLinearGradient(0,0,0,H*0.45);
+  r.addColorStop(0,'rgba(150,0,36,'+(0.16*a)+')');r.addColorStop(1,'rgba(150,0,36,0)');
+  FX.fillStyle=r;FX.fillRect(0,0,W,H*0.45);
+}
+function drawGroomShadowFg(){
+  var a=GS.bossMood||0;
+  var v=FX.createRadialGradient(W/2,H*0.5,H*0.18,W/2,H*0.5,H*0.80);
+  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(0.7,'rgba(0,0,0,'+(0.22*a)+')');v.addColorStop(1,'rgba(0,0,0,'+(0.62*a)+')');
+  FX.fillStyle=v;FX.fillRect(0,0,W,H);
+}
 function draw(){
   if(MODE==='temple')return drawT();
   // NOTE: drawGL() intentionally skipped — drawMansionBG paints an opaque
@@ -3528,7 +3551,9 @@ function draw(){
   // the frame budget on phones.
   var st=blendedStage(),ac=hexS(st.ac),pc=hexS(st.pc);
   FX.clearRect(0,0,W,H);
+  GS.bossMood=(GS.bossMood||0)+(((GS.bossActive?1:0)-(GS.bossMood||0))*0.05); // Shadow of the Groom easing
   drawMansionBG(st);            // painted interior (parallax, screen-space)
+  if(GS.bossMood>0.01)drawGroomShadowBg();  // the fairytale curdles behind the fighters
   FX.save();FX.scale(ZOOM,ZOOM);FX.translate(-GS.camX,-GS.camY);
   for(var i=0;i<GS.tiles.length;i++)drawTile(GS.tiles[i],ac,pc);
   for(i=0;i<GS.notes.length;i++)if(!GS.notes[i].got)drawNote(GS.notes[i],ac);
@@ -3574,6 +3599,7 @@ function draw(){
       FX.fillRect(tx3-2,ty3-0.6,4,1.2);FX.fillRect(tx3-0.6,ty3-2,1.2,4);}}
   if(!p.noteGone){if(p.inv>0&&GS.shieldT<=0)FX.globalAlpha=0.55+0.3*Math.sin(GS.tick*0.7);drawHero(p);FX.globalAlpha=1;}
   FX.restore();
+  if(GS.bossMood>0.01)drawGroomShadowFg();  // vignette closes on top — she + the boss stay readable
   // combo meter
   if(GS.combo>1&&GS.comboT>0){
     FX.font='900 22px Storyboo,sans-serif';FX.textAlign='center';
