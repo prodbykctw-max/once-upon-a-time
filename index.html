@@ -860,6 +860,8 @@ function buildRunner(gs){
   gs.stageEnd=330;          // run the SAME length the stage used to auto-transition at (old nextTheme=330), then the boss gate — fight through, then beat the boss to proceed(was 108 = boss far too soon)
   gs.bossBuilt=false; gs.bossActive=false; gs.bossDeadT=0;
   gs.nextTheme=1e9;         // RPG advances by BEATING the stage boss, not by distance
+  gs.mapSeeded=false; gs.cacheSeeded=false; gs.cacheGot=false;
+  gs.mapFound=!!mapsOwned()[gs.ai]; gs.cacheX=0; gs.cacheY=0;   // Wanderer's Map (persisted per stage)
   genAhead(gs,Math.ceil((W||1280)/T)+30);
 }
 // The stage's finale: a locked gate → sealed arena → the boss. Streamed in once
@@ -895,6 +897,15 @@ function genAhead(gs,until){
   while(gs.genC<until){
     if(gs.genC>=gs.stageEnd){buildBossArena(gs);return;}
     var c=gs.genC,r=rnd01(c*1.7+gs.ai*13),q,n;
+    // once per stage: the WANDERER'S MAP fragment on the path, then a hidden CACHE on a high ledge
+    if(!gs.mapSeeded&&c>58){for(var _mq=0;_mq<3;_mq++)groundCol(gs,c+_mq);
+      gs.notes.push({x:(c+1)*T+10,y:(FLOOR_R-2)*T,anim:0,got:false,map:true});gs.mapSeeded=true;gs.genC+=3;continue;}
+    if(!gs.cacheSeeded&&c>96&&c<gs.stageEnd-24){var _cr=FLOOR_R-8;
+      for(var _cq=0;_cq<4;_cq++)groundCol(gs,c+_cq);
+      for(_cq=0;_cq<3;_cq++)setT(gs,c+1+_cq,_cr,'P');
+      for(_cq=0;_cq<3;_cq++)gs.notes.push({x:(c+1+_cq)*T+8,y:(_cr-1)*T-6,anim:(_cq*9)%60,got:false,cache:true});
+      gs.pwr.push({x:(c+2)*T,y:(_cr-2)*T,type:'DEVOTION',anim:0,got:false,cache:true});
+      gs.cacheX=(c+2)*T;gs.cacheY=(_cr-1)*T;gs.genC+=4;gs.cacheSeeded=true;continue;}
     if(r<rec.gap&&c>40){ // GAP — jump it (width + notes arc over), per-stage
       var gw=2+Math.floor(rnd01(c*3.1)*rec.gapMax);
       for(n=0;n<gw+2;n++)gs.notes.push({x:(c-1+n)*T+10,y:(FLOOR_R-3)*T-Math.sin(n/(gw+1)*Math.PI)*46,anim:(n*7)%60,got:false});
@@ -1503,9 +1514,11 @@ function update(){
 
   // ── GRACE NOTES + POWER-UPS ──
   for(var si=0;si<GS.notes.length;si++){var s=GS.notes[si];if(s.got)continue;s.anim++;
-    if(p.x<s.x+20&&p.x+PW>s.x-4&&p.y<s.y+20&&p.y+PH>s.y){s.got=true;GS.res=Math.min(GS.resMax,GS.res+8);GS.totalNotes++;misAdd('notes',1);GS.score+=Math.round(70*runMult());sfx('note');ptcl(s.x+4,s.y,'note');updateHUD();}}
+    if(p.x<s.x+20&&p.x+PW>s.x-4&&p.y<s.y+20&&p.y+PH>s.y){s.got=true;GS.res=Math.min(GS.resMax,GS.res+8);GS.totalNotes++;misAdd('notes',1);GS.score+=Math.round(70*runMult());sfx('note');ptcl(s.x+4,s.y,'note');
+      if(s.map&&!GS.mapFound){GS.mapFound=true;markMapOwned(GS.ai);GS.toasts.push({txt:"THE WANDERER'S MAP",sub:'A HIDDEN CACHE IS REVEALED ✦',t:210,max:210,ico:'crown'});sfx('pw');}
+      updateHUD();}}
   for(var pwi=0;pwi<GS.pwr.length;pwi++){var pw=GS.pwr[pwi];if(pw.got)continue;pw.anim++;
-    if(p.x<pw.x+26&&p.x+PW>pw.x-2&&p.y<pw.y+26&&p.y+PH>pw.y){pw.got=true;applyPowerup(pw.type);sfx('pw');ptcl(pw.x+12,pw.y+12,'gbk');}}
+    if(p.x<pw.x+26&&p.x+PW>pw.x-2&&p.y<pw.y+26&&p.y+PH>pw.y){pw.got=true;applyPowerup(pw.type);sfx('pw');ptcl(pw.x+12,pw.y+12,'gbk');if(pw.cache){GS.cacheGot=true;GS.toasts.push({txt:'CACHE CLAIMED ✦',sub:'THE WANDERER REWARDS THE CURIOUS',t:170,max:170,ico:'crown'});}}}
 
   var _po=0;for(var pi=0;pi<GS.ptcl.length;pi++){var pp=GS.ptcl[pi];pp.x+=pp.vx;pp.y+=pp.vy;pp.vy+=pp.g||0;pp.vx*=pp.dr||0.95;pp.life-=pp.d;if(pp.life>0)GS.ptcl[_po++]=pp;}GS.ptcl.length=_po;
 }
@@ -3148,6 +3161,11 @@ function diffF(){return DIFFMUL[SET.diff]||1;}
 function setSetting(k,v){SET[k]=v;try{localStorage.setItem('jande_settings',JSON.stringify(SET));}catch(x){}}
 // difficulty folds into the adaptive factor: easy = more spacing + fewer foes.
 function adaptF(){var e=Math.min(3,(GS.adaptEarly||0));var f=1+e*0.15;if(GS.dist>800)f*=0.9;return f*diffF();}
+// ── THE WANDERER'S MAP: each stage hides a CACHE off the main path; its location
+//    stays secret until you find (or, later, buy) that stage's map fragment, which
+//    lights a ✦ beacon over the cache. Owned maps persist like the wallet. ──
+function mapsOwned(){try{return JSON.parse(localStorage.getItem('jande_maps')||'{}');}catch(x){return{};}}
+function markMapOwned(ai){var m=mapsOwned();m[ai]=1;try{localStorage.setItem('jande_maps',JSON.stringify(m));}catch(x){}}
 // ── DAILY STREAK ──
 function streakGet(){try{return JSON.parse(localStorage.getItem('jande_streak')||'{"last":"","n":0,"paid":""}');}catch(x){return{last:'',n:0,paid:''};}}
 function streakTick(){
@@ -3593,6 +3611,12 @@ function draw(){
     }}
   // STAGE BOSS
   if(GS.boss&&(GS.boss.alive||GS.bossDeadT>0))drawBoss(GS.boss,ac); // keep drawing through the defeat animation
+  // WANDERER'S MAP: once the map is found, a ✦ beacon glows over the hidden cache
+  if(GS.mapFound&&!GS.cacheGot&&GS.cacheX){
+    FX.fillStyle='rgba(124,255,178,0.22)';FX.beginPath();FX.arc(GS.cacheX+4,GS.cacheY-4,28,0,6.28);FX.fill();
+    FX.font='900 24px Storyboo,sans-serif';FX.textAlign='center';
+    FX.fillStyle='rgba(150,255,196,'+(0.6+0.35*Math.sin(GS.tick*0.15))+')';
+    FX.fillText('✦',GS.cacheX+4,GS.cacheY-30+Math.sin(GS.tick*0.12)*6);}
   // particles
   for(i=0;i<GS.ptcl.length;i++){var pp=GS.ptcl[i];FX.globalAlpha=Math.max(0,pp.life*pp.life);FX.fillStyle='rgba('+pp.col+',1)';FX.beginPath();FX.arc(pp.x,pp.y,pp.r,0,6.28);FX.fill();}
   FX.globalAlpha=1;
