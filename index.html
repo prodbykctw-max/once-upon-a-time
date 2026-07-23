@@ -551,6 +551,9 @@ var SPRITES={
   dash:{frames:5,cw:159,ch:154,src:'web/e803235545ba.png'},
   block:{frames:3,cw:93,ch:154,src:'web/1b211642b143.png'},
   dance:{frames:6,cw:120,ch:154,src:'web/89251d16231c.png'},
+  downstrike:{frames:4,cw:172,ch:154,src:'web/906d4cb96105.png'},
+  belt:{frames:5,cw:150,ch:154,src:'web/5e3c3ac40f3b.png'},
+  refrain:{frames:6,cw:103,ch:154,src:'web/7308e8a460ab.png'},
 };
 
 </script>
@@ -1463,10 +1466,10 @@ function update(){
     }}
 
   // ── ANIMATION (idle + dance easter egg when she stands still) ──
-  var newAnim=p.atkT>0?'attack':p.dashing?'dash':p.refraining?'dance':!p.onGround?'jump':p.sliding?'dash':Math.abs(p.vx)>0.6?'run':(p.idleT>420?'dance':'idle');
+  var newAnim=p.atkT>0?(p.belt?'belt':p.downbeat?'downstrike':'attack'):p.dashing?'dash':p.refraining?'refrain':!p.onGround?'jump':p.sliding?'dash':Math.abs(p.vx)>0.6?'run':(p.idleT>420?'dance':'idle');
   if(newAnim!==p.anim){p.anim=newAnim;p.frame=0;p.animT=0;}
   p.idleT=(p.onGround&&Math.abs(p.vx)<0.6&&p.atkT<=0)?p.idleT+1:0;
-  var spd={idle:9,run:4,jump:7,dash:4,attack:2,dance:6}[p.anim]||6;
+  var spd={idle:9,run:4,jump:7,dash:4,attack:2,dance:6,belt:3,downstrike:3,refrain:8}[p.anim]||6;
   p.animT++;if(p.animT>=spd){p.animT=0;var nf=SPRITES[p.anim].frames;
     if(p.anim==='jump'||p.anim==='attack'){p.frame=Math.min(p.frame+1,nf-1);}else p.frame=(p.frame+1)%nf;}
 
