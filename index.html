@@ -78,6 +78,11 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 .sh-pips{color:#FFD700;font-size:10px;letter-spacing:2px}
 #settingsScr{position:absolute;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(8,2,16,.88)}
 #settingsScr.on{display:flex}
+#stageSelScr{position:absolute;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(8,2,16,.88)}
+#stageSelScr.on{display:flex}
+.ss-b{font-family:Storyboo;font-size:12px;padding:9px 14px;border-radius:9px;border:1px solid rgba(200,255,216,.4);background:rgba(30,60,40,.5);color:#e8fff0;cursor:pointer;min-width:96px}
+.ss-b:disabled{opacity:.32;cursor:default;border-color:rgba(255,255,255,.14)}
+.ss-b.cleared{border-color:#7CFFB2;box-shadow:0 0 10px rgba(124,255,178,.25)}
 .set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 6px;border-bottom:1px solid rgba(255,255,255,.08);font-family:Storyboo;font-size:12px;color:#fff;letter-spacing:1px}
 .seg{display:flex;gap:5px}
 .seg button{font-family:Storyboo;font-size:9px;letter-spacing:1px;padding:9px 13px;border-radius:7px;border:1.5px solid rgba(255,215,0,.35);background:transparent;color:rgba(255,235,180,.72);cursor:pointer;touch-action:manipulation}
@@ -427,6 +432,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     </div>
     <div class="ms-stats" id="msStats"></div>
     <div class="ms-card" id="msShop" style="margin-top:16px;width:auto;display:inline-block;padding:13px 26px"><span style="font-family:Storyboo;font-size:12px;color:#FFD700">✦ THE BOUTIQUE — SPEND YOUR NOTES</span></div>
+    <div class="ms-card" id="msStageSel" style="margin-top:10px;width:auto;display:none;padding:11px 24px"><span style="font-family:Storyboo;font-size:11px;color:#c8ffd8;letter-spacing:1px">⚑ STAGE SELECT</span></div>
     <div class="ms-card" id="msSettings" style="margin-top:10px;width:auto;display:inline-block;padding:11px 24px"><span style="font-family:Storyboo;font-size:11px;color:#9fd0ff;letter-spacing:1px">⚙ SETTINGS</span></div>
   </div>
 </div>
@@ -507,6 +513,12 @@ body.mobile .joy-knob{width:64px;height:64px}
   <div class="sh-bal" id="shBal"></div>
   <div id="shRows"></div>
   <button class="ov-btn" id="shClose" style="margin-top:14px">BACK</button>
+</div></div>
+<div id="stageSelScr"><div class="sh-box">
+  <div class="sh-h">⚑ STAGE SELECT ⚑</div>
+  <div class="set-note">Start a fresh run from any stage whose boss you've beaten.</div>
+  <div id="ssRows" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0"></div>
+  <button class="ov-btn" id="ssClose" style="margin-top:8px">BACK</button>
 </div></div>
 <div id="settingsScr"><div class="sh-box">
   <div class="sh-h">⚙ SETTINGS ⚙</div>
@@ -1309,7 +1321,14 @@ function update(){
     p.deadT++;if(p.deadT>110)showOver(false);return;}
   // boss defeated → brief victory beat, then next stage (or the finale ending)
   if(GS.bossDeadT>0){GS.bossDeadT--;tickFx();
-    if(GS.bossDeadT===0){if(GS.ai>=STAGES.length-1){GS.won=true;showEnding();}else nextStage();}
+    if(GS.bossDeadT===0){markClear(GS.ai);        // remember this stage as beaten (stage select)
+      if(GS.ai>=STAGES.length-1){GS.won=true;showEnding();}
+      else{GS.levelClear=true;GS.clearT=0;}}      // NOT auto-advance — she holds the stage, then the tally
+    return;}
+  // ── LEVEL CLEAR: the boss is down. Jandé stays on the cleared stage and emotes
+  //    for a beat, then the results overlay rises. The player proceeds when ready. ──
+  if(GS.levelClear){GS.clearT++;GS.p.vx*=0.8;tickFx();
+    if(GS.clearT===100)showLevelClear();
     return;}
 
   // ── FREE-CONTROL ACTION RPG: distance = furthest progress into the mansion ──
@@ -1485,7 +1504,7 @@ function update(){
     }}
 
   // ── ANIMATION (idle + dance easter egg when she stands still) ──
-  var newAnim=p.atkT>0?(p.belt?'belt':p.downbeat?'downstrike':'attack'):p.dashing?'dash':p.refraining?'refrain':!p.onGround?'jump':p.sliding?'dash':Math.abs(p.vx)>0.6?'run':(p.idleT>420?'dance':'idle');
+  var newAnim=GS.levelClear?'dance':p.atkT>0?(p.belt?'belt':p.downbeat?'downstrike':'attack'):p.dashing?'dash':p.refraining?'refrain':!p.onGround?'jump':p.sliding?'dash':Math.abs(p.vx)>0.6?'run':(p.idleT>420?'dance':'idle');
   if(newAnim!==p.anim){p.anim=newAnim;p.frame=0;p.animT=0;}
   p.idleT=(p.onGround&&Math.abs(p.vx)<0.6&&p.atkT<=0)?p.idleT+1:0;
   var spd={idle:9,run:4,jump:7,dash:4,attack:2,dance:6,belt:3,downstrike:3,refrain:8}[p.anim]||6;
@@ -3168,6 +3187,11 @@ function adaptF(){var e=Math.min(3,(GS.adaptEarly||0));var f=1+e*0.15;if(GS.dist
 //    lights a ✦ beacon over the cache. Owned maps persist like the wallet. ──
 function mapsOwned(){try{return JSON.parse(localStorage.getItem('jande_maps')||'{}');}catch(x){return{};}}
 function markMapOwned(ai){var m=mapsOwned();m[ai]=1;try{localStorage.setItem('jande_maps',JSON.stringify(m));}catch(x){}}
+// ── BEATEN STAGES: each stage you clear its boss on is remembered, so you can
+//    start a fresh run from any stage you've already conquered (stage select). ──
+function clearsOwned(){try{return JSON.parse(localStorage.getItem('jande_clears')||'{}');}catch(x){return{};}}
+function markClear(ai){var m=clearsOwned();m[ai]=1;try{localStorage.setItem('jande_clears',JSON.stringify(m));}catch(x){}}
+var START_STAGE=0;   // which stage a fresh ACTION RPG run begins on (stage select)
 // ── DAILY STREAK ──
 function streakGet(){try{return JSON.parse(localStorage.getItem('jande_streak')||'{"last":"","n":0,"paid":""}');}catch(x){return{last:'',n:0,paid:''};}}
 function streakTick(){
@@ -4561,7 +4585,41 @@ function continueRun(){
   }
   return true;
 }
+// ── STAGE CLEAR ── the end-of-level tally. Reuses the results overlay but with a
+//    PROCEED button (GS.ovMode='clear') instead of continue/restart. The run banks
+//    its notes at the very end, so this is the celebration + a chance to set your
+//    leaderboard name. She keeps dancing behind it until the player proceeds.
+function showLevelClear(){
+  var ai=GS.ai, nm=(GS.boss&&GS.boss.name)||(typeof BOSS_NAME!=='undefined'&&BOSS_NAME[ai])||'THE BOSS';
+  GS.ovMode='clear';checkAch();
+  document.getElementById('ovT').textContent='STAGE '+toRoman(ai+1)+' CLEAR ✦';
+  document.getElementById('ovM').textContent=nm+' DEFEATED · '+GS.score.toLocaleString()+' pts';
+  var bh='<div class="bd-h">— THIS RUN SO FAR —</div>';
+  bh+='<div class="bd-row"><span>◈ Stage</span><span>'+toRoman(ai+1)+' / '+toRoman(STAGES.length)+'</span></div>';
+  bh+='<div class="bd-row"><span>♪ Grace Notes</span><span>'+GS.totalNotes+'</span></div>';
+  bh+='<div class="bd-row"><span>Distance</span><span>'+Math.floor(GS.dist)+'m</span></div>';
+  bh+='<div class="bd-row"><span>Resonance</span><span>LV '+(GS.level||1)+'</span></div>';
+  bh+='<div class="bd-row"><span>◆ Score</span><span>'+GS.score.toLocaleString()+'</span></div>';
+  if(GS.newAch&&GS.newAch.length){bh+='<div class="bd-h">— TROPHIES UNLOCKED —</div>';
+    GS.newAch.forEach(function(n){bh+='<div class="bd-ach">✦ '+esc(n)+'</div>';});}
+  bh+='<div class="bd-h">— OBJECTIVES · ×'+misMult().toFixed(1)+' MULTIPLIER —</div>';
+  var shown=0;for(var mi=0;mi<MIS.length&&shown<3;mi++){var m=MIS[mi];if(MIS_S.done[m.id])continue;
+    var pr=Math.min(m.goal,MIS_S.prog[m.id]||0);
+    bh+='<div class="bd-row"><span>◈ '+esc(m.n)+'</span><span>'+pr+' / '+m.goal+'</span></div>';shown++;}
+  if(!shown)bh+='<div class="bd-ach">ALL OBJECTIVES COMPLETE ✦</div>';
+  bh+='<div class="bd-sub">♪ BANK '+(wallet().notes||0)+' · ◆ '+wallet().gems+'</div>';
+  document.getElementById('ovBoard').innerHTML=bh;
+  var _nmIn=document.getElementById('ovNameInput');if(_nmIn)_nmIn.value=lbName();
+  var _nmOk=document.getElementById('ovNameOk');if(_nmOk)_nmOk.textContent='';
+  var contBtn=document.getElementById('ovR'),reBtn=document.getElementById('ovRestart');
+  if(contBtn){contBtn.style.display='';contBtn.innerHTML='PROCEED TO STAGE '+toRoman(ai+2)+' ▶';}
+  if(reBtn)reBtn.style.display='none';                       // no restart mid-victory lap
+  document.getElementById('overlay').classList.add('on');
+  sfx('revive');if(navigator.vibrate)navigator.vibrate([30,40,90]);
+  running=false;applyTouchMode();                            // freeze the field; she holds her pose
+}
 function showOver(won){
+  if(GS)GS.ovMode='';                                   // game-over overlay: ovR = continue/restart, not proceed
   // record where she fell so the RPG retry resumes at the exact spot
   if(!won&&MODE==='side'&&GS.p)CHECKPOINT_X=GS.p.x;
   checkAch(); // final pass (score/notes earned at the very end)
@@ -4607,7 +4665,7 @@ function showOver(won){
     if(!won&&canContinue()){contBtn.style.display='';
       contBtn.innerHTML='CONTINUE <span style="opacity:.82;font-size:.86em">— '+continueCost()+' ◆</span>';}
     else contBtn.style.display='none';}
-  if(reBtn)reBtn.textContent=won?'PLAY AGAIN':'RESTART';
+  if(reBtn){reBtn.style.display='';reBtn.textContent=won?'PLAY AGAIN':'RESTART';}
   running=false;applyTouchMode();}
 
 // ---------- title BG ----------
@@ -4668,6 +4726,10 @@ function refreshModeStats(){
     document.getElementById('shClose').onclick=function(){sfx('ui');document.getElementById('shopScr').classList.remove('on');refreshModeStats();};}}
 function showModeSel(){
   refreshModeStats();
+  // reveal STAGE SELECT once at least one stage has been beaten
+  var _ss=document.getElementById('msStageSel');
+  if(_ss){var _cl=clearsOwned(),_any=false;for(var _k in _cl)if(_cl[_k]){_any=true;break;}
+    _ss.style.display=_any?'inline-block':'none';}
   show('modeScreen');}
 // fixed-timestep: physics always advance at 60Hz regardless of render FPS,
 // so slow phones don't turn jumps into slow-motion mush
@@ -4770,7 +4832,7 @@ function startGame(){
   resize();
   var lm=document.getElementById('loadMsg');
   try{localStorage.setItem('jande_mode_'+MODE,'1');}catch(x){} // for BOTH WORLDS trophy
-  function begin(){if(lm)lm.style.display='none';GS={};CHECKPOINT=0;CHECKPOINT_X=0;RUN_CONTINUES=0;initGS(0);
+  function begin(){if(lm)lm.style.display='none';GS={};var _ss=(MODE==='side')?START_STAGE:0;CHECKPOINT=_ss;CHECKPOINT_X=0;RUN_CONTINUES=0;initGS(_ss);
     GS.adaptEarly=adaptGet().early||0;
     var stk=streakTick();
     if(stk.g>0){var w3=wallet();w3.gems+=stk.g;setWallet(w3);GS.gemsLive=w3.gems;}
@@ -4778,7 +4840,7 @@ function startGame(){
     if((ad2.early||0)>=3&&!ad2.pity){ad2.pity=1;adaptSet(ad2);
       var w4=wallet();w4.gems++;setWallet(w4);GS.gemsLive=w4.gems;
       GS.toasts.push({txt:'A FAIRY LEAVES A GIFT',sub:'+1 GEM — BREATHE, THEN RUN',t:280,max:280,ico:'fairy'});}
-    showLevelCard(0,function(){running=true;applyTouchMode();loop();});}
+    showLevelCard(_ss,function(){running=true;applyTouchMode();loop();});}
   if(imagesReady)begin();else loadSprites(begin);
 }
 
@@ -4800,11 +4862,38 @@ function wire(){
       inp.blur();sfx('ui');}
     btn.onclick=save;
     inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();save();}});})();
-  document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';showHowTo();};
+  document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';START_STAGE=0;showHowTo();};
   document.getElementById('msTemple').onclick=function(){audInit();sfx('ui');MODE='temple';showHowTo();};
-  document.getElementById('ovR').onclick=function(){sfx('ui');continueRun();};
-  document.getElementById('ovRestart').onclick=function(){sfx('ui');document.getElementById('overlay').classList.remove('on');RUN_CONTINUES=0;GS={};CHECKPOINT=0;CHECKPOINT_X=0;initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
-  document.getElementById('ovM2').onclick=function(){['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
+  // ── STAGE SELECT: start a fresh run from any stage whose boss you've beaten ──
+  (function(){
+    var scr=document.getElementById('stageSelScr'),rows=document.getElementById('ssRows'),
+        openB=document.getElementById('msStageSel'),closeB=document.getElementById('ssClose');
+    if(!scr||!rows)return;
+    function render(){
+      var cl=clearsOwned(),h='';
+      for(var i=0;i<STAGES.length;i++){
+        var ok=(i===0)||!!cl[i];                       // stage 1 always; else only beaten stages
+        h+='<button class="ss-b'+(cl[i]?' cleared':'')+'" data-ai="'+i+'"'+(ok?'':' disabled')+'>STAGE '+toRoman(i+1)+(cl[i]?' ✓':'')+'</button>';
+      }
+      rows.innerHTML=h;
+      [].forEach.call(rows.querySelectorAll('.ss-b'),function(b){b.onclick=function(){
+        if(b.disabled)return;START_STAGE=+b.getAttribute('data-ai');MODE='side';sfx('ui');
+        scr.classList.remove('on');showHowTo();};});
+    }
+    if(openB)openB.onclick=function(){audInit();sfx('ui');render();scr.classList.add('on');};
+    if(closeB)closeB.onclick=function(){sfx('ui');scr.classList.remove('on');};
+  })();
+  document.getElementById('ovR').onclick=function(){sfx('ui');
+    if(GS&&GS.ovMode==='clear'){                               // STAGE CLEAR → advance
+      GS.ovMode='';GS.levelClear=false;
+      document.getElementById('overlay').classList.remove('on');
+      var _re=document.getElementById('ovRestart');if(_re)_re.style.display='';
+      nextStage();
+      if(!running){running=true;applyTouchMode();loop();}
+      return;}
+    continueRun();};
+  document.getElementById('ovRestart').onclick=function(){sfx('ui');document.getElementById('overlay').classList.remove('on');RUN_CONTINUES=0;GS={};var _rs=(MODE==='side')?START_STAGE:0;CHECKPOINT=_rs;CHECKPOINT_X=0;initGS(_rs);updateHUD();showLevelCard(_rs,function(){if(!running){running=true;applyTouchMode();loop();}});};
+  document.getElementById('ovM2').onclick=function(){START_STAGE=0;var _re=document.getElementById('ovRestart');if(_re)_re.style.display='';['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('pmResume').onclick=function(){GS.paused=false;syncPauseMenu();};
   // ── SETTINGS menu (difficulty / sound / motion), reachable from mode-select + pause ──
   (function(){
