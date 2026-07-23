@@ -1546,7 +1546,7 @@ function updateT(){
       if(GS.finale){ // the road to him is clear — coins only
         for(var fci=0;fci<6;fci++)t3.coins.push({z:1500+fci*55,lane:lane,anim:fci*8,v:3});
       }else if(_SHOTM&&GS.dist>1){   // ?shot=1 verification build: pin one of each painted obstacle mid-screen, frozen
-        if(!t3._shot){t3.obs.push({z:460,lane:-1,tp:'low'},{z:460,lane:0,tp:'gate'},{z:460,lane:1,tp:'wall'});t3._shot=1;}t3.nextZ=99999;
+        if(!t3._shot){t3.obs.push({z:210,lane:-1,tp:'low'},{z:210,lane:0,tp:'gate'},{z:210,lane:1,tp:'wall'});t3._shot=1;}t3.nextZ=99999;
       }else if(GS.dist>40){
         if(sr<0.24)t3.obs.push({z:1500,lane:lane,tp:'low'});
         else if(sr<0.44)t3.obs.push({z:1500,lane:lane,tp:'gate'});
@@ -1943,7 +1943,11 @@ var GLWORLD=(function(){
       // planted. Two overlaid frequencies = a natural breeze, not a metronome.
       var sway=FOLIAGE[p.kind]?(Math.sin(_wt*0.028+p.seq*1.3+z*0.003)*0.7+Math.sin(_wt*0.017+p.seq)*0.3)*pw*0.14:0;
       quads.push([wx-pw/2,0+hop,z,wx+pw/2,ph+hop,z,u0,u1,tt[0],tt[1],tt[2],sway]);
-      quads.push([wx-pw*0.28,0+hop,z-pw*0.10,wx+pw*0.28,ph*0.985+hop,z+pw*0.10,u0,u1,tt[0],tt[1],tt[2],sway*0.9]);
+      // volumetric cross-plane ONLY for tall leafy trees (kinds 0-4): it fills out
+      // foliage, but on a POTTED / rigid-base prop (topiary, globe, fountain) it
+      // doubles the pot at an angle and reads as a warped, misshapen base — so
+      // those draw as a single clean billboard.
+      if(p.kind<=4)quads.push([wx-pw*0.28,0+hop,z-pw*0.10,wx+pw*0.28,ph*0.985+hop,z+pw*0.10,u0,u1,tt[0],tt[1],tt[2],sway*0.9]);
       shadows.push([wx,z,pw*0.42]);
     }
     var sb=[];
