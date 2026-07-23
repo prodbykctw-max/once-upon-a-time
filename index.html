@@ -76,6 +76,13 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 .sh-bal{color:#7CFFB2;font-size:12px;margin-bottom:12px;font-family:Storyboo}
 .sh-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 6px;border-bottom:1px solid rgba(255,255,255,.08);font-family:Storyboo;font-size:12.5px;color:#fff}
 .sh-pips{color:#FFD700;font-size:10px;letter-spacing:2px}
+#settingsScr{position:absolute;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(8,2,16,.88)}
+#settingsScr.on{display:flex}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 6px;border-bottom:1px solid rgba(255,255,255,.08);font-family:Storyboo;font-size:12px;color:#fff;letter-spacing:1px}
+.seg{display:flex;gap:5px}
+.seg button{font-family:Storyboo;font-size:9px;letter-spacing:1px;padding:9px 13px;border-radius:7px;border:1.5px solid rgba(255,215,0,.35);background:transparent;color:rgba(255,235,180,.72);cursor:pointer;touch-action:manipulation}
+.seg button.sel{background:#f0c869;color:#3a2412;border-color:#3a2412;font-weight:800}
+.set-note{font-family:var(--body);font-size:11px;color:rgba(205,180,136,.7);margin-top:14px;line-height:1.5}
 .sh-buy{background:linear-gradient(90deg,#FF2D8A,#8B00FF);border:none;color:#fff;border-radius:8px;padding:8px 13px;font-family:Storyboo;font-size:11.5px;cursor:pointer;white-space:nowrap}
 .sh-buy[disabled]{opacity:.35;cursor:default}
 #ovBoard{margin:14px auto 4px;width:min(420px,86vw);font-family:Storyboo;font-size:7px;color:rgba(255,255,255,.75);text-align:left;max-height:34vh;overflow-y:auto}
@@ -418,6 +425,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     </div>
     <div class="ms-stats" id="msStats"></div>
     <div class="ms-card" id="msShop" style="margin-top:16px;width:auto;display:inline-block;padding:13px 26px"><span style="font-family:Storyboo;font-size:12px;color:#FFD700">✦ THE BOUTIQUE — SPEND YOUR NOTES</span></div>
+    <div class="ms-card" id="msSettings" style="margin-top:10px;width:auto;display:inline-block;padding:11px 24px"><span style="font-family:Storyboo;font-size:11px;color:#9fd0ff;letter-spacing:1px">⚙ SETTINGS</span></div>
   </div>
 </div>
 <div id="gameWrap">
@@ -490,6 +498,7 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="chap-name" id="chapName"></div>
     <div class="ov-btns" style="flex-direction:column;gap:12px">
       <button class="ov-btn prim" id="pmResume"><img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCklEQVR4nO3bwQnCQBBA0SgW4NGzmDZSnzVYjm1EgnjyaAfaQJbPyCzuyn9HMSF8BoYsOgySJPVqk3Wj0/7wzrjP7fVMe6YM218/QOsMBAwEDAQMBHbRC0rbar6f1y94XEL3H6chtA1rbz0nCBgIGAgYCBgIhLdYbfP1GPp+7a3nBAEDAQMBAwEDgea2WFTW1ittNycIGAgYCBgIGAiET+OKJ4rBbdKacVpWP3eCgIGAgYCBgIGAgYCBgIGAgYCBgIFA9yeKUaV3Lk8Uv2QgYCBgIGAg0P0WK22lEn/dkcxAwEDAQMBAoLktVnsrRTlBwEDAQMBAwEDAfz0DJwgYCBgIGAgYSJKkv/UBISAtfORnlNgAAAAASUVORK5CYII=" alt="">&nbsp;&nbsp;RESUME</button>
+      <button class="ov-btn" id="pmSettings">⚙&nbsp;&nbsp;SETTINGS</button>
       <button class="ov-btn" id="pmRestart">↻&nbsp;&nbsp;RESTART RUN</button>
       <button class="ov-btn" id="pmMenu">⌂&nbsp;&nbsp;MAIN MENU</button>
     </div>
@@ -497,6 +506,17 @@ body.mobile .joy-knob{width:64px;height:64px}
   </div>
   <div id="loadMsg"><div class="spin"></div><div>SUMMONING THE QUEEN...</div></div>
 </div>
+<div id="settingsScr"><div class="sh-box">
+  <div class="sh-h">⚙ SETTINGS ⚙</div>
+  <div class="set-row"><span>DIFFICULTY</span><div class="seg" id="setDiff">
+    <button data-v="easy">EASY</button><button data-v="normal">NORMAL</button><button data-v="hard">HARD</button></div></div>
+  <div class="set-row"><span>SOUND</span><div class="seg" id="setSound">
+    <button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
+  <div class="set-row"><span>REDUCE MOTION</span><div class="seg" id="setMotion">
+    <button data-v="off">OFF</button><button data-v="on">ON</button></div></div>
+  <div class="set-note" id="setNote">Harder = tougher bosses, more foes, tighter gaps.</div>
+  <button class="ov-btn" id="setClose" style="margin-top:14px">BACK</button>
+</div></div>
 
 <script>
 // baked pixel-art world pack (walls/floors per stage, chaser, item icons)
@@ -852,7 +872,8 @@ function buildBossArena(gs){
   plat(gs,gateC+4,FL-4,3); plat(gs,gateC+12,FL-4,3); // two dodge platforms
   gs.LW=aEnd;
   var last=ai===STAGES.length-1, bx=gateC+9;
-  gs.boss={x:bx*T,y:(FL-3)*T,W:70,H:96,hp:last?28:7+ai*2,mhp:last?28:7+ai*2,
+  var bhp=Math.max(4,Math.round((last?28:7+ai*2)*(SET.diff==='hard'?1.4:SET.diff==='easy'?0.7:1)));
+  gs.boss={x:bx*T,y:(FL-3)*T,W:70,H:96,hp:bhp,mhp:bhp,
     phase:1,enraged:false,alive:true,vx:0,vy:0,onGround:false,onWall:false,faceL:true,
     state:'WAIT',stateT:0,stateTimer:60,patIdx:0,hurtCd:0,bullets:[],slamT:0,
     type:last?'HEARTBREAKER':'REVENANT'};
@@ -3053,7 +3074,14 @@ var SHOP_ITEMS=[
 // ── ADAPTIVE DIFFICULTY: struggle earns breathing room, cruising earns pressure ──
 function adaptGet(){try{return JSON.parse(localStorage.getItem('jande_adapt')||'{"early":0,"pity":0}');}catch(x){return{early:0,pity:0};}}
 function adaptSet(v){try{localStorage.setItem('jande_adapt',JSON.stringify(v));}catch(x){}}
-function adaptF(){var e=Math.min(3,(GS.adaptEarly||0));var f=1+e*0.15;if(GS.dist>800)f*=0.9;return f;}
+// ── SETTINGS (difficulty / audio / motion) — persisted like the wallet ──
+function settings(){try{return JSON.parse(localStorage.getItem('jande_settings')||'{"diff":"normal","reduceMotion":0}');}catch(x){return{diff:'normal',reduceMotion:0};}}
+var SET=settings();
+var DIFFMUL={easy:1.55,normal:1.0,hard:0.70};   // scales spawn spacing/rate (higher=easier)
+function diffF(){return DIFFMUL[SET.diff]||1;}
+function setSetting(k,v){SET[k]=v;try{localStorage.setItem('jande_settings',JSON.stringify(SET));}catch(x){}}
+// difficulty folds into the adaptive factor: easy = more spacing + fewer foes.
+function adaptF(){var e=Math.min(3,(GS.adaptEarly||0));var f=1+e*0.15;if(GS.dist>800)f*=0.9;return f*diffF();}
 // ── DAILY STREAK ──
 function streakGet(){try{return JSON.parse(localStorage.getItem('jande_streak')||'{"last":"","n":0,"paid":""}');}catch(x){return{last:'',n:0,paid:''};}}
 function streakTick(){
@@ -3366,14 +3394,15 @@ function drawMansionBG(st){
       FX.fillStyle=gp%2?'rgba(255,150,180,0.9)':'rgba(255,205,120,0.9)';
       FX.beginPath();FX.arc(gxx,gyy,3.2,0,6.28);FX.fill();
       FX.fillStyle='rgba(255,255,255,0.6)';FX.beginPath();FX.arc(gxx-1,gyy-1,1.1,0,6.28);FX.fill();}}
-  // ── ambient magic: sparkles, drifting fairies, birds ──
-  for(var sk2=0;sk2<12;sk2++){
+  // ── ambient magic: sparkles, drifting fairies, birds (reduce-motion trims them) ──
+  var _amb=SET.reduceMotion?0:1;
+  for(var sk2=0;sk2<(_amb?12:0);sk2++){
     var tw=Math.sin(tick*0.11+sk2*2.1);if(tw<0.2)continue;
     var sxx=(sk2*211+((sk2%2)?-1:1)*tick*0.4)%W;if(sxx<0)sxx+=W;
     var syy=30+(sk2*97)%Math.round(H*0.55);
     FX.fillStyle='rgba(255,255,255,'+(0.55*tw)+')';
     FX.fillRect(sxx-3,syy-0.7,6,1.4);FX.fillRect(sxx-0.7,syy-3,1.4,6);}
-  for(var fy2=0;fy2<3;fy2++){
+  for(var fy2=0;fy2<(_amb?3:0);fy2++){
     var fxp=((fy2*380+tick*(0.7+fy2*0.2))%(W+120))-60;
     var fyp=H*(0.2+fy2*0.13)+Math.sin(tick*0.03+fy2*2)*26;
     FX.fillStyle='rgba(255,244,180,0.28)';FX.beginPath();FX.arc(fxp,fyp,8,0,6.28);FX.fill();
@@ -4556,6 +4585,20 @@ function wire(){
   document.getElementById('ovRestart').onclick=function(){sfx('ui');document.getElementById('overlay').classList.remove('on');RUN_CONTINUES=0;GS={};CHECKPOINT=0;CHECKPOINT_X=0;initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('ovM2').onclick=function(){['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('pmResume').onclick=function(){GS.paused=false;syncPauseMenu();};
+  // ── SETTINGS menu (difficulty / sound / motion), reachable from mode-select + pause ──
+  (function(){
+    function segSel(id,v){var el=document.getElementById(id);if(!el)return;[].forEach.call(el.children,function(b){b.classList.toggle('sel',b.getAttribute('data-v')===v);});}
+    function syncSet(){segSel('setDiff',SET.diff);segSel('setSound',AUD.muted?'off':'on');segSel('setMotion',SET.reduceMotion?'on':'off');}
+    function openSet(){syncSet();document.getElementById('settingsScr').classList.add('on');}
+    function pick(id,cb){var el=document.getElementById(id);if(el)el.onclick=function(e){var v=e.target&&e.target.getAttribute&&e.target.getAttribute('data-v');if(!v)return;cb(v);segSel(id,v);};}
+    var msSet=document.getElementById('msSettings'),pmSet=document.getElementById('pmSettings');
+    if(msSet)msSet.onclick=function(){audInit();sfx('ui');openSet();};
+    if(pmSet)pmSet.onclick=function(){sfx('ui');openSet();};
+    var sc=document.getElementById('setClose');if(sc)sc.onclick=function(){sfx('ui');document.getElementById('settingsScr').classList.remove('on');};
+    pick('setDiff',function(v){setSetting('diff',v);sfx('ui');});
+    pick('setSound',function(v){audInit();audMute(v==='off');});
+    pick('setMotion',function(v){setSetting('reduceMotion',v==='on'?1:0);sfx('ui');});
+  })();
   document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=0;CHECKPOINT_X=0;RUN_CONTINUES=0;initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('pmMenu').onclick=function(){GS.paused=false;syncPauseMenu();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('btnPause').onclick=function(){GS.paused=!GS.paused;syncPauseMenu();};
