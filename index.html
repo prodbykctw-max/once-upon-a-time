@@ -1446,8 +1446,8 @@ function updateT(){
     }else{
       if(GS.finale){ // the road to him is clear — coins only
         for(var fci=0;fci<6;fci++)t3.coins.push({z:1500+fci*55,lane:lane,anim:fci*8,v:3});
-      }else if(_SHOTM&&GS.dist>3){   // ?shot=1 verification build: one of each painted obstacle across the 3 lanes
-        t3.obs.push({z:1500,lane:-1,tp:'low'},{z:1500,lane:0,tp:'gate'},{z:1500,lane:1,tp:'wall'});t3.nextZ=620;
+      }else if(_SHOTM&&GS.dist>1){   // ?shot=1 verification build: pin one of each painted obstacle mid-screen, frozen
+        if(!t3._shot){t3.obs.push({z:460,lane:-1,tp:'low'},{z:460,lane:0,tp:'gate'},{z:460,lane:1,tp:'wall'});t3._shot=1;}t3.nextZ=99999;
       }else if(GS.dist>40){
         if(sr<0.24)t3.obs.push({z:1500,lane:lane,tp:'low'});
         else if(sr<0.44)t3.obs.push({z:1500,lane:lane,tp:'gate'});
@@ -1465,7 +1465,7 @@ function updateT(){
   }
 
   // ── MOVE + COLLIDE (player at z=0) ──
-  for(var oi=t3.obs.length-1;oi>=0;oi--){var o=t3.obs[oi];o.z-=mv;
+  for(var oi=t3.obs.length-1;oi>=0;oi--){var o=t3.obs[oi];o.z-=(_SHOTM?0:mv);
     if(o.z<-80){t3.obs.splice(oi,1);continue;}
     if(o.tp==='prince'){ // she reaches him — end of the story, not a hazard
       if(o.z<70){GS.won=true;showEnding();return;}
