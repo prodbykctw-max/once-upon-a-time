@@ -525,7 +525,7 @@ body.mobile .joy-knob{width:64px;height:64px}
 var TEXDATA={
 oblow:"web/60b2a0c99db6.webp",obgate:"web/0b897ad8278c.webp",obwall:"web/29e488229bec.webp",
 prince:"web/6bfe5d567826.webp",
-boss:"web/7c4913930c14.webp",
+boss:"web/9d7b2cfdb65f.webp",
 reunion:"web/cadbc8682d28.webp",
 outprops:'web/eb80ab26125a.png',
  walls:'web/75de31aa48a7.png',
@@ -865,6 +865,9 @@ function buildRunner(gs){
 // The stage's finale: a locked gate → sealed arena → the boss. Streamed in once
 // the designed run reaches gs.stageEnd (was orphaned in the never-called
 // buildLevel; this restores it for the live RPG). Nothing generates past it.
+// Each RPG stage's unique villain (atlas row = stage index). The Groom — the
+// story's true antagonist — is the stage-9 finale.
+var BOSS_NAME=['INK WARDEN','THISTLE OGRE','BLOSSOM REVENANT','THORN QUEEN','LAKE WRAITH','TOADSTOOL WARLOCK','SCARECROW KING','STORM TITAN','THE GROOM WHO LIED'];
 function buildBossArena(gs){
   var g=gs.genC, FL=FLOOR_R, ai=gs.ai, r, c;
   for(c=g;c<g+5;c++)groundCol(gs,c);                 // solid approach to the gate
@@ -877,9 +880,12 @@ function buildBossArena(gs){
   gs.LW=aEnd;
   var last=ai===STAGES.length-1, bx=gateC+9;
   var bhp=Math.max(4,Math.round((last?28:7+ai*2)*(SET.diff==='hard'?1.4:SET.diff==='easy'?0.7:1)));
+  // Each RPG stage has its OWN boss (atlas row = ai). float = airborne movers
+  // (Blossom Revenant drifts like a wraith; Lake Wraith slithers vertically).
   gs.boss={x:bx*T,y:(FL-3)*T,W:70,H:96,hp:bhp,mhp:bhp,
     phase:1,enraged:false,alive:true,vx:0,vy:0,onGround:false,onWall:false,faceL:true,
     state:'WAIT',stateT:0,stateTimer:60,patIdx:0,hurtCd:0,bullets:[],slamT:0,
+    bi:ai,name:BOSS_NAME[ai],baseY:(FL-3)*T,hoverT:0,float:(ai===2||ai===4),
     type:last?'HEARTBREAKER':'REVENANT'};
   gs.genC=aEnd+1; gs.bossBuilt=true;
 }
@@ -1426,7 +1432,7 @@ function update(){
       if(!GS.gateOpen&&p.x>(GS.gateCol-5)*T){        // she arrives: the gate opens
         GS.gateOpen=true;GS.gateFlash=45;
         GS.tiles=GS.tiles.filter(function(t){if(t.t==='GATE'){delete GS.solid[key(t.c,t.r)];return false;}return true;});
-        GS.toasts.push({txt:'BOSS AHEAD',sub:bs.type==='HEARTBREAKER'?'THE GROOM WHO LIED':'THE FALSE SUITOR',t:190,max:190});}
+        GS.toasts.push({txt:'BOSS AHEAD',sub:bs.name||'THE FALSE SUITOR',t:190,max:190});}
       if(GS.gateOpen&&p.x>(GS.gateCol+1)*T){         // she steps in: engage + seal behind
         GS.bossActive=true;
         for(var _gr=4;_gr<FLOOR_R;_gr++)GS.solid[key(GS.gateCol,_gr)]='G';
@@ -1442,7 +1448,7 @@ function update(){
           else{p.vx+=(p.faceL?1:-1)*3.0;}                     // blowback recoil
         }}
       else if(_bov&&p.vy>3&&p.y+PH<bs.y+bs.H*0.55){hitB(bs);p.vy=-11.5;p.airJumps=1;ptcl(p.x+PW/2,bs.y+10,'kill');}
-      if(!bs.alive){GS.bossActive=false;GS.bossDeadT=64;}
+      if(!bs.alive){GS.bossActive=false;GS.bossDeadT=90;GS.bossDeadMax=90;}
     }
   }
 
@@ -2889,9 +2895,16 @@ function updateBoss(){
     case 'SLAM':if(ST===1){b.vy=-11;b.vx=0;}if(ST===18)b.vy=19;if(b.onGround&&ST>18){ptcl(bcx,b.y+b.H,'dive');b.slamT=24;if(p.onGround&&Math.abs(p.x-bcx)<180&&p.inv===0)hurtP(p);nextBoss(b);}break;
     case 'SHOOT':if(ST===12||ST===26||(b.enraged&&ST===40)){var ba=Math.atan2(dy,dx),spr=b.enraged?0.35:0.22;for(var kk=-1;kk<=1;kk++){var a2=ba+kk*spr,s2=b.enraged?7:5.5;b.bullets.push({x:bcx,y:b.y+b.H*0.4,vx:Math.cos(a2)*s2,vy:Math.sin(a2)*s2,life:1});}ptcl(bcx,b.y+b.H*0.4,'slash');}if(b.stateTimer<=0)nextBoss(b);break;
     case 'CHARGE':if(ST===1)b.chargeVx=(dx>0?1:-1)*8*sp;b.vx=b.chargeVx;if(p.x<b.x+b.W&&p.x+PW>b.x&&p.y<b.y+b.H&&p.y+PH>b.y&&p.inv===0)hurtP(p);if(b.stateTimer<=0||b.onWall){b.vx=0;nextBoss(b);}break;
-    case 'RAGE':b.vx*=0.85;if(b.aT%4===0)ptcl(bcx,b.y+b.H/2,'bdie');if(b.stateTimer<=0)nextBoss(b);break;}
+    case 'RAGE':b.vx*=0.85;if(b.aT%4===0)ptcl(bcx,b.y+b.H/2,'bdie');if(b.stateTimer<=0)nextBoss(b);break;
+    case 'DRIFT':b.vx+=(dx>0?1:-1)*0.12*sp;b.vx=Math.max(-2.4*sp,Math.min(2.4*sp,b.vx));b.faceL=dx<0;if(b.stateTimer<=0)nextBoss(b);break;}
   b.stateTimer--;if(b.slamT>0)b.slamT--;
-  b.vy=Math.min(b.vy+GRAV*0.85,15);b.x+=b.vx;b.onWall=false;
+  if(b.float){ // airborne: hover + vertical serpentine slither (Lake Wraith snakes hard, Blossom drifts soft)
+    b.hoverT++;var _amp=(b.bi===4?58:30),_frq=(b.bi===4?0.13:0.06);
+    var _tgtY=b.baseY-52-Math.sin(b.hoverT*_frq)*_amp;
+    b.vy+=(_tgtY-b.y)*0.014;b.vy*=0.90;
+    if(b.bi===4)b.vx+=Math.cos(b.hoverT*_frq*0.5)*0.22; // serpent's sway couples into horizontal glide
+  }else{b.vy=Math.min(b.vy+GRAV*0.85,15);}
+  b.x+=b.vx;b.onWall=false;
   // faceL was only set in WAIT/CHASE; the rendered boss must also turn during
   // JUMP/CHARGE, so latch it off actual travel (deadband stops flicker).
   if(b.vx>0.15)b.faceL=false; else if(b.vx<-0.15)b.faceL=true;
@@ -2908,11 +2921,17 @@ function updateBoss(){
   if(p.inv===0&&!p.dashing&&p.x<b.x+b.W-4&&p.x+PW>b.x+4&&p.y<b.y+b.H-4&&p.y+PH>b.y+4)hurtP(p);
   document.getElementById('bossBar').classList.add('on');
   document.getElementById('bbF').style.width=(Math.max(0,b.hp)/b.mhp*100)+'%';
-  document.getElementById('bbN').textContent=b.type==='HEARTBREAKER'?'THE GROOM WHO LIED':'THE FALSE SUITOR';
+  document.getElementById('bbN').textContent=b.name||'THE FALSE SUITOR';
 }
-function nextBoss(b){var pats=b.enraged?['SHOOT','CHARGE','JUMP','SLAM','SHOOT','CHARGE']:['CHASE','JUMP','SHOOT','CHASE','SLAM','CHARGE'];
+function nextBoss(b){
+  // Airborne bosses (wraith/serpent) never touch the ground, so they use DRIFT
+  // + ranged patterns instead of JUMP/SLAM. Storm Titan charges more (wind gusts).
+  var pats;
+  if(b.float)pats=b.enraged?['DRIFT','SHOOT','DRIFT','SHOOT','CHARGE','SHOOT']:['DRIFT','SHOOT','DRIFT','CHASE','SHOOT'];
+  else if(b.bi===7)pats=b.enraged?['CHARGE','SHOOT','CHARGE','JUMP','SHOOT','CHARGE']:['CHARGE','SHOOT','CHASE','CHARGE','SHOOT'];
+  else pats=b.enraged?['SHOOT','CHARGE','JUMP','SLAM','SHOOT','CHARGE']:['CHASE','JUMP','SHOOT','CHASE','SLAM','CHARGE'];
   b.patIdx=(b.patIdx+1)%pats.length;b.state=pats[b.patIdx];b.stateT=0;
-  var dur={CHASE:110,JUMP:70,SLAM:80,SHOOT:75,CHARGE:55,WAIT:50,RAGE:90};
+  var dur={CHASE:110,JUMP:70,SLAM:80,SHOOT:75,CHARGE:55,WAIT:50,RAGE:90,DRIFT:100};
   b.stateTimer=Math.floor((dur[b.state]||80)*(b.enraged?0.7:1));}
 
 function hitE(e){e.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);GS.score+=120;ptcl(e.x+22,e.y+24,'hit');
@@ -3573,7 +3592,7 @@ function draw(){
       FX.drawImage(TEX.foes,ffr*136,0,136,152,fdx2,fdy2,fW,fH);
     }}
   // STAGE BOSS
-  if(GS.boss&&GS.boss.alive)drawBoss(GS.boss,ac);
+  if(GS.boss&&(GS.boss.alive||GS.bossDeadT>0))drawBoss(GS.boss,ac); // keep drawing through the defeat animation
   // particles
   for(i=0;i<GS.ptcl.length;i++){var pp=GS.ptcl[i];FX.globalAlpha=Math.max(0,pp.life*pp.life);FX.fillStyle='rgba('+pp.col+',1)';FX.beginPath();FX.arc(pp.x,pp.y,pp.r,0,6.28);FX.fill();}
   FX.globalAlpha=1;
@@ -4159,6 +4178,39 @@ var CREAT={
   }
 };
 
+// Per-boss signature atmosphere, drawn around the sprite each frame (world-space).
+// Each villain carries its stage's motif in motion: storm bolts, drifting spores,
+// a wraith's veil of petals, a serpent's water-trail. Cheap procedural canvas —
+// only while the boss is alive and on screen.
+function drawBossAura(b,x,y,A){
+  var cx=x+b.W/2, cy=y+b.H*0.5, bi=b.bi||0, i, ang, rr, px, py, t;
+  FX.save();
+  if(bi===0){ // INK WARDEN — torn pages drift up, ink motes fall
+    for(i=0;i<5;i++){t=A*0.6+i*40;px=cx+Math.sin(t*0.03+i)*72;py=y+b.H-((t*1.1)%(b.H*1.7));
+      FX.globalAlpha=0.5;FX.fillStyle=i%2?'#e8e0cf':'#181320';FX.save();FX.translate(px,py);FX.rotate(Math.sin(t*0.05)*0.6);FX.fillRect(-5,-7,10,13);FX.restore();}
+  }else if(bi===1){ // THISTLE OGRE — kicked-up dust + floating thistle seeds
+    FX.fillStyle='#b7a884';for(i=0;i<7;i++){var d=(A*0.9+i*30)%80;FX.globalAlpha=0.4*(1-d/80);FX.beginPath();FX.arc(cx+Math.sin(i*2)*46,y+b.H-4-d*0.4,7-d*0.06,0,6.28);FX.fill();}
+  }else if(bi===2){ // BLOSSOM REVENANT — a wraith's veil of petals, all in orbit
+    for(i=0;i<11;i++){ang=A*0.05+i*0.57;rr=54+Math.sin(A*0.04+i)*20;px=cx+Math.cos(ang)*rr;py=cy+Math.sin(ang)*rr*0.72;
+      FX.globalAlpha=0.75;FX.fillStyle=i%3?'#ff9ec7':'#ffd6e8';FX.beginPath();FX.ellipse(px,py,6,3,ang,0,6.28);FX.fill();}
+  }else if(bi===3){ // THORN QUEEN — rose-and-thorn motes coil counter-clockwise
+    for(i=0;i<9;i++){ang=-A*0.045+i*0.7;rr=50+Math.cos(A*0.05+i)*16;px=cx+Math.cos(ang)*rr;py=cy+Math.sin(ang)*rr*0.76;
+      FX.globalAlpha=0.72;FX.fillStyle=i%2?'#c0113a':'#5a8c2a';FX.beginPath();FX.arc(px,py,4,0,6.28);FX.fill();}
+  }else if(bi===4){ // LAKE WRAITH — water beads trail the serpentine glide, head to tail
+    FX.fillStyle='#6fc7ff';for(i=0;i<9;i++){py=y+i*(b.H/9);px=cx+Math.sin(A*0.13-i*0.5)*24;FX.globalAlpha=0.6*(1-i/12);FX.beginPath();FX.arc(px,py,6-i*0.4,0,6.28);FX.fill();}
+  }else if(bi===5){ // TOADSTOOL WARLOCK — low fog bank + rising spore cloud
+    FX.globalAlpha=0.26;FX.fillStyle='#7bd07b';for(i=0;i<4;i++){FX.beginPath();FX.ellipse(cx+Math.sin(A*0.02+i*2)*42,y+b.H-6,62,16,0,0,6.28);FX.fill();}
+    FX.fillStyle='#d8b0ff';for(i=0;i<9;i++){var s=(A*0.8+i*22)%(b.H*1.4);FX.globalAlpha=0.6*(1-s/(b.H*1.4));FX.beginPath();FX.arc(cx+Math.sin(i*1.7+A*0.02)*58,y+b.H-s,3,0,6.28);FX.fill();}
+  }else if(bi===6){ // SCARECROW KING — crows wheel overhead + straw scatters
+    FX.globalAlpha=0.85;FX.strokeStyle='#0d0d12';FX.lineWidth=3;for(i=0;i<4;i++){ang=A*0.06+i*1.57;px=cx+Math.cos(ang)*92;py=y+Math.sin(ang)*38+b.H*0.18;var fw=Math.sin(A*0.4+i)*6;FX.beginPath();FX.moveTo(px-10,py+fw);FX.lineTo(px,py);FX.lineTo(px+10,py+fw);FX.stroke();}
+  }else if(bi===7){ // STORM TITAN — churning cloud haze + strobing lightning
+    FX.globalAlpha=0.3;FX.fillStyle='#8fa6c8';for(i=0;i<3;i++){FX.beginPath();FX.ellipse(cx+Math.sin(A*0.02+i*2)*38,y-10,56,18,0,0,6.28);FX.fill();}
+    if(((A*0.5)|0)%20<2){FX.globalAlpha=0.95;FX.strokeStyle='#eaf2ff';FX.lineWidth=2.6;FX.beginPath();var lx=cx+(((A*7)|0)%40-20),ly=y-16;FX.moveTo(lx,ly);for(i=0;i<5;i++){lx+=(i%2?1:-1)*11;ly+=(b.H+30)/5;FX.lineTo(lx,ly);}FX.stroke();}
+  }else if(bi===8){ // THE GROOM — dark embers rise from a broken vow
+    for(i=0;i<8;i++){var e=(A*1.1+i*30)%(b.H*1.5);FX.globalAlpha=0.7*(1-e/(b.H*1.5));FX.fillStyle=i%2?'#7a0020':'#2a0038';FX.beginPath();FX.arc(cx+Math.sin(i*1.9+A*0.03)*52,y+b.H-e,3.4,0,6.28);FX.fill();}
+  }
+  FX.restore();
+}
 function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A*.09)*.5+.5;
   // boss projectiles (updated in updateBoss but were never drawn)
   for(var _bi=0;_bi<b.bullets.length;_bi++){var _bl=b.bullets[_bi];
@@ -4170,24 +4222,25 @@ function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A
   // are taller and wider than the 70x96 hit box so the crown, train and mist
   // can overhang without changing collision. Falls back to the painted art.
   if(TEX.boss){
-    var bRow=(b.type==='HEARTBREAKER')?0:1;
-    var bf=Math.floor(A/8)%6;
-    var bh=b.H*1.42,bw=bh*(160/224);
+    // Nine-villain atlas: row = boss/stage index, cols = 4 idle frames + 5 defeat
+    // frames. During the fight we cycle the idle; on death we play the collapse
+    // off GS.bossDeadT and fade him out. Cells overhang the 70x96 hit box.
+    var bi=b.bi||0, IN=4, DN=5, cw=200, ch=280, col;
+    if(b.alive){col=Math.floor(A/10)%IN;}
+    else{var prog=1-Math.max(0,GS.bossDeadT)/(GS.bossDeadMax||90);col=IN+Math.min(DN-1,Math.floor(prog*DN));}
+    var bh=b.H*1.75,bw=bh*(cw/ch);
     var bx=x+b.W/2-bw/2,by=y+b.H-bh;
     var bg3=FX.createRadialGradient(x+b.W/2,y+b.H/2,0,x+b.W/2,y+b.H/2,b.H*0.95);
     bg3.addColorStop(0,'rgba('+(ph2?'255,0,40':ac)+','+(0.16+pulse*0.10)+')');
     bg3.addColorStop(1,'transparent');
     FX.fillStyle=bg3;FX.fillRect(x-b.W,y-b.H*0.6,b.W*3,b.H*2.2);
-    if(b.faceL){ // art faces right; mirror about the boss's own centre
-      FX.save();
-      FX.translate(x+b.W/2,0);FX.scale(-1,1);FX.translate(-(x+b.W/2),0);
-      FX.drawImage(TEX.boss,bf*160,bRow*224,160,224,bx,by,bw,bh);
-      FX.restore();
-    }else{
-      FX.drawImage(TEX.boss,bf*160,bRow*224,160,224,bx,by,bw,bh);
-    }
-    if(ph2){ // phase two: hot red aura. NOT source-atop — that composites
-      // against everything already painted in the rect, tinting the room too.
+    if(b.alive)drawBossAura(b,x,y,A);            // per-boss signature atmosphere
+    var _da=b.alive?1:(0.22+0.78*Math.max(0,GS.bossDeadT)/(GS.bossDeadMax||90));
+    FX.save();FX.globalAlpha=_da;
+    if(b.faceL){FX.translate(x+b.W/2,0);FX.scale(-1,1);FX.translate(-(x+b.W/2),0);} // art faces right
+    FX.drawImage(TEX.boss,col*cw,bi*ch,cw,ch,bx,by,bw,bh);
+    FX.restore();
+    if(ph2&&b.alive){ // phase two: hot red aura (not source-atop — would tint the room)
       var rg=FX.createRadialGradient(x+b.W/2,y+b.H*0.45,b.H*0.15,x+b.W/2,y+b.H*0.45,b.H*1.05);
       rg.addColorStop(0,'rgba(255,0,40,'+(0.26+pulse*0.18)+')');
       rg.addColorStop(0.55,'rgba(255,0,40,'+(0.10+pulse*0.08)+')');
