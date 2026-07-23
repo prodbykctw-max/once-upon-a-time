@@ -534,7 +534,6 @@ outprops:'web/eb80ab26125a.png',
  items:'web/eedd13408d7e.png'
 };
 var TEX={};
-var _SHOTM=false;try{_SHOTM=/[?&]shot=1/.test(location.search);}catch(e){}  // hidden verification build: obstacles spawn early + hero invincible
 // NOTE: the old painterly corridor backdrops (CORRIDOR_BG/MAP) were retired when
 // every stage became a GL world; their data, loader and 9 image files have been
 // removed so nothing overridden can flash up on a slow load.
@@ -1475,7 +1474,6 @@ function updateT(){
   }
   GS.tick++;GS.lyricT++;
   var p=GS.p,t3=GS.t3,mult=runMult();
-  if(_SHOTM)p.inv=Math.max(p.inv,90);   // verification build: never die while capturing obstacles
   if(GS.shieldT>0){GS.shieldT--;p.inv=Math.max(p.inv,2);}
   if(GS.magT>0)GS.magT--;if(GS.boostT>0)GS.boostT--;if(GS.x2T>0)GS.x2T--;
   if(t3.howT>0)t3.howT--;
@@ -1536,10 +1534,6 @@ function updateT(){
   // ── SPAWN table: obstacles · turns · power-ups · gems · tiered coin runs ──
   var mv=eff*2.4;
   t3.nextZ-=mv;
-  if(_SHOTM){   // ?shot=1: pin one of each painted obstacle at z=210 the moment the run starts; suppress normal spawns
-    if(!t3._shot&&GS.dist>1){t3.obs.push({z:210,lane:-1,tp:'low'},{z:210,lane:0,tp:'gate'},{z:210,lane:1,tp:'wall'});t3._shot=1;}
-    t3.nextZ=99999;
-  }
   if(t3.nextZ<=0){
     var sr=rnd01(GS.tick*1.31+GS.ai*7),lane=Math.floor(rnd01(GS.tick*2.7)*3)-1;
     var sinceTurn=GS.dist-t3.lastTurnD;
@@ -1566,7 +1560,7 @@ function updateT(){
   }
 
   // ── MOVE + COLLIDE (player at z=0) ──
-  for(var oi=t3.obs.length-1;oi>=0;oi--){var o=t3.obs[oi];o.z-=(_SHOTM?0:mv);
+  for(var oi=t3.obs.length-1;oi>=0;oi--){var o=t3.obs[oi];o.z-=mv;
     if(o.z<-80){t3.obs.splice(oi,1);continue;}
     if(o.tp==='prince'){ // she reaches him — end of the story, not a hazard
       if(o.z<70){GS.won=true;showEnding();return;}
