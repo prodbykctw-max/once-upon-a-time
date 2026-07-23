@@ -1304,7 +1304,9 @@ function update(){
   if(p.dashing){p.vx=p.dashVx;p.vy*=0.2;p.dashT--;if(p.dashT<=0){p.dashing=false;p.vx*=0.4;}}
   else if(p.atkT<=0){
     var tgt=iR()?6.4:iL()?-6.4:0;
-    p.vx+=(tgt-p.vx)*0.3;
+    var _k=(tgt===0?0.62:0.5);                            // tight: snap to speed, snap to stop (was 0.3 = slidey)
+    p.vx+=(tgt-p.vx)*_k;
+    if(tgt===0&&p.onGround&&Math.abs(p.vx)<0.6)p.vx=0;    // hard-stop the residual glide (no inertia)
     if(iL())p.faceL=true;else if(iR())p.faceL=false;
     if(p.sliding)p.vx*=0.96; // slides carry momentum
   }
@@ -1335,13 +1337,17 @@ function update(){
   // ── MIC STRIKE (⚔ button / X / Z / J / swipe →): melee in her facing direction ──
   var akey=K.KeyX||K.KeyZ||K.KeyJ||TC.a;
   if((TC.mr>0||(akey&&!lA))&&p.atkT<=0&&!p.sliding){TC.mr=0;p.atkT=16;
-    p.vx+=(p.faceL?-4:4); // lunge
-    sfx('strike');ptcl(p.x+(p.faceL?-6:PW),p.y+30,'slash');if(navigator.vibrate)navigator.vibrate(30);}
+    p.downbeat=(!p.onGround&&iD());        // Down + air-strike = DOWNBEAT (a downward hit that pogos)
+    p.struck=false;                        // blowback/pogo fires once per swing
+    p.vx+=p.downbeat?0:(p.faceL?-4:4);      // horizontal lunge (not on a downbeat)
+    sfx('strike');ptcl(p.x+(p.downbeat?PW/2:(p.faceL?-6:PW)),p.y+(p.downbeat?PH:30),'slash');if(navigator.vibrate)navigator.vibrate(30);}
   lA=akey?1:0;TC.ml=0;if(TC.mr>1)TC.mr=1;
   if(p.atkT>0){p.atkT--;
-    var ax0=p.faceL?p.x-80:p.x+PW-8,ax1=p.faceL?p.x+12:p.x+PW+84;
+    var ax0,ax1,ay0,ay1;
+    if(p.downbeat){ ax0=p.x-10; ax1=p.x+PW+10; ay0=p.y+PH-8; ay1=p.y+PH+58; }              // hitbox BELOW her
+    else { ax0=p.faceL?p.x-80:p.x+PW-8; ax1=p.faceL?p.x+12:p.x+PW+84; ay0=p.y-8; ay1=p.y+PH+8; }
     for(var afi=0;afi<GS.foes.length;afi++){var AF=GS.foes[afi];if(!AF.alive)continue;
-      if(AF.x+44>ax0&&AF.x<ax1&&AF.y<p.y+PH+8&&AF.y+56>p.y-8)killFoe(AF);}}
+      if(AF.x+44>ax0&&AF.x<ax1&&AF.y<ay1&&AF.y+56>ay0){killFoe(AF);strikeImpact(p);}}}
 
   // ── VILLAINS: thorn goblins stalk, cursed ravens dive, nightshade
   //    sprites drift out of reach then dart in ──
@@ -1389,7 +1395,8 @@ function update(){
     if(fo.x<GS.camX-200||fo.x>GS.camX+VW+300)continue;   // VW: zoomed-out view is wider
     if(p.x<fo.x+44&&p.x+PW>fo.x+8&&p.y<fo.y+52&&p.y+PH>fo.y+6){
       if(p.vy>3&&p.y+PH<fo.y+28){killFoe(fo);p.vy=-10.5;p.airJumps=1;}       // stomp
-      else if(p.atkT>0||p.dashing)killFoe(fo);                               // strike or dash through
+      else if(p.atkT>0){killFoe(fo);strikeImpact(p);}                        // strike → blowback / pogo
+      else if(p.dashing)killFoe(fo);                                        // dash through
       else if(p.inv===0&&GS.shieldT<=0){GS.masks--;p.inv=75;p.vy=-6;p.vx=fdx>0?-7:7;updateHUD();
         sfx('hurt');ptcl(p.x+PW/2,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);
         if(GS.masks<=0){p.dead=true;p.vy=-10;return;}}
@@ -1413,7 +1420,12 @@ function update(){
       updateBoss();
       var _bov=p.x<bs.x+bs.W&&p.x+PW>bs.x&&p.y<bs.y+bs.H&&p.y+PH>bs.y;
       var _reach=p.atkT>0&&Math.abs((p.x+PW/2)-(bs.x+bs.W/2))<bs.W/2+62&&Math.abs((p.y+PH/2)-(bs.y+bs.H/2))<bs.H*0.6;
-      if((p.dashing&&_bov)||_reach)hitB(bs);
+      if((p.dashing&&_bov)||_reach){var _wasHp=bs.hp;hitB(bs);
+        if(bs.hp<_wasHp){                                    // the strike landed (not on boss i-frames)
+          bs.vx+=(p.x<bs.x?1:-1)*3.2;                         // knock the boss back, away from her
+          if(p.downbeat&&!p.onGround){p.vy=-11.5;p.airJumps=1;}   // Downbeat pogo off the boss
+          else{p.vx+=(p.faceL?1:-1)*3.0;}                     // blowback recoil
+        }}
       else if(_bov&&p.vy>3&&p.y+PH<bs.y+bs.H*0.55){hitB(bs);p.vy=-11.5;p.airJumps=1;ptcl(p.x+PW/2,bs.y+10,'kill');}
       if(!bs.alive){GS.bossActive=false;GS.bossDeadT=64;}
     }
@@ -3168,6 +3180,14 @@ function killFoe(f){f.alive=false;sfx('kill');GS.hitstop=3;
   noteBurst(f.x+26,f.y+22,7);
   GS.res=Math.min(GS.resMax,GS.res+12);updateHUD();
   if(navigator.vibrate)navigator.vibrate(30);}
+// Attack impact ("blowback"): a Mic Strike shoves her back on connect; a DOWNBEAT
+// (Down + air-strike) pogos her up off whatever she hit and refreshes the air-jump
+// so bounces can chain (off foes or spikes). Fires once per swing.
+function strikeImpact(p){ if(p.struck)return; p.struck=true;
+  GS.hitstop=Math.max(GS.hitstop,5);
+  if(p.downbeat){ p.vy=-11.5; p.airJumps=1; if(navigator.vibrate)navigator.vibrate(35); }
+  else { p.vx+=(p.faceL?1:-1)*3.6; }
+}
 
 // ── DEATH BLOOM: a body becomes music ──
 function noteBurst(x,y,n){
