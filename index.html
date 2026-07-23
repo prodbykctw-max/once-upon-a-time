@@ -3773,20 +3773,36 @@ function drawNote(sh,ac){var x=sh.x,y=sh.y+Math.sin(sh.anim*.07)*4.5,p2=Math.sin
   FX.fillStyle='rgba(255,255,255,'+(.5+p2*.4)+')';
   FX.beginPath();FX.ellipse(x-0.5,y+9,1.8,1.2,-0.4,0,6.28);FX.fill();}
 function drawPwr(pw){var x=pw.x+12,y=pw.y+12+Math.sin(pw.anim*0.06)*5;
-  if(pw.type==='DEVOTION'){
-    var hp=Math.sin(pw.anim*0.1)*0.4+0.6,hg=FX.createRadialGradient(x,y,0,x,y,30);
-    hg.addColorStop(0,'rgba(255,90,120,0.5)');hg.addColorStop(1,'transparent');
-    FX.globalAlpha=hp;FX.fillStyle=hg;FX.beginPath();FX.arc(x,y,30,0,6.28);FX.fill();FX.globalAlpha=1;
-    if(spinFrame(SPIN.heart,x,y,46,pw.anim))return;
-  }
   var col=pw.type==='DEVOTION'?'#FF2D8A':pw.type==='VOICE'?'#C8A0FF':pw.type==='BELT'?'#FF6600':'#00FFEE';
-  var pulse=Math.sin(pw.anim*0.1)*0.4+0.6;var g=FX.createRadialGradient(x,y,0,x,y,26);g.addColorStop(0,col);g.addColorStop(1,'transparent');
-  FX.globalAlpha=0.45*pulse;FX.fillStyle=g;FX.beginPath();FX.arc(x,y,26,0,6.28);FX.fill();FX.globalAlpha=1;
-  FX.fillStyle=col;FX.beginPath();FX.moveTo(x,y-14);FX.lineTo(x+14,y);FX.lineTo(x,y+14);FX.lineTo(x-14,y);FX.closePath();FX.fill();
-  FX.strokeStyle='rgba(30,15,40,0.9)';FX.lineWidth=2;FX.stroke();
-  FX.fillStyle='rgba(255,255,255,0.45)';FX.beginPath();FX.moveTo(x,y-10);FX.lineTo(x+6,y-3);FX.lineTo(x,y-1);FX.lineTo(x-6,y-3);FX.closePath();FX.fill();
-  var ic=PXI[pw.type==='DEVOTION'?'heart':pw.type==='VOICE'?'mic':pw.type==='BELT'?'bolt':'shield'];
-  if(ic&&ic.complete){FX.imageSmoothingEnabled=false;FX.drawImage(ic,x-9,y-9,18,18);FX.imageSmoothingEnabled=true;}}
+  var pulse=Math.sin(pw.anim*0.1)*0.4+0.6;
+  // ── premium detail: a rotating segmented aura ring + a few orbiting sparks ──
+  var ringR=22+Math.sin(pw.anim*0.08)*2;
+  FX.strokeStyle=col;FX.globalAlpha=0.55*pulse;FX.lineWidth=2;FX.beginPath();
+  for(var sg=0;sg<8;sg++){var a1=pw.anim*0.03+sg*0.785;
+    FX.moveTo(x+Math.cos(a1)*ringR,y+Math.sin(a1)*ringR);FX.lineTo(x+Math.cos(a1+0.44)*ringR,y+Math.sin(a1+0.44)*ringR);}
+  FX.stroke();
+  for(var sp=0;sp<3;sp++){var a2=-pw.anim*0.05+sp*2.09,rr=ringR+4;
+    FX.globalAlpha=0.8*pulse;FX.fillStyle=col;FX.beginPath();FX.arc(x+Math.cos(a2)*rr,y+Math.sin(a2)*rr,1.6,0,6.28);FX.fill();}
+  FX.globalAlpha=1;
+  // ── the DEVOTION heart spins; all others are the color-coded gem ──
+  if(pw.type==='DEVOTION'){
+    var hg=FX.createRadialGradient(x,y,0,x,y,30);hg.addColorStop(0,'rgba(255,90,120,0.5)');hg.addColorStop(1,'transparent');
+    FX.globalAlpha=pulse;FX.fillStyle=hg;FX.beginPath();FX.arc(x,y,30,0,6.28);FX.fill();FX.globalAlpha=1;
+    if(!spinFrame(SPIN.heart,x,y,46,pw.anim)){}
+  }else{
+    var g=FX.createRadialGradient(x,y,0,x,y,26);g.addColorStop(0,col);g.addColorStop(1,'transparent');
+    FX.globalAlpha=0.45*pulse;FX.fillStyle=g;FX.beginPath();FX.arc(x,y,26,0,6.28);FX.fill();FX.globalAlpha=1;
+    FX.fillStyle=col;FX.beginPath();FX.moveTo(x,y-14);FX.lineTo(x+14,y);FX.lineTo(x,y+14);FX.lineTo(x-14,y);FX.closePath();FX.fill();
+    FX.strokeStyle='rgba(30,15,40,0.9)';FX.lineWidth=2;FX.stroke();
+    FX.fillStyle='rgba(255,255,255,0.45)';FX.beginPath();FX.moveTo(x,y-10);FX.lineTo(x+6,y-3);FX.lineTo(x,y-1);FX.lineTo(x-6,y-3);FX.closePath();FX.fill();
+    var ic=PXI[pw.type==='VOICE'?'mic':pw.type==='BELT'?'bolt':'shield'];
+    if(ic&&ic.complete){FX.imageSmoothingEnabled=false;FX.drawImage(ic,x-9,y-9,18,18);FX.imageSmoothingEnabled=true;}
+  }
+  // ── floating name label so each power reads at a glance ──
+  var lbl=pw.type==='DEVOTION'?'DEVOTION':pw.type==='VOICE'?'FULL VOICE':pw.type==='BELT'?'BELT · 2×':'HIGH NOTE';
+  FX.font='700 7px Storyboo,sans-serif';FX.textAlign='center';
+  FX.fillStyle='rgba(0,0,0,0.6)';FX.fillText(lbl,x+0.5,y+31.5);
+  FX.fillStyle=col;FX.fillText(lbl,x,y+31);}
 function drawEnemy(e,ac){var x=e.x,y=e.y,A=e.aT,fl=e.vx<=0;
   FX.save();
   var sc=1.55;
