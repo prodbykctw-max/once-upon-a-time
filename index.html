@@ -3405,14 +3405,15 @@ function draw(){
   // RPG FOES (pixel sprites)
   if(TEX.foes)for(i=0;i<GS.foes.length;i++){var fo2=GS.foes[i];if(!fo2.alive)continue;
     var ffr=Math.floor(fo2.anim/7)%6+fo2.tp*6;
-    var fW=52,fH=58;
+    var fW=61,fH=68;                                    // slightly larger foes (was 52x58)
+    var fdx2=fo2.x-(fW-52)/2, fdy2=fo2.y-(fH-58);       // grow from the same feet + centre so they stay planted
     if(fo2.face===-1){ // mirror about the sprite's own centre
       FX.save();
-      FX.translate(fo2.x+fW/2,0);FX.scale(-1,1);FX.translate(-(fo2.x+fW/2),0);
-      FX.drawImage(TEX.foes,ffr*136,0,136,152,fo2.x,fo2.y,fW,fH);
+      FX.translate(fdx2+fW/2,0);FX.scale(-1,1);FX.translate(-(fdx2+fW/2),0);
+      FX.drawImage(TEX.foes,ffr*136,0,136,152,fdx2,fdy2,fW,fH);
       FX.restore();
     }else{
-      FX.drawImage(TEX.foes,ffr*136,0,136,152,fo2.x,fo2.y,fW,fH);
+      FX.drawImage(TEX.foes,ffr*136,0,136,152,fdx2,fdy2,fW,fH);
     }}
   // STAGE BOSS
   if(GS.boss&&GS.boss.alive)drawBoss(GS.boss,ac);
