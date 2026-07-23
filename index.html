@@ -3078,14 +3078,129 @@ function loadBGs(){for(var k in BG_DATA){(function(i){var im=new Image();im.onlo
 // Classic library book spine palette — muted, realistic, no neon
 var _BKPAL=['110,25,25','25,45,100','28,72,38','105,62,28','72,38,98','18,65,72','135,48,20','52,68,108','85,72,26','55,40,35','30,55,88','98,44,28','145,125,88','38,55,40'];
 var _bgW=null,_bgF=null,_bgV=null,_bgP=null;
+// ── Per-stage sky mood so each RPG room reads as its own time/place instead of
+//    one recolored daytime painting. [topRGB, horizonRGB]. ──
+var SIDE_SKY=[
+ [[150,212,255],[236,244,250]], // 0 library — bright interior daylight
+ [[128,198,255],[224,242,235]], // 1 meadow — clear morning
+ [[182,208,250],[248,232,240]], // 2 petal mile — soft blossom pink
+ [[140,200,246],[228,240,224]], // 3 rose waltz — warm garden day
+ [[130,196,232],[220,238,246]], // 4 mirror lake — cool lakeside
+ [[60,54,108],[178,132,150]],   // 5 wishing glade — dusk
+ [[244,196,108],[255,240,196]], // 6 golden hour — amber
+ [[140,204,255],[230,242,255]], // 7 sky gardens — high blue
+ [[250,140,104],[255,222,168]]  // 8 her encore — sunset
+];
+function _rgba(a,al){return 'rgba('+a[0]+','+a[1]+','+a[2]+','+al+')';}
+// Distinct distant-horizon silhouette per stage, drawn parallax-slow behind the
+// wall band, based at the ground line. Kept low-contrast so it reads as depth,
+// not clutter. Replaces the generic arches/pillars that were identical everywhere.
+function drawFarScene(ai,cam,groundY,tick,ac){
+  var hz=groundY, po=(-cam*0.05), FS=FX;
+  function band(sp){var o=po%sp;if(o>0)o-=sp;return o;}
+  if(ai===0){ // LIBRARY — tall arched windows glowing warm, distant to the aisle
+    var sp=196,o=band(sp);
+    for(var x=o-sp;x<W+sp;x+=sp){
+      var wy=hz-H*0.50,wh=H*0.46,ww=sp*0.52;
+      var g=FS.createLinearGradient(x,wy,x,wy+wh);
+      g.addColorStop(0,'rgba(255,240,198,0.42)');g.addColorStop(1,'rgba(255,212,150,0.10)');
+      FS.fillStyle=g;FS.beginPath();FS.moveTo(x-ww/2,wy+wh);FS.lineTo(x-ww/2,wy+ww*0.5);
+      FS.quadraticCurveTo(x,wy-ww*0.12,x+ww/2,wy+ww*0.5);FS.lineTo(x+ww/2,wy+wh);FS.closePath();FS.fill();
+      FS.strokeStyle='rgba(96,66,36,0.35)';FS.lineWidth=2;FS.stroke();
+      FS.beginPath();FS.moveTo(x,wy+ww*0.25);FS.lineTo(x,wy+wh);FS.moveTo(x-ww/2,wy+wh*0.5);FS.lineTo(x+ww/2,wy+wh*0.5);FS.stroke();
+    }
+  }else if(ai===1){ // MEADOW — soft treeline + a castle on the horizon
+    _hills(hz,po,'rgba(120,166,96,0.5)',H*0.055,150);
+    _hills(hz,po*1.4,'rgba(96,146,80,0.62)',H*0.085,190);
+    var cx=W*0.66-((cam*0.05)%(W*1.5)); if(cx<-160)cx+=W*1.5;
+    FS.fillStyle='rgba(150,160,186,0.55)';
+    var cw=H*0.09,cy=hz-H*0.115;
+    FS.fillRect(cx-cw,cy,cw*2,H*0.12);
+    for(var t=-1;t<=1;t++){FS.fillRect(cx+t*cw-cw*0.34,cy-H*0.05,cw*0.5,H*0.06);}   // towers
+    FS.fillRect(cx-cw*0.28,cy-H*0.085,cw*0.56,H*0.04);                               // keep
+    FS.fillStyle='rgba(255,140,150,0.6)';FS.fillRect(cx+cw*0.02,cy-H*0.11,cw*0.02,H*0.026); // flag
+  }else if(ai===2){ // PETAL MILE — receding rows of cherry-blossom canopies
+    for(var r2=0;r2<3;r2++){
+      var yy=hz-H*(0.06+r2*0.075),sp2=120+r2*40,al=0.30+r2*0.16,rad=H*(0.05+r2*0.02);
+      var o2=(po*(0.7+r2*0.5))%sp2;if(o2>0)o2-=sp2;
+      for(var bx=o2-sp2;bx<W+sp2;bx+=sp2){
+        FS.fillStyle='rgba(120,90,70,'+al+')';FS.fillRect(bx-1.5,yy,3,rad*0.9);
+        FS.fillStyle='rgba(255,196,214,'+al+')';FS.beginPath();FS.arc(bx,yy,rad,0,6.28);FS.fill();
+        FS.fillStyle='rgba(255,224,236,'+(al*0.7)+')';FS.beginPath();FS.arc(bx-rad*0.3,yy-rad*0.3,rad*0.5,0,6.28);FS.fill();
+      }
+    }
+  }else if(ai===3){ // ROSE WALTZ — rounded hedges + a tiered fountain
+    _hedges(hz,po,'rgba(84,138,78,0.55)',H*0.05);
+    var fx=W*0.60-((cam*0.05)%(W*1.4)); if(fx<-120)fx+=W*1.4;
+    FS.fillStyle='rgba(214,222,230,0.6)';
+    FS.fillRect(fx-H*0.05,hz-H*0.02,H*0.10,H*0.02);
+    FS.fillRect(fx-H*0.03,hz-H*0.075,H*0.06,H*0.055);
+    FS.fillRect(fx-H*0.018,hz-H*0.10,H*0.036,H*0.028);
+    FS.fillStyle='rgba(150,205,230,0.5)';FS.beginPath();FS.ellipse(fx,hz-H*0.10,H*0.03,H*0.012,0,0,6.28);FS.fill();
+  }else if(ai===4){ // MIRROR LAKE — still water + drooping willows
+    var lg=FS.createLinearGradient(0,hz-H*0.16,0,hz);
+    lg.addColorStop(0,'rgba(150,205,228,0.42)');lg.addColorStop(1,'rgba(120,182,214,0.62)');
+    FS.fillStyle=lg;FS.fillRect(0,hz-H*0.16,W,H*0.16);
+    for(var sh=0;sh<7;sh++){var lx=((sh*173+tick*0.3)%W);FS.fillStyle='rgba(255,255,255,'+(0.05+0.04*Math.sin(tick*0.03+sh))+')';FS.fillRect(lx,hz-H*0.11+sh*4,60,1.5);}
+    var wo=po%260;if(wo>0)wo-=260;
+    for(var wx2=wo-260;wx2<W+260;wx2+=260){
+      FS.strokeStyle='rgba(92,150,96,0.5)';FS.lineWidth=2;
+      for(var fr=-3;fr<=3;fr++){FS.beginPath();FS.moveTo(wx2+fr*4,hz-H*0.19);FS.quadraticCurveTo(wx2+fr*7,hz-H*0.12,wx2+fr*6,hz-H*0.05);FS.stroke();}
+    }
+  }else if(ai===5){ // WISHING GLADE — giant toadstools + fireflies (dusk)
+    var to=po%230;if(to>0)to-=230;
+    for(var tx=to-230;tx<W+230;tx+=230){
+      var th=H*0.14,ty=hz-th;
+      FS.fillStyle='rgba(236,228,224,0.5)';FS.fillRect(tx-H*0.012,ty+H*0.04,H*0.024,th-H*0.04);
+      FS.fillStyle='rgba(210,86,96,0.55)';FS.beginPath();FS.ellipse(tx,ty+H*0.045,H*0.05,H*0.03,0,Math.PI,0);FS.fill();
+      FS.fillStyle='rgba(255,236,238,0.5)';FS.beginPath();FS.arc(tx-H*0.02,ty+H*0.03,H*0.006,0,6.28);FS.arc(tx+H*0.018,ty+H*0.036,H*0.005,0,6.28);FS.fill();
+    }
+    for(var ff=0;ff<16;ff++){var fx2=(ff*137+tick*(0.4+ff%3*0.2))%W,fy2=hz-H*0.06-((ff*61)%Math.round(H*0.3)),tw2=0.4+0.6*(0.5+0.5*Math.sin(tick*0.08+ff));
+      FS.fillStyle='rgba(255,240,150,'+(0.5*tw2)+')';FS.beginPath();FS.arc(fx2,fy2,2.4,0,6.28);FS.fill();}
+  }else if(ai===6){ // GOLDEN HOUR — big low sun + sunflower heads
+    var sx=W*0.5,sy=hz-H*0.14,sr=H*0.12;
+    var sg=FS.createRadialGradient(sx,sy,0,sx,sy,sr*2.4);
+    sg.addColorStop(0,'rgba(255,246,196,0.9)');sg.addColorStop(0.5,'rgba(255,214,120,0.34)');sg.addColorStop(1,'rgba(255,214,120,0)');
+    FS.fillStyle=sg;FS.beginPath();FS.arc(sx,sy,sr*2.4,0,6.28);FS.fill();
+    FS.fillStyle='rgba(255,238,176,0.85)';FS.beginPath();FS.arc(sx,sy,sr,0,6.28);FS.fill();
+    var fo=po%86;if(fo>0)fo-=86;
+    for(var fx3=fo-86;fx3<W+86;fx3+=86){
+      FS.strokeStyle='rgba(90,130,60,0.45)';FS.lineWidth=2.5;FS.beginPath();FS.moveTo(fx3,hz);FS.lineTo(fx3,hz-H*0.09);FS.stroke();
+      FS.fillStyle='rgba(240,196,70,0.6)';FS.beginPath();FS.arc(fx3,hz-H*0.10,H*0.022,0,6.28);FS.fill();
+      FS.fillStyle='rgba(120,80,40,0.6)';FS.beginPath();FS.arc(fx3,hz-H*0.10,H*0.010,0,6.28);FS.fill();
+    }
+  }else if(ai===7){ // SKY GARDENS — floating cloud islands
+    for(var ci=0;ci<5;ci++){
+      var cxp=((ci*260+tick*0.15)%(W+300))-150,cyp=hz-H*(0.06+((ci*7)%5)*0.05);
+      FS.fillStyle='rgba(255,255,255,0.5)';FS.beginPath();FS.ellipse(cxp,cyp,H*0.07,H*0.03,0,0,6.28);FS.fill();
+      FS.fillStyle='rgba(160,196,150,0.45)';FS.beginPath();FS.ellipse(cxp,cyp-H*0.012,H*0.05,H*0.016,0,Math.PI,0);FS.fill();
+      FS.fillStyle='rgba(210,232,255,0.4)';FS.beginPath();FS.ellipse(cxp+H*0.03,cyp+H*0.02,H*0.03,H*0.014,0,0,6.28);FS.fill();
+    }
+  }else{ // 8 HER ENCORE — palace silhouette with lit windows against sunset
+    var pxo=W*0.5-((cam*0.05)%(W*1.6)); if(pxo<-260)pxo+=W*1.6;
+    var pw3=H*0.20,py=hz-H*0.16;
+    FS.fillStyle='rgba(120,96,120,0.6)';
+    FS.fillRect(pxo-pw3,py,pw3*2,H*0.16);
+    FS.fillRect(pxo-pw3*0.4,py-H*0.05,pw3*0.8,H*0.06);       // central dome base
+    FS.beginPath();FS.arc(pxo,py-H*0.05,pw3*0.4,Math.PI,0);FS.fill();  // dome
+    for(var wg=-2;wg<=2;wg++){FS.fillRect(pxo+wg*pw3*0.5-pw3*0.12,py+H*0.02,pw3*0.24,H*0.10);}  // wing towers gaps
+    FS.fillStyle='rgba(255,224,150,0.75)';
+    for(var wr=0;wr<3;wr++)for(var wc=-3;wc<=3;wc++){if((wr+wc)%2===0)FS.fillRect(pxo+wc*pw3*0.24-3,py+H*0.03+wr*H*0.035,4,H*0.02);}
+  }
+}
+function _hills(hz,po,col,amp,sp){var o=po%sp;if(o>0)o-=sp;FX.fillStyle=col;FX.beginPath();FX.moveTo(o-sp,hz);
+  for(var x=o-sp;x<W+sp;x+=sp/2){FX.quadraticCurveTo(x+sp/4,hz-amp,x+sp/2,hz);}FX.lineTo(W+sp,hz);FX.closePath();FX.fill();}
+function _hedges(hz,po,col,h){var sp=64,o=po%sp;if(o>0)o-=sp;FX.fillStyle=col;
+  for(var x=o-sp;x<W+sp;x+=sp){FX.beginPath();FX.arc(x,hz,h,Math.PI,0);FX.fill();FX.fillRect(x-h,hz-2,h*2,4);}}
 function drawMansionBG(st){
   var pc=hexS(st.pc),ac=hexS(st.ac),cam=GS.camX,ai=GS.ai,tick=GS.tick;
   var floorY=H*0.82;
   var groundY=Math.min(floorY,14*32-(GS.camY||0)); // top of the track tiles
   // ── base: fairytale daytime sky ──
+  var _sk=SIDE_SKY[ai]||SIDE_SKY[0];
   var bgG=FX.createLinearGradient(0,0,0,H);
-  bgG.addColorStop(0,'rgb(150,212,255)');bgG.addColorStop(0.32,'rgb(216,240,255)');
-  bgG.addColorStop(0.6,shade(pc,0.9));bgG.addColorStop(1,shade(pc,0.55));
+  bgG.addColorStop(0,_rgba(_sk[0],1));bgG.addColorStop(0.34,_rgba(_sk[1],1));
+  bgG.addColorStop(0.62,shade(pc,0.9));bgG.addColorStop(1,shade(pc,0.55));
   FX.fillStyle=bgG;FX.fillRect(0,0,W,H);
   // sun + halo
   var sunX=W*0.78,sunY=H*0.09;
@@ -3104,26 +3219,10 @@ function drawMansionBG(st){
     rg2.addColorStop(0,'rgba(255,248,210,0.10)');rg2.addColorStop(1,'rgba(255,248,210,0)');
     FX.fillStyle=rg2;
     FX.beginPath();FX.moveTo(rx0,0);FX.lineTo(rx0+120,0);FX.lineTo(rx0+300,H*0.75);FX.lineTo(rx0+180,H*0.75);FX.closePath();FX.fill();}
-  // distant depth arches with filled glow
-  var archSp=440,off0=(-cam*0.06)%archSp;
-  for(var ax=off0-archSp;ax<W+archSp;ax+=archSp){
-    var aW=110,aH=H*0.5,ay=H*0.05;
-    // faint arch fill
-    FX.fillStyle='rgba('+ac+',0.02)';
-    FX.beginPath();FX.moveTo(ax-aW/2,ay+aH);FX.lineTo(ax-aW/2,ay+aH*0.3);
-    FX.bezierCurveTo(ax-aW/2,ay,ax+aW/2,ay,ax+aW/2,ay+aH*0.3);
-    FX.lineTo(ax+aW/2,ay+aH);FX.closePath();FX.fill();
-    FX.strokeStyle='rgba(255,255,255,0.12)';FX.lineWidth=2;FX.stroke();
-    // keystone accent
-    FX.fillStyle='rgba('+ac+',0.06)';FX.fillRect(ax-4,ay,8,12);}
-  // mid-depth pillars (between arches and wall band)
-  var pilSp=archSp,offPil=(-cam*0.12)%pilSp;
-  for(var px2=offPil-pilSp;px2<W+pilSp;px2+=pilSp){
-    var pH=H*0.55,pW2=16,pY2=H*0.04;
-    FX.fillStyle='rgba('+pc+',0.2)';FX.fillRect(px2-pW2/2,pY2,pW2,pH);
-    FX.fillStyle='rgba(255,255,255,0.02)';FX.fillRect(px2-pW2/2+1,pY2,pW2*0.3,pH);
-    FX.fillStyle='rgba('+ac+',0.1)';FX.fillRect(px2-pW2*0.7,pY2,pW2*1.4,8);
-  }
+  // ── per-stage distant scenery (replaces the generic arches/pillars that were
+  //    identical on every stage): treeline+castle, blossom rows, hedges+fountain,
+  //    lake+willows, dusk toadstools, sunflower field, cloud islands, palace ──
+  drawFarScene(ai,cam,groundY,tick,ac);
   // ── BAKED 2.5D WALL BAND (the same components as Temple View) ──
   if(TEX.walls){
     FX.imageSmoothingEnabled=false;
