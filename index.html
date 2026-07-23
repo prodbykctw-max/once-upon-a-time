@@ -1334,13 +1334,25 @@ function update(){
   if(iD()&&p.onGround&&!p.sliding&&Math.abs(p.vx)>1.5){p.sliding=true;p.slideT=0;GS.stats.sl++;misAdd('slides',1);sfx('slide');ptcl(p.x+PW/2,p.y+PH,'dash');if(navigator.vibrate)navigator.vibrate(20);}
   if(p.sliding){p.slideT++;if(!iD()&&p.slideT>16)p.sliding=false;if(!p.onGround&&p.vy>3)p.sliding=false;if(Math.abs(p.vx)<0.8)p.sliding=false;}
 
+  // ── REFRAIN (heal): the dual-purpose of RESONANCE #1 — stand STILL + hold Down and
+  //    she sings, spending resonance to mend a heart. Rooted + exposed while she does. ──
+  var refrain=iD()&&p.onGround&&Math.abs(p.vx)<0.6&&p.atkT<=0&&!p.sliding&&!p.dashing&&GS.masks<GS.maxMasks&&GS.res>0;
+  if(refrain){
+    p.vx=0;p.refraining=true;GS.res=Math.max(0,GS.res-1.5);p.healBank=(p.healBank||0)+1.5;
+    if(GS.tick%5===0)ptcl(p.x+PW/2+((GS.tick*7)%22-11),p.y+PH-10,'note');
+    if(GS.tick%3===0)updateHUD();
+    if(p.healBank>=70){p.healBank=0;GS.masks++;updateHUD();sfx('note');GS.toasts.push({txt:'REFRAIN',sub:'+1 LIFE',t:150,max:150,ico:'heart'});if(navigator.vibrate)navigator.vibrate([20,40,20]);}
+  }else{p.refraining=false;p.healBank=0;}
+
   // ── MIC STRIKE (⚔ button / X / Z / J / swipe →): melee in her facing direction ──
   var akey=K.KeyX||K.KeyZ||K.KeyJ||TC.a;
-  if((TC.mr>0||(akey&&!lA))&&p.atkT<=0&&!p.sliding){TC.mr=0;p.atkT=16;
+  if((TC.mr>0||(akey&&!lA))&&p.atkT<=0&&!p.sliding&&!p.refraining){TC.mr=0;p.atkT=16;
+    p.belt=(GS.res>=GS.resMax);            // RESONANCE #2 — FULL voice makes this strike a BELT (magic wave)
     p.downbeat=(!p.onGround&&iD());        // Down + air-strike = DOWNBEAT (a downward hit that pogos)
     p.struck=false;                        // blowback/pogo fires once per swing
     p.vx+=p.downbeat?0:(p.faceL?-4:4);      // horizontal lunge (not on a downbeat)
-    sfx('strike');ptcl(p.x+(p.downbeat?PW/2:(p.faceL?-6:PW)),p.y+(p.downbeat?PH:30),'slash');if(navigator.vibrate)navigator.vibrate(30);}
+    sfx('strike');ptcl(p.x+(p.downbeat?PW/2:(p.faceL?-6:PW)),p.y+(p.downbeat?PH:30),'slash');if(navigator.vibrate)navigator.vibrate(30);
+    if(p.belt){GS.res=Math.max(0,GS.res-90);spawnBelt(p);GS.toasts.push({txt:'BELT ✦',sub:'FULL VOICE',t:120,max:120,ico:'mic'});sfx('pw');updateHUD();}}
   lA=akey?1:0;TC.ml=0;if(TC.mr>1)TC.mr=1;
   if(p.atkT>0){p.atkT--;
     var ax0,ax1,ay0,ay1;
@@ -1451,7 +1463,7 @@ function update(){
     }}
 
   // ── ANIMATION (idle + dance easter egg when she stands still) ──
-  var newAnim=p.atkT>0?'attack':p.dashing?'dash':!p.onGround?'jump':p.sliding?'dash':Math.abs(p.vx)>0.6?'run':(p.idleT>420?'dance':'idle');
+  var newAnim=p.atkT>0?'attack':p.dashing?'dash':p.refraining?'dance':!p.onGround?'jump':p.sliding?'dash':Math.abs(p.vx)>0.6?'run':(p.idleT>420?'dance':'idle');
   if(newAnim!==p.anim){p.anim=newAnim;p.frame=0;p.animT=0;}
   p.idleT=(p.onGround&&Math.abs(p.vx)<0.6&&p.atkT<=0)?p.idleT+1:0;
   var spd={idle:9,run:4,jump:7,dash:4,attack:2,dance:6}[p.anim]||6;
@@ -3187,6 +3199,17 @@ function strikeImpact(p){ if(p.struck)return; p.struck=true;
   GS.hitstop=Math.max(GS.hitstop,5);
   if(p.downbeat){ p.vy=-11.5; p.airJumps=1; if(navigator.vibrate)navigator.vibrate(35); }
   else { p.vx+=(p.faceL?1:-1)*3.6; }
+}
+// BELT (RESONANCE magic): a FULL-voice Mic Strike releases a forward note-wave —
+// clears foes in a wide arc and double-hits + knocks back the boss. Meter is spent.
+function spawnBelt(p){
+  var dir=p.faceL?-1:1, bx0=p.faceL?p.x-270:p.x, bx1=p.faceL?p.x+PW:p.x+PW+270;
+  for(var i=GS.foes.length-1;i>=0;i--){var f=GS.foes[i];if(!f.alive)continue;
+    if(f.x+44>bx0&&f.x<bx1&&Math.abs((f.y+28)-(p.y+PH/2))<130)killFoe(f);}
+  if(GS.boss&&GS.boss.alive&&GS.bossActive){var b=GS.boss;
+    if(Math.abs((b.x+b.W/2)-(p.x+PW/2))<320){var wh=b.hp;hitB(b);hitB(b);if(b.hp<wh)b.vx+=dir*5.5;}}
+  for(var k=0;k<16;k++)ptcl(p.x+PW/2+dir*(18+k*17),p.y+PH*0.5+Math.sin(k*0.8)*34,'note');
+  GS.hitstop=Math.max(GS.hitstop,7);
 }
 
 // ── DEATH BLOOM: a body becomes music ──
