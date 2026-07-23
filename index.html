@@ -3195,6 +3195,11 @@ function drawNotes(){if(!GS.deathNotes.length)return;
 var BG_DATA={};   // e.g. BG_DATA[0]='data:image/jpeg;base64,....'  BG_DATA.all='data:...'
 var BG_IMG={};
 function loadBGs(){for(var k in BG_DATA){(function(i){var im=new Image();im.onload=function(){BG_IMG[i]=im;};im.src=BG_DATA[i];})(k);}}
+// Painted per-stage side backdrops (AutoSprite): premium distant scenery drawn
+// parallax-scrolled behind the wall band, one per RPG stage theme.
+var SIDE_BG_DATA={0:'web/7026911858d1.webp',1:'web/c1f58f809808.webp',2:'web/eaee5e2d4c6c.webp',3:'web/ff0483f9e1eb.webp',4:'web/4ac1b9e4110c.webp',5:'web/9d4d20ccbac3.webp',6:'web/699b47aea8ff.webp',7:'web/1ae0890e08c3.webp',8:'web/0b3abf9d5661.webp'};
+var SIDE_BG_IMG={};
+function loadSideBG(){for(var k in SIDE_BG_DATA){(function(i){var im=new Image();im.onload=function(){SIDE_BG_IMG[i]=im;};im.src=SIDE_BG_DATA[i];})(k);}}
 // Classic library book spine palette — muted, realistic, no neon
 var _BKPAL=['110,25,25','25,45,100','28,72,38','105,62,28','72,38,98','18,65,72','135,48,20','52,68,108','85,72,26','55,40,35','30,55,88','98,44,28','145,125,88','38,55,40'];
 var _bgW=null,_bgF=null,_bgV=null,_bgP=null;
@@ -3343,7 +3348,18 @@ function drawMansionBG(st){
   //    at premium bar, so they're held back until Phase 5 replaces them with the
   //    baked side-elevation backdrops (drawFarScene stays defined for that work).
   //    The per-stage SKY MOOD above (SIDE_SKY) still gives each stage its light.
-  if(window._FARSCENE)drawFarScene(ai,cam,groundY,tick,ac);
+  // ── painted per-stage side backdrop: premium distant scene, parallax-scrolled
+  //    and mirror-tiled (no hard seam) behind the wall band. Falls back to the
+  //    procedural far-scene only if the backdrop image hasn't loaded.
+  var _bg=SIDE_BG_IMG[ai];
+  if(_bg){
+    var bh=groundY+24,bw=bh,boff=(-cam*0.05)%(bw*2);if(boff>0)boff-=bw*2;
+    for(var bx=boff;bx<W+bw;bx+=bw){
+      if(Math.round((bx-boff)/bw)%2===1){FX.save();FX.translate(bx+bw,0);FX.scale(-1,1);FX.drawImage(_bg,0,0,bw,bh);FX.restore();}
+      else FX.drawImage(_bg,bx,0,bw,bh);
+    }
+    FX.fillStyle='rgba(0,0,0,0.05)';FX.fillRect(0,0,W,bh);   // seat it slightly behind the action
+  }else if(window._FARSCENE)drawFarScene(ai,cam,groundY,tick,ac);
   // ── BAKED 2.5D WALL BAND (the same components as Temple View) ──
   if(TEX.walls){
     FX.imageSmoothingEnabled=false;
@@ -4643,6 +4659,7 @@ function wire(){
     refreshModeStats();}catch(x){}
   initTitleBG();
   loadBGs();     // photoreal backdrops (no-op until BG_DATA is filled)
+  loadSideBG();  // painted per-stage side backdrops
   loadTex();     // pixel-art world pack
   loadSprites(); // preload sprites in background
 }
