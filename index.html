@@ -565,6 +565,24 @@ var STAGES=[
 // FIRST LIGHT MEADOW — so stage 1 borrows the marble garden statue (cell 7).
 var DECOR_CELL=[0,7,2,3,4,5,6,7,8];
 function decorCell(ai){return DECOR_CELL[ai]==null?ai:DECOR_CELL[ai];}
+// Per-stage RPG level recipe — makes each of the 9 stages read as its own place
+// instead of the same random terrain reseeded. gap/plat/haz are cumulative gen
+// thresholds (GAP<PLAT<OBSTACLE<FLAT); gapMax=jump width; vert=platform-height
+// bias; foe=flat-run spawn rate; foes=which foe types appear (0 goblin, 1 raven,
+// 2 sprite) — a new one is introduced as the stages progress. Difficulty ramps
+// across the run and peaks at the palace finale.
+var STAGE_RECIPE=[
+ {gap:0.13,plat:0.33,haz:0.50,gapMax:3,vert:0.35,foe:0.30,foes:[0]},        // 0 LIBRARY — gentle intro, book-ledge hops, goblins only
+ {gap:0.12,plat:0.28,haz:0.46,gapMax:3,vert:0.22,foe:0.34,foes:[0,1]},      // 1 MEADOW — open & breezy, + cursed raven
+ {gap:0.16,plat:0.40,haz:0.52,gapMax:3,vert:0.55,foe:0.40,foes:[0,1]},      // 2 PETAL MILE — bouncy blossom hops
+ {gap:0.19,plat:0.44,haz:0.55,gapMax:4,vert:0.75,foe:0.44,foes:[0,1,2]},    // 3 ROSE WALTZ — hedge verticality, + nightshade sprite
+ {gap:0.26,plat:0.36,haz:0.58,gapMax:4,vert:0.45,foe:0.46,foes:[0,1,2]},    // 4 MIRROR LAKE — water pits, careful jumps
+ {gap:0.20,plat:0.42,haz:0.62,gapMax:4,vert:0.65,foe:0.54,foes:[0,1,2]},    // 5 WISHING GLADE — dusk swarm
+ {gap:0.20,plat:0.46,haz:0.60,gapMax:4,vert:0.92,foe:0.52,foes:[0,1,2]},    // 6 GOLDEN HOUR — tall sunflower stalks
+ {gap:0.32,plat:0.48,haz:0.58,gapMax:4,vert:1.00,foe:0.50,foes:[0,1,2]},    // 7 SKY GARDENS — floating platforms over big gaps (gapMax capped jumpable)
+ {gap:0.24,plat:0.44,haz:0.66,gapMax:4,vert:0.80,foe:0.62,foes:[0,1,2]}     // 8 HER ENCORE — palace ramparts, intense finale
+];
+function stageRecipe(ai){return STAGE_RECIPE[ai]||STAGE_RECIPE[0];}
 function hex(h){return [parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255];}
 function hexS(h){return parseInt(h.slice(1,3),16)+','+parseInt(h.slice(3,5),16)+','+parseInt(h.slice(5,7),16);}
 
@@ -842,31 +860,34 @@ function buildBossArena(gs){
 }
 function genAhead(gs,until){
   if(gs.bossBuilt)return;                            // arena is the end of the stage
+  var rec=STAGE_RECIPE[gs.ai]||STAGE_RECIPE[0];
   while(gs.genC<until){
     if(gs.genC>=gs.stageEnd){buildBossArena(gs);return;}
     var c=gs.genC,r=rnd01(c*1.7+gs.ai*13),q,n;
-    if(r<0.17&&c>40){ // GAP — jump it (2-4 tiles, notes arc over)
-      var gw=2+Math.floor(rnd01(c*3.1)*3);
+    if(r<rec.gap&&c>40){ // GAP — jump it (width + notes arc over), per-stage
+      var gw=2+Math.floor(rnd01(c*3.1)*rec.gapMax);
       for(n=0;n<gw+2;n++)gs.notes.push({x:(c-1+n)*T+10,y:(FLOOR_R-3)*T-Math.sin(n/(gw+1)*Math.PI)*46,anim:(n*7)%60,got:false});
       gs.genC+=gw;
       for(q=0;q<3;q++)groundCol(gs,gs.genC+q); // guaranteed landing strip
       gs.genC+=3;
-    }else if(r<0.32){ // BONUS PLATFORM lane above the ground (jump / double-jump)
-      var pw2=3+Math.floor(rnd01(c*5.3)*3),pr=rnd01(c*7.7)<0.35?FLOOR_R-6:FLOOR_R-4;
+    }else if(r<rec.plat){ // BONUS PLATFORM lane — height biased by the stage's verticality
+      var pw2=3+Math.floor(rnd01(c*5.3)*3);
+      var pr=Math.max(4,FLOOR_R-4-Math.floor(rec.vert*(2+rnd01(c*7.7)*4)));
       for(q=0;q<pw2+2;q++)groundCol(gs,c+q);
       for(q=0;q<pw2;q++){setT(gs,c+1+q,pr,'P');gs.notes.push({x:(c+1+q)*T+8,y:(pr-1)*T-6,anim:(q*9)%60,got:false});}
       gs.genC+=pw2+2;
-    }else if(r<0.56&&c>55){ // OBSTACLE — spikes (jump) or hanging gate (slide)
+    }else if(r<rec.haz&&c>55){ // OBSTACLE — spikes (jump) or hanging gate (slide)
       var run=4+Math.floor(rnd01(c*2.3)*3);
       for(q=0;q<run;q++)groundCol(gs,c+q);
       var gy=FLOOR_R*T,ox=(c+2)*T;
       if(ox-(gs.lastObX||0)>380*adaptF()){
         gs.lastObX=ox;
         if(rnd01(c*9.1)<0.35)gs.obs.push({x:ox,y:gy-26,w:T+8,h:26,tp:'spike',hit:false});
-        else{ // ambush pair instead of the old auto-runner gate
+        else{ // ambush: a ground goblin, plus a flyer only on stages that have them
           gs.foes.push({x:ox,y:gy-58,baseY:0,tp:0,anim:(c*7)%60,alive:true});
-          if(rnd01(c*4.3)<0.5)gs.foes.push({x:ox+90,y:gy-190,baseY:gy-190,
-            tp:rnd01(c*6.7)<0.6?1:2,anim:(c*11)%60,alive:true});
+          var fly=rec.foes.filter(function(t){return t>0;});
+          if(fly.length&&rnd01(c*4.3)<0.5)gs.foes.push({x:ox+90,y:gy-190,baseY:gy-190,
+            tp:fly[Math.floor(rnd01(c*6.7)*fly.length)],anim:(c*11)%60,alive:true});
         }
       }
       gs.genC+=run;
@@ -876,8 +897,8 @@ function genAhead(gs,until){
       if(rnd01(c*6.1)<0.5)for(n=0;n<3;n++)gs.notes.push({x:(c+1+n)*T+10,y:(FLOOR_R-2)*T,anim:(n*11)%60,got:false});
       if(rnd01(c*8.3)<0.09){var _pr=rnd01(c*2.9),_pt=_pr<0.3?'DEVOTION':_pr<0.55?'VOICE':_pr<0.8?'BELT':'HIGHNOTE';
         gs.pwr.push({x:(c+2)*T,y:(FLOOR_R-3)*T,type:_pt,anim:0,got:false});}
-      if(c>50&&rnd01(c*3.7)<0.42/adaptF()){ // thorn goblin, cursed raven, nightshade sprite
-        var _fr=rnd01(c*5.1),ftp=_fr<0.50?0:_fr<0.80?1:2,fby=FLOOR_R*T-160-rnd01(c*6.3)*70;
+      if(c>50&&rnd01(c*3.7)<rec.foe/adaptF()){ // per-stage foe roster + spawn rate
+        var ftp=rec.foes[Math.floor(rnd01(c*5.1)*rec.foes.length)],fby=FLOOR_R*T-160-rnd01(c*6.3)*70;
         gs.foes.push({x:(c+2)*T,y:ftp?fby:FLOOR_R*T-58,baseY:fby,tp:ftp,anim:(c*7)%60,alive:true});}
       gs.genC+=run2;
     }
