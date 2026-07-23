@@ -1536,6 +1536,10 @@ function updateT(){
   // ── SPAWN table: obstacles · turns · power-ups · gems · tiered coin runs ──
   var mv=eff*2.4;
   t3.nextZ-=mv;
+  if(_SHOTM){   // ?shot=1: pin one of each painted obstacle at z=210 the moment the run starts; suppress normal spawns
+    if(!t3._shot&&GS.dist>1){t3.obs.push({z:210,lane:-1,tp:'low'},{z:210,lane:0,tp:'gate'},{z:210,lane:1,tp:'wall'});t3._shot=1;}
+    t3.nextZ=99999;
+  }
   if(t3.nextZ<=0){
     var sr=rnd01(GS.tick*1.31+GS.ai*7),lane=Math.floor(rnd01(GS.tick*2.7)*3)-1;
     var sinceTurn=GS.dist-t3.lastTurnD;
@@ -1545,8 +1549,6 @@ function updateT(){
     }else{
       if(GS.finale){ // the road to him is clear — coins only
         for(var fci=0;fci<6;fci++)t3.coins.push({z:1500+fci*55,lane:lane,anim:fci*8,v:3});
-      }else if(_SHOTM&&GS.dist>1){   // ?shot=1 verification build: pin one of each painted obstacle mid-screen, frozen
-        if(!t3._shot){t3.obs.push({z:210,lane:-1,tp:'low'},{z:210,lane:0,tp:'gate'},{z:210,lane:1,tp:'wall'});t3._shot=1;}t3.nextZ=99999;
       }else if(GS.dist>40){
         if(sr<0.24)t3.obs.push({z:1500,lane:lane,tp:'low'});
         else if(sr<0.44)t3.obs.push({z:1500,lane:lane,tp:'gate'});
