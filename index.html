@@ -2586,6 +2586,9 @@ function drawT(){
       if(TEX.obgate){
         var agw=obW*es*2.3,agh=agw*0.75,agap=agh*0.42;
         FX.drawImage(TEX.obgate,ai*256,0,256,192,ex-agw/2,ey-agh,agw,agh);
+        // SLIDE cue (cyan down-chevron + safe-slot floor glow). HARD hides it —
+        // the player must read the gate shape itself; Easy/Normal keep the tell.
+        if(!(SET&&SET.diff==='hard')){
         var acY=ey-agh+agh*0.30,acW=agw*0.16,acH=Math.max(5,agh*0.16);
         var acA=0.45+0.55*(0.5+0.5*Math.sin(GS.tick*0.2));
         FX.lineJoin='round';FX.lineCap='round';
@@ -2596,6 +2599,7 @@ function drawT(){
         var asG=FX.createRadialGradient(ex,ey,2,ex,ey,agw*0.52);
         asG.addColorStop(0,'rgba(70,235,255,'+(0.30*es)+')');asG.addColorStop(1,'rgba(70,235,255,0)');
         FX.fillStyle=asG;FX.beginPath();FX.ellipse(ex,ey,agw*0.52,agw*0.15,0,0,6.28);FX.fill();
+        }
         continue;
       }
       var gw=obW*es*1.9,gh=130*es,gap=95*es;
