@@ -535,7 +535,7 @@ body.mobile .joy-knob{width:64px;height:64px}
 <script>
 // baked pixel-art world pack (walls/floors per stage, chaser, item icons)
 var TEXDATA={
-oblow:"web/60b2a0c99db6.webp",obgate:"web/0b897ad8278c.webp",obwall:"web/31d075ec4cdc.webp",
+oblow:"web/60b2a0c99db6.webp",obgate:"web/833c190088c2.webp",obwall:"web/31d075ec4cdc.webp",
 prince:"web/6bfe5d567826.webp",
 boss:"web/78f95835ae52.webp",
 reunion:"web/cadbc8682d28.webp",
@@ -1326,6 +1326,15 @@ function update(){
   // boss defeated → brief victory beat, then next stage (or the finale ending)
   if(GS.bossDeadT>0){
     if(!(GS.bossDeadT>58&&(GS.tick&1)))GS.bossDeadT--;   // cinematic: the collapse opens in slow-motion
+    var _kb=GS.boss;
+    if(_kb){ // subtle push-in that CENTRES the fallen boss + eases Jandé out of the way
+      ZOOM+=(1.16-ZOOM)*0.07;
+      GS.camX+=((_kb.x+_kb.W/2-(VW/ZOOM)*0.5)-GS.camX)*0.07;GS.camX=Math.max(0,GS.camX);
+      GS.camY+=((_kb.y+_kb.H*0.5-(VH/ZOOM)*0.5)-GS.camY)*0.06;GS.camY=Math.max(0,GS.camY);
+      var _away=(GS.p.x<_kb.x)?-1:1;                      // step clear of the collapse, still facing it
+      GS.p.x=Math.max((GS.gateCol+1)*T,Math.min(GS.p.x+_away*2.6,(GS.LW-1)*T-PW));
+      GS.p.faceL=_away>0;GS.p.vx=0;
+    }
     tickFx();
     if(GS.bossDeadT===0){markClear(GS.ai);GS.bossKO=0;   // remember this stage as beaten (stage select)
       if(GS.ai>=STAGES.length-1){GS.won=true;showEnding();}
@@ -1333,7 +1342,10 @@ function update(){
     return;}
   // ── LEVEL CLEAR: the boss is down. Jandé stays on the cleared stage and emotes
   //    for a beat, then the results overlay rises. The player proceeds when ready. ──
-  if(GS.levelClear){GS.clearT++;GS.p.vx*=0.8;tickFx();
+  if(GS.levelClear){GS.clearT++;GS.p.vx*=0.8;
+    ZOOM+=(1-ZOOM)*0.08;                                  // ease the cinematic push-in back out
+    GS.camX+=((GS.p.x-VW*0.42)-GS.camX)*0.08;GS.camX=Math.max(0,GS.camX);
+    tickFx();
     if(GS.clearT===100)showLevelClear();
     return;}
 
@@ -3709,7 +3721,7 @@ function draw(){
       var al3=0.5*(1-ph3);
       FX.fillStyle=st3%2?'rgba(255,224,130,'+al3+')':'rgba(255,255,255,'+al3+')';
       FX.fillRect(tx3-2,ty3-0.6,4,1.2);FX.fillRect(tx3-0.6,ty3-2,1.2,4);}}
-  if(!p.noteGone){if(p.inv>0&&GS.shieldT<=0)FX.globalAlpha=0.55+0.3*Math.sin(GS.tick*0.7);drawHero(p);FX.globalAlpha=1;}
+  if(!p.noteGone){if(p.inv>0&&GS.shieldT<=0&&!(GS.bossDeadT>0||GS.levelClear))FX.globalAlpha=0.55+0.3*Math.sin(GS.tick*0.7);drawHero(p);FX.globalAlpha=1;}
   FX.restore();
   if(GS.bossMood>0.01)drawGroomShadowFg();  // vignette closes on top — she + the boss stay readable
   // combo meter
@@ -4529,7 +4541,7 @@ function showLevelCard(ai,cb){var st=STAGES[ai];document.getElementById('lcR').t
   document.getElementById('lcDiv').style.background='linear-gradient(90deg,transparent,#'+st.ac.slice(1)+',transparent)';
   document.getElementById('lcL').textContent=st.lyr;var lc=document.getElementById('lvlCard');lc.classList.add('on');setTimeout(function(){lc.classList.remove('on');if(cb)cb();},2200);}
 function toRoman(n){return ['I','II','III','IV','V','VI','VII','VIII','IX'][n-1]||n;}
-function nextStage(){var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;CHECKPOINT=ai;CHECKPOINT_X=0;updateHUD();showLevelCard(ai,function(){});}
+function nextStage(){ZOOM=1;var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;CHECKPOINT=ai;CHECKPOINT_X=0;updateHUD();showLevelCard(ai,function(){});}
 // ── THE REUNION ── the run's real ending: she reaches her prince. Drawn as a
 // tableau (his sprite + her back-view turning to him) over a gold bloom, then
 // the normal results board underneath so the run still scores.
