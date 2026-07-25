@@ -1,8 +1,9 @@
 # Jandé — Once Upon A Time 🎤👑
 
-A 2.5D side-scrolling platformer built for the R&B artist **Jandé** and her
-song *"Once Upon A Time."* Run through nine themed rooms of a dark painted
-mansion as Jandé, fighting mythical creatures and bosses across each stage.
+A promotional browser game built for the R&B artist **Jandé** and her song
+*"Once Upon A Time."* Play as Jandé across **nine themed stages** in **two modes** —
+an **Action RPG** side-scroll (fight the foe roster and beat each stage's unique
+boss) and **Royal Runner**, a behind-the-back 3D endless run.
 
 Built for fan engagement and email capture — play the game, follow the queen.
 
@@ -14,20 +15,34 @@ threads). The canonical, consolidated project documentation.
 
 ## Stack
 
-- **Phaser 3** — game engine (WebGL, sprite-sheet native, arcade physics)
-- **Vite** — dev server and bundler
-- **Godot 4** — native engine build (in `once-upon-a-time/`)
+The shipped game is a **single self-contained `index.html`** — no framework, no
+build step, no server:
+
+- **Canvas2D** — Action RPG rendering (sprites, entities, particles, HUD)
+- **Hand-written WebGL** — Royal Runner's behind-the-back 3D world (the "GLWORLD" engine)
+- **Web Audio (synthesized)** — all music and SFX generated in-browser; no audio files
+- **External hashed assets** — `web/<sha1>.<ext>`, referenced by path (cacheable, deduplicated)
+- **Cloudflare Worker** — global leaderboard (the only runtime network call)
+
+Deployed to **GitHub Pages** through the guarded `tools/deploy.sh`.
+
+> **Engine history:** the project moved through Canvas2D → hand-written WebGL →
+> Phaser 3 → Godot 4 before settling on the Canvas2D + WebGL hybrid that ships
+> today. The parked **Phaser 3 scaffold** (`src/`, `vite.config.js`) and **Godot 4
+> project** (`once-upon-a-time/`) remain in the repo as migration / native targets.
+> Full rationale in the [Engine Evolution table](DEVELOPMENT_RECORD.md#engine-evolution).
 
 ---
 
-## Quick Start (Phaser / Web version)
+## Quick Start
+
+No install needed — the game is one file. Serve the repo root with any static
+server and open `index.html`:
 
 ```bash
-npm install
-npm run dev
+python3 -m http.server 8000
+# then open http://localhost:8000
 ```
-
-Open http://localhost:5173 in your browser.
 
 **Controls:**
 - `← →` Move
@@ -40,28 +55,33 @@ On mobile, on-screen touch controls appear automatically.
 
 ---
 
-## Build & Deploy
+## Deploy
+
+There is no build step — the shipped artifact is `index.html` plus the hashed
+`web/` assets. Deploy to GitHub Pages through the guarded script:
 
 ```bash
-npm run build
+tools/deploy.sh
 ```
 
-Produces a static `dist/` folder — deploy directly to **Cloudflare Pages**,
-Netlify, or GitHub Pages. No server required.
+It ships game-only files to the `gh-pages` branch and **aborts if any sensitive
+file is staged** (real photos in `assets/` are gitignored and never published).
 
 ---
 
 ## Project Structure
 
 ```
+index.html                 The shipped game (Canvas2D RPG + WebGL Runner + synth audio)
+web/                        External hashed assets — web/<sha1>.<ext>
+tools/                      Asset baker + composer scripts, and deploy.sh
+cloudflare/                 Global-leaderboard Worker
+DEVELOPMENT_RECORD.md       Canonical, consolidated project documentation
+
+Parked scaffolds (kept in-repo, not the shipped build):
 once-upon-a-time/          Godot 4 native project
+src/, vite.config.js       Phaser 3 + Vite scaffold
 Jand-spritesheet/          Raw individual animation frames
-src/                       Phaser source
-  main.js                  Game config
-  scenes/                  Boot, Title, Game, UI scenes
-  objects/                 Player, LevelBuilder
-  data/                    levels.json (9 stage definitions)
-public/assets/sprites/     Processed 256x256 Phaser sprite sheets
 ```
 
 ---
