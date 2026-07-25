@@ -6,6 +6,10 @@ mansion as Jandé, fighting mythical creatures and bosses across each stage.
 
 Built for fan engagement and email capture — play the game, follow the queen.
 
+📖 **[Complete Development Record](DEVELOPMENT_RECORD.md)** — the full history from
+Day 1 to the current build (all eras, bosses, bug log, asset pipeline, and open
+threads). The canonical, consolidated project documentation.
+
 ---
 
 ## Stack
