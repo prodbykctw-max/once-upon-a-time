@@ -2689,7 +2689,7 @@ function drawT(){
       // The cyan chevron + floor glow stay on top — they are what make the
       // slide cue readable at speed.
       if(TEX.obgate){
-        var agw=obW*es*2.3,agh=agw*0.75,agap=agh*0.42;
+        var agw=obW*es*2.5,agh=agw*0.75,agap=agh*0.42;   // arch as tall as the wall (~1.88·obW·es)
         FX.drawImage(TEX.obgate,ai*256,0,256,192,ex-agw/2,ey-agh,agw,agh);
         // SLIDE cue (cyan down-chevron + safe-slot floor glow). HARD hides it —
         // the player must read the gate shape itself; Easy/Normal keep the tell.
@@ -3349,7 +3349,7 @@ var BG_IMG={};
 function loadBGs(){for(var k in BG_DATA){(function(i){var im=new Image();im.onload=function(){BG_IMG[i]=im;};im.src=BG_DATA[i];})(k);}}
 // Painted per-stage side backdrops (AutoSprite): premium distant scenery drawn
 // parallax-scrolled behind the wall band, one per RPG stage theme.
-var SIDE_BG_DATA={0:'web/7026911858d1.webp',1:'web/c1f58f809808.webp',2:'web/eaee5e2d4c6c.webp',3:'web/ff0483f9e1eb.webp',4:'web/4ac1b9e4110c.webp',5:'web/9d4d20ccbac3.webp',6:'web/699b47aea8ff.webp',7:'web/1ae0890e08c3.webp',8:'web/0b3abf9d5661.webp'};
+var SIDE_BG_DATA={0:'web/7026911858d1.webp',1:'web/1fa28057a711.webp',2:'web/44187ebf6a44.webp',3:'web/afcfb1d92476.webp',4:'web/da0a81c9b45f.webp',5:'web/9d4d20ccbac3.webp',6:'web/14ab4c11ab60.webp',7:'web/1ae0890e08c3.webp',8:'web/a4a908d52b36.webp'};
 var SIDE_BG_IMG={};
 function loadSideBG(){for(var k in SIDE_BG_DATA){(function(i){var im=new Image();im.onload=function(){SIDE_BG_IMG[i]=im;};im.src=SIDE_BG_DATA[i];})(k);}}
 // Classic library book spine palette — muted, realistic, no neon
@@ -3509,7 +3509,7 @@ function drawMansionBG(st){
     // (the interior wall band below is skipped whenever a backdrop is loaded). Scaled
     // to cover the whole play height with its own ground seated at the play floor, and
     // mirror-tiled on a slow parallax so the distant world reads continuous.
-    var bh=Math.max(groundY+40,H*0.94),bw=bh,by=groundY+30-bh;
+    var bh=Math.max(groundY+40,H*0.94),bw=bh*(_bg.width/_bg.height),by=groundY+30-bh;
     var boff=(-cam*0.045)%(bw*2);if(boff>0)boff-=bw*2;
     for(var bx=boff;bx<W+bw;bx+=bw){
       if(Math.round((bx-boff)/bw)%2===1){FX.save();FX.translate(bx+bw,0);FX.scale(-1,1);FX.drawImage(_bg,0,by,bw,bh);FX.restore();}
