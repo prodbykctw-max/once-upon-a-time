@@ -2679,10 +2679,13 @@ function drawT(){
       // JUMP-OVER: Cycles-rendered barrier themed to this world (hedge, log,
       // hay bales, monitor wedges...). Falls back to the painted bar.
       var hw=obW*es*2.2,hh=hw*0.375;
-      if(TEX.oblow){
-        FX.drawImage(TEX.oblow,ai*256,0,256,96,ex-hw/2,ey-hh,hw,hh);
-        continue;
-      }
+      if(TEX.oblow){FX.drawImage(TEX.oblow,ai*256,0,256,96,ex-hw/2,ey-hh,hw,hh);}
+      else{ // texture not ready: a clean flat barrier — stays visible so the jump is
+            // still fair, and never shows the retired painted bar below.
+        FX.fillStyle='rgba('+pc+',0.95)';FX.fillRect(ex-hw/2,ey-hh,hw,hh);
+        FX.fillStyle='rgba('+ac+',0.9)';FX.fillRect(ex-hw/2,ey-hh,hw,Math.max(2,hh*0.18));
+        FX.strokeStyle='rgba(0,0,0,0.5)';FX.lineWidth=2;FX.strokeRect(ex-hw/2,ey-hh,hw,hh);}
+      continue;
       hh=54*es;
       var lgB=FX.createLinearGradient(ex,ey-hh,ex,ey);
       lgB.addColorStop(0,'rgba('+ac+',0.95)');lgB.addColorStop(0.3,'rgba('+ac+',0.7)');lgB.addColorStop(1,'rgba('+pc+',0.85)');
@@ -2719,8 +2722,13 @@ function drawT(){
         asG.addColorStop(0,'rgba(70,235,255,'+(0.30*es)+')');asG.addColorStop(1,'rgba(70,235,255,0)');
         FX.fillStyle=asG;FX.beginPath();FX.ellipse(ex,ey,agw*0.52,agw*0.15,0,0,6.28);FX.fill();
         }
-        continue;
+      }else{ // texture not ready: clean header with the slide gap left open
+        var _gw=obW*es*2.1,_gh=_gw*0.75,_gap=_gh*0.42;
+        FX.fillStyle='rgba('+pc+',0.95)';FX.fillRect(ex-_gw/2,ey-_gh,_gw,_gh-_gap);
+        FX.fillStyle='rgba(70,235,255,0.75)';FX.fillRect(ex-_gw/2,ey-_gap-3,_gw,3);
+        FX.strokeStyle='rgba(0,0,0,0.5)';FX.lineWidth=2;FX.strokeRect(ex-_gw/2,ey-_gh,_gw,_gh-_gap);
       }
+      continue;
       var gw=obW*es*1.9,gh=130*es,gap=95*es;
       // archway header with gradient
       var gaG=FX.createLinearGradient(ex,ey-gap-gh,ex,ey-gap);
@@ -2775,8 +2783,13 @@ function drawT(){
         }
         FX.fillStyle='rgba(255,60,40,'+(0.34+0.26*Math.sin(GS.tick*0.2))+')';   // red no-pass danger line
         FX.fillRect(ex-aww*0.34,ey-3*es,aww*0.68,Math.max(2,5*es));
-        continue;
+      }else{ // texture not ready: a solid clean blocker — obviously impassable
+        var _ww=obW*es*2.0,_wh=_ww*0.875;
+        FX.fillStyle='rgba('+pc+',0.97)';FX.fillRect(ex-_ww/2,ey-_wh,_ww,_wh);
+        FX.strokeStyle='rgba(0,0,0,0.55)';FX.lineWidth=2;FX.strokeRect(ex-_ww/2,ey-_wh,_ww,_wh);
+        FX.fillStyle='rgba(255,60,40,0.5)';FX.fillRect(ex-_ww*0.34,ey-3*es,_ww*0.68,Math.max(2,5*es));
       }
+      continue;
       var ww=obW*es*1.8,wh2=190*es;
       if(TEX.walls){FX.drawImage(TEX.walls,ai*144,0,144,144,ex-ww/2,ey-wh2,ww,wh2);}
       else{FX.fillStyle='rgba('+pc+',0.98)';FX.fillRect(ex-ww/2,ey-wh2,ww,wh2);}
@@ -4408,6 +4421,19 @@ function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A
       FX.beginPath();FX.arc(x+b.W/2,y+b.H,(24-b.slamT)*8,0,6.28);FX.stroke();}
     return;
   }
+  // ── ATLAS NOT READY (slow or failed load) ──────────────────────────────────
+  // A clean, on-theme silhouette — never the old vector boss that used to sit
+  // below. He still reads as a threat and the fight stays fair and winnable.
+  var _sg=FX.createLinearGradient(x,y,x,y+b.H);
+  _sg.addColorStop(0,'rgba(24,12,30,0.94)');_sg.addColorStop(1,'rgba(10,5,16,0.94)');
+  FX.fillStyle=_sg;FX.fillRect(x,y,b.W,b.H);
+  FX.strokeStyle='rgba('+(ph2?'255,40,80':ac)+',0.75)';FX.lineWidth=2;FX.strokeRect(x+1,y+1,b.W-2,b.H-2);
+  FX.fillStyle='rgba('+(ph2?'255,40,80':ac)+','+(0.55+pulse*0.45)+')';
+  FX.beginPath();FX.ellipse(x+b.W*0.32,y+b.H*0.22,6,8,0,0,6.28);FX.fill();
+  FX.beginPath();FX.ellipse(x+b.W*0.68,y+b.H*0.22,6,8,0,0,6.28);FX.fill();
+  return;
+  // (everything below is the retired painted boss — unreachable, kept only so the
+  //  original art history stays in the file; it can never render.)
   if(b.type==='HEARTBREAKER'){FX.fillStyle=ph2?'#180005':'#0A0018';FX.fillRect(x,y,b.W,b.H);FX.fillStyle=ph2?'#240008':'#10002A';FX.fillRect(x+4,y+4,b.W-8,b.H-10);
     FX.fillStyle='#3A2800';FX.fillRect(x+13,y,b.W-26,9);FX.fillStyle='#806000';FX.fillRect(x+16,y-9,7,11);FX.fillRect(x+34,y-13,8,15);FX.fillRect(x+52,y-9,7,11);
     var ec=ph2?'255,0,51':ac;FX.fillStyle='rgba('+ec+','+(.58+pulse*.42)+')';FX.beginPath();FX.ellipse(x+25,y+24,9,11,0,0,6.28);FX.fill();FX.beginPath();FX.ellipse(x+b.W-25,y+24,9,11,0,0,6.28);FX.fill();
