@@ -84,3 +84,28 @@ Frame counts are in `manifest.json` and mirrored in `BootScene.SHEETS`.
   in `Player.js` constants.
 - Stage colors come from `levels.json` (`primaryColor` / `accentColor`) and drive
   both background and platform tinting in `GameScene`/`LevelBuilder`.
+
+## Session update - July 25, 2026
+
+**Shipped today (all live on gh-pages):**
+- Nine unique RPG bosses (one per stage, Groom = finale) with themed 5-frame defeats, per-boss
+  movement/VFX, and a cinematic death (slow-mo, KO spotlight, push-in that centres the boss).
+- STAGE CLEAR end-of-level tally + PROCEED; cleared stages persist and are replayable via Stage
+  Select. Stage Select and The Boutique now live on the per-mode how-to screen.
+- Six stacked backdrops un-doubled; backdrops draw full and unimpeded at true aspect; ground tiles
+  made opaque; interior parquet floor and chandeliers removed from outdoor stages.
+- Runner: taller trees + sunflowers, sky-stage arch is now the slide gate and a new solid cloud
+  wall is the blocker, wall telegraph added, no more old-world flash on start.
+- Every legacy fallback that could surface on a slow/failed load retired.
+
+**Critical fix:** the boss-defeat cinematic left a stale world zoom (`nextStage()` hardcoded
+`ZOOM=1` while `resize()` fits it to the device and `VW`/`VH` derive from it), so after the first
+boss kill the hero and foes rendered off-screen on every later stage. Zoom now flows through
+`BASEZ` + `setZoom()`. **Never assign `ZOOM` directly** - `setZoom()` is the only safe path.
+
+**Verification note:** with the browser pane hidden, `requestAnimationFrame` throttles and the game
+loop stalls, so in-pane checks look blank. Use a local harness page that iframes `index.html?stage=N`
+and clicks through, captured with headless Chrome - that renders reliably.
+
+**Still open:** rotate the Cloudflare API token (owner action); landscape controls on device;
+combat/economy tuning; Stage-Select starting stats (late stages begin at LV1).
