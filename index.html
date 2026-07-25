@@ -754,7 +754,11 @@ function drawGL(){
 var FX, FXC, W, H, DPR=Math.min(2,window.devicePixelRatio||1);
 // ZOOM scales the side-scroller world; VW/VH are the world units on screen.
 // UI/HUD keep drawing in screen space, so they ignore these.
-var ZOOM=1, VW=0, VH=0;
+var ZOOM=1, VW=0, VH=0, BASEZ=1;
+// The ONLY safe way to change world zoom: VW/VH are world units derived from it and
+// feed every camera clamp, bound and cull. Setting ZOOM without re-deriving them
+// pushes the hero and foes off-screen (see the boss-defeat cinematic).
+function setZoom(z){ZOOM=z;VW=W/ZOOM;VH=H/ZOOM;}
 // Death checkpoint: the stage the player reached AND how far into it. Retry
 // resumes at the exact spot she fell, not the start of the level. Reset on a
 // fresh game and whenever a new stage begins.
@@ -815,6 +819,7 @@ function resize(){
     ZOOM=Math.min(BASE, W/VIEW_W*BASE, H/VIEW_H*BASE);
     ZOOM=Math.max(0.5,ZOOM);
   }else{ZOOM=1;}
+  BASEZ=ZOOM;              // the device's correct fit — cinematics must return to THIS
   VW=W/ZOOM;VH=H/ZOOM;
 }
 
@@ -825,6 +830,7 @@ var T=32, GRAV=0.52, MASKS=5;
 var PW=30, PH=86; // hero collision box (scaled to ~5'3.75")
 var GS={};
 function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
+  setZoom(BASEZ);   // never inherit a cinematic zoom into a new/restarted stage
   try{var _sm=location.search.match(/stage=(\d)/);if(_sm)ai=Math.min(8,+_sm[1]);}catch(_e){}
   // dev: ?fin=1 on the last chapter jumps straight to the finale run-in
   var _fin=false;try{_fin=/[?&]fin=1/.test(location.search);}catch(_e2){}
@@ -1328,9 +1334,9 @@ function update(){
     if(!(GS.bossDeadT>58&&(GS.tick&1)))GS.bossDeadT--;   // cinematic: the collapse opens in slow-motion
     var _kb=GS.boss;
     if(_kb){ // subtle push-in that CENTRES the fallen boss + eases Jandé out of the way
-      ZOOM+=(1.16-ZOOM)*0.07;
-      GS.camX+=((_kb.x+_kb.W/2-(VW/ZOOM)*0.5)-GS.camX)*0.07;GS.camX=Math.max(0,GS.camX);
-      GS.camY+=((_kb.y+_kb.H*0.5-(VH/ZOOM)*0.5)-GS.camY)*0.06;GS.camY=Math.max(0,GS.camY);
+      setZoom(ZOOM+(BASEZ*1.16-ZOOM)*0.07);   // relative to the DEVICE fit, VW/VH kept in sync
+      GS.camX+=((_kb.x+_kb.W/2-VW*0.5)-GS.camX)*0.07;GS.camX=Math.max(0,GS.camX);
+      GS.camY+=((_kb.y+_kb.H*0.5-VH*0.5)-GS.camY)*0.06;GS.camY=Math.max(0,GS.camY);
       var _away=(GS.p.x<_kb.x)?-1:1;                      // step clear of the collapse, still facing it
       GS.p.x=Math.max((GS.gateCol+1)*T,Math.min(GS.p.x+_away*2.6,(GS.LW-1)*T-PW));
       GS.p.faceL=_away>0;GS.p.vx=0;
@@ -1343,7 +1349,7 @@ function update(){
   // ── LEVEL CLEAR: the boss is down. Jandé stays on the cleared stage and emotes
   //    for a beat, then the results overlay rises. The player proceeds when ready. ──
   if(GS.levelClear){GS.clearT++;GS.p.vx*=0.8;
-    ZOOM+=(1-ZOOM)*0.08;                                  // ease the cinematic push-in back out
+    setZoom(ZOOM+(BASEZ-ZOOM)*0.08);                      // ease back to the DEVICE fit
     GS.camX+=((GS.p.x-VW*0.42)-GS.camX)*0.08;GS.camX=Math.max(0,GS.camX);
     tickFx();
     if(GS.clearT===100)showLevelClear();
@@ -4541,7 +4547,7 @@ function showLevelCard(ai,cb){var st=STAGES[ai];document.getElementById('lcR').t
   document.getElementById('lcDiv').style.background='linear-gradient(90deg,transparent,#'+st.ac.slice(1)+',transparent)';
   document.getElementById('lcL').textContent=st.lyr;var lc=document.getElementById('lvlCard');lc.classList.add('on');setTimeout(function(){lc.classList.remove('on');if(cb)cb();},2200);}
 function toRoman(n){return ['I','II','III','IV','V','VI','VII','VIII','IX'][n-1]||n;}
-function nextStage(){ZOOM=1;var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;CHECKPOINT=ai;CHECKPOINT_X=0;updateHUD();showLevelCard(ai,function(){});}
+function nextStage(){setZoom(BASEZ);var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;CHECKPOINT=ai;CHECKPOINT_X=0;updateHUD();showLevelCard(ai,function(){});}
 // ── THE REUNION ── the run's real ending: she reaches her prince. Drawn as a
 // tableau (his sprite + her back-view turning to him) over a gold bloom, then
 // the normal results board underneath so the run still scores.
