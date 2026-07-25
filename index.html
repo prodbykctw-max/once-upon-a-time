@@ -882,17 +882,21 @@ function buildRunner(gs){
 // Each RPG stage's unique villain (atlas row = stage index). The Groom — the
 // story's true antagonist — is the stage-9 finale.
 var BOSS_NAME=['INK WARDEN','THISTLE OGRE','BLOSSOM REVENANT','THORN QUEEN','LAKE WRAITH','TOADSTOOL WARLOCK','SCARECROW KING','STORM TITAN','THE GROOM WHO LIED'];
+// What each villain bleeds — color-coded to its own composition. Real red for the
+// humanoids (Thorn Queen, the Groom); themed matter for the creatures (ink, sap,
+// petals, water, spores, straw, storm-light).
+var BOSS_GORE=['26,20,34','120,170,60','255,150,205','200,20,55','110,200,255','200,130,255','214,172,92','170,210,255','195,22,42'];
 function buildBossArena(gs){
   var g=gs.genC, FL=FLOOR_R, ai=gs.ai, r, c;
   for(c=g;c<g+5;c++)groundCol(gs,c);                 // solid approach to the gate
   var gateC=g+5; gs.gateCol=gateC;
   for(r=4;r<FL;r++)setT(gs,gateC,r,'GATE');          // locked gate wall
-  var aEnd=gateC+18;
+  var aEnd=gateC+24;                                 // a wider arena — more room to dodge L↔R
   for(c=gateC+1;c<=aEnd;c++)groundCol(gs,c);         // arena floor
   for(r=1;r<FL;r++)setT(gs,aEnd,r,'G');              // right wall seals the arena
-  plat(gs,gateC+4,FL-4,3); plat(gs,gateC+12,FL-4,3); // two dodge platforms
+  plat(gs,gateC+5,FL-4,3); plat(gs,gateC+16,FL-4,3); // two dodge platforms, spread for the wider room
   gs.LW=aEnd;
-  var last=ai===STAGES.length-1, bx=gateC+9;
+  var last=ai===STAGES.length-1, bx=gateC+12;
   var bhp=Math.max(4,Math.round((last?28:7+ai*2)*(SET.diff==='hard'?1.4:SET.diff==='easy'?0.7:1)));
   // Each RPG stage has its OWN boss (atlas row = ai). float = airborne movers
   // (Blossom Revenant drifts like a wraith; Lake Wraith slithers vertically).
@@ -1320,8 +1324,10 @@ function update(){
     if(!p.noteGone){p.noteGone=true;sfx('death');noteBurst(p.x+PW/2,Math.min(p.y+PH/2,GS.LH*T-50),26);if(navigator.vibrate)navigator.vibrate([120,50,160]);}
     p.deadT++;if(p.deadT>110)showOver(false);return;}
   // boss defeated → brief victory beat, then next stage (or the finale ending)
-  if(GS.bossDeadT>0){GS.bossDeadT--;tickFx();
-    if(GS.bossDeadT===0){markClear(GS.ai);        // remember this stage as beaten (stage select)
+  if(GS.bossDeadT>0){
+    if(!(GS.bossDeadT>58&&(GS.tick&1)))GS.bossDeadT--;   // cinematic: the collapse opens in slow-motion
+    tickFx();
+    if(GS.bossDeadT===0){markClear(GS.ai);GS.bossKO=0;   // remember this stage as beaten (stage select)
       if(GS.ai>=STAGES.length-1){GS.won=true;showEnding();}
       else{GS.levelClear=true;GS.clearT=0;}}      // NOT auto-advance — she holds the stage, then the tally
     return;}
@@ -2924,7 +2930,7 @@ function updateBoss(){
   var b=GS.boss;if(!b||!b.alive)return;var p=GS.p;b.aT=(b.aT||0)+1;b.stateT++;
   if(b.hurtCd>0)b.hurtCd--;
   var bcx=b.x+b.W/2,dx=p.x-bcx,dy=p.y-(b.y+b.H/2),dist=Math.sqrt(dx*dx+dy*dy);
-  if(!b.enraged&&b.hp<=b.mhp/2){b.enraged=true;b.state='RAGE';b.stateT=0;b.stateTimer=90;document.getElementById('bbPh').classList.add('show');for(var z=0;z<3;z++)ptcl(bcx,b.y+b.H/2,'bdie');}
+  if(!b.enraged&&b.hp<=b.mhp/2){b.enraged=true;b.state='RAGE';b.stateT=0;b.stateTimer=90;document.getElementById('bbPh').classList.add('show');for(var z=0;z<3;z++)ptcl(bcx,b.y+b.H/2,'bdie',(BOSS_GORE&&BOSS_GORE[b.bi])||null);}
   var sp=b.enraged?1.3:1,ST=b.stateT;
   switch(b.state){
     case 'WAIT':b.vx*=0.8;b.faceL=p.x<bcx;if(b.stateTimer<=0)nextBoss(b);break;
@@ -2933,7 +2939,7 @@ function updateBoss(){
     case 'SLAM':if(ST===1){b.vy=-11;b.vx=0;}if(ST===18)b.vy=19;if(b.onGround&&ST>18){ptcl(bcx,b.y+b.H,'dive');b.slamT=24;if(p.onGround&&Math.abs(p.x-bcx)<180&&p.inv===0)hurtP(p);nextBoss(b);}break;
     case 'SHOOT':if(ST===12||ST===26||(b.enraged&&ST===40)){var ba=Math.atan2(dy,dx),spr=b.enraged?0.35:0.22;for(var kk=-1;kk<=1;kk++){var a2=ba+kk*spr,s2=b.enraged?7:5.5;b.bullets.push({x:bcx,y:b.y+b.H*0.4,vx:Math.cos(a2)*s2,vy:Math.sin(a2)*s2,life:1});}ptcl(bcx,b.y+b.H*0.4,'slash');}if(b.stateTimer<=0)nextBoss(b);break;
     case 'CHARGE':if(ST===1)b.chargeVx=(dx>0?1:-1)*8*sp;b.vx=b.chargeVx;if(p.x<b.x+b.W&&p.x+PW>b.x&&p.y<b.y+b.H&&p.y+PH>b.y&&p.inv===0)hurtP(p);if(b.stateTimer<=0||b.onWall){b.vx=0;nextBoss(b);}break;
-    case 'RAGE':b.vx*=0.85;if(b.aT%4===0)ptcl(bcx,b.y+b.H/2,'bdie');if(b.stateTimer<=0)nextBoss(b);break;
+    case 'RAGE':b.vx*=0.85;if(b.aT%4===0)ptcl(bcx,b.y+b.H/2,'bdie',(BOSS_GORE&&BOSS_GORE[b.bi])||null);if(b.stateTimer<=0)nextBoss(b);break;
     case 'DRIFT':b.vx+=(dx>0?1:-1)*0.12*sp;b.vx=Math.max(-2.4*sp,Math.min(2.4*sp,b.vx));b.faceL=dx<0;if(b.stateTimer<=0)nextBoss(b);break;}
   b.stateTimer--;if(b.slamT>0)b.slamT--;
   if(b.float){ // airborne: hover + vertical serpentine slither (Lake Wraith snakes hard, Blossom drifts soft)
@@ -2975,9 +2981,16 @@ function nextBoss(b){
 function hitE(e){e.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);GS.score+=120;ptcl(e.x+22,e.y+24,'hit');
   if(e.hp<=0){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);ptcl(e.x+22,e.y+10,'kill');updateHUD();}
   else{e.stg=true;e.stgT=20;e.vx*=-2;}}
-function hitB(b){if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd=16;GS.score+=550;ptcl(b.x+b.W/2,b.y+28,'bhit');
+function hitB(b){if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd=16;GS.score+=550;
+  var _gore=(typeof BOSS_GORE!=='undefined'&&BOSS_GORE[b.bi])||null;
+  ptcl(b.x+b.W/2,b.y+28,'bhit',_gore);   // hit spray in the villain's own colour
   if(b.state!=='RAGE'){b.state='WAIT';b.stateT=0;b.stateTimer=24;}
-  if(b.hp<=0){b.alive=false;b.bullets=[];GS.score+=7000;for(var i=0;i<5;i++)ptcl(b.x+Math.random()*b.W,b.y+Math.random()*b.H,'bdie');document.getElementById('bossBar').classList.remove('on');document.getElementById('bbPh').classList.remove('show');}
+  if(b.hp<=0){b.alive=false;b.bullets=[];GS.score+=7000;
+    // Themed, restrained death burst kept LOW at the base so the collapse art reads
+    // clearly (was 30 pink shards across the whole body, hiding the animation).
+    for(var i=0;i<3;i++)ptcl(b.x+b.W*(0.28+Math.random()*0.44),b.y+b.H*0.92,'bdie',_gore);
+    GS.bossKO=1;GS.hitstop=Math.max(GS.hitstop,6);   // a beat of impact, then the cinematic defeat
+    document.getElementById('bossBar').classList.remove('on');document.getElementById('bbPh').classList.remove('show');}
   document.getElementById('bbF').style.width=(Math.max(0,b.hp)/b.mhp*100)+'%';updateHUD();}
 function hurtP(p){if(p.inv>0)return;
   if(GS.shieldT>0){ptcl(p.x+14,p.y+30,'dash');p.inv=30;return;}
@@ -2995,7 +3008,7 @@ function applyPowerup(type){
   else if(type==='HIGHNOTE'){GS.shieldT=480+shop().shd*80;GS.fxMax.shieldT=GS.shieldT;GS.toasts.push({txt:'HIGH NOTE',sub:'SHIELDED',t:190,max:190,ico:'shield'});}
   updateHUD();}
 
-function ptcl(x,y,tp){var r=Math.random;
+function ptcl(x,y,tp,colO){var r=Math.random;
   var D={jdust:{n:5,c:'200,160,255',r:3,vx:5,vy:-3,g:.15,dr:.93,d:.045},wjump:{n:8,c:'200,160,255',r:3,vx:7,vy:-5,g:.18,dr:.92,d:.038},
     dive:{n:10,c:'139,0,255',r:4,vx:7,vy:3,g:.1,dr:.94,d:.038},dash:{n:14,c:'0,255,238',r:4,vx:1,vy:3,g:0,dr:.88,d:.065},
     slash:{n:9,c:'220,210,255',r:3,vx:9,vy:9,g:.1,dr:.92,d:.06},note:{n:12,c:'200,160,255',r:4,vx:7,vy:-6,g:.2,dr:.93,d:.03},
@@ -3005,7 +3018,7 @@ function ptcl(x,y,tp){var r=Math.random;
     bhit:{n:16,c:'255,215,0',r:5,vx:12,vy:-9,g:.25,dr:.92,d:.024},bdie:{n:30,c:'255,45,138',r:7,vx:16,vy:-11,g:.28,dr:.91,d:.012},
     bph:{n:30,c:'255,51,85',r:5,vx:13,vy:-9,g:.26,dr:.92,d:.016}};
   var d=D[tp]||D.note;
-  for(var i=0;i<d.n;i++)GS.ptcl.push({x:x,y:y,r:d.r*(0.5+r()*0.8),col:d.c,vx:(r()-.5)*d.vx*2,vy:d.vy<0?d.vy*r():(r()-.5)*d.vy*2,g:d.g,dr:d.dr,life:1,d:d.d});}
+  for(var i=0;i<d.n;i++)GS.ptcl.push({x:x,y:y,r:d.r*(0.5+r()*0.8),col:colO||d.c,vx:(r()-.5)*d.vx*2,vy:d.vy<0?d.vy*r():(r()-.5)*d.vy*2,g:d.g,dr:d.dr,life:1,d:d.d});}
 
 // ════════════════════════════════════════════════════════════
 //  DRAW (FX canvas over the WebGL background)
@@ -3466,15 +3479,23 @@ function drawMansionBG(st){
   //    procedural far-scene only if the backdrop image hasn't loaded.
   var _bg=SIDE_BG_IMG[ai];
   if(_bg){
-    var bh=groundY+24,bw=bh,boff=(-cam*0.05)%(bw*2);if(boff>0)boff-=bw*2;
+    // FULL painted backdrop, unimpeded — it IS the background on these outdoor stages
+    // (the interior wall band below is skipped whenever a backdrop is loaded). Scaled
+    // to cover the whole play height with its own ground seated at the play floor, and
+    // mirror-tiled on a slow parallax so the distant world reads continuous.
+    var bh=Math.max(groundY+40,H*0.94),bw=bh,by=groundY+30-bh;
+    var boff=(-cam*0.045)%(bw*2);if(boff>0)boff-=bw*2;
     for(var bx=boff;bx<W+bw;bx+=bw){
-      if(Math.round((bx-boff)/bw)%2===1){FX.save();FX.translate(bx+bw,0);FX.scale(-1,1);FX.drawImage(_bg,0,0,bw,bh);FX.restore();}
-      else FX.drawImage(_bg,bx,0,bw,bh);
+      if(Math.round((bx-boff)/bw)%2===1){FX.save();FX.translate(bx+bw,0);FX.scale(-1,1);FX.drawImage(_bg,0,by,bw,bh);FX.restore();}
+      else FX.drawImage(_bg,bx,by,bw,bh);
     }
-    FX.fillStyle='rgba(0,0,0,0.05)';FX.fillRect(0,0,W,bh);   // seat it slightly behind the action
+    var _bwash=FX.createLinearGradient(0,0,0,groundY+30);   // aerial depth so the fighters pop in front
+    _bwash.addColorStop(0,'rgba(6,3,12,0.04)');_bwash.addColorStop(1,'rgba(6,3,12,0.17)');
+    FX.fillStyle=_bwash;FX.fillRect(0,0,W,groundY+30);
   }else if(window._FARSCENE)drawFarScene(ai,cam,groundY,tick,ac);
-  // ── BAKED 2.5D WALL BAND (the same components as Temple View) ──
-  if(TEX.walls){
+  // ── BAKED 2.5D WALL BAND — only when there's NO painted backdrop (a loaded
+  //    backdrop is the full unimpeded background; the wall would cover it). ──
+  if(TEX.walls&&!_bg){
     FX.imageSmoothingEnabled=false;
     var wTop=H*0.05,wScale=(groundY-wTop)/192,wW2=144*wScale;
     var offW=(-cam*0.35)%wW2;if(offW>0)offW-=wW2;
@@ -3595,7 +3616,7 @@ function drawMansionBG(st){
 //    stay readable against the gloom (the Silksong mood, only at the villains).
 function drawGroomShadowBg(){
   var a=GS.bossMood||0;
-  FX.fillStyle='rgba(9,4,16,'+(0.52*a)+')';FX.fillRect(0,0,W,H);
+  FX.fillStyle='rgba(9,4,16,'+(0.66*a)+')';FX.fillRect(0,0,W,H);
   for(var i=0;i<4;i++){
     var fx=((i*300-GS.tick*(0.5+i*0.22))%(W+520))-260, fy=H*(0.22+i*0.17);
     var g=FX.createRadialGradient(fx,fy,0,fx,fy,230);
@@ -3608,7 +3629,7 @@ function drawGroomShadowBg(){
 function drawGroomShadowFg(){
   var a=GS.bossMood||0;
   var v=FX.createRadialGradient(W/2,H*0.5,H*0.18,W/2,H*0.5,H*0.80);
-  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(0.7,'rgba(0,0,0,'+(0.22*a)+')');v.addColorStop(1,'rgba(0,0,0,'+(0.62*a)+')');
+  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(0.7,'rgba(0,0,0,'+(0.30*a)+')');v.addColorStop(1,'rgba(0,0,0,'+(0.74*a)+')');
   FX.fillStyle=v;FX.fillRect(0,0,W,H);
 }
 function draw(){
@@ -4309,6 +4330,11 @@ function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A
     bg3.addColorStop(1,'transparent');
     FX.fillStyle=bg3;FX.fillRect(x-b.W,y-b.H*0.6,b.W*3,b.H*2.2);
     if(b.alive)drawBossAura(b,x,y,A);            // per-boss signature atmosphere
+    else{ // cinematic KO spotlight — highlight the collapse frames against the dark
+      var _kg=FX.createRadialGradient(x+b.W/2,y+b.H*0.42,12,x+b.W/2,y+b.H*0.42,b.H*1.7);
+      _kg.addColorStop(0,'rgba(255,247,224,0.30)');_kg.addColorStop(0.5,'rgba(255,240,208,0.11)');_kg.addColorStop(1,'transparent');
+      FX.fillStyle=_kg;FX.fillRect(x-b.W*2,y-b.H,b.W*5,b.H*2.7);
+    }
     var _da=b.alive?1:(0.22+0.78*Math.max(0,GS.bossDeadT)/(GS.bossDeadMax||90));
     FX.save();FX.globalAlpha=_da;
     if(b.faceL){FX.translate(x+b.W/2,0);FX.scale(-1,1);FX.translate(-(x+b.W/2),0);} // art faces right
