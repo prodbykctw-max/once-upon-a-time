@@ -78,6 +78,10 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 .sh-pips{color:#FFD700;font-size:10px;letter-spacing:2px}
 #settingsScr{position:absolute;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(8,2,16,.88)}
 #settingsScr.on{display:flex}
+.ht-opts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 12px}
+.ht-opt{font-family:Storyboo,sans-serif;font-size:11px;letter-spacing:1px;padding:10px 18px;border-radius:10px;
+  border:1px solid rgba(255,215,0,.42);background:rgba(40,22,60,.62);color:#ffd76e;cursor:pointer}
+.ht-opt:hover{border-color:rgba(255,215,0,.85);background:rgba(60,34,86,.72)}
 #stageSelScr{position:absolute;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(8,2,16,.88)}
 #stageSelScr.on{display:flex}
 .ss-b{font-family:Storyboo;font-size:12px;padding:9px 14px;border-radius:9px;border:1px solid rgba(200,255,216,.4);background:rgba(30,60,40,.5);color:#e8fff0;cursor:pointer;min-width:96px}
@@ -410,6 +414,10 @@ body.mobile .joy-knob{width:64px;height:64px}
       <div class="ht-move"><span class="ht-key"><img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABDUlEQVR4nO3bMQrCQBBA0SgewNIipViKR/CcnkOscwSxFMsUlt5AL5Dxu7CTBfmvDBjXz+IyBrtOkiRJkjS3RekLtuvNO2Mhc3m8nkWfeZm1kH9hIGAgYCBgIBB+o0en1a7v81bzxXF/qHKf0+U8eT063dxBwEDAQMBAwEBg1XoBvxpu1ybv6w4CBgIGAgYCBgIGAgYCBgIGAgYCBgLVnou1+qUxch/Hyes+F6vMQMBAwEDAQMBAwEDAQMBAwEDAQKB4Fou0mtFqzVwRdxAwEDAQMBAwEDAQMBAwEDAQMBAwEKg2i0VqzWjZM1fEHQQMBAwEDAQMBNJPsUjpv6ezT6uIOwgYCBgIGAgYCHwAkowm15Hv3IcAAAAASUVORK5CYII=" alt=""></span><span class="ht-txt">Slide under gates</span></div>
       <div class="ht-move"><span class="ht-key">SWIPE</span><span class="ht-txt">On touch: swipe to move, jump &amp; slide</span></div>
       <div class="ht-move ht-coin"><span class="ht-key">✦</span><span class="ht-txt">Collect coins to earn power-ups!</span></div>
+    </div>
+    <div class="ht-opts">
+      <button class="ht-opt" id="htStage" style="display:none">⚑ STAGE SELECT</button>
+      <button class="ht-opt" id="htShop">✦ THE BOUTIQUE</button>
     </div>
     <button class="ht-go btn-tav" id="htGo">GO</button>
   </div>
@@ -4766,6 +4774,11 @@ function showHowTo(){var side=MODE==='side';
     'The Groom Who Lied is chasing her. Run, leap and slide through the enchanted halls \u2014 and don\u2019t get caught.';
   document.getElementById('htMovesSide').style.display=side?'':'none';
   document.getElementById('htMovesTemple').style.display=side?'none':'';
+  // MODE-SPECIFIC OPTIONS live here, after the mode is chosen — Stage Select is
+  // ACTION RPG only (it is the mode that records beaten stages).
+  var _hs=document.getElementById('htStage');
+  if(_hs){var _cl=clearsOwned(),_any=false;for(var _k in _cl)if(_cl[_k]){_any=true;break;}
+    _hs.style.display=(side&&_any)?'':'none';}
   show('howToScreen');}
 function shopRender(){
   var sp=shop(),w=wallet(),rows=document.getElementById('shRows'),h='';
@@ -4805,10 +4818,10 @@ function refreshModeStats(){
     document.getElementById('shClose').onclick=function(){sfx('ui');document.getElementById('shopScr').classList.remove('on');refreshModeStats();};}}
 function showModeSel(){
   refreshModeStats();
-  // reveal STAGE SELECT once at least one stage has been beaten
-  var _ss=document.getElementById('msStageSel');
-  if(_ss){var _cl=clearsOwned(),_any=false;for(var _k in _cl)if(_cl[_k]){_any=true;break;}
-    _ss.style.display=_any?'inline-block':'none';}
+  // Mode-specific entries (Stage Select, Boutique) now live on the per-mode how-to
+  // screen — you pick a mode first, then its options. Keep them off this screen.
+  var _ss=document.getElementById('msStageSel');if(_ss)_ss.style.display='none';
+  var _sh=document.getElementById('msShop');if(_sh)_sh.style.display='none';
   show('modeScreen');}
 // fixed-timestep: physics always advance at 60Hz regardless of render FPS,
 // so slow phones don't turn jumps into slow-motion mush
@@ -4837,6 +4850,12 @@ window._devState=function(){var t=GS.t3||{},p=GS.p||{};return {mode:MODE,ai:GS.a
   obs:(t.obs||[]).map(function(o){return o.tp+'@'+Math.round(o.z)+'L'+o.lane;}).slice(0,12)};};
 window._devWallet=function(g){var w=wallet();if(g!=null)w.gems=g;setWallet(w);if(window.GS&&GS.p)GS.gemsLive=w.gems;return w.gems;};}
 function startGame(){
+  // WIPE BOTH CANVASES FIRST. #fxC is cleared to transparent every frame, so
+  // whatever is still sitting on #glC underneath shows through — entering a run,
+  // that was the PREVIOUS WebGL frame (an old world), flashing for a beat before
+  // the new one renders. Clear them so a run always opens on a clean slate.
+  try{if(GL){GL.clearColor(0,0,0,0);GL.clear(GL.COLOR_BUFFER_BIT|GL.DEPTH_BUFFER_BIT);}}catch(e){}
+  try{FX.clearRect(0,0,FXC.width,FXC.height);}catch(e){}
   // hide ALL fullscreen overlays so the game canvas is visible
   var scr=document.querySelectorAll('.screen');for(var si=0;si<scr.length;si++)scr[si].classList.remove('active');
   document.getElementById('gameWrap').classList.add('on');
@@ -4932,6 +4951,10 @@ function wire(){
     if(EJ_LIVE&&window.emailjs){emailjs.send(EJ_S,EJ_T,{from_name:nm||'Anonymous',from_email:em,reply_to:em,message:'Signup: '+nm+' | '+em}).then(function(){setTimeout(showModeSel,800);}).catch(function(){setTimeout(showModeSel,800);});}else setTimeout(showModeSel,800);};
   document.getElementById('lSkip').onclick=showModeSel;
   document.getElementById('htGo').onclick=function(){audInit();sfx('ui');startGame();};
+  (function(){var hb=document.getElementById('htShop');   // Boutique, per mode, after mode select
+    if(hb)hb.onclick=function(){audInit();sfx('ui');document.getElementById('shopScr').classList.add('on');shopRender();};
+    var sc=document.getElementById('shClose');
+    if(sc)sc.onclick=function(){sfx('ui');document.getElementById('shopScr').classList.remove('on');};})();
   document.getElementById('htBack').onclick=function(){sfx('ui');showModeSel();};
   (function(){var inp=document.getElementById('ovNameInput'),btn=document.getElementById('ovNameSave'),ok=document.getElementById('ovNameOk');
     if(!inp||!btn)return;
@@ -4960,6 +4983,8 @@ function wire(){
         scr.classList.remove('on');showHowTo();};});
     }
     if(openB)openB.onclick=function(){audInit();sfx('ui');render();scr.classList.add('on');};
+    var htS=document.getElementById('htStage');   // the per-mode entry (after mode select)
+    if(htS)htS.onclick=function(){audInit();sfx('ui');render();scr.classList.add('on');};
     if(closeB)closeB.onclick=function(){sfx('ui');scr.classList.remove('on');};
   })();
   document.getElementById('ovR').onclick=function(){sfx('ui');
