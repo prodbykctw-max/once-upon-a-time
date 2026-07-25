@@ -3557,7 +3557,8 @@ function drawMansionBG(st){
     sepG.addColorStop(0,'rgba(28,16,8,0)');sepG.addColorStop(1,'rgba(28,16,8,0.55)');
     FX.fillStyle=sepG;FX.fillRect(0,groundY-20,W,24);
   }
-  // ── warm chandelier/torch light pools ──
+  // ── warm chandelier/torch light pools — INTERIOR ONLY (a meadow has no chandeliers) ──
+  if(!_bg){
   var lampSp=480,off4=(-cam*0.58)%lampSp;
   for(var lx=off4-lampSp;lx<W+lampSp;lx+=lampSp){
     var flick=0.80+0.20*Math.sin(tick*0.07+lx*0.01);
@@ -3571,6 +3572,7 @@ function drawMansionBG(st){
     for(var cb=-2;cb<=2;cb++){var cx2=lx+cb*11,cy2=H*0.068;
       FX.fillStyle='rgba(245,235,210,0.85)';FX.fillRect(cx2-1.5,cy2,3,8);
       FX.fillStyle='rgba(255,210,80,'+(0.85*flick)+')';FX.beginPath();FX.arc(cx2,cy2-3,2.5,0,6.28);FX.fill();}}
+  }
   // ── DECOR PROPS on the track line (same assets as Temple View) ──
   if(TEX.decor){
     var propSp=340,off5=(-cam*0.72)%propSp;
@@ -3621,6 +3623,16 @@ function drawMansionBG(st){
     FX.strokeStyle='rgba(90,110,140,0.7)';FX.lineWidth=1.6;
     FX.beginPath();FX.moveTo(bxp-5,byp+wu);FX.quadraticCurveTo(bxp-2,byp-2,bxp,byp);
     FX.quadraticCurveTo(bxp+2,byp-2,bxp+5,byp+wu);FX.stroke();}
+  // ── the ground below the play line. OUTDOORS (painted backdrop) that's shaded
+  //    earth so the floor reads solid and planted; INDOORS it's the polished
+  //    parquet. A herringbone wood floor under a meadow was the giveaway.
+  if(_bg){
+    var erG=FX.createLinearGradient(0,floorY,0,H);
+    erG.addColorStop(0,'rgba(46,58,30,0.22)');erG.addColorStop(0.45,'rgba(32,42,22,0.42)');erG.addColorStop(1,'rgba(16,22,12,0.62)');
+    FX.fillStyle=erG;FX.fillRect(0,floorY,W,H-floorY);
+    FX.fillStyle='rgba(0,0,0,0.20)';FX.fillRect(0,floorY,W,3);        // crisp ground line
+    FX.fillStyle='rgba(255,246,214,0.05)';FX.fillRect(0,floorY+3,W,5); // sunlit lip
+  }else{
   // ── floor base gradient (polished wood / stone) ──
   var flG=FX.createLinearGradient(0,floorY,0,H);
   flG.addColorStop(0,'rgba(255,235,190,0.20)');flG.addColorStop(0.3,'rgba('+pc+',0.12)');flG.addColorStop(1,'rgba(70,48,26,0.5)');
@@ -3632,6 +3644,7 @@ function drawMansionBG(st){
   for(fx2=poff+pq*0.5-H;fx2<W+H;fx2+=pq){FX.beginPath();FX.moveTo(fx2+H-floorY,floorY);FX.lineTo(fx2,H);FX.stroke();}
   // floor highlight strip (waxed floor sheen)
   FX.fillStyle='rgba(255,240,200,0.03)';FX.fillRect(0,floorY,W,8);
+  }
   // ── atmospheric fog at floor line ──
   var fogG=FX.createLinearGradient(0,floorY-40,0,floorY+20);
   fogG.addColorStop(0,'rgba('+pc+',0)');fogG.addColorStop(0.5,'rgba('+pc+',0.06)');fogG.addColorStop(1,'rgba('+pc+',0)');
@@ -3802,6 +3815,10 @@ function drawTile(t,ac,pc){var x=t.c*T,y=t.r*T,s=T;
   var isTop=!isSolid(t.c,t.r-1),isL=!isSolid(t.c-1,t.r),isR=!isSolid(t.c+1,t.r),isBtm=!isSolid(t.c,t.r+1);
   var fH=13; // 2.5D front-face depth in px
   // ── BODY ──────────────────────────────────────────────────
+  // OPAQUE base first: the tinted gradient below fades to 0.50 alpha, which used to
+  // sit against the opaque wall band. Over a painted backdrop that read as a sheet
+  // of translucent glass floating in front of the scenery — so ground the tile.
+  FX.fillStyle=shade(pc,0.42);FX.fillRect(x,y,s,s);
   var g=FX.createLinearGradient(x,y,x,y+s);
   g.addColorStop(0,'rgba('+pc+',0.92)');g.addColorStop(0.5,'rgba('+pc+',0.70)');g.addColorStop(1,'rgba('+pc+',0.50)');
   FX.fillStyle=g;FX.fillRect(x,y,s,s);
