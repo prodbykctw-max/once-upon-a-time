@@ -2735,6 +2735,20 @@ function drawT(){
       if(TEX.obwall){
         var aww=obW*es*2.15,awh=aww*0.875;
         FX.drawImage(TEX.obwall,ai*256,0,256,224,ex-aww/2,ey-awh,aww,awh);
+        // TELEGRAPH: a wall CANNOT be jumped or slid — SWITCH LANES. Amber outward
+        // ↔ chevrons (distinct from the gate's cyan DOWN chevron) + a solid red
+        // no-pass floor bar, so it never reads as a slide-under arch.
+        if(!(SET&&SET.diff==='hard')){
+          var wcA=0.5+0.5*Math.sin(GS.tick*0.2),wcW=aww*0.13,wcH=Math.max(6,awh*0.13),wcY=ey-awh*0.42;
+          FX.lineJoin='round';FX.lineCap='round';
+          for(var wsD=-1;wsD<=1;wsD+=2){var wcx=ex+wsD*aww*0.30;
+            FX.beginPath();FX.moveTo(wcx-wsD*wcW,wcY-wcH);FX.lineTo(wcx+wsD*wcW,wcY);FX.lineTo(wcx-wsD*wcW,wcY+wcH);
+            FX.strokeStyle='rgba(0,0,0,0.82)';FX.lineWidth=Math.max(2.5,10*es);FX.stroke();
+            FX.strokeStyle='rgba(255,182,44,'+wcA+')';FX.lineWidth=Math.max(1.5,6*es);FX.stroke();}
+          FX.lineJoin='miter';FX.lineCap='butt';
+        }
+        FX.fillStyle='rgba(255,60,40,'+(0.34+0.26*Math.sin(GS.tick*0.2))+')';   // red no-pass danger line
+        FX.fillRect(ex-aww*0.34,ey-3*es,aww*0.68,Math.max(2,5*es));
         continue;
       }
       var ww=obW*es*1.8,wh2=190*es;
