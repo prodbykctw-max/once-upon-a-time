@@ -4,9 +4,17 @@
 Screenshots are in `docs/landscape/`. Client's words: *"This is how horrible
 everything looks sideways."*
 
-Portrait is fine. **Everything below is landscape-only.** Nine issues, ordered by
-how bad they look. #1 and #2 are the ones that make it feel broken; the rest are
-clipping/overflow.
+Portrait is fine. **Everything below is landscape-only** (plus #0b, which also
+hits any large desktop window). Twelve issues.
+
+**#0, #0b, #0c and #1 are root-caused down to the line** — those four are what
+make the game feel broken, and they are four *independent* bugs. The rest
+(#2–#8) are clipping/overflow and cosmetics.
+
+They share one underlying mistake, which is why they all surfaced at once when
+the phone was turned sideways: **a quantity that should scale with the world (or
+with the hero) is pinned to a raw screen dimension instead.** Portrait hides all
+four because `W < H` there.
 
 ---
 
