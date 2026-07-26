@@ -4566,9 +4566,12 @@ function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A
   var _bbi=b.bi||0, _bc=(typeof BOSS_GORE!=='undefined'&&BOSS_GORE[_bbi])||'255,60,30';
   var _core=['235,225,205','230,245,200','255,235,246','255,225,235','225,248,255','245,230,255','255,246,214','255,255,255','255,214,224'][_bbi]||'255,242,200';
   for(var _bi=0;_bi<b.bullets.length;_bi++){var _bl=b.bullets[_bi];
-    var _bg=FX.createRadialGradient(_bl.x,_bl.y,0,_bl.x,_bl.y,10);
-    _bg.addColorStop(0,'rgba('+_bc+',0.95)');_bg.addColorStop(0.6,'rgba('+_bc+',0.5)');_bg.addColorStop(1,'rgba('+_bc+',0)');
-    FX.fillStyle=_bg;FX.beginPath();FX.arc(_bl.x,_bl.y,10,0,6.28);FX.fill();
+    // Ink Warden's matter is NEAR-BLACK (BOSS_GORE[0]) on a dark library backdrop —
+    // glow with the paper cream instead so the projectile reads at gameplay size.
+    var _gc=(_bbi===0?_core:_bc);
+    var _bg=FX.createRadialGradient(_bl.x,_bl.y,0,_bl.x,_bl.y,12);
+    _bg.addColorStop(0,'rgba('+_gc+',0.95)');_bg.addColorStop(0.6,'rgba('+_gc+',0.5)');_bg.addColorStop(1,'rgba('+_gc+',0)');
+    FX.fillStyle=_bg;FX.beginPath();FX.arc(_bl.x,_bl.y,12,0,6.28);FX.fill();
     // The thrown object IS the villain's own matter, drawn big enough to read.
     var _ang=Math.atan2(_bl.vy||0,_bl.vx||1);
     FX.save();FX.translate(_bl.x,_bl.y);FX.rotate(_ang);
@@ -4590,9 +4593,15 @@ function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A
     }else if(_bbi===4){      // LAKE WRAITH — a water droplet with a tail
       FX.beginPath();FX.moveTo(13,0);FX.quadraticCurveTo(0,7,-11,0);FX.quadraticCurveTo(0,-7,13,0);FX.fill();
       FX.fillStyle='rgba('+_core+',0.9)';FX.beginPath();FX.arc(4,-1.4,2.4,0,6.28);FX.fill();
-    }else if(_bbi===0){      // INK WARDEN — a torn page fragment trailing ink
-      FX.fillRect(-8,-6,15,12);
-      FX.fillStyle='rgba('+_core+',0.85)';FX.fillRect(-5,-3.4,9,1.6);FX.fillRect(-5,0.6,7,1.6);
+    }else if(_bbi===0){      // INK WARDEN — a torn PAPER page, cream with dark ink
+      // was: a near-black 15x12 rect (ink-on-ink against the dark library) — invisible.
+      // Paper is the light thing; the INK is dark. Bigger, torn edge, and tumbling.
+      FX.rotate(A*0.15);
+      FX.fillStyle='rgba('+_core+',0.96)';
+      FX.beginPath();FX.moveTo(-12,-8);FX.lineTo(9,-9);FX.lineTo(12,-4);FX.lineTo(10,7);FX.lineTo(-8,9);FX.lineTo(-12,3);FX.closePath();FX.fill();
+      FX.strokeStyle='rgba('+_bc+',0.9)';FX.lineWidth=1.4;FX.stroke();
+      FX.fillStyle='rgba('+_bc+',0.9)';
+      FX.fillRect(-7,-4,14,1.8);FX.fillRect(-7,-0.5,11,1.8);FX.fillRect(-7,3,13,1.8);
     }else{                   // TOADSTOOL spores / GROOM embers — a clustered mote
       FX.beginPath();FX.arc(0,0,6,0,6.28);FX.fill();
       for(var _sp=0;_sp<3;_sp++){var _sa=A*0.16+_sp*2.09;

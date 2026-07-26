@@ -393,6 +393,10 @@ pre-deploy gate to stop the glyph rule regressing a third time.
 - **Wordmark sized off the wrong axis** - `16vw` was 7.4% of a portrait viewport but
   32.6% of a landscape one. Capped with `min(16vw,20vh)`. Third instance of this
   class of bug, after the runner hazards and the decor baseline.
+- **Ink Warden projectile was invisible, not thin** — drawn as a near-black rect
+  (`BOSS_GORE[0]`) with a near-black glow on the dark library backdrop. Now cream
+  paper with dark ink, torn edge, tumbling. Painted AutoSprite replacements for
+  all nine projectiles specced in `docs/PROJECTILE_ART_BRIEF.md`.
 - **Boss music** now darkens on the same eased `GS.bossMood` curve as the Shadow of
   the Groom visuals; the mechanism existed in `musTick` but its `danger` flag was
   wired only to the runner's chaser, so RPG bosses had no musical change at all.
