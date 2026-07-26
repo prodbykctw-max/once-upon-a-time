@@ -1558,7 +1558,15 @@ function update(){
     GS.camY+=((FLOOR_R*T-VH*0.82)-GS.camY)*0.14;
   }else{
     GS.camY+=(p.y-VH*0.55-GS.camY)*0.09;
-    GS.camY=Math.max(0,Math.min(GS.camY,GS.LH*T-VH));   // VW/VH == W/H at zoom 1
+    // Cap how far BELOW the floor the camera may look, as a share of the viewport
+    // rather than a fixed world margin. The old clamp (GS.LH*T-VH) let the camera
+    // run to the bottom of the level: the same ~6-7 tiles of dead ground is 15% of
+    // a tall portrait screen but ~39% of a short landscape one, which is why
+    // landscape showed a giant featureless slab and buried the painted backdrop.
+    // Anchoring the ground surface at ~82% of the viewport matches the portrait
+    // branch above, so the framing reads the same in both orientations.
+    var _cyMax=Math.max(0,Math.min(GS.LH*T-VH,FLOOR_R*T-VH*0.82));
+    GS.camY=Math.max(0,Math.min(GS.camY,_cyMax));
   }
 
   // ── TRACK: generate ahead, prune far behind ──
@@ -2617,7 +2625,14 @@ function drawT(){
   if(!glwOK){FX.fillStyle='rgba(0,0,0,'+(isOut?0.08:0.5)+')';FX.fillRect(-100,0,W+200,vpY*0.5);}
   // ── ENTITIES far → near ──
   FX.imageSmoothingEnabled=false;
-  var obW=Math.max(laneW,H*0.125)*1.1; // hazard size basis: never starved by portrait width
+  // Hazards size off the SAME basis as the hero (viewport HEIGHT), so a roll-under
+  // gate is a constant fraction of Jandé in every orientation. This used to be
+  // max(laneW, H*0.125): the laneW floor fixed portrait starvation but had no
+  // ceiling, so once W>H the width term won and obstacles ballooned — 0.40x her
+  // height in portrait but 1.30x in landscape, which is why an arch stopped
+  // reading as something you duck under. H*0.125 IS the value portrait already
+  // resolved to, so portrait is unchanged; landscape and desktop now match it.
+  var obW=H*0.125*1.1; // hazard size basis: hero-relative, orientation-independent
   var ents=[];
   for(var i=0;i<t3.obs.length;i++)ents.push(t3.obs[i]);
   for(i=0;i<t3.coins.length;i++)ents.push(t3.coins[i]);
@@ -3499,7 +3514,15 @@ function _hedges(hz,po,col,h){var sp=64,o=po%sp;if(o>0)o-=sp;FX.fillStyle=col;
 function drawMansionBG(st){
   var pc=hexS(st.pc),ac=hexS(st.ac),cam=GS.camX,ai=GS.ai,tick=GS.tick;
   var floorY=H*0.82;
-  var groundY=Math.min(floorY,14*32-(GS.camY||0)); // top of the track tiles
+  // The world is drawn scaled by ZOOM (see draw(): FX.scale(ZOOM,ZOOM)), so the
+  // real floor lands at (FLOOR_R*T - camY) * ZOOM. This baseline used to omit the
+  // * ZOOM (and hard-code 14), so it only agreed with the floor when ZOOM===1 —
+  // which never happens in side mode (clamped 0.5-0.78). Décor planted on it sat
+  // buried or floating, and because the two tracked camY at DIFFERENT rates the
+  // props visibly swam whenever she jumped. Worse in landscape, where the lower
+  // floorY clamp exposed the mismatch far more often.
+  var _wz=(typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1;
+  var groundY=Math.min(floorY,(FLOOR_R*T-(GS.camY||0))*_wz); // top of the track tiles
   // ── base: fairytale daytime sky ──
   var _sk=SIDE_SKY[ai]||SIDE_SKY[0];
   var bgG=FX.createLinearGradient(0,0,0,H);
@@ -3537,10 +3560,18 @@ function drawMansionBG(st){
     // to cover the whole play height with its own ground seated at the play floor, and
     // mirror-tiled on a slow parallax so the distant world reads continuous.
     var bh=Math.max(groundY+40,H*0.94),bw=bh*(_bg.width/_bg.height),by=groundY+30-bh;
-    var boff=(-cam*0.045)%(bw*2);if(boff>0)boff-=bw*2;
+    // SNAP TO INTEGER EDGES, like the wall band does. bw is a float and bx
+    // accumulated floats, so adjacent tiles never shared an exact edge — leaving a
+    // 1px seam that scrolled across the screen. Round each tile's left/right and
+    // derive the width from the difference. Parity is keyed to a STABLE WORLD
+    // index (not one relative to boff, which wraps) so tiles never flip-flash.
+    var bpar=cam*0.045;
+    var boff=(-bpar)%(bw*2);if(boff>0)boff-=bw*2;
     for(var bx=boff;bx<W+bw;bx+=bw){
-      if(Math.round((bx-boff)/bw)%2===1){FX.save();FX.translate(bx+bw,0);FX.scale(-1,1);FX.drawImage(_bg,0,by,bw,bh);FX.restore();}
-      else FX.drawImage(_bg,bx,by,bw,bh);
+      var bx0=Math.round(bx),bx1=Math.round(bx+bw),btw=bx1-bx0;
+      var bk=Math.round((bx+bpar)/bw);            // stable world-space tile index
+      if(bk&1){FX.save();FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);FX.drawImage(_bg,bx0,by,btw,bh);FX.restore();}
+      else FX.drawImage(_bg,bx0,by,btw,bh);
     }
     var _bwash=FX.createLinearGradient(0,0,0,groundY+30);   // aerial depth so the fighters pop in front
     _bwash.addColorStop(0,'rgba(6,3,12,0.04)');_bwash.addColorStop(1,'rgba(6,3,12,0.17)');
@@ -3596,16 +3627,19 @@ function drawMansionBG(st){
   }
   // ── DECOR PROPS on the track line (same assets as Temple View) ──
   if(TEX.decor){
-    var propSp=340,off5=(-cam*0.72)%propSp;
+    // Geometry is scaled by the world ZOOM so a statue keeps a constant size and
+    // spacing IN THE WORLD across orientations. These were fixed screen pixels, so
+    // portrait (0.645) and landscape (0.78) drew them at different world sizes.
+    var propSp=340*_wz,off5=(-cam*0.72*_wz)%propSp;
     FX.imageSmoothingEnabled=false;
     // Every atlas cell carries ~14px of transparent pad below the prop; without
     // compensating, tall thin props (e.g. the marble statue) read as floating.
     // Shift down by the scaled pad + 2px so each base plants on the track line.
-    var plant=176*14/240+2;
+    var plant=(176*14/240+2)*_wz;
     for(var px5=off5-propSp;px5<W+propSp;px5+=propSp){
-      var dh2=176,dw2=106;
+      var dh2=176*_wz,dw2=106*_wz;
       FX.fillStyle='rgba(0,0,0,0.32)';
-      FX.beginPath();FX.ellipse(px5+dw2/2,groundY-2,dw2*0.42,6,0,0,6.28);FX.fill();
+      FX.beginPath();FX.ellipse(px5+dw2/2,groundY-2,dw2*0.42,6*_wz,0,0,6.28);FX.fill();
       FX.drawImage(TEX.decor,decorCell(ai)*144,0,144,240,px5,groundY-dh2+plant,dw2,dh2);}
     FX.imageSmoothingEnabled=true;
   }
