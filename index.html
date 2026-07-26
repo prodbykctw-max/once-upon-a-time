@@ -18,6 +18,11 @@
 @font-face{font-family:'PoppinsJande';font-style:normal;font-weight:900;src:url(data:font/woff2;base64,d09GMgABAAAAAANgAAwAAAAABkwAAAMQAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGx4cLgZgAGwKg0CCaAsYAAE2AiQDLAQgBYNCByAbBwXIBB7ovezNTLaYtEfmqD1QKcAt+HWAPiV8iYph09m2bFkjlpHgkLJjX9nTokoVbk3ncLjmHVVQhcMiPEoxjF1cxgIC0FRjAkSffkNsfDAgVcex9RK7KYaC3krxCQVuymEqRi1dqRlsqAI1ERfI6TIYu4PdORGJW4xCLY2W783LA+1+wzmGJXobVf6vIN7wyFwLFsCJbCPPY1ij2BLZCvbKoeY1LYcBjFqGUigkFj3pyyCGcZzzoveclHROn1DnkXPcOeocdPY5/Z0e/8/2slGDiegKtD8dYo9n7MYQ1XLhmk1fInQ4JGOor/oo09evlDZc/oZfml9AcFBggrJDAu04bes0/xQdGmi/uXaNsVevaj+X/60bYtx1raWZhonmP+vn8qdQjr2qp18X5tjN5oyNQpXUoVK7zBBlpkWLuENfD31dOc1e//9sEzBZ/3/OP4oZwS/zI/Vt7dRX8iTi5Ovg0t1PdT/F2ZNrQkKWJiaELF8T7mlwqkG7f0EjhwwJGjm4bZe2lCwTdHft3fjf22+eurmdmifPj5k4vmjckllT7zTZUalciHWeW/dfx8XfP3X/dUrqffz2yoiFMgNqIwFvvPnOAmpjwMdmJbzon+7DfRUpl/qAuyG1S99S9v2RIbwyNwaWiirZ5ZuPUi/B9Oaq9Rcg8U6Fduf+zf43yzfP8PRWlHdSuyV3+6b+m/3zsW/e+bGm+OpsGFGCkeQL3LIpbjkMrUzcoiI6j2qqxNWWYSZz8SMTLwSSGrNH/F1Txuv6kHjfKoYvO1jBgZATVGEZJynBfE7RgdBjo5xzoRnBeVGFdp0StEPvJJNHHlnk0okWtCCXOHJIIYs8xDYn99l0muMhhyRaMJx+DGEEHrJQJ4VMptOMXvCfYogjjTY0pyUtacNAbPoxnM5YdbMtpWSpPimWDowigSTyS6/NaYXeuSieKZLWMLNw09K8zcImmYRR7RHI7yGVBOJq+3uSTx7Ja1PKzjfcjV4SKTI5n1iaE4eHDFqkO4l4WG8m8eRQDNeMg0Y/hsxXnd23boMGAAAA) format('woff2')}
 
 *{margin:0;padding:0;box-sizing:border-box}
+/* SCROLLBARS: invisible / hairline gold — never the chunky OS bars, they break the
+   storybook frame. Applies to every scrollable surface (screens, overlay, board). */
+*{scrollbar-width:none;-ms-overflow-style:none}
+*::-webkit-scrollbar{width:0;height:0}
+*::-webkit-scrollbar-thumb{background:transparent}
 /* Two-tier type system: Storyboo is the DISPLAY face (wordmark + one hero
    heading per screen + big in-game titles); everything else uses a clean
    humanist system sans so body copy, labels and inputs read cleanly instead
@@ -87,6 +92,30 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 .sh-pips{color:#FFD700;font-size:10px;letter-spacing:2px}
 #settingsScr{position:absolute;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(8,2,16,.88)}
 #settingsScr.on{display:flex}
+/* ── end-of-stage scored tally: a 3-column ledger, numerics right-aligned on
+      tabular figures so the columns line up like an arcade rank-out ── */
+.tly{display:flex;flex-direction:column;gap:2px;margin:4px 0 10px;font-variant-numeric:tabular-nums}
+/* minmax(0,1fr): a plain 1fr floors at min-content, so a long label pushed the
+   points column past the container and it clipped off the right edge on a phone */
+.tly-r{display:grid;grid-template-columns:minmax(0,1fr) auto 4.8em;gap:8px;align-items:baseline;
+  padding:7px 8px;border-bottom:1px solid rgba(255,215,0,.10)}
+.tly-l{font-family:Storyboo,sans-serif;font-size:9.5px;letter-spacing:1px;color:rgba(255,235,190,.82);
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tly-m{font-size:11px;color:rgba(255,215,0,.66);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tly-p{text-align:right;font-size:12px;font-weight:700;color:#ffd76e;font-variant-numeric:tabular-nums}
+.tly-tot{border-bottom:0;border-top:2px solid rgba(255,215,0,.42);margin-top:6px;padding-top:10px}
+.tly-tot .tly-l{font-size:12px;color:#fff3d0;letter-spacing:2px}
+.tly-tot .tly-p{font-size:17px;color:#fff3d0;text-shadow:0 0 12px rgba(255,215,0,.45)}
+@media (orientation:landscape) and (max-height:560px){
+  .tly-r{padding:4px 10px}.tly-tot{margin-top:3px;padding-top:6px}
+}
+/* narrow phones: tighten the ledger so the points column can never clip off-screen */
+@media (max-width:480px){
+  .tly-r{grid-template-columns:minmax(0,1fr) auto 4.2em;gap:6px;padding:6px 4px}
+  .tly-l{font-size:8.5px;letter-spacing:.6px}
+  .tly-m{font-size:9.5px}.tly-p{font-size:10.5px}
+  .tly-tot .tly-p{font-size:14px}
+}
 .ht-opts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0 12px}
 .ht-opt{font-family:Storyboo,sans-serif;font-size:11px;letter-spacing:1px;padding:10px 18px;border-radius:10px;
   border:1px solid rgba(255,215,0,.42);background:rgba(40,22,60,.62);color:#ffd76e;cursor:pointer}
@@ -103,7 +132,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 .set-note{font-family:var(--body);font-size:11px;color:rgba(205,180,136,.7);margin-top:14px;line-height:1.5}
 .sh-buy{background:linear-gradient(90deg,#FF2D8A,#8B00FF);border:none;color:#fff;border-radius:8px;padding:8px 13px;font-family:Storyboo;font-size:11.5px;cursor:pointer;white-space:nowrap}
 .sh-buy[disabled]{opacity:.35;cursor:default}
-#ovBoard{margin:14px auto 4px;width:min(420px,86vw);font-family:Storyboo;font-size:7px;color:rgba(255,255,255,.75);text-align:left;max-height:34vh;overflow-y:auto}
+#ovBoard{margin:14px auto 4px;width:min(420px,94vw);max-width:100%;font-family:Storyboo;font-size:7px;color:rgba(255,255,255,.75);text-align:left;max-height:34vh;overflow-y:auto}
 #ovBoard .bd-h{color:#FFD700;font-size:8px;text-align:center;margin:10px 0 6px;letter-spacing:2px}
 #ovBoard .bd-row{display:flex;justify-content:space-between;gap:8px;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.09);line-height:1.5}
 #ovBoard .bd-row.me{background:rgba(255,215,0,.13);color:#FFD700;border-radius:4px}
@@ -207,7 +236,9 @@ body.mobile .chap-stage{font-size:7px;letter-spacing:1px}
 .lc-ld{font-family:Storyboo;font-size:6px;color:rgba(255,255,255,.2);margin-top:28px;animation:bl .9s step-end infinite}
 #overlay{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:clamp(14px,5vh,60px) 12px calc(28px + env(safe-area-inset-bottom,0px));background:rgba(4,0,12,.9)}
 #overlay.on{display:flex}
-.ov-t{font-family:Storyboo;font-weight:900;font-size:clamp(32px,8.5vw,70px);color:rgba(255,215,0,.92);letter-spacing:4px;text-align:center}
+/* longer titles than "RUN OVER" (e.g. "STAGE I CLEAR") overflowed a narrow phone
+   at 8.5vw + 4px tracking — shrink the floor, tighten tracking, allow wrapping */
+.ov-t{font-family:Storyboo;font-weight:900;font-size:clamp(22px,6.2vw,70px);color:rgba(255,215,0,.92);letter-spacing:2.5px;text-align:center;max-width:100%;padding:0 12px;overflow-wrap:break-word;text-wrap:balance}
 .ov-m{font-family:Storyboo;font-weight:300;font-style:italic;font-size:clamp(13px,2vw,16px);color:rgba(255,255,255,.6);margin:14px 0 30px;text-align:center;line-height:1.9;max-width:420px;padding:0 20px;white-space:pre-line}
 /* The primary actions must be reachable WITHOUT scrolling. In a short landscape
    box CONTINUE / RESTART / MAIN MENU fell below the fold — #overlay scrolls, but
@@ -872,6 +903,9 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
   var hpB=shop().hp||0;
   GS={ai:ai,score:sc,totalNotes:gn,masks:mm+hpB,maxMasks:mm+hpB,permMax:mm,res:0,resMax:200,
     level:lvl,xp:xp,xpNext:GS.xpNext||100,dmg:dmg,
+    // ── per-STAGE performance counters (reset with everything else here, so the
+    //    end-of-stage tally scores what you just did, not the whole run) ──
+    kills:0,foesTotal:0,dmgTaken:0,notes0:0,
     camX:0,camY:0,tick:0,lyricT:0,titleT:210,won:false,finale:0,endT:0,trans:false,paused:false,mapOpen:false,blocking:false,blockHits:0,
     dmgT:0,shieldT:0,fxMax:{},levelUpT:0,
     solid:{},tiles:[],bkbl:[],enemies:[],notes:[],pwr:[],ptcl:[],boss:null,bossActive:false,
@@ -905,6 +939,12 @@ function bk(gs,c,r,t){gs.bkbl.push({c:c,r:r,t:t,on:true});gs.solid[key(c,r)]='B'
 var FLOOR_R=14;
 function groundCol(gs,c){for(var r=FLOOR_R;r<gs.LH;r++)setT(gs,c,r,'G');}
 function rnd01(n){var v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);}
+// Every foe goes through here so the stage knows how many it spawned — that's the
+// denominator in the clear tally's "FOES SILENCED 14/14".
+function addFoe(gs,o){gs.foesTotal=(gs.foesTotal||0)+1;gs.foes.push(o);}
+// Par times per stage (seconds) for the end-of-stage tally. Tuned off the 330-column
+// designed run; beating par pays the full time bonus.
+var STAGE_PAR=[150,160,165,170,180,185,190,200,215];
 function buildRunner(gs){
   gs.genC=0;
   for(var c=0;c<26;c++)groundCol(gs,c); // safe opening runway
@@ -982,9 +1022,9 @@ function genAhead(gs,until){
         gs.lastObX=ox;
         if(rnd01(c*9.1)<0.35)gs.obs.push({x:ox,y:gy-26,w:T+8,h:26,tp:'spike',hit:false});
         else{ // ambush: a ground goblin, plus a flyer only on stages that have them
-          gs.foes.push({x:ox,y:gy-58,baseY:0,tp:0,anim:(c*7)%60,alive:true});
+          addFoe(gs,{x:ox,y:gy-58,baseY:0,tp:0,anim:(c*7)%60,alive:true});
           var fly=rec.foes.filter(function(t){return t>0&&t!==3;});   // any FLYER (1 raven,2 sprite,4 wisp,5 wraith)
-          if(fly.length&&rnd01(c*4.3)<0.5)gs.foes.push({x:ox+90,y:gy-190,baseY:gy-190,
+          if(fly.length&&rnd01(c*4.3)<0.5)addFoe(gs,{x:ox+90,y:gy-190,baseY:gy-190,
             tp:fly[Math.floor(rnd01(c*6.7)*fly.length)],anim:(c*11)%60,alive:true});
         }
       }
@@ -998,7 +1038,7 @@ function genAhead(gs,until){
       if(c>50&&rnd01(c*3.7)<rec.foe/adaptF()){ // per-stage foe roster + spawn rate
         var ftp=rec.foes[Math.floor(rnd01(c*5.1)*rec.foes.length)],fby=FLOOR_R*T-160-rnd01(c*6.3)*70;
         var grnd=(ftp===0||ftp===3);   // 0 goblin + 3 bramble knight walk the floor; 1/2 hover
-        gs.foes.push({x:(c+2)*T,y:grnd?FLOOR_R*T-58:fby,baseY:grnd?FLOOR_R*T-58:fby,tp:ftp,anim:(c*7)%60,alive:true});}
+        addFoe(gs,{x:(c+2)*T,y:grnd?FLOOR_R*T-58:fby,baseY:grnd?FLOOR_R*T-58:fby,tp:ftp,anim:(c*7)%60,alive:true});}
       gs.genC+=run2;
     }
   }
@@ -3092,6 +3132,7 @@ function hitB(b){if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd
   document.getElementById('bbF').style.width=(Math.max(0,b.hp)/b.mhp*100)+'%';updateHUD();}
 function hurtP(p){if(p.inv>0)return;
   if(GS.shieldT>0){ptcl(p.x+14,p.y+30,'dash');p.inv=30;return;}
+  GS.dmgTaken=(GS.dmgTaken||0)+1;   // per-stage damage, for the clear tally
   if(GS.blocking){ptcl(p.x+(p.faceL?0:PW),p.y+30,'slash');GS.blockHits++;p.inv=45;p.vx=p.faceL?4:-4;if(GS.blockHits%2===0){GS.masks--;updateHUD();}}
   else{GS.masks--;updateHUD();p.inv=90;p.vx=p.faceL?10:-10;p.vy=-8;ptcl(p.x+14,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);}
   if(GS.masks<=0){p.dead=true;p.vy=-10;}}
@@ -3365,7 +3406,7 @@ function rpgXP(a){RPG.xp+=a;var up=false;
   else updateHUD();   // refresh the XP bar on every gain, not only on level-up
   try{localStorage.setItem('jande_rpg',JSON.stringify(RPG));}catch(x){}}
 function addPop(x,y,txt){GS.pops.push({x:x,y:y,txt:''+txt,t:52});}
-function killFoe(f){f.alive=false;sfx('kill');GS.hitstop=3;
+function killFoe(f){f.alive=false;GS.kills=(GS.kills||0)+1;sfx('kill');GS.hitstop=3;
   GS.combo++;GS.comboT=130;
   var cm=1+0.25*Math.min(GS.combo-1,8);
   var sc=Math.round((f.tp?160:120)*runMult()*cm);
@@ -4676,7 +4717,8 @@ function showLevelCard(ai,cb){var st=STAGES[ai];document.getElementById('lcR').t
   document.getElementById('lcDiv').style.background='linear-gradient(90deg,transparent,#'+st.ac.slice(1)+',transparent)';
   document.getElementById('lcL').textContent=st.lyr;var lc=document.getElementById('lvlCard');lc.classList.add('on');setTimeout(function(){lc.classList.remove('on');if(cb)cb();},2200);}
 function toRoman(n){return ['I','II','III','IV','V','VI','VII','VIII','IX'][n-1]||n;}
-function nextStage(){setZoom(BASEZ);var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;CHECKPOINT=ai;CHECKPOINT_X=0;updateHUD();showLevelCard(ai,function(){});}
+function nextStage(){setZoom(BASEZ);var ai=GS.ai+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.notes0=gn;   // notes0 = baseline, so the tally scores THIS stage's notes
+GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;CHECKPOINT=ai;CHECKPOINT_X=0;updateHUD();showLevelCard(ai,function(){});}
 // ── THE REUNION ── the run's real ending: she reaches her prince. Drawn as a
 // tableau (his sprite + her back-view turning to him) over a gold bloom, then
 // the normal results board underneath so the run still scores.
@@ -4783,14 +4825,35 @@ function continueRun(){
 function showLevelClear(){
   var ai=GS.ai, nm=(GS.boss&&GS.boss.name)||(typeof BOSS_NAME!=='undefined'&&BOSS_NAME[ai])||'THE BOSS';
   GS.ovMode='clear';checkAch();
-  document.getElementById('ovT').textContent='STAGE '+toRoman(ai+1)+' CLEAR ✦';
-  document.getElementById('ovM').textContent=nm+' DEFEATED · '+GS.score.toLocaleString()+' pts';
-  var bh='<div class="bd-h">— THIS RUN SO FAR —</div>';
-  bh+='<div class="bd-row"><span>◈ Stage</span><span>'+toRoman(ai+1)+' / '+toRoman(STAGES.length)+'</span></div>';
-  bh+='<div class="bd-row"><span>♪ Grace Notes</span><span>'+GS.totalNotes+'</span></div>';
-  bh+='<div class="bd-row"><span>Distance</span><span>'+Math.floor(GS.dist)+'m</span></div>';
-  bh+='<div class="bd-row"><span>Resonance</span><span>LV '+(GS.level||1)+'</span></div>';
-  bh+='<div class="bd-row"><span>◆ Score</span><span>'+GS.score.toLocaleString()+'</span></div>';
+  document.getElementById('ovT').textContent='STAGE '+toRoman(ai+1)+' CLEAR';
+  document.getElementById('ovM').textContent=nm+' — SILENCED';
+  // ── SCORED TALLY: label | achieved / par | points earned, then a TOTAL that
+  //    counts up. Every row pays out, so the screen reads as a reward rather than
+  //    a status dump. Stage-local numbers only (initGS resets the counters).
+  var secs=Math.max(1,Math.round(GS.tick/60));
+  var par=(typeof STAGE_PAR!=='undefined'&&STAGE_PAR[ai])||180;
+  var notes=Math.max(0,GS.totalNotes-(GS.notes0||0));
+  var foesN=GS.foesTotal||0, kills=Math.min(GS.kills||0,foesN||(GS.kills||0));
+  var hits=GS.dmgTaken||0;
+  function mmss(s){var m=Math.floor(s/60);return m+':'+('0'+(s%60)).slice(-2);}
+  // payouts — beating par pays full, over par decays; a clean run pays the most
+  var pTime=Math.max(400,Math.round(9000*Math.min(1.35,par/secs)));
+  var pNotes=notes*90;
+  var pFoes=kills*220+((foesN&&kills>=foesN)?1500:0);      // full-clear bonus
+  var pClean=Math.max(0,4000-hits*650);                     // UNTOUCHED
+  var pLevel=(GS.level||1)*260;
+  var total=pTime+pNotes+pFoes+pClean+pLevel;
+  function row(l,mid,pts){return '<div class="tly-r"><span class="tly-l">'+l+'</span>'+
+    '<span class="tly-m">'+mid+'</span><span class="tly-p">'+pts.toLocaleString()+'</span></div>';}
+  var bh='<div class="tly">';
+  bh+=row('TIME',mmss(secs)+' / '+mmss(par),pTime);
+  bh+=row('GRACE NOTES',String(notes),pNotes);
+  bh+=row('FOES SILENCED',kills+(foesN?' / '+foesN:''),pFoes);
+  bh+=row('UNTOUCHED',hits===0?'FLAWLESS':String(hits),pClean);
+  bh+=row('RESONANCE','LV '+(GS.level||1),pLevel);
+  bh+='<div class="tly-r tly-tot"><span class="tly-l">TOTAL</span><span class="tly-m"></span>'+
+      '<span class="tly-p" id="tlyTot">0</span></div></div>';
+  GS.score+=total;   // the tally's payout is real score
   if(GS.newAch&&GS.newAch.length){bh+='<div class="bd-h">— TROPHIES UNLOCKED —</div>';
     GS.newAch.forEach(function(n){bh+='<div class="bd-ach">✦ '+esc(n)+'</div>';});}
   bh+='<div class="bd-h">— OBJECTIVES · ×'+misMult().toFixed(1)+' MULTIPLIER —</div>';
@@ -4800,10 +4863,20 @@ function showLevelClear(){
   if(!shown)bh+='<div class="bd-ach">ALL OBJECTIVES COMPLETE ✦</div>';
   bh+='<div class="bd-sub">♪ BANK '+(wallet().notes||0)+' · ◆ '+wallet().gems+'</div>';
   document.getElementById('ovBoard').innerHTML=bh;
+  // Roll the TOTAL up — most of what makes an arcade tally feel earned. Prints
+  // instantly when Reduce Motion is on.
+  (function(){var el=document.getElementById('tlyTot');if(!el)return;
+    if(SET&&SET.reduceMotion){el.textContent=total.toLocaleString();return;}
+    var t0=0,steps=34,i=0;
+    var iv=setInterval(function(){i++;t0=Math.round(total*(i/steps));
+      el.textContent=t0.toLocaleString();
+      if(i>=steps){el.textContent=total.toLocaleString();clearInterval(iv);
+        if(!(AUD.muted||AUD.fxOff))sfx('pw');}
+      else if(i%6===0&&!(AUD.muted||AUD.fxOff))sfx('note');},34);})();
   var _nmIn=document.getElementById('ovNameInput');if(_nmIn)_nmIn.value=lbName();
   var _nmOk=document.getElementById('ovNameOk');if(_nmOk)_nmOk.textContent='';
   var contBtn=document.getElementById('ovR'),reBtn=document.getElementById('ovRestart');
-  if(contBtn){contBtn.style.display='';contBtn.innerHTML='PROCEED TO STAGE '+toRoman(ai+2)+' ▶';}
+  if(contBtn){contBtn.style.display='';contBtn.innerHTML='PROCEED TO STAGE '+toRoman(ai+2);}
   if(reBtn)reBtn.style.display='none';                       // no restart mid-victory lap
   document.getElementById('overlay').classList.add('on');
   sfx('revive');if(navigator.vibrate)navigator.vibrate([30,40,90]);
