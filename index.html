@@ -556,6 +556,10 @@ body.mobile .joy-knob{width:64px;height:64px}
     <button data-v="easy">EASY</button><button data-v="normal">NORMAL</button><button data-v="hard">HARD</button></div></div>
   <div class="set-row"><span>SOUND</span><div class="seg" id="setSound">
     <button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
+  <div class="set-row"><span>MUSIC</span><div class="seg" id="setMusic">
+    <button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
+  <div class="set-row"><span>SOUND FX</span><div class="seg" id="setFx">
+    <button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
   <div class="set-row"><span>REDUCE MOTION</span><div class="seg" id="setMotion">
     <button data-v="off">OFF</button><button data-v="on">ON</button></div></div>
   <div class="set-note" id="setNote">Harder = tougher bosses, more foes, tighter gaps.</div>
@@ -1219,8 +1223,12 @@ function collideV(o,w,h){o.onGround=false;var lft=Math.floor((o.x+2)/T),rgt=Math
 //  Generative dark-R&B score that transposes per room and reacts to
 //  speed/danger; coin trails play real melodies as you collect them.
 // ════════════════════════════════════════════════════════════
-var AUD={ctx:null,master:null,muted:false,ni:0,noise:null};
-try{AUD.muted=localStorage.getItem('jande_mute')==='1';}catch(x){}
+// muted = master kill. fxOff / musOff are INDEPENDENT channel mutes, so a player
+// can silence the score and keep the strikes and pickups, or vice-versa.
+var AUD={ctx:null,master:null,muted:false,fxOff:false,musOff:false,ni:0,noise:null};
+try{AUD.muted=localStorage.getItem('jande_mute')==='1';
+    AUD.fxOff=localStorage.getItem('jande_fx')==='0';
+    AUD.musOff=localStorage.getItem('jande_mus')==='0';}catch(x){}
 var STAGE_KEYS=[0,3,5,7,2,8,10,5,7]; // semitone key per room
 function audInit(){
   if(AUD.ctx){if(AUD.ctx.state==='suspended')AUD.ctx.resume();return;}
@@ -1259,7 +1267,7 @@ function hiss(dur,vol,f0,f1,when){
 function rootHz(oct){return 110*Math.pow(2,((STAGE_KEYS[(GS.ai||0)%9])/12))*(oct||1);}
 var PENT=[0,2,4,7,9,12,14,16,19,24];
 function sfx(n){
-  if(!AUD.ctx||AUD.muted)return;
+  if(!AUD.ctx||AUD.muted||AUD.fxOff)return;   // FX channel
   var c=AUD.ctx,t=c.currentTime,r=rootHz(2);
   switch(n){
     case 'jump': tone(240,0.15,'square',0.15,0.004,0.1,320);break;
@@ -1285,7 +1293,7 @@ function sfx(n){
 var MUS={step:0,next:0,cut:600};
 var MUS_CH=[[0,4,7],[-5,-1,2],[-3,0,4],[-7,-3,0]]; // major-key fairytale progression
 function musTick(){
-  var c=AUD.ctx;if(!c||AUD.muted||!running||GS.paused)return;
+  var c=AUD.ctx;if(!c||AUD.muted||AUD.musOff||!running||GS.paused)return;   // MUSIC channel
   var sd=0.3261; // 8th notes @ 92 BPM
   if(MUS.next<c.currentTime-0.6)MUS.next=c.currentTime+0.05; // resync after tab-sleep
   while(MUS.next<c.currentTime+0.4){
@@ -5109,7 +5117,10 @@ function wire(){
   // ── SETTINGS menu (difficulty / sound / motion), reachable from mode-select + pause ──
   (function(){
     function segSel(id,v){var el=document.getElementById(id);if(!el)return;[].forEach.call(el.children,function(b){b.classList.toggle('sel',b.getAttribute('data-v')===v);});}
-    function syncSet(){segSel('setDiff',SET.diff);segSel('setSound',AUD.muted?'off':'on');segSel('setMotion',SET.reduceMotion?'on':'off');}
+    function syncSet(){segSel('setDiff',SET.diff);segSel('setSound',AUD.muted?'off':'on');
+      segSel('setMusic',(AUD.muted||AUD.musOff)?'off':'on');
+      segSel('setFx',(AUD.muted||AUD.fxOff)?'off':'on');
+      segSel('setMotion',SET.reduceMotion?'on':'off');}
     function openSet(){syncSet();document.getElementById('settingsScr').classList.add('on');}
     function pick(id,cb){var el=document.getElementById(id);if(el)el.onclick=function(e){var v=e.target&&e.target.getAttribute&&e.target.getAttribute('data-v');if(!v)return;cb(v);segSel(id,v);};}
     var msSet=document.getElementById('msSettings'),pmSet=document.getElementById('pmSettings');
@@ -5117,7 +5128,16 @@ function wire(){
     if(pmSet)pmSet.onclick=function(){sfx('ui');openSet();};
     var sc=document.getElementById('setClose');if(sc)sc.onclick=function(){sfx('ui');document.getElementById('settingsScr').classList.remove('on');};
     pick('setDiff',function(v){setSetting('diff',v);sfx('ui');});
-    pick('setSound',function(v){audInit();audMute(v==='off');});
+    pick('setSound',function(v){audInit();audMute(v==='off');syncSet();});
+    // Independent channels. Turning either one ON also lifts the master mute, so
+    // "MUSIC: ON" can never leave you staring at a switch that does nothing.
+    pick('setMusic',function(v){audInit();AUD.musOff=(v==='off');
+      try{localStorage.setItem('jande_mus',v==='off'?'0':'1');}catch(x){}
+      if(v==='on'&&AUD.muted)audMute(false);syncSet();});
+    pick('setFx',function(v){audInit();AUD.fxOff=(v==='off');
+      try{localStorage.setItem('jande_fx',v==='off'?'0':'1');}catch(x){}
+      if(v==='on'&&AUD.muted)audMute(false);
+      if(v==='on')sfx('ui');syncSet();});
     pick('setMotion',function(v){setSetting('reduceMotion',v==='on'?1:0);sfx('ui');});
   })();
   document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=0;CHECKPOINT_X=0;RUN_CONTINUES=0;initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
