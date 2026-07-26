@@ -343,6 +343,45 @@ One client-side page — Canvas2D RPG + hand-written WebGL Runner + synthesized 
 ## Newly closed in Era IV
 Silksong feature set (**applied + deployed**) · Shadow of the Groom, Wanderer's Map, Wanderer's Atlas, vivid power-ups (**live**) · new enemy archetypes + Refrain/Belt/Downstrike hero poses (**wired**) · 9 unique bosses + defeat animations (**live**) · larger per-type sprites (**live**) · persistent stages, STAGE CLEAR sequence, Stage Select (**live**).
 
+## Era V — Landscape, tally & polish (Jul 25–26, 2026)
+Client play-tested on device (iPhone/Safari) and reported the game looked broken
+sideways. Root-caused to **one recurring mistake**: quantities that should scale
+with the world or the hero were pinned to raw screen dimensions, which portrait
+hid because `W < H`. All four shipped and are live:
+
+- **Décor detached from the floor** — the backdrop drew in screen space while the
+  world drew scaled by `ZOOM`; `groundY` lacked `* ZOOM`, so props sat buried and
+  drifted on every jump. Fixed in two passes: the scale, then removing the
+  leftover `Math.min(H*0.82, …)` clamp that pinned the baseline the instant the
+  camera rose (landscape had 4px of headroom, so any jump tripped it).
+- **Runner hazards ballooned** — obstacles sized off viewport WIDTH while the hero
+  was sized off HEIGHT, making an arch 0.40× her height in portrait but 1.30× in
+  landscape. Now height-derived and orientation-independent.
+- **Backdrop seams** — painted backdrop tiled at fractional x/width; adopted the
+  wall band's shared-integer-edge snap.
+- **Ground slab** consuming ~40% of a landscape screen; blank untextured
+  platforms; title seam; register/how-to/overlay clipping; the PRODBYKCTW footer
+  now flows with content instead of floating over it.
+
+**RPG end-of-stage SCORED TALLY** replaced the cumulative "THIS RUN SO FAR"
+readout with a real arcade rank-out: per-stage TIME against par, Grace Notes,
+foes, damage and a TOTAL. Par times derived from the stage constants
+(`stageEnd=330`, `T=32`, run 6.4px/frame, boss HP `7+ai*2`) rather than guessed —
+`STAGE_PAR=[70,70,80,90,95,100,105,115,120]` with `PAR_DIFF` scaling, because boss
+HP already scales ×1.4 on Hard and a Normal clock would make Hard unbeatable.
+
+**Documentation audit.** `CLAUDE.md` still described the parked Phaser 3 scaffold
+and told sessions not to hand-roll a render loop (the shipped game *is* one);
+`HANDOFF.md` still taught the `git add -A` deploy recipe that had leaked the
+client's real photos; six finished tasks were still marked ACTIVE, two of which
+were re-reported as bugs *because the docs said so*. All corrected, and the
+client made doc-updating a binding standing rule.
+
+**Still open from Era V:** the stock-glyph sweep (47 sites — a regression; the
+July 21 baked-icon system is no longer in the build and new UI reintroduced raw
+Unicode that iOS renders as Apple emoji), the overlay content clipping, and a
+pre-deploy gate to stop the glyph rule regressing a third time.
+
 ## Still open
 | Item | Status | Note |
 |---|---|---|

@@ -8,7 +8,12 @@ already root-caused — no investigation needed.
 
 ---
 
-## 1. ONE-LINE FIX — décor detaches from the floor on jump 🔴 (30 sec)
+## 1. ✅ DONE (`24049d4`) — décor detaches from the floor on jump
+> **Fixed & deployed.** Verified in code: `var groundY=(FLOOR_R*T-(GS.camY||0))*_wz;`
+> — the clamp is gone and the baseline tracks the world floor exactly.
+
+<details><summary>original report</summary>
+
 
 **Line 3596:**
 ```js
@@ -35,7 +40,15 @@ the floor for the whole arc.
 
 ---
 
-## 2. ONE-LINE FIX — PRODBYKCTW footer covers THE BOUTIQUE in portrait 🔴 (30 sec)
+</details>
+
+## 2. ✅ DONE (`24049d4`) — PRODBYKCTW footer covered THE BOUTIQUE in portrait
+> **Fixed & deployed**, and better than specced: rather than hiding it, the
+> footer is now `position:static; margin-top:auto; flex:0 0 auto` so it *flows*
+> with the content and can't overlap in either orientation.
+
+<details><summary>original report</summary>
+
 
 **Line 340** is `.site-footer{display:none}` — but it's inside the
 `@media (orientation:landscape) and (max-height:560px)` block at **line 329**, so
@@ -50,7 +63,9 @@ Portrait is the primary orientation — this is the more important half.
 
 ---
 
-## 3. GLYPH SWEEP — 47 sites, mostly deletions 🔴 (the bulk, but mechanical)
+</details>
+
+## 3. 🔴 STILL OPEN — GLYPH SWEEP, 47 sites
 
 Full list with line numbers and replacements: **`docs/GLYPH_SWEEP.md`**.
 You already cleared the `▶` on PROCEED (thank you) — **47 sites remain**:
@@ -75,7 +90,7 @@ Fastest path:
 
 ---
 
-## 4. Overlay clips its own content (do with #3, same screens)
+## 4. 🔴 STILL OPEN — Overlay clips its own content (do with #3, same screens)
 
 In the client's STAGE CLEAR shot, `OBJECTIVES · ×1.0 MULTIPLIER` is cut off
 **mid-heading** and its rows never render — the scroll region ends before the
@@ -87,7 +102,14 @@ vertical rhythm under the landscape query).
 
 ---
 
-## 5. Par-time calibration (client's call, not code)
+## 5. ✅ DONE (`24049d4`) — par times
+> Adopted the derived table `STAGE_PAR=[70,70,80,90,95,100,105,115,120]` and
+> added `PAR_DIFF` difficulty scaling. Verified in code. **Still needs one
+> real play-test pass to confirm the values feel right** — that part is the
+> client's call, not code.
+
+<details><summary>original note</summary>
+
 
 You shipped `STAGE_PAR=[150,160,165,170,180,185,190,200,215]`. The derived table
 in `docs/STAGE_CLEAR_TALLY.md` is `[70,70,80,90,95,100,105,115,120]` — computed
@@ -101,7 +123,9 @@ can never beat par.**
 
 ---
 
-## Then: the guard that stops #3 recurring
+</details>
+
+## Then: 🔴 STILL OPEN — the guard that stops #3 recurring
 
 Add a pre-deploy gate in `tools/deploy.sh` that **fails the deploy** on non-ASCII
 outside comments, allow-listing real accents (`é È à ç ü ö ñ`), typographic

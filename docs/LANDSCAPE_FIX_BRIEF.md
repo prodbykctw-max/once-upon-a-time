@@ -384,7 +384,12 @@ collision, the content height is.
 - **Glyphs still visible** (`✦ THE BOUTIQUE`, the Grace Notes chip): expected —
   `docs/GLYPH_SWEEP.md` was only filed today and hasn't been implemented.
 
-## 🔴 #0 IS NOT FULLY FIXED — the `Math.min(floorY, …)` clamp now causes it
+## ✅ #0 NOW FULLY FIXED (`24049d4`) — clamp removed
+Verified in code: `var groundY=(FLOOR_R*T-(GS.camY||0))*_wz;`. The décor
+baseline now tracks the world floor unconditionally, in both orientations.
+Original diagnosis kept below for the record.
+
+### (was) #0 IS NOT FULLY FIXED — the `Math.min(floorY, …)` clamp
 
 > Client, after the deploy: *"when I jump horizontally on the first stage, the
 > shit is locked to the background floor, but it's not locked to the stage floor."*

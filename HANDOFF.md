@@ -103,7 +103,7 @@ becomes ~39% of a short viewport (vs ~15% in portrait), so a featureless
 ground slab eats the screen and hides the painted backdrops. Plus blank
 untextured platforms, a tile column into the sky, a backdrop seam, and
 overlay/footer clipping on register / how-to / game-over.
-🔴 **#0 REOPENED 07-26:** the `* _wz` half landed, but the leftover
+✅ **#0 RESOLVED 07-26 (`24049d4`):** clamp removed, verified in code. *(was:* the `* _wz` half landed, but the leftover
 `Math.min(floorY=H*0.82, …)` clamp (line 3555) is now the bug — `floorY` is a
 FIXED screen row, so the moment the camera rises `groundY` pins and stops
 tracking, freezing the décor to the backdrop while the stage floor scrolls.
@@ -111,7 +111,7 @@ In landscape it sits just **4px** under the clamp at rest, so any jump pins it;
 in portrait the clamp is ~475px away and never engages — which is why it only
 shows sideways. Client: *"locked to the background floor, but not the stage
 floor."* Drop the clamp (or clamp only the backdrop draw rect and give the
-décor an unclamped baseline). Full numbers in the brief.
+décor an unclamped baseline). Full numbers in the brief.)*
 ⚠️ **RETEST 07-26 (post-deploy):** #0b/#1 confirmed FIXED on device — the
 slab is gone and décor plants correctly. **But the `.site-footer` fix was gated
 to `@media (orientation:landscape)` (line 298→309), so in PORTRAIT the
