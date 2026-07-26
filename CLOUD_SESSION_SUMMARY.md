@@ -38,8 +38,8 @@ Everything below is **committed to `claude/hand-painted-architecture-bg-0MAiy`**
 ## Background
 - **Wall-band seam fixed**: tiles were drawn at fractional x/width → a moving brown seam in the sky while scrolling. Now each tile snaps its left/right edge to a shared integer. Added a ground-line shadow for depth separation.
 
-## ⏳ In progress (LOCAL only — not yet deployed)
-- **Royal Runner: runner floats above her shadow.** Her feet sit at ~87.5% of the sprite cell, but the draw plants the cell *bottom* on the ground line → ~12% empty space leaves her hovering. Added a `footPad` offset in the temple hero draw (`drawT`) to plant her feet on the floor; still tuning the exact amount + shadow alignment. **Heads-up: this touches the temple hero-draw block — if you're working there, ping me.**
+## ✅ RESOLVED (was "⏳ In progress")
+- **Royal Runner: runner floats above her shadow.** Her feet sat at ~87.5% of the sprite cell while the draw planted the cell *bottom* on the ground line → ~12% empty space left her hovering. Fixed with a `footPad` offset in the temple hero draw (`drawT`). **Shipped** — the laptop session landed it and the cross-session intertwine noted in HANDOFF.md is closed. *(Status corrected 2026-07-25; this file is otherwise an accurate historical work log.)*
 
 ## Coordination notes
 - Branch discipline holds: dev-branch first, gh-pages deploy-only, always `git pull --rebase` before pushing.

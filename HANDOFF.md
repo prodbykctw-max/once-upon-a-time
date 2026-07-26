@@ -3,6 +3,26 @@
 Paid, professional-grade promo game for the R&B artist **Jandé** (always
 accented: Jandé / JANDÉ). $5k upfront + $5k on delivery. Commercial bar.
 
+## 📋 DOC ACCURACY PASS — 2026-07-25 (cloud session) — laptop, please read
+This file is append-only strata, so its older body had drifted into contradicting
+its own newer top. Nothing historical was deleted; stale entries are now marked
+inline and dated. What changed:
+1. **`## Deploy recipe` (bottom) was DANGEROUS** — it taught `git add -A` +
+   hand-built `gh-pages`, i.e. exactly the leak vector the 🚨 banner below
+   forbids, and it predated `web/` so it shipped a broken deploy. Replaced with
+   `bash tools/deploy.sh`.
+2. **Ground rule #1 was wrong** on all three claims (~2.4MB / all-embedded /
+   no-network). Corrected to ~0.33MB + `web/` + the leaderboard Worker.
+3. Shipped work no longer labelled "ACTIVE"/"CURRENT FOCUS": 3D Temple phases,
+   the AutoSprite whimsy pack, the Groom boss, and the backlog.
+4. Testing recipe: `window._dbg` → the shipped `#dev` hooks.
+
+**Also corrected: `CLAUDE.md`** — its top still described the parked **Phaser 3 +
+Vite** scaffold and instructed sessions to "keep using it; do not hand-roll a
+render loop," pointing work at `src/scenes/` instead of `index.html`. Rewritten to
+the shipped architecture; your July 25 session note is preserved verbatim.
+`DEVELOPMENT_RECORD.md` (committed 07-25) is now the canonical full history.
+
 ## 🚨 REPO CHANGED — read before you deploy (2026-07-22, laptop session)
 1. **Assets are now EXTERNAL.** `index.html` shrank 4.4 MB → 0.30 MB; every
    embedded base64 blob ≥1 KB was extracted to **`web/<sha1>.<ext>`** (55 files,
@@ -94,9 +114,12 @@ be produced later — when it exists, follow `archive/intro/README.md` to
 re-wire it. Don't resurrect the old one.
 
 ## Ground rules
-1. The game is ONE self-contained file, **`index.html`** (~2.4MB). No runtime
-   network requests; all assets base64-embedded. Watch total size — quantize
-   PNGs (palette mode) before embedding when sheets get heavy.
+1. The game is ONE file, **`index.html`** (~0.33MB) **+ the `web/` folder**.
+   *(Corrected 2026-07-25: this rule used to say ~2.4MB / "all assets
+   base64-embedded" / "no runtime network requests" — all three are now wrong.
+   Assets were externalized to `web/<sha1>.<ext>`, and the leaderboard Worker is
+   a real runtime call. See the 🚨 banner at the top.)* Watch total size —
+   quantize PNGs (palette mode) before adding heavy sheets.
 2. **Never modify Jandé's original side-view sprite art**
    (`SPRITES.idle/run/jump/attack/dash/block/dance`). Back-view `bk*` slots
    and everything else is fair game.
@@ -133,13 +156,15 @@ The 9 rooms, re-themed as a day-cycle that ends in her concert:
 Update STAGES names/themes/pc/ac to pastels+gold; skies go bright; keep the
 chaser DARK (the one shadow in a bright world = drama). Music: transpose the
 generative score to MAJOR keys / brighter timbres to match.
-▶ ACTIVE ART TASK (client-directed): generate the production versions of
-this pack through AUTOSPRITE — the complete brief with all 27+ prompts,
-processing spec, size budget, and QA gates is at
-`assets_whimsy/AUTOSPRITE_BRIEF.md`. Execute it top to bottom; show the
-user the preview contact sheet before embedding anything into index.html.
+✅ **DONE (was "▶ ACTIVE ART TASK")** — the whimsical pack was produced through
+AutoSprite and shipped, then superseded by the painted-props overhaul logged
+further down this file. Brief kept for reference:
+`assets_whimsy/AUTOSPRITE_BRIEF.md`.
 
-## CURRENT DIRECTION: Temple View goes 3D
+## ✅ SHIPPED (was "CURRENT DIRECTION"): Temple View goes 3D
+> **Done as of 2026-07-25** — all three phases shipped. "Temple View" is now
+> **ROYAL RUNNER**: a real hand-written WebGL 3D world (GLWORLD). Kept below as
+> the architectural rationale; it is history, not an open task.
 The user has, on their laptop: Blender (with blender-mcp), a **Rodin AI 3D
 model of Jandé**, and a working **lattice-deformation animation pipeline**
 that already produced the current bkrun/bkjump/bkslide sheets (3D renders →
@@ -216,23 +241,32 @@ photos are for proportions/likeness only. User holds jande_character_ref.zip
 ## Testing recipe (Playwright, /opt/pw-browsers/chromium)
 file:// → click `#tPress` → force-end `<video>` + dispatch 'ended' → click
 "play without" → `#msSide` / `#msTemple` → wait ~3.2s → play/screenshot.
-Debug hook (REMOVE before commit): `window._dbg=function(fn){fn(GS);};`
+Dev hooks (shipped, gated behind `#dev` in the URL — no longer removed before
+commit): `_devMut(fn)`, `_devStep(n)`, `_devState()`, `_devWallet(g)`.
+*(Corrected 2026-07-25: the old `window._dbg` hook no longer exists.)*
 Keys: Space jump · ArrowDown slide · X strike · Shift dash · Arrows · P pause.
 
 ## Deploy recipe
+> ⛔ **CORRECTED 2026-07-25.** The old recipe here used `git add -A` and hand-built
+> `gh-pages` — that is **exactly what leaked Jandé's real photos** onto the public
+> branch (see the 🚨 banner at the top of this file). It also predates external
+> assets, so it shipped `index.html` **without `web/`** — a broken deploy. Never
+> use it. The only supported path:
 ```
-git add -A && git commit -m "..." && git push -u origin claude/hand-painted-architecture-bg-0MAiy
-git checkout gh-pages && git checkout claude/hand-painted-architecture-bg-0MAiy -- index.html \
-  && git commit -m "Deploy: ..." && git push -u origin gh-pages \
-  && git checkout claude/hand-painted-architecture-bg-0MAiy
+# 1. land work on the dev branch
+git add <specific files> && git commit -m "..." \
+  && git push -u origin claude/hand-painted-architecture-bg-0MAiy
+# 2. deploy (ships index.html + web/ + icons + manifest; aborts on sensitive files)
+bash tools/deploy.sh
 ```
 
-## Backlog (user-approved)
-- 3D Temple phases 1→3 (above) — CURRENT FOCUS
-- Gameplay: hitstop, instant retry, adaptive difficulty, near-miss, streak
-- Store: spend Grace Notes on power-up upgrades
-- Global leaderboard (user has Cloudflare connector: Workers + KV/D1)
-- Custom domain + EmailJS keys for registration
+## Backlog (user-approved) — status 2026-07-25
+- ✅ 3D Temple phases 1→3 — **DONE** (shipped as Royal Runner / GLWORLD)
+- ✅ Gameplay: hitstop, instant retry, adaptive difficulty, near-miss, streak — **DONE**
+- ✅ Store: spend Grace Notes on power-up upgrades — **DONE** (The Boutique)
+- ✅ Global leaderboard (Cloudflare Worker) — **DONE + live**
+- ⬜ Custom domain + EmailJS keys for registration — **still open** (placeholders
+  unfilled; signups fall back to `localStorage`)
 
 ## Cross-session log
 - RESOLVED (laptop session): RESONANCE/LV meters vs #topBtns overlap. Fixed by dropping .hud-r below the 40px top-button row (vertical clearance), not horizontal padding (the map button makes #topBtns too wide to reserve). Verified no overlap desktop+mobile.
@@ -286,10 +320,15 @@ painted wins decisively for this storybook style.
   GLWDATA.props swapped, 262KB WebP. Contact: assets_whimsy/outprops_painted.png.
 - STILL PROCEDURAL (follow-up): cells 12-15 (indoor globe/topiary/bunny,
   library-only). Paint later for full consistency.
-- AUDIT items still open (my lane, next): RPG BOSS "The Groom Who Lied" is still
-  canvas rectangles → paint via AutoSprite. THE PRINCE (ending) is Blender
-  primitive → paint via AutoSprite. Temple OBSTACLES (hedge/gate/wall) still
-  procedural → paint to match props.
+- AUDIT items (status as of 2026-07-25):
+  - ~~RPG BOSS "The Groom Who Lied" is still canvas rectangles~~ → ✅ **DONE.**
+    Superseded entirely: there are now **nine** unique painted AutoSprite bosses
+    (idle + themed defeat), the Groom being the stage-9 finale.
+  - THE PRINCE (ending) is Blender primitive → paint via AutoSprite — **still open.**
+  - Temple OBSTACLES (hedge/gate/wall) procedural → paint to match props —
+    **partly addressed** (sky-stage wall/arch reworked 07-25); the full painted
+    pass over obstacle cells 1-8 is still the open quality-tier gap (see item 8
+    in the 🚨 banner).
 
 ## Runner prop system fixes (laptop) + engine-source note
 Fixed client-reported Runner prop issues in index.html:
