@@ -54,7 +54,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
      it fits but falls back to flex-start when it overflows, so the top of a tall
      card is never unreachable (plain `center` clips it with no way to scroll up). */
   overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:max(10px,env(safe-area-inset-top,0px)) 12px calc(46px + env(safe-area-inset-bottom,0px));
+  padding:max(10px,env(safe-area-inset-top,0px)) 12px max(8px,env(safe-area-inset-bottom,0px));
   justify-content:center;justify-content:safe center}
 .screen.active{display:flex}
 #titleScreen{background:radial-gradient(ellipse at 50% 30%,#1a0a2e,#04000c 70%);overflow:hidden}
@@ -334,10 +334,9 @@ body.mobile #bossBar{bottom:150px}
   /* floor raised to 52px: 11.5vh on a 430px-tall landscape viewport computed to
      ~49px, under Apple's 56px minimum touch target */
   body.mobile .dpad{--dk:clamp(52px,13vh,60px)}
-  /* The credit line is absolutely positioned outside the screens' scroll flow, so
-     no amount of padding clears it — in a short landscape box it lands ON TOP of
-     the control cards. Hide it only here; portrait and desktop keep it. */
-  .site-footer{display:none}
+  /* now that the credit flows with the content it no longer overlaps anything —
+     just keep it compact so it doesn't eat a short landscape viewport */
+  .site-footer{font-size:9px;letter-spacing:1.2px;padding:10px 0 calc(2px + env(safe-area-inset-bottom,0px))}
   body.mobile #joyWrap{width:auto;height:auto}
 }
 /* ── Neumorphic joystick ── */
@@ -401,7 +400,13 @@ body.mobile .joy-knob{width:64px;height:64px}
 .pxa{height:0.95em;width:auto;image-rendering:pixelated;vertical-align:-0.1em}
 #mLeft{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABAUlEQVR4nO3bMUoDURRA0SizAEuLlGIpLsH9L0EsU6R0B9pLJpcvX8YJ55Qp5ieXB48hM4cDAOzV3dZf4Kenh8evGdf5+DxP+W33My5yywQKAgWBgkBh+esDRrfS8/E46+iL545uNxMUBAoCBYGCQGF4i224lTZhgoJAQaAgUBAorG6xtW219600ygQFgYJAQaAgUFhsq+tMUBAoCBQECgIFgYJAQaAgUBAoCBSWK0877OIe7e3l9eLn76fTlOuboCBQECgIFAQKq/+LjW63Nf9t640yQUGgIFAQKAgUhp9R/MV7WLveeiYoCBQECgIFgYK3noMJCgIFgYJAQSAAuFnfyOoiU1cgSx0AAAAASUVORK5CYII=)!important;background-size:54% 54%!important;background-position:center!important;background-repeat:no-repeat!important}
 #mRight{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCUlEQVR4nO3bMQrCQBQG4SgewNIipXgY8Rye0yOIZbBMYekN9AK7Di+8JYnMV4qJMiz8ELTrJElaq03WjY77wyfjPs/3K+07ZdjO/QWWzkDAQMBAwEBgF72gtlbX86X4/tvjHv2I0Bq2Xj1PEDAQMBAwEDAQCK9Ya6e+j17SdPU8QcBAwEDAQMBAYHErFpW1erV18wQBAwEDAQMBA4G0FZvw5HAWP1avuG6eIGAgYCBgIGAgYCBgIGAgYCBgIGAgsPonilHDOBZf94niRAYCBgIGAgYCq1+x2irV+OuOZAYCBgIGAgYCi1ux1qsU5QkCBgIGAgYCBgL+6xl4goCBgIGAgYCBJEn6W184WCzKwp9lwAAAAABJRU5ErkJggg==)!important;background-size:54% 54%!important;background-position:center!important;background-repeat:no-repeat!important}
-.site-footer{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;z-index:6;
+/* IN FLOW, not absolute. As an absolutely-positioned child of a scrolling .screen
+   it parked at the first screenful's bottom and sat ON TOP of whatever was there
+   (THE BOUTIQUE button in portrait). Static + margin-top:auto puts it after the
+   content when the screen is tall, and still pins it to the bottom when there's
+   room to spare — so it never overlaps in either orientation. */
+.site-footer{position:static;margin-top:auto;flex:0 0 auto;width:100%;
+  padding:18px 0 calc(4px + env(safe-area-inset-bottom,0px));text-align:center;z-index:6;
   font-family:var(--body);font-weight:700;font-size:11px;letter-spacing:2px;color:rgba(240,200,105,.72);
   text-decoration:none;cursor:pointer;pointer-events:auto;text-transform:uppercase}
 .site-footer:hover{color:rgba(240,200,105,.95);text-decoration:underline;text-underline-offset:3px}
@@ -942,9 +947,14 @@ function rnd01(n){var v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v
 // Every foe goes through here so the stage knows how many it spawned — that's the
 // denominator in the clear tally's "FOES SILENCED 14/14".
 function addFoe(gs,o){gs.foesTotal=(gs.foesTotal||0)+1;gs.foes.push(o);}
-// Par times per stage (seconds) for the end-of-stage tally. Tuned off the 330-column
-// designed run; beating par pays the full time bonus.
-var STAGE_PAR=[150,160,165,170,180,185,190,200,215];
+// Par times per stage (SECONDS), derived from the real constants rather than
+// guessed: stageEnd=330 columns x T=32 / 384px-per-second run speed = 27.5s of
+// pure travel, scaled by each stage's STAGE_RECIPE overhead (gaps, foes,
+// verticality, hazards) plus the boss (6s of gate/intro + ~1.4s per HP).
+var STAGE_PAR=[70,70,80,90,95,100,105,115,120];
+// Par MUST scale with difficulty — boss HP already does (x1.4 on Hard), so a flat
+// par would make beating it impossible on Hard and trivial on Easy.
+var PAR_DIFF={easy:0.85,normal:1,hard:1.25};
 function buildRunner(gs){
   gs.genC=0;
   for(var c=0;c<26;c++)groundCol(gs,c); // safe opening runway
@@ -3593,7 +3603,14 @@ function drawMansionBG(st){
   // props visibly swam whenever she jumped. Worse in landscape, where the lower
   // floorY clamp exposed the mismatch far more often.
   var _wz=(typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1;
-  var groundY=Math.min(floorY,(FLOOR_R*T-(GS.camY||0))*_wz); // top of the track tiles
+  // NO CLAMP. floorY is a fixed screen fraction that does not move with the
+  // camera, so min()-ing against it pinned groundY to a static row the moment the
+  // scaled world floor dropped below H*0.82 — which in landscape is only ~4px of
+  // headroom, i.e. every single jump. The décor then froze against the backdrop
+  // while the real stage floor kept scrolling ("locked to the background floor,
+  // not the stage floor"). The clamp was a sanity bound from when groundY was
+  // UNSCALED; now that it tracks the world correctly it is actively harmful.
+  var groundY=(FLOOR_R*T-(GS.camY||0))*_wz; // top of the track tiles — tracks the world floor exactly
   // ── base: fairytale daytime sky ──
   var _sk=SIDE_SKY[ai]||SIDE_SKY[0];
   var bgG=FX.createLinearGradient(0,0,0,H);
@@ -4831,13 +4848,16 @@ function showLevelClear(){
   //    counts up. Every row pays out, so the screen reads as a reward rather than
   //    a status dump. Stage-local numbers only (initGS resets the counters).
   var secs=Math.max(1,Math.round(GS.tick/60));
-  var par=(typeof STAGE_PAR!=='undefined'&&STAGE_PAR[ai])||180;
+  var par=Math.round(((typeof STAGE_PAR!=='undefined'&&STAGE_PAR[ai])||100)*
+    ((typeof PAR_DIFF!=='undefined'&&PAR_DIFF[SET&&SET.diff])||1));
   var notes=Math.max(0,GS.totalNotes-(GS.notes0||0));
   var foesN=GS.foesTotal||0, kills=Math.min(GS.kills||0,foesN||(GS.kills||0));
   var hits=GS.dmgTaken||0;
   function mmss(s){var m=Math.floor(s/60);return m+':'+('0'+(s%60)).slice(-2);}
   // payouts — beating par pays full, over par decays; a clean run pays the most
-  var pTime=Math.max(400,Math.round(9000*Math.min(1.35,par/secs)));
+  // base minus a flat per-second-over penalty — readable ("every second over
+  // costs 20") and it never inverts, unlike a ratio curve
+  var pTime=Math.max(500,10000-Math.max(0,secs-par)*20);
   var pNotes=notes*90;
   var pFoes=kills*220+((foesN&&kills>=foesN)?1500:0);      // full-clear bonus
   var pClean=Math.max(0,4000-hits*650);                     // UNTOUCHED
