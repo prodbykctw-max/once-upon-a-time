@@ -65,7 +65,15 @@ Portrait is the primary orientation — this is the more important half.
 
 </details>
 
-## 3. 🔴 STILL OPEN — GLYPH SWEEP, 47 sites
+## 3. ✅ DONE — GLYPH SWEEP COMPLETE (0 sites remain)
+> Laptop cleared 38 (`adf3533`), cloud cleared the final 9+1: drawn eighth-note
+> helper replaces every font `♪♫` (runner coins + death bloom), map legend uses
+> drawn dots/squares, shop+atlas pips are CSS boxes, stage-select tick is a CSS
+> drawn check, CONTINUE says GEMS, mode stats say NOTES. **index.html now ships
+> zero stock glyphs.** Playwright 6/6.
+
+<details><summary>original (was 47 sites)</summary>
+
 
 Full list with line numbers and replacements: **`docs/GLYPH_SWEEP.md`**.
 You already cleared the `▶` on PROCEED (thank you) — **47 sites remain**:
@@ -90,7 +98,14 @@ Fastest path:
 
 ---
 
-## 4. 🔴 STILL OPEN — Overlay clips its own content (do with #3, same screens)
+</details>
+
+## 4. ✅ DONE (laptop, tally commit) — overlay actions always reachable
+> `.ov-btns` is `position:sticky;bottom:0` with a fade gradient — TOTAL and
+> PROCEED are reachable without scrolling on short viewports. Verified in test.
+
+<details><summary>original report</summary>
+
 
 In the client's STAGE CLEAR shot, `OBJECTIVES · ×1.0 MULTIPLIER` is cut off
 **mid-heading** and its rows never render — the scroll region ends before the
@@ -125,7 +140,16 @@ can never beat par.**
 
 </details>
 
-## Then: 🔴 STILL OPEN — the guard that stops #3 recurring
+</details>
+
+## Then: ✅ DONE — the guard is live
+> `tools/glyph_gate.py`, called from `deploy.sh` before staging: strips comments,
+> then **fails the deploy** on any arrow/geometric/symbol/dingbat/emoji character
+> in shipped code. Typography (é É — – ‘ ’ “ ” … · × ° ≈ ±) stays allowed.
+> Tested both directions: current build passes; a planted `✦` blocks the deploy.
+
+<details><summary>original spec</summary>
+
 
 Add a pre-deploy gate in `tools/deploy.sh` that **fails the deploy** on non-ASCII
 outside comments, allow-listing real accents (`é È à ç ü ö ñ`), typographic
@@ -135,6 +159,8 @@ The no-stock-glyph rule has now regressed twice because nothing enforces it.
 Sweeping without the gate just resets the clock.
 
 ---
+
+</details>
 
 ## Reference docs (don't read unless you need detail)
 - `docs/LANDSCAPE_FIX_BRIEF.md` — all landscape issues + the #0 reopen with numbers

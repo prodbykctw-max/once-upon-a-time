@@ -56,7 +56,13 @@ render loop," pointing work at `src/scenes/` instead of `index.html`. Rewritten 
 the shipped architecture; your July 25 session note is preserved verbatim.
 `DEVELOPMENT_RECORD.md` (committed 07-25) is now the canonical full history.
 
-## 🔴 ACTIVE — STOCK GLYPHS REGRESSED (client-reported, 2026-07-26)
+## ✅ RESOLVED + ENFORCED — STOCK GLYPHS (52 → 0, gate live)
+All 52 sites cleared (38 laptop + 14 cloud, incl. drawn note/pips/tick/legend
+primitives). `tools/glyph_gate.py` now runs inside `deploy.sh` and BLOCKS any
+deploy that ships symbol/emoji characters — the directive is enforced, not
+remembered. NOTE FOR LAPTOP: your deploys now run this gate automatically.
+
+### (was) 🔴 ACTIVE — STOCK GLYPHS REGRESSED
 Client flagged the `▶` on the PROCEED button. Audit found **52 user-visible
 stock-glyph sites** — this is a **REGRESSION**: the de-emoji sweep shipped
 2026-07-21 (13 baked pixel icons) but that icon system is gone from the build,

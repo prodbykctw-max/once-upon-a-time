@@ -1,4 +1,10 @@
-# STOCK-GLYPH SWEEP — regression, 52 user-visible sites
+# STOCK-GLYPH SWEEP — ✅ COMPLETE (52 → 0) + deploy gate live
+
+> Laptop cleared 38 sites (`adf3533`); cloud cleared the final 10 and added
+> `tools/glyph_gate.py` to `deploy.sh` so it cannot regress a third time —
+> the deploy now FAILS on any symbol/emoji character in shipped code.
+
+*(original brief below)*
 
 **Client, 2026-07-26:** *"That little AI arrow on the button pill for proceeding
 to the next stage… we were supposed to do a sweep for all of those. There was not

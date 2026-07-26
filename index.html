@@ -139,6 +139,9 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 .ht-opt:hover{border-color:rgba(255,215,0,.85);background:rgba(60,34,86,.72)}
 #stageSelScr{position:absolute;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(8,2,16,.88)}
 #stageSelScr.on{display:flex}
+.pip{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.5px solid rgba(240,200,105,.6);margin:0 2px;vertical-align:middle}
+.pip.on{background:#f2c75c;border-color:#f2c75c}
+.ss-b.cleared::after{content:"";display:inline-block;width:6px;height:11px;border-right:2.5px solid #8ce8a0;border-bottom:2.5px solid #8ce8a0;transform:rotate(43deg);margin-left:8px;vertical-align:1px}
 .ss-b{font-family:Storyboo;font-size:12px;padding:9px 14px;border-radius:9px;border:1px solid rgba(200,255,216,.4);background:rgba(30,60,40,.5);color:#e8fff0;cursor:pointer;min-width:96px}
 .ss-b:disabled{opacity:.32;cursor:default;border-color:rgba(255,255,255,.14)}
 .ss-b.cleared{border-color:#7CFFB2;box-shadow:0 0 10px rgba(124,255,178,.25)}
@@ -2952,7 +2955,7 @@ function drawT(){
       var coinG=FX.createRadialGradient(ex-cr*0.3,cy2-cr*0.3,0,ex,cy2,cr);
       coinG.addColorStop(0,'rgba(255,255,255,0.4)');coinG.addColorStop(0.5,'rgba('+cc+',0.95)');coinG.addColorStop(1,'rgba('+cc+',0.7)');
       FX.fillStyle=coinG;FX.beginPath();FX.arc(ex,cy2,cr,0,6.28);FX.fill();
-      FX.fillStyle='rgba(60,40,0,0.85)';FX.font='bold '+Math.max(8,Math.round(16*es))+'px serif';FX.textAlign='center';FX.fillText('♪',ex,cy2+5*es);
+      FX.fillStyle='rgba(60,40,0,0.85)';drawNoteShape(FX,ex,cy2,Math.max(3.5,6.5*es),false);
     }
   }
   // ── THE GROOM'S SHADOW (chaser) — appears when she stumbles ──
@@ -3485,12 +3488,20 @@ function spawnBelt(p){
 }
 
 // ── DEATH BLOOM: a body becomes music ──
+function drawNoteShape(c,x,y,s,dbl){ // made-asset eighth note (replaces font glyphs, which iOS renders as emoji)
+  c.beginPath();c.ellipse(x-s*0.30,y+s*0.52,s*0.46,s*0.34,-0.35,0,6.28);c.fill();
+  c.fillRect(x+s*0.08,y-s*0.95,Math.max(1,s*0.13),s*1.5);
+  if(dbl){c.beginPath();c.ellipse(x+s*0.62,y+s*0.40,s*0.46,s*0.34,-0.35,0,6.28);c.fill();
+    c.fillRect(x+s*1.00,y-s*1.05,Math.max(1,s*0.13),s*1.48);
+    c.fillRect(x+s*0.08,y-s*1.05,s*1.05,Math.max(1.5,s*0.28));}
+  else{c.beginPath();c.moveTo(x+s*0.08,y-s*0.95);c.quadraticCurveTo(x+s*0.75,y-s*0.62,x+s*0.5,y-s*0.05);
+    c.quadraticCurveTo(x+s*0.52,y-s*0.5,x+s*0.08,y-s*0.42);c.fill();}}
 function noteBurst(x,y,n){
   for(var i=0;i<n;i++)GS.deathNotes.push({
     x:x+(Math.random()-0.5)*20,y:y+(Math.random()-0.5)*34,
     vx:(Math.random()-0.5)*3.4,vy:-1.6-Math.random()*3.2,
     rot:Math.random()*6.28,t:80+Math.random()*50,
-    g:Math.random()<0.5?'♪':'♫',
+    dbl:Math.random()<0.5?0:1,
     c:Math.random()<0.6?'255,215,0':'200,150,255',
     sz:14+Math.random()*14});}
 function stepNotes(){for(var i=GS.deathNotes.length-1;i>=0;i--){var n=GS.deathNotes[i];
@@ -3500,8 +3511,8 @@ function drawNotes(){if(!GS.deathNotes.length)return;
   for(var i=0;i<GS.deathNotes.length;i++){var n=GS.deathNotes[i];
     FX.save();FX.translate(n.x,n.y);FX.rotate(Math.sin(n.rot)*0.5);
     FX.globalAlpha=Math.min(1,n.t/45);
-    FX.fillStyle='rgba('+n.c+',1)';FX.font='bold '+Math.round(n.sz)+'px serif';FX.textAlign='center';
-    FX.fillText(n.g,0,0);FX.restore();}
+    FX.fillStyle='rgba('+n.c+',1)';
+    drawNoteShape(FX,0,0,n.sz*0.5,n.dbl);FX.restore();}
   FX.globalAlpha=1;}
 // ════ PHOTOREAL BACKDROPS (preferred path) ════
 // Drop base64 data-URIs per stage index (or 'all' for every stage) into BG_DATA.
@@ -4722,7 +4733,7 @@ function drawArrows(ac,st){var p=GS.p;if(GS.won||GS.trans||p.dead||GS.bossActive
   FX.restore();
   if(Math.floor(GS.arrowT/18)%2===0){var label=GS.gateOpen?'BOSS AHEAD':'CLEAR ENEMIES';FX.font='bold 10px Storyboo,sans-serif';var tw=FX.measureText(label).width;var lx=dir>0?W-tw/2-30:tw/2+30;FX.fillStyle='rgba(0,0,0,0.7)';FX.fillRect(lx-tw/2-8,ey+44,tw+16,20);FX.strokeStyle='#'+st.ac.slice(1);FX.lineWidth=2;FX.strokeRect(lx-tw/2-8,ey+44,tw+16,20);FX.fillStyle='#'+st.ac.slice(1);FX.textAlign='center';FX.fillText(label,lx,ey+58);}}
 function drawPowerHUD(ac){
-  if(GS.blocking){FX.font='bold 10px Storyboo,sans-serif';FX.fillStyle='rgba(0,255,238,0.8)';FX.textAlign='center';FX.fillText('▣ HOLDING NOTE',W/2,H*0.6);}
+  if(GS.blocking){FX.font='bold 10px Storyboo,sans-serif';FX.fillStyle='rgba(0,255,238,0.8)';FX.textAlign='center';FX.fillText('HOLDING NOTE',W/2,H*0.6);}
   drawFxChips();}
 // active power-up chips under the distance meter: icon + name + seconds + drain bar
 function drawFxChips(){
@@ -4769,7 +4780,14 @@ function drawMap(ac){var st=STAGES[GS.ai];FX.fillStyle='rgba(8,0,18,0.92)';FX.fi
   for(i=0;i<GS.enemies.length;i++){if(!GS.enemies[i].alive)continue;FX.fillStyle='rgba(255,60,90,0.8)';FX.beginPath();FX.arc(GS.enemies[i].x*sc,GS.enemies[i].y*sc,3,0,6.28);FX.fill();}
   if(GS.boss&&GS.boss.alive){FX.fillStyle='rgba(255,45,138,1)';FX.fillRect(GS.boss.x*sc-4,GS.boss.y*sc-4,8,8);}
   var pp=Math.sin(GS.tick*0.15)*0.3+0.7;FX.fillStyle='rgba(255,235,130,'+pp+')';FX.beginPath();FX.arc(GS.p.x*sc,GS.p.y*sc,5,0,6.28);FX.fill();FX.strokeStyle='#FFD700';FX.lineWidth=1.5;FX.stroke();FX.restore();
-  FX.font='8px Storyboo,sans-serif';FX.textAlign='left';var ly=my+mh+30,lxc=mx;FX.fillStyle='rgba(255,235,130,1)';FX.fillText('● YOU',lxc,ly);FX.fillStyle='rgba(255,60,90,0.8)';FX.fillText('● ENEMY',lxc+90,ly);FX.fillStyle='rgba(200,160,255,0.9)';FX.fillText('■ NOTE',lxc+200,ly);FX.fillStyle='#FFD700';FX.fillText('● POWER',lxc+300,ly);FX.fillStyle=GS.gateOpen?'rgba(100,255,150,1)':'rgba(180,80,255,1)';FX.fillText(GS.gateOpen?'■ GATE OPEN':'■ GATE LOCKED',lxc+400,ly);}
+  FX.font='8px Storyboo,sans-serif';FX.textAlign='left';var ly=my+mh+30,lxc=mx;
+  var _dot=function(x,c){FX.fillStyle=c;FX.beginPath();FX.arc(x+3,ly-3,3,0,6.28);FX.fill();};
+  var _sq=function(x,c){FX.fillStyle=c;FX.fillRect(x,ly-8,6,6);};
+  _dot(lxc,'rgba(255,235,130,1)');FX.fillText('YOU',lxc+10,ly);
+  _dot(lxc+90,'rgba(255,60,90,0.8)');FX.fillText('ENEMY',lxc+100,ly);
+  _sq(lxc+200,'rgba(200,160,255,0.9)');FX.fillText('NOTE',lxc+210,ly);
+  _dot(lxc+300,'#FFD700');FX.fillText('POWER',lxc+310,ly);
+  FX.fillStyle=GS.gateOpen?'rgba(100,255,150,1)':'rgba(180,80,255,1)';_sq(lxc+400,FX.fillStyle);FX.fillText(GS.gateOpen?'GATE OPEN':'GATE LOCKED',lxc+410,ly);}
 function drawLyric(ac){var t2=GS.lyricT%900,al=t2<50?t2/50*.3:t2>840?(1-(t2-840)/60)*.3:.3;if(al<.01)return;
   var lines=['"Once upon a time..."','"The song was a promise. The promise was a lie."','"Her voice is the only ring she needs."','"She turned heartbreak into a headline."','"JANDÉ – Once Upon A Time"'];
   var li=Math.floor(GS.ai*1.9+(GS.lyricT/900))%lines.length;FX.globalAlpha=al;FX.fillStyle='rgba(255,245,220,0.88)';FX.font='300 italic 15px Storyboo, Georgia, serif';FX.textAlign='center';FX.fillText(lines[li],W/2,H-92);FX.globalAlpha=1;}
@@ -5045,7 +5063,7 @@ function showOver(won){
   var contBtn=document.getElementById('ovR'),reBtn=document.getElementById('ovRestart');
   if(contBtn){
     if(!won&&canContinue()){contBtn.style.display='';
-      contBtn.innerHTML='CONTINUE <span style="opacity:.82;font-size:.86em">— '+continueCost()+' ◆</span>';}
+      contBtn.innerHTML='CONTINUE <span style="opacity:.82;font-size:.86em">— '+continueCost()+' GEMS</span>';}
     else contBtn.style.display='none';}
   if(reBtn){reBtn.style.display='';reBtn.textContent=won?'PLAY AGAIN':'RESTART';}
   running=false;applyTouchMode();}
@@ -5091,7 +5109,7 @@ function shopRender(){
   document.getElementById('shBal').textContent=''+(w.notes||0)+' GRACE NOTES BANKED · '+(w.gems||0)+' GEMS';
   SHOP_ITEMS.forEach(function(it,i){
     var lv=sp[it.k]||0,maxed=lv>=it.max,c=maxed?0:Math.round(it.cost(lv));
-    var pips='';for(var pi2=0;pi2<it.max;pi2++)pips+=pi2<lv?'●':'○';
+    var pips='';for(var pi2=0;pi2<it.max;pi2++)pips+=pi2<lv?'<i class="pip on"></i>':'<i class="pip"></i>';
     h+='<div class="sh-row"><div style="text-align:left"><div>'+it.n+'</div>'+
        '<div style="opacity:.55;font-size:10.5px">'+it.d+'</div>'+
        '<div class="sh-pips">'+pips+'</div></div>'+
@@ -5100,7 +5118,7 @@ function shopRender(){
   // ── THE WANDERER'S ATLAS: buy every stage's map (the 'purchased' half of the
   //    Wanderer's Map — reveals all hidden caches without hunting each fragment) ──
   var _maps=mapsOwned(),_own=0;for(var _mi=0;_mi<9;_mi++)if(_maps[_mi])_own++;
-  var _AC=400,_pips='';for(var _pj=0;_pj<9;_pj++)_pips+=(_maps[_pj]?'●':'○');
+  var _AC=400,_pips='';for(var _pj=0;_pj<9;_pj++)_pips+=(_maps[_pj]?'<i class="pip on"></i>':'<i class="pip"></i>');
   h+='<div class="sh-row"><div style="text-align:left"><div>The Wanderer&#39;s Atlas</div>'+
      '<div style="opacity:.55;font-size:10.5px">reveals every stage&#39;s hidden cache ('+_own+'/9)</div>'+
      '<div class="sh-pips">'+_pips+'</div></div>'+
@@ -5117,7 +5135,7 @@ function shopRender(){
 function refreshModeStats(){
   try{var b=parseInt(localStorage.getItem('jande_best')||'0',10);
     var stv=streakGet();
-    document.getElementById('msStats').innerHTML=(b>0?'BEST '+b+'m &nbsp;·&nbsp; ':'')+'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABOElEQVR4nO3bMWoCQRSAYZUUliklTYK417DyIB4gB0i5ZQ6QA3gQK6+hSGxCypSpTA4w74dl57mK/F85yKA/w2PRcTSSJA1unL3h4nH2l71nX4ef796fb5L5Ru6JYYBhgGFA1fCNBu3+871my1TNy1ux1nUge2KAYYBhgGFA5+EbDdrtZlq87nn+VPmW8pyOX8Xaav1brEUD2RMDDAMMAwwD8p98d/OaLVM1y2Ox5pNvJcMAwwDDAMMAwwDDAMMAwwDDAMMAwwDDAMOAq912iL4v7ir63jbibYcLMAwwDDAMeMjeMBp4Q1w/qxm0EU8MMAwwDDAMGOTJd4gf4Wp+XIt4YoBhgGGAYYBhgGGAYYBhgGFA+lWzj/Z2Wr+252LNq2aVDAMMAwwD/Hsx8MQAwwDDAMNIkm7HP2EbPCge4W34AAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""> '+Object.keys(ACH_GOT).length+'/'+ACH.length+' &nbsp;·&nbsp; ✦ ×'+misMult().toFixed(1)+' &nbsp;·&nbsp; <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABHElEQVR4nO3bsYkCURRG4dEKDDUzsBBDC7AUC5gCLMUCDC3EwExDO9AC5h648B7vjXi+cFmZ5XD5EXGHQZLU3KLXg3er9Sfze/f3q8vfuOzx0F9gGGAYYBjQZNiiob2Mz9Rrj+Nm8rMWg+zFAMMAwwDDgOojlh3a7WH62sc194wWg+zFAMMAwwDDgKLBajG0WbUH2YsBhgGGAYYB6XEq+eigl5JB9mKAYYBhgGFAOETR0J738x7arNMtN8heDDAMMAwwDCh65zv3Qc4ObcSLAYYBhgGGAdU/8+01yCVDG/FigGGAYYBhQJNvO9Qe5NpDG/FigGGAYYBhQLfv+WYHucXQRrwYYBhgGGAY4H+4AS8GGAYYBhhGkiRJ+mtf3/JLZAjCijQAAAAASUVORK5CYII=" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""> '+wallet().gems+' &nbsp;·&nbsp; ♪ '+(wallet().notes||0)+(stv.n>1?' &nbsp;·&nbsp; <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABHUlEQVR4nO3bsQnCQBhA4VMcIFhZWZkdnCyFA1g4WXbQyspKsoG2YvLgMOf9Cu8rg5LjcRw/0aQkSapuEb2AV7tm83i/dhluIWtcRtz0HxgGGAYYBqyibjx10J5P69Hn2i6FHMjuGGAYYBhgGFBlqsw9aHO13X10rfSB7I4BhgGGAYYBhgGGAYYBhgGGAcUn39JTbq7S07A7BhgGGAYYBsw6fKMO2lxzDmR3DDAMMAwwDAj7wS3tm8+/2w+lVoHcMcAwwDDAMCB78i0+5QYdvrnTsDsGGAYYBhgGxE2+U7bH8bXrof46kjsGGQYYBhgGxD3zrTD5+sz3CwwDDAMMA/y3A3DHAMMAwwDDgLCXLErzJYtKDAMMAwwjSfodT8i5QYhCBXeCAAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""> '+stv.n:'');}catch(x){}
+    document.getElementById('msStats').innerHTML=(b>0?'BEST '+b+'m &nbsp;·&nbsp; ':'')+'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABOElEQVR4nO3bMWoCQRSAYZUUliklTYK417DyIB4gB0i5ZQ6QA3gQK6+hSGxCypSpTA4w74dl57mK/F85yKA/w2PRcTSSJA1unL3h4nH2l71nX4ef796fb5L5Ru6JYYBhgGFA1fCNBu3+871my1TNy1ux1nUge2KAYYBhgGFA5+EbDdrtZlq87nn+VPmW8pyOX8Xaav1brEUD2RMDDAMMAwwD8p98d/OaLVM1y2Ox5pNvJcMAwwDDAMMAwwDDAMMAwwDDAMMAwwDDAMOAq912iL4v7ir63jbibYcLMAwwDDAMeMjeMBp4Q1w/qxm0EU8MMAwwDDAMGOTJd4gf4Wp+XIt4YoBhgGGAYYBhgGGAYYBhgGFA+lWzj/Z2Wr+252LNq2aVDAMMAwwD/Hsx8MQAwwDDAMNIkm7HP2EbPCge4W34AAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""> '+Object.keys(ACH_GOT).length+'/'+ACH.length+' &nbsp;·&nbsp; ×'+misMult().toFixed(1)+' &nbsp;·&nbsp; <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABHElEQVR4nO3bsYkCURRG4dEKDDUzsBBDC7AUC5gCLMUCDC3EwExDO9AC5h648B7vjXi+cFmZ5XD5EXGHQZLU3KLXg3er9Sfze/f3q8vfuOzx0F9gGGAYYBjQZNiiob2Mz9Rrj+Nm8rMWg+zFAMMAwwDDgOojlh3a7WH62sc194wWg+zFAMMAwwDDgKLBajG0WbUH2YsBhgGGAYYB6XEq+eigl5JB9mKAYYBhgGFAOETR0J738x7arNMtN8heDDAMMAwwDCh65zv3Qc4ObcSLAYYBhgGGAdU/8+01yCVDG/FigGGAYYBhQJNvO9Qe5NpDG/FigGGAYYBhQLfv+WYHucXQRrwYYBhgGGAY4H+4AS8GGAYYBhhGkiRJ+mtf3/JLZAjCijQAAAAASUVORK5CYII=" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""> '+wallet().gems+' &nbsp;·&nbsp; '+(wallet().notes||0)+' NOTES'+(stv.n>1?' &nbsp;·&nbsp; <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABHUlEQVR4nO3bsQnCQBhA4VMcIFhZWZkdnCyFA1g4WXbQyspKsoG2YvLgMOf9Cu8rg5LjcRw/0aQkSapuEb2AV7tm83i/dhluIWtcRtz0HxgGGAYYBqyibjx10J5P69Hn2i6FHMjuGGAYYBhgGFBlqsw9aHO13X10rfSB7I4BhgGGAYYBhgGGAYYBhgGGAcUn39JTbq7S07A7BhgGGAYYBsw6fKMO2lxzDmR3DDAMMAwwDAj7wS3tm8+/2w+lVoHcMcAwwDDAMCB78i0+5QYdvrnTsDsGGAYYBhgGxE2+U7bH8bXrof46kjsGGQYYBhgGxD3zrTD5+sz3CwwDDAMMA/y3A3DHAMMAwwDDgLCXLErzJYtKDAMMAwwjSfodT8i5QYhCBXeCAAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""> '+stv.n:'');}catch(x){}
   var msh=document.getElementById('msShop');
   if(msh&&!msh._wired){msh._wired=true;
     msh.onclick=function(){audInit();sfx('ui');document.getElementById('shopScr').classList.add('on');shopRender();};
@@ -5281,7 +5299,7 @@ function wire(){
       var cl=clearsOwned(),h='';
       for(var i=0;i<STAGES.length;i++){
         var ok=(i===0)||!!cl[i];                       // stage 1 always; else only beaten stages
-        h+='<button class="ss-b'+(cl[i]?' cleared':'')+'" data-ai="'+i+'"'+(ok?'':' disabled')+'>STAGE '+toRoman(i+1)+(cl[i]?' ✓':'')+'</button>';
+        h+='<button class="ss-b'+(cl[i]?' cleared':'')+'" data-ai="'+i+'"'+(ok?'':' disabled')+'>STAGE '+toRoman(i+1)+'</button>';
       }
       rows.innerHTML=h;
       [].forEach.call(rows.querySelectorAll('.ss-b'),function(b){b.onclick=function(){

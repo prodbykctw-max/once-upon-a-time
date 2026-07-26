@@ -405,6 +405,13 @@ pre-deploy gate to stop the glyph rule regressing a third time.
   the Groom visuals; the mechanism existed in `musTick` but its `danger` flag was
   wired only to the runner's chaser, so RPG bosses had no musical change at all.
 
+- **Glyph sweep finished and locked (52 → 0).** The last 10 sites became made
+  assets: a drawn eighth-note (runner coins + death bloom), drawn map-legend
+  markers, CSS pips and a CSS cleared-tick, and words for gems/notes. A glyph
+  gate (`tools/glyph_gate.py`) now runs inside `deploy.sh` and fails any deploy
+  shipping symbol/emoji characters — after regressing twice, the rule is enforced.
+- **Overlay clipping** closed by the laptop's sticky `.ov-btns` action row.
+
 ## Still open
 | Item | Status | Note |
 |---|---|---|

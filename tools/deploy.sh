@@ -20,6 +20,10 @@ fi
 
 # commit index.html/web/ on dev first if you have staged changes — this script
 # only PUBLISHES; it does not commit your source branch for you.
+# GLYPH GATE (2026-07-26): the no-stock-glyphs directive regressed twice because
+# nothing enforced it. Refuse to deploy a build that ships symbol/emoji chars.
+python3 tools/glyph_gate.py || { echo "Deploy blocked by glyph gate."; exit 1; }
+
 touch .nojekyll
 
 git checkout --orphan _deploy_tmp
