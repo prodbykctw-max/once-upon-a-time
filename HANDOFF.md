@@ -488,3 +488,21 @@ and clicks through, captured with headless Chrome - that renders reliably.
 
 **Still open:** rotate the Cloudflare API token (owner action); landscape controls on device;
 combat/economy tuning; Stage-Select starting stats (late stages begin at LV1).
+
+## 2026-07-26 — themed gore + projectiles, glyph sweep, tally, landscape
+
+- **Per-boss projectiles**: every villain threw the same red dot. `drawBoss` now
+  draws the boss's OWN matter, sized to read as an object — Scarecrow straw,
+  Thistle/Thorn barbed thorns, Storm lightning shard, Blossom petal, Lake droplet,
+  Ink torn page, Toadstool spores, Groom ember. Colour from `BOSS_GORE`.
+- **Lesser-foe blood**: `FOE_GORE[tp]` + `goreOf(f)` — creatures bleed what they
+  are made of, humanoids bleed red. Wired into `hitE` and the kill burst.
+- **Stock-glyph sweep**: ~38 sites cleared (decoration deleted, label icons to
+  words, data icons to words). Load-bearing marks are DRAWN now: `.ic-pause`
+  (two CSS bars), `.ic-star`, and `starMark()` for the Wanderer's Map beacon.
+- **End-of-stage scored tally** with derived `STAGE_PAR` + `PAR_DIFF`.
+- **Landscape/portrait**: reopened #0 fixed (the `floorY` clamp pinned `groundY`),
+  footer now flows instead of overlapping, invisible themed scrollbars.
+
+**Standing rule acknowledged:** documentation is updated as part of the same
+commit as the work, not afterwards.
