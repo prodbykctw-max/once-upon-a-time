@@ -41,7 +41,16 @@
 .panel-tav{background:var(--wood);border:2px solid var(--woodline);
   border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,220,150,.22),inset 0 0 22px rgba(0,0,0,.45),0 8px 22px rgba(0,0,0,.45)}
 html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
-.screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column}
+.screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;
+  /* Content used to be centred with no scroll while .site-footer floats absolutely
+     at the bottom — so anything taller than the viewport slid UNDER the footer and
+     was clipped off the top (register card) in BOTH orientations. Reserve the
+     footer's band, and allow scrolling. `safe center` keeps the centred look when
+     it fits but falls back to flex-start when it overflows, so the top of a tall
+     card is never unreachable (plain `center` clips it with no way to scroll up). */
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:max(10px,env(safe-area-inset-top,0px)) 12px calc(46px + env(safe-area-inset-bottom,0px));
+  justify-content:center;justify-content:safe center}
 .screen.active{display:flex}
 #titleScreen{background:radial-gradient(ellipse at 50% 30%,#1a0a2e,#04000c 70%);overflow:hidden}
 #bgC{position:absolute;inset:0;z-index:1}
@@ -200,7 +209,14 @@ body.mobile .chap-stage{font-size:7px;letter-spacing:1px}
 #overlay.on{display:flex}
 .ov-t{font-family:Storyboo;font-weight:900;font-size:clamp(32px,8.5vw,70px);color:rgba(255,215,0,.92);letter-spacing:4px;text-align:center}
 .ov-m{font-family:Storyboo;font-weight:300;font-style:italic;font-size:clamp(13px,2vw,16px);color:rgba(255,255,255,.6);margin:14px 0 30px;text-align:center;line-height:1.9;max-width:420px;padding:0 20px;white-space:pre-line}
-.ov-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+/* The primary actions must be reachable WITHOUT scrolling. In a short landscape
+   box CONTINUE / RESTART / MAIN MENU fell below the fold — #overlay scrolls, but
+   nothing signalled it. Pinning the row to the bottom of the scroll box keeps
+   them on screen at any height, with a scrim so content passes cleanly behind. */
+.ov-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;
+  position:sticky;bottom:0;z-index:2;width:100%;margin-top:auto;
+  padding:12px 0 calc(6px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(180deg,rgba(4,0,12,0),rgba(4,0,12,.93) 40%,rgba(4,0,12,.98))}
 .ov-btn{background:transparent;border:1px solid rgba(255,215,0,.4);color:rgba(255,215,0,.8);font-family:Storyboo;font-size:clamp(6px,1.1vw,8px);padding:13px 26px;border-radius:6px;cursor:pointer;letter-spacing:1px}
 .ov-btn.prim{background:linear-gradient(135deg,#7a1fd0,#ff2d8a);border-color:transparent;color:#fff}
 #pauseMenu{position:absolute;inset:0;z-index:52;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,0,12,.82);backdrop-filter:blur(3px)}
@@ -284,7 +300,13 @@ body.mobile #bossBar{bottom:150px}
   /* size controls by viewport HEIGHT in landscape so the cluster stays short
      enough to fit above the home indicator / browser bar */
   body.mobile .mdiam{--ak:clamp(52px,15vh,72px)}
-  body.mobile .dpad{--dk:clamp(40px,11.5vh,56px)}
+  /* floor raised to 52px: 11.5vh on a 430px-tall landscape viewport computed to
+     ~49px, under Apple's 56px minimum touch target */
+  body.mobile .dpad{--dk:clamp(52px,13vh,60px)}
+  /* The credit line is absolutely positioned outside the screens' scroll flow, so
+     no amount of padding clears it — in a short landscape box it lands ON TOP of
+     the control cards. Hide it only here; portrait and desktop keep it. */
+  .site-footer{display:none}
   body.mobile #joyWrap{width:auto;height:auto}
 }
 /* ── Neumorphic joystick ── */
@@ -4820,7 +4842,18 @@ function initTitleBG(){var bc=document.getElementById('bgC'),c2=bc.getContext('2
   var stars=[],wisps=[];for(var i=0;i<200;i++)stars.push({x:Math.random()*bc.width,y:Math.random()*bc.height,s:Math.random()*1.6+.3,b:Math.random()*6.28,v:.015+Math.random()*.03});
   for(i=0;i<40;i++)wisps.push({x:Math.random()*bc.width,y:Math.random()*bc.height+80,vx:(Math.random()-.5)*.5,vy:-.35-Math.random()*.35,a:Math.random()*6.28,sz:3+Math.random()*7});
   var _tbg=c2.createLinearGradient(0,0,0,bc.height);_tbg.addColorStop(0,'#020006');_tbg.addColorStop(.45,'#1a0a2e');_tbg.addColorStop(1,'#04000C');
-  (function l(){c2.fillStyle=_tbg;c2.fillRect(0,0,bc.width,bc.height);
+  (function l(){
+    // SELF-HEAL ON ROTATE: this canvas was sized once at load and never again, so
+    // turning the phone left it at the old width — the uncovered strip read as a
+    // hard vertical seam splitting the title background. Re-size (and rebuild the
+    // gradient, which is height-based) whenever the viewport changes.
+    if(bc.width!==innerWidth||bc.height!==innerHeight){
+      bc.width=innerWidth;bc.height=innerHeight;
+      _tbg=c2.createLinearGradient(0,0,0,bc.height);
+      _tbg.addColorStop(0,'#020006');_tbg.addColorStop(.45,'#1a0a2e');_tbg.addColorStop(1,'#04000C');
+      for(var _si=0;_si<stars.length;_si++){stars[_si].x=Math.random()*bc.width;stars[_si].y=Math.random()*bc.height;}
+    }
+    c2.fillStyle=_tbg;c2.fillRect(0,0,bc.width,bc.height);
     for(var i=0;i<stars.length;i++){var s=stars[i];s.b+=s.v;c2.fillStyle='rgba(255,215,0,'+(Math.sin(s.b)*.4+.34)+')';c2.beginPath();c2.arc(s.x,s.y,s.s,0,6.28);c2.fill();}
     for(i=0;i<wisps.length;i++){var w=wisps[i];w.x+=w.vx;w.y+=w.vy;w.a+=.018;if(w.y<-20){w.y=bc.height+10;w.x=Math.random()*bc.width;}c2.fillStyle='rgba(130,0,255,'+(Math.sin(w.a)*.17+.08)+')';c2.beginPath();c2.ellipse(w.x,w.y,w.sz*.28,w.sz,Math.sin(w.a)*.44,0,6.28);c2.fill();}
     requestAnimationFrame(l);})();}
