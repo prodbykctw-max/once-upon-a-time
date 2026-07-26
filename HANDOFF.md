@@ -16,6 +16,17 @@ inline and dated. What changed:
 3. Shipped work no longer labelled "ACTIVE"/"CURRENT FOCUS": 3D Temple phases,
    the AutoSprite whimsy pack, the Groom boss, and the backlog.
 4. Testing recipe: `window._dbg` → the shipped `#dev` hooks.
+5. **Corrected 07-26 after a code-verified sweep:** item 8 below and the PRO
+   AUDIT list still called the stage 1-8 obstacles "Blender clay" and THE
+   PRINCE "a Blender primitive". Both were already painted and shipped
+   (`076c90a`, `ce84def`). **All three PRO-AUDIT items are now closed.**
+   Verified against the code, not the prose — the atlases and `prince` all
+   resolve to painted `web/*.webp`, and all 54 asset refs exist on disk.
+6. **Also closed 07-26:** three sections still headed "ACTIVE"/"OPEN BUG" were
+   already shipped — Runner décor prop quality (`eae13f7`, `d707394`), the
+   library reading-table obstacle (`4a224fc`), and the RESONANCE/LV vs
+   `#topBtns` HUD overlap (fixed by the laptop). **Net result: this file no
+   longer lists any open art/Blender task that is actually finished.**
 
 **Also corrected: `CLAUDE.md`** — its top still described the parked **Phaser 3 +
 Vite** scaffold and instructed sessions to "keep using it; do not hand-roll a
@@ -48,15 +59,20 @@ the shipped architecture; your July 25 session note is preserved verbatim.
    Never reintroduce a pre-GL placeholder renderer for outdoor stages.
 7. The library no longer has a (nonsensical) grazing bunny — `LOOK[0].props`
    is `[12,13]` (globe-on-table + topiary only).
-8. **OPEN / OPTIONAL:** stages 1-8 obstacles (oblow/obgate/obwall cells 1-8) are
-   still the older Blender "clay" renders — correct per-stage themes (arbor,
-   marble arch, hedge, hay bales, truss…) but softer than the painted library
-   trio (cell 0). Upgrading them to painted AutoSprite (24 assets) is the last
-   quality-tier gap. Pipeline: generate → `tools/edit_library_assets.py` pattern
-   (surgical per-cell swap into the web/ atlas).
+8. ~~**OPEN / OPTIONAL:** stages 1-8 obstacles are still older Blender "clay"~~
+   ✅ **DONE — superseded 2026-07-23/25.** All stage 1-8 obstacles were painted in
+   `076c90a` ("Paint all stage 1-8 obstacles (24 assets): arches/logs/hedges/
+   balustrades/toadstools/hay/clouds/truss — retire Blender clay"). Two of the
+   three atlases were revised again on 07-25: `obgate` → `c294e49` (sky-stage
+   arch = roll-under gate), `obwall` → `98cce3c` (solid cloud wall). Verified in
+   code: `oblow/obgate/obwall` all point at painted `web/*.webp`. **No clay
+   remains.**
 
 
-## 🎨 ACTIVE for the BLENDER session: upgrade the Runner décor prop quality
+## ✅ DONE (was "🎨 ACTIVE for the BLENDER session"): Runner décor prop quality
+> **Shipped.** Executed premium (`3bc652a`), then superseded by the painted
+> AutoSprite set: `eae13f7` (procedural → painted) + `d707394` (last 4 cells —
+> globe, topiary, bunnies = full painted set). Brief kept below as reference.
 Full brief with the exact drop-in spec, the 16-cell atlas map, per-stage
 usage, workflow, and swap recipe: **`BLENDER_PROPS_BRIEF.md`**. Baseline
 images: `assets_whimsy/outprops_current.png` (+ `_labeled.png`). TL;DR: same
@@ -66,14 +82,19 @@ at neutral mid-key colour — the engine now adds per-prop hue variation.
 Placement/composition is already done by the cloud session; this is the
 sprites-detail lever for the "premium" look.
 
-## 🎨 ACTIVE for the BLENDER session: library runner obstacle → reading table
+## ✅ DONE (was "🎨 ACTIVE for the BLENDER session"): library obstacle → reading table
+> **Shipped** in `4a224fc` — painted library obstacles: reading table (slide),
+> bookcase (block), books (jump). Spec kept below as reference.
 The library full-blocker (`wall`, cell 0) reads as an abstract wooden board;
 the client wants a clear **library reading table**. Exact spec + a drop-in
 `obstacles3d.py` snippet + the render/embed steps:
 **`tools/blender/OBSTACLE_LIBRARY_TABLE.md`**. No game-code change needed —
 just re-render `wall_0` and re-run `tools/embed_obstacles.py`.
 
-## 🐞 OPEN BUG for the LAPTOP session (your HUD area, so you own the fix)
+## ✅ FIXED (was "🐞 OPEN BUG for the LAPTOP session"): RESONANCE/LV vs #topBtns
+> **Resolved by the laptop session** (`d252b61` + the top-left combined-bar
+> move) — see the cross-session log near the bottom of this file. Kept for
+> context; not an open bug.
 The enlarged RESONANCE/level meters from `c3286be` ("larger health/power
 meters") now **overlap the top-right sound + pause buttons** (`#topBtns`).
 On mobile `.strk` is 128px wide and the `.slbl` labels ("RESONANCE" / "LV
@@ -320,15 +341,15 @@ painted wins decisively for this storybook style.
   GLWDATA.props swapped, 262KB WebP. Contact: assets_whimsy/outprops_painted.png.
 - STILL PROCEDURAL (follow-up): cells 12-15 (indoor globe/topiary/bunny,
   library-only). Paint later for full consistency.
-- AUDIT items (status as of 2026-07-25):
-  - ~~RPG BOSS "The Groom Who Lied" is still canvas rectangles~~ → ✅ **DONE.**
+- AUDIT items — ✅ **ALL THREE CLOSED** (verified in code 2026-07-26):
+  - ~~RPG BOSS "The Groom Who Lied" is still canvas rectangles~~ → **DONE.**
     Superseded entirely: there are now **nine** unique painted AutoSprite bosses
     (idle + themed defeat), the Groom being the stage-9 finale.
-  - THE PRINCE (ending) is Blender primitive → paint via AutoSprite — **still open.**
-  - Temple OBSTACLES (hedge/gate/wall) procedural → paint to match props —
-    **partly addressed** (sky-stage wall/arch reworked 07-25); the full painted
-    pass over obstacle cells 1-8 is still the open quality-tier gap (see item 8
-    in the 🚨 banner).
+  - ~~THE PRINCE (ending) is Blender primitive~~ → **DONE** in `ce84def`
+    ("Painted Boss + Prince — retire canvas/primitive versions"). Live as
+    `prince:"web/6bfe5d567826.webp"` (78 KB painted).
+  - ~~Temple OBSTACLES still procedural~~ → **DONE** in `076c90a` (all 24 stage
+    1-8 assets painted), with `obgate`/`obwall` further revised 07-25. See item 8.
 
 ## Runner prop system fixes (laptop) + engine-source note
 Fixed client-reported Runner prop issues in index.html:
