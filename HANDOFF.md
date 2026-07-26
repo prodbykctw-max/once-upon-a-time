@@ -94,6 +94,12 @@ becomes ~39% of a short viewport (vs ~15% in portrait), so a featureless
 ground slab eats the screen and hides the painted backdrops. Plus blank
 untextured platforms, a tile column into the sky, a backdrop seam, and
 overlay/footer clipping on register / how-to / game-over.
+⚠️ **RETEST 07-26 (post-deploy):** #0/#0b/#1 confirmed FIXED on device — the
+slab is gone and décor plants correctly. **But the `.site-footer` fix was gated
+to `@media (orientation:landscape)` (line 298→309), so in PORTRAIT the
+PRODBYKCTW footer still sits on top of the THE BOUTIQUE button.** Portrait is
+the primary orientation — content height, not orientation, is what causes the
+collision. See the FOLLOW-UP section of the brief.
 ✅ Resolved by the same report: the landscape **control cluster fits on screen**
 — the long-open "verify landscape controls on device" item is now confirmed OK.
 

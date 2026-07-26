@@ -340,3 +340,46 @@ Portrait must not regress. Repro at ~932×430 CSS px with `body.mobile` active;
 `?stage=0` (library) and `?stage=1` (meadow) reproduce #1 and #2 immediately. Note
 the known limit: with the preview pane hidden `requestAnimationFrame` throttles —
 use the iframe harness from your July 25 note.
+
+---
+
+# FOLLOW-UP 2026-07-26 (after the fixes deployed)
+
+Client re-tested on device against the live build (deployed 12:39). Verified the
+fixes are genuinely live: `groundY … * _wz` and `obW = H*0.125*1.1` are both
+present in the deployed `index.html`, and the screenshots confirm the ground slab
+is gone and the décor now plants on the floor. **#0, #0b, #1 confirmed fixed on
+device.**
+
+## ⚠️ One fix was landscape-gated and shouldn't have been
+
+**`.site-footer` still overlaps content in PORTRAIT.** On the how-to screen the
+`PRODBYKCTW` footer sits **on top of the THE BOUTIQUE button** — client
+screenshot, portrait, iPhone.
+
+Cause: the fix is
+
+```css
+@media (orientation:landscape) and (max-height:560px){   /* line 298 */
+  …
+  .site-footer{display:none}                            /* line 309 */
+}
+```
+
+so it only applies in **landscape**. In portrait `.site-footer` is still
+`position:absolute; bottom:12px; z-index:6` (line 373) and floats over whatever
+the scrolling content ends on. Portrait is the *primary* orientation, so this is
+the more important of the two.
+
+**Fix:** don't gate it on orientation. Either let the footer flow with the
+scroll content on `#howToScreen` (it's `overflow-y:auto` already), or hide it
+whenever the content would reach it — the orientation isn't what determines the
+collision, the content height is.
+
+## Not bugs — for the record
+- **iOS Safari chrome still eats ~28% of the landscape viewport.** That's browser
+  UI; no CSS removes it. **Add to Home Screen** launches the PWA standalone
+  (`apple-mobile-web-app-capable` is already set) and it disappears. Worth a
+  one-line hint on the title screen rather than an engine change.
+- **Glyphs still visible** (`✦ THE BOUTIQUE`, the Grace Notes chip): expected —
+  `docs/GLYPH_SWEEP.md` was only filed today and hasn't been implemented.
