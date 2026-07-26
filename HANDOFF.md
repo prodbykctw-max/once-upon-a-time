@@ -1,6 +1,12 @@
 # HANDOFF v2 — Jandé: Once Upon A Time (3D era)
 
 > ## ▶ START HERE: `docs/DO_NOW.md`
+> 🔴 **NEW 07-26 — pre-game screens: `docs/PREGAME_LAYOUT_BUGS.md`.** Content is
+> pinned to the top (the footer's `margin-top:auto` cancels `justify-content:
+> center`), the wordmark is sized off WIDTH so it eats 33% of a landscape
+> screen, and **title/login/mode-select have no `overflow-y` while `body` is
+> `overflow:hidden` — so in landscape BEGIN is unreachable and the game cannot
+> be started.** Blocker.
 > **And when you finish anything: update the docs in the same session** —
 > tick the spec, clear the ACTIVE banner here, record it in
 > `DEVELOPMENT_RECORD.md`. Client directive, binding. See DO_NOW item 6.
