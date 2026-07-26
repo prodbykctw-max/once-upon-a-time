@@ -3,7 +3,16 @@
 **Client, 2026-07-26:** *"Music should change to something darker and dynamic
 during boss fights on the RPG."*
 
-## The good news: this is ~90% already built and simply never wired up
+> ## ✅ IMPLEMENTED — cloud session
+> Wired to the eased `GS.bossMood` (the proper version, not just the one-liner):
+> chord third flattens toward minor, low drone bed, harder bass pulse, sub an
+> octave down, hats ride dread instead of `GS.speed`, scaled tension rub, and a
+> minor-second at peak. Enrage rides the **real** `boss.enraged` flag (set at half
+> HP with the RAGE state) rather than a separate threshold, so the music peaks with
+> the mechanical phase. All new layers sit inside the existing
+> `AUD.muted`/`AUD.musOff` guard, so the independent MUSIC/FX toggles still work.
+
+## The good news: this was ~90% already built and simply never wired up
 
 `musTick()` (index.html ~line 1361) is the generative score. It **already has a
 "darker mode"** — but it is hooked **only to the Royal Runner's chaser**:

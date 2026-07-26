@@ -382,6 +382,21 @@ July 21 baked-icon system is no longer in the build and new UI reintroduced raw
 Unicode that iOS renders as Apple emoji), the overlay content clipping, and a
 pre-deploy gate to stop the glyph rule regressing a third time.
 
+### Era V addendum - pre-game layout + boss score (Jul 26, cloud session)
+- **Landscape was unstartable.** `body` is `overflow:hidden` and only the how-to
+  screen and results overlay ever received `overflow-y`, so once content passed the
+  bottom of a short viewport it was unreachable - BEGIN, ENTER THE KINGDOM and the
+  mode cards could not be tapped. Every `.screen` now scrolls.
+- **Content was pinned to the top**: the footer's `margin-top:auto` absorbed all
+  free space before `justify-content:center` could distribute any. Giving the
+  content blocks their own `margin-top:auto` makes the two split it.
+- **Wordmark sized off the wrong axis** - `16vw` was 7.4% of a portrait viewport but
+  32.6% of a landscape one. Capped with `min(16vw,20vh)`. Third instance of this
+  class of bug, after the runner hazards and the decor baseline.
+- **Boss music** now darkens on the same eased `GS.bossMood` curve as the Shadow of
+  the Groom visuals; the mechanism existed in `musTick` but its `danger` flag was
+  wired only to the runner's chaser, so RPG bosses had no musical change at all.
+
 ## Still open
 | Item | Status | Note |
 |---|---|---|

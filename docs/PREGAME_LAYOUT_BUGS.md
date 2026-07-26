@@ -4,7 +4,15 @@
 Maybe an issue across the game? Horizontal view of main menu too tight."* and
 *"No scroll on horizontal on web on mobile."*
 
-Three separate causes. **#3 is a blocker — you cannot start the game in landscape.**
+> ## ✅ ALL THREE FIXED — cloud session, verified in both orientations
+> `.screen` now scrolls (`overflow-x:hidden;overflow-y:auto` on `#titleScreen`,
+> which had its own ID-level `overflow:hidden` beating the class rule), `.tw` and
+> `.lb` carry `margin-top:auto` so they split the free space with the footer and
+> centre again, and `.tw-j` is capped `min(16vw,20vh)`.
+> **Playwright: 20/20 pass** at 430x932 and 932x430 — BEGIN, ENTER THE KINGDOM and
+> both mode cards reachable, nothing pinned to the top, no page errors.
+
+Three separate causes. **#3 was a blocker — you could not start the game in landscape.**
 
 ---
 

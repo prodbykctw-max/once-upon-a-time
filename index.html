@@ -47,6 +47,18 @@
   border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,220,150,.22),inset 0 0 22px rgba(0,0,0,.45),0 8px 22px rgba(0,0,0,.45)}
 html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 .screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;
+  /* SAFETY NET (2026-07-26): body is overflow:hidden and only #howToScreen/#overlay
+     had overflow-y, so on a short landscape viewport anything past the bottom was
+     UNREACHABLE — BEGIN / ENTER THE KINGDOM / the mode cards could not be tapped and
+     the game could not be started. Every screen now scrolls if its content outgrows
+     the viewport, so a layout change can never strand a button again. */
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  /* CENTERING (2026-07-26): .site-footer carries margin-top:auto to sit at the bottom,
+     but in flexbox an auto margin absorbs ALL free space before justify-content can
+     distribute any — which silently pinned every screen's content to the TOP. Giving
+     the content block its own margin-top:auto makes the two split the free space, so
+     content centres AND the footer still bottoms out. When content overflows there is
+     no free space, both collapse to 0, and the scroll above takes over. */
   /* Content used to be centred with no scroll while .site-footer floats absolutely
      at the bottom — so anything taller than the viewport slid UNDER the footer and
      was clipped off the top (register card) in BOTH orientations. Reserve the
@@ -57,10 +69,10 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
   padding:max(10px,env(safe-area-inset-top,0px)) 12px max(8px,env(safe-area-inset-bottom,0px));
   justify-content:center;justify-content:safe center}
 .screen.active{display:flex}
-#titleScreen{background:radial-gradient(ellipse at 50% 30%,#1a0a2e,#04000c 70%);overflow:hidden}
+#titleScreen{background:radial-gradient(ellipse at 50% 30%,#1a0a2e,#04000c 70%);/* was overflow:hidden — an ID rule that beat .screen and re-broke vertical scroll. Keep clipping the starfield horizontally, but let the screen scroll if content outgrows a short landscape viewport. */overflow-x:hidden;overflow-y:auto}
 #bgC{position:absolute;inset:0;z-index:1}
-.tw{position:relative;z-index:2;text-align:center;padding:20px;pointer-events:none}
-.tw-j{font-family:'PoppinsJande',system-ui,-apple-system,Arial,sans-serif;font-weight:900;font-size:clamp(60px,16vw,140px);color:transparent;
+.tw{position:relative;z-index:2;text-align:center;padding:20px;pointer-events:none;margin-top:auto}
+.tw-j{font-family:'PoppinsJande',system-ui,-apple-system,Arial,sans-serif;font-weight:900;font-size:clamp(46px,min(16vw,20vh),140px);color:transparent;
   -webkit-text-stroke:1.5px rgba(255,215,0,0.9);letter-spacing:clamp(8px,2.5vw,24px);line-height:1;
   text-shadow:0 0 120px rgba(255,215,0,0.3);animation:jB 4s ease-in-out infinite}
 @keyframes jB{0%,100%{opacity:.85;text-shadow:0 0 80px rgba(255,215,0,.25)}50%{opacity:1;text-shadow:0 0 140px rgba(255,215,0,.45)}}
@@ -144,7 +156,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 #ovBoard .bd-ach{color:#7CFFB2;text-align:center;padding:4px 0;line-height:1.7}
 #ovBoard .bd-sub{color:rgba(255,255,255,.35);text-align:center;margin-top:8px}
 @media (max-height:500px){.ms-h{margin-bottom:16px;font-size:calc(var(--ak)*0.40)}.ms-card{padding:14px 16px;width:225px}.ms-ico{font-size:28px;margin-bottom:6px}}
-.lb{background:var(--wood);border:2px solid var(--woodline);border-radius:16px;padding:clamp(28px,4vw,46px) clamp(28px,5vw,52px);width:min(440px,90vw);text-align:center;box-shadow:inset 0 1px 0 rgba(255,220,150,.2),inset 0 0 26px rgba(0,0,0,.5),0 12px 34px rgba(0,0,0,.5)}
+.lb{background:var(--wood);border:2px solid var(--woodline);border-radius:16px;padding:clamp(28px,4vw,46px) clamp(28px,5vw,52px);width:min(440px,90vw);text-align:center;box-shadow:inset 0 1px 0 rgba(255,220,150,.2),inset 0 0 26px rgba(0,0,0,.5),0 12px 34px rgba(0,0,0,.5);margin-top:auto}
 .lb-eye{font-family:var(--body);font-weight:700;font-size:11px;color:rgba(240,200,105,.85);letter-spacing:5px;text-transform:uppercase;margin-bottom:18px}
 .lb-h{font-family:var(--disp);font-weight:700;font-size:clamp(26px,5.4vw,40px);color:#fff;letter-spacing:1px;margin-bottom:10px}
 .lb-sub{font-family:var(--body);font-weight:400;font-size:clamp(13px,2vw,15px);color:var(--sepia-dim);line-height:1.6;margin-bottom:26px}
@@ -1358,14 +1370,31 @@ function musTick(){
   if(MUS.next<c.currentTime-0.6)MUS.next=c.currentTime+0.05; // resync after tab-sleep
   while(MUS.next<c.currentTime+0.4){
     var s=MUS.step,t=MUS.next,root=rootHz(1),ch=MUS_CH[Math.floor(s/8)%4];
-    var danger=(MODE==='temple'&&GS.t3&&GS.t3.chase>0);
+    // ── BOSS DREAD ─────────────────────────────────────────────────────────
+    // bm is the SAME eased 0..1 GS.bossMood that drives the Shadow of the Groom
+    // wash, so the score darkens on exactly the curve the screen does — the dread
+    // arrives as one event instead of an audio hard-flip against a soft fade.
+    // It eases back to 0 on its own when the boss dies, so the music lifts into
+    // the STAGE CLEAR tally with no extra handling.
+    var bm=(MODE==='side'?Math.max(0,Math.min(1.25,GS.bossMood||0)):0);
+    if(bm>0.02&&GS.boss&&GS.boss.alive&&GS.boss.enraged)bm*=1.25; // ride the REAL enrage flag (set at half HP with the RAGE state) so the music peaks with the phase
+    var danger=(MODE==='temple'&&GS.t3&&GS.t3.chase>0)||bm>0.15;
     if(s%8===0)ch.forEach(function(iv){ // warm pad, opens up with speed
-      var f=root*2*Math.pow(2,(iv+(danger?-1:0))/12);
+      // flatten the MAJOR THIRD toward minor as dread rises — the interval is what
+      // reads as dark, far more than volume or filtering
+      var ivb=iv-(iv===4?bm:0);
+      var f=root*2*Math.pow(2,(ivb+(danger?-1:0))/12);
       tone(f,2.4,'triangle',0.032,0.5,1.4,0,t);tone(f*1.005,2.4,'sine',0.03,0.5,1.4,0,t);});
-    if(s%4===0)tone(root*Math.pow(2,ch[0]/12),0.30,'sine',0.15,0.01,0.22,0,t);      // bass pulse
-    if(s%4===2)tone(root*Math.pow(2,ch[0]/12)/2,0.18,'sine',0.07,0.01,0.13,0,t);    // ghost sub
-    if(s%2===1&&(GS.speed>6.5||s%4===3))hiss(0.03,0.035,7000,3500,t);               // hats ride the speed
-    if(danger&&s%8===4)tone(root*2*Math.pow(2,1/12),1.2,'sawtooth',0.03,0.3,0.8,0,t); // tension rub
+    if(bm>0.05&&s%8===0)                                                            // low drone bed
+      tone(root/2,3.2,'sawtooth',0.026*bm,1.1,2.0,0,t);
+    if(s%4===0)tone(root*Math.pow(2,ch[0]/12),0.30+0.10*bm,'sine',0.15+0.07*bm,0.01,0.22,0,t); // bass pulse, harder under dread
+    if(s%4===2)tone(root*Math.pow(2,ch[0]/12)/2,0.18,'sine',0.07+0.05*bm,0.01,0.13,0,t);       // ghost sub
+    if(bm>0.35&&s%4===2)tone(root/2*Math.pow(2,ch[0]/12),0.26,'sine',0.05*bm,0.01,0.18,0,t);   // sub an octave down = weight
+    // hats: GS.speed is the runner's tension signal and is meaningless in side mode,
+    // so during a boss they ride the dread instead
+    if(s%2===1&&(GS.speed>6.5||s%4===3||bm>0.5))hiss(0.03,0.035+0.02*bm,7000,3500,t);
+    if(danger&&s%8===4)tone(root*2*Math.pow(2,1/12),1.2,'sawtooth',0.03*(bm>0?bm:1),0.3,0.8,0,t); // tension rub
+    if(bm>0.8&&s%8===6)tone(root*2*Math.pow(2,1/12),0.7,'sawtooth',0.022*bm,0.2,0.5,0,t);        // minor-2nd rub at peak
     if(GS.boostT>0&&s%2===0)tone(root*4*Math.pow(2,PENT[s%6]/12),0.12,'triangle',0.05,0.004,0.09,0,t); // boost arps
     MUS.step=(MUS.step+1)%32;MUS.next+=sd;
   }}

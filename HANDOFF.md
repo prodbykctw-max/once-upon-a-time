@@ -1,7 +1,7 @@
 # HANDOFF v2 — Jandé: Once Upon A Time (3D era)
 
 > ## ▶ START HERE: `docs/DO_NOW.md`
-> 🔴 **NEW 07-26 — pre-game screens: `docs/PREGAME_LAYOUT_BUGS.md`.** Content is
+> ✅ **FIXED 07-26 — pre-game screens: `docs/PREGAME_LAYOUT_BUGS.md`.** Content is
 > pinned to the top (the footer's `margin-top:auto` cancels `justify-content:
 > center`), the wordmark is sized off WIDTH so it eats 33% of a landscape
 > screen, and **title/login/mode-select have no `overflow-y` while `body` is
@@ -15,7 +15,7 @@
 > THE BOUTIQUE in portrait). Item 3 is the 47-site glyph sweep. Everything is
 > already root-caused with line numbers — no investigation needed.
 
-> 🎵 **NEW 07-26 — boss music: `docs/BOSS_MUSIC.md`.** Client wants darker,
+> ✅ **DONE 07-26 — boss music: `docs/BOSS_MUSIC.md`.** Client wants darker,
 > dynamic score during RPG boss fights. The mechanism already exists in
 > `musTick` but its `danger` flag is wired ONLY to the runner's chaser, so RPG
 > bosses get no musical change at all. One-line quick win, then drive it from
