@@ -15,6 +15,13 @@
 > THE BOUTIQUE in portrait). Item 3 is the 47-site glyph sweep. Everything is
 > already root-caused with line numbers — no investigation needed.
 
+> 🎵 **NEW 07-26 — boss music: `docs/BOSS_MUSIC.md`.** Client wants darker,
+> dynamic score during RPG boss fights. The mechanism already exists in
+> `musTick` but its `danger` flag is wired ONLY to the runner's chaser, so RPG
+> bosses get no musical change at all. One-line quick win, then drive it from
+> the existing eased `GS.bossMood` so the score darkens on the same curve as
+> the Shadow of the Groom visuals.
+
 Paid, professional-grade promo game for the R&B artist **Jandé** (always
 accented: Jandé / JANDÉ). $5k upfront + $5k on delivery. Commercial bar.
 
