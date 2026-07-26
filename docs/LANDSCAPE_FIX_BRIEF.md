@@ -383,3 +383,51 @@ collision, the content height is.
   one-line hint on the title screen rather than an engine change.
 - **Glyphs still visible** (`✦ THE BOUTIQUE`, the Grace Notes chip): expected —
   `docs/GLYPH_SWEEP.md` was only filed today and hasn't been implemented.
+
+## 🔴 #0 IS NOT FULLY FIXED — the `Math.min(floorY, …)` clamp now causes it
+
+> Client, after the deploy: *"when I jump horizontally on the first stage, the
+> shit is locked to the background floor, but it's not locked to the stage floor."*
+
+That is a precise description of what the code now does. The `* _wz` half of the
+fix is correct and landed. **The clamp that was left in front of it is now the
+bug.** Live line 3555:
+
+```js
+var floorY  = H*0.82;                                        // FIXED screen row
+var groundY = Math.min(floorY, (FLOOR_R*T-(GS.camY||0))*_wz);
+```
+
+`floorY` is a **fixed fraction of the screen** — it does not move with the
+camera. So whenever the scaled world floor would fall *below* `H*0.82`, `groundY`
+stops tracking the camera and **pins to a static screen row**. The décor props,
+which anchor to `groundY`, freeze with it while the real stage floor keeps
+scrolling — props welded to the backdrop, detached from the stage. Exactly as
+described.
+
+**Simulated with the live constants:**
+
+| | camY | `(FLOOR_R*T−camY)*ZOOM` | `groundY` | tracking? |
+|---|---|---|---|---|
+| **LANDSCAPE** H=430, ZOOM=0.78, floorY=**353** | 40 | 318 | 318 | yes |
+| | 0 *(at rest)* | **349** | 349 | yes — **4px of headroom** |
+| | −30 *(jumping)* | 373 | **353** | **NO — PINNED** |
+| | −60 | 396 | **353** | **NO — PINNED** |
+| **PORTRAIT** H=932, ZOOM=0.645, floorY=**764** | 0 | 289 | 289 | yes |
+| | −100 | 353 | 353 | yes — never close to the clamp |
+
+At rest in landscape the value sits **4 px** under the clamp, so *any* jump
+immediately pins it. In portrait the clamp is ~475 px away and never engages —
+which is precisely why this only shows up sideways.
+
+**Fix:** the clamp was a sanity bound from when `groundY` was *unscaled*; now
+that it's correctly scaled, it's actively harmful. Either
+
+- **drop the clamp** — `groundY = (FLOOR_R*T - GS.camY) * _wz`; or
+- if the *backdrop image* still needs a bound so it can't fly off, clamp **that
+  draw rect only**, and give the décor its own unclamped baseline. The props must
+  track the stage floor unconditionally — they are world objects, not backdrop.
+
+**Verify:** jump on `?stage=0` in landscape and watch a candelabra base. It must
+stay welded to the floor for the entire arc. Also re-check the fix at the top of
+the run *and* mid-stage, since `camY` differs.
