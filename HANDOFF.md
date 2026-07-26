@@ -1,6 +1,9 @@
 # HANDOFF v2 — Jandé: Once Upon A Time (3D era)
 
 > ## ▶ START HERE: `docs/DO_NOW.md`
+> **And when you finish anything: update the docs in the same session** —
+> tick the spec, clear the ACTIVE banner here, record it in
+> `DEVELOPMENT_RECORD.md`. Client directive, binding. See DO_NOW item 6.
 > One prioritized list, ordered by impact ÷ effort. Items 1 and 2 are
 > **one-line fixes** (décor detaching on jump; the PRODBYKCTW footer covering
 > THE BOUTIQUE in portrait). Item 3 is the 47-site glyph sweep. Everything is

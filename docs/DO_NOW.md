@@ -116,3 +116,32 @@ Sweeping without the gate just resets the clock.
 - `docs/LANDSCAPE_FIX_BRIEF.md` — all landscape issues + the #0 reopen with numbers
 - `docs/GLYPH_SWEEP.md` — every glyph site, line-by-line
 - `docs/STAGE_CLEAR_TALLY.md` — tally spec + par derivation + scoring formulas
+
+---
+
+## 6. ⚠️ AFTER EVERY ITEM — UPDATE THE DOCS (client directive, binding)
+
+**Client, 2026-07-26:** *"After all commitments are done, update all
+documentation… every time y'all complete some shit update all documentation so
+everything is accurate and up-to-date and factual."*
+
+This is now a **standing rule, not a one-off**. As each item above lands:
+
+1. **Mark it done where it's specced** — tick it off in `DO_NOW.md`,
+   `GLYPH_SWEEP.md`, `LANDSCAPE_FIX_BRIEF.md` or `STAGE_CLEAR_TALLY.md`. Cite the
+   commit hash. Don't leave a finished thing labelled ACTIVE/OPEN.
+2. **Update `HANDOFF.md`** — move it out of the ACTIVE banners.
+3. **Update `DEVELOPMENT_RECORD.md`** — it is the canonical history; add what
+   shipped and close the matching Open Thread.
+4. **Update `CLAUDE.md`** if the change alters architecture, a workflow, or a
+   guardrail.
+
+**Why this is worth the two minutes:** on 2026-07-25/26 an audit found `CLAUDE.md`
+still telling every new session the project was Phaser 3 and to "not hand-roll a
+render loop" (it ships a hand-rolled loop), `HANDOFF.md` teaching a `git add -A`
+deploy recipe that had already leaked the client's real photos, and six finished
+tasks still marked ACTIVE — including two that got re-reported as open **because
+the docs said they were.** Stale docs actively cost this project rework.
+
+**Rule of thumb: a task isn't done when the code works — it's done when the code
+works and the docs say so.**

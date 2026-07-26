@@ -113,6 +113,19 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
 - **Known limit:** with the preview pane hidden, `requestAnimationFrame` throttles
   and the loop stalls. Use the iframe harness described in the July 25 note.
 
+## Documentation — UPDATE IT WHEN YOU SHIP (client directive, binding)
+**A task is not done when the code works — it is done when the code works and
+the docs say so.** After every completed item, in the same session:
+1. tick it off in whichever `docs/*.md` specs it, citing the commit;
+2. move it out of the ACTIVE banners in `HANDOFF.md`;
+3. record it in `DEVELOPMENT_RECORD.md` and close the matching Open Thread;
+4. update `CLAUDE.md` if architecture, workflow or a guardrail changed.
+Never leave finished work labelled ACTIVE/OPEN. Stale docs have already cost
+this project real rework — a 2026-07-25/26 audit found this file still
+describing a Phaser 3 build, `HANDOFF.md` teaching the `git add -A` deploy
+recipe that leaked the client's real photos, and six shipped tasks still
+marked open (two of which were re-reported as bugs because the docs said so).
+
 ## Documentation
 `DEVELOPMENT_RECORD.md` is the canonical, consolidated project history (all eras,
 bug log, engine evolution, asset pipeline, open threads). `HANDOFF.md` is the
