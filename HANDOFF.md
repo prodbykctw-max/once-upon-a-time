@@ -34,6 +34,19 @@ render loop," pointing work at `src/scenes/` instead of `index.html`. Rewritten 
 the shipped architecture; your July 25 session note is preserved verbatim.
 `DEVELOPMENT_RECORD.md` (committed 07-25) is now the canonical full history.
 
+## 🔴 ACTIVE — STOCK GLYPHS REGRESSED (client-reported, 2026-07-26)
+Client flagged the `▶` on the PROCEED button. Audit found **52 user-visible
+stock-glyph sites** — this is a **REGRESSION**: the de-emoji sweep shipped
+2026-07-21 (13 baked pixel icons) but that icon system is gone from the build,
+and every UI added since (stage select, settings, Boutique atlas, map legend,
+STAGE CLEAR tally, boss toasts) reintroduced raw Unicode. On iOS `⏸ ⚙ ⚑ ✦`
+render as Apple system/emoji art inside a storybook UI — exactly the look the
+client banned. **Full site-by-site list + replacements: `docs/GLYPH_SWEEP.md`.**
+~Half are pure decoration (just delete); most of the rest become plain words;
+only ~6 need a drawn primitive. Includes a proposed `tools/deploy.sh` gate that
+FAILS the deploy on non-ASCII outside comments — the rule keeps coming back
+because nothing enforces it.
+
 ## 🟡 ACTIVE — RPG end-of-stage SCORED TALLY (client request, 2026-07-26)
 Client wants a proper arcade rank-out after each RPG boss instead of rolling
 straight into the next stage. **Spec + reference image:
