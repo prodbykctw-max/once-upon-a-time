@@ -76,7 +76,16 @@ Scoring formulas included; note the reference's TIME row is exactly
 Heads-up: the current tally uses `✦ ◈ ♪ ◆ ▶` as visual elements, which breaks
 the no-stock-glyphs directive — free chance to retire them during the redesign.
 
-## 🔴 ACTIVE — LANDSCAPE IS BROKEN (client-reported on device, 2026-07-26)
+## ✅ MOSTLY RESOLVED — LANDSCAPE (client-reported 07-26, fixed same day)
+All four root-caused bugs are **fixed and live** (`e15df64`, `706b6d8`,
+`745b348`, `24049d4`): décor baseline now tracks the world floor (clamp
+removed), runner hazards are height-derived, backdrop tiles snap to shared
+integer edges, the ground slab is gone, blank platforms use the baked floor
+texture, and the footer flows instead of floating. Landscape controls confirmed
+OK on device. **Still open from this report: the overlay clips its own content**
+(needs an on-device retest). Original brief kept below for the record.
+
+### (was) 🔴 ACTIVE — LANDSCAPE IS BROKEN
 Client played in landscape on iPhone/Safari: *"This is how horrible everything
 looks sideways."* Portrait is fine. **Full brief with 10 annotated screenshots,
 root-cause analysis and code line refs: `docs/LANDSCAPE_FIX_BRIEF.md`.**
