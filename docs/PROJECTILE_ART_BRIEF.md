@@ -3,6 +3,16 @@
 **Client, 2026-07-26:** *"The projectiles are cool but I want that shit spot-on
 with the person's matter… same quality as the boss sprite."*
 
+> ## ✅ EXECUTED — cloud session, via AutoSprite MCP-over-HTTP
+> Network policy opened + Bearer key → drove the API directly. All nine pieces
+> generated (`painted` style; 6 turbo best-of-4, 3 ultra), backgrounds removed
+> with the semantic remover, bbox-trimmed and composed into a 9x96 atlas at
+> `web/e80b77732c0e.webp` (24 KB), registered as `TEXDATA.proj`. `drawBoss` now
+> draws the painted piece (pages/petals tumble, everything else flies
+> velocity-oriented; thin silhouettes get a size bump) with the canvas
+> primitives kept as the not-yet-loaded fallback. Verified: TEX.proj loads
+> (864px), zero page errors, all 55 web refs resolve.
+
 He's applying the project's own Working Principle #3 (DEVELOPMENT_RECORD):
 **"Art quality has a medium ceiling — when the bar is the painted sprite, use the
 render pipeline, not more code."** The current projectiles are canvas primitives

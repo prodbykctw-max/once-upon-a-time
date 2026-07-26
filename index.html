@@ -622,6 +622,7 @@ body.mobile .joy-knob{width:64px;height:64px}
 <script>
 // baked pixel-art world pack (walls/floors per stage, chaser, item icons)
 var TEXDATA={
+proj:"web/e80b77732c0e.webp",
 oblow:"web/60b2a0c99db6.webp",obgate:"web/833c190088c2.webp",obwall:"web/31d075ec4cdc.webp",
 prince:"web/6bfe5d567826.webp",
 boss:"web/78f95835ae52.webp",
@@ -4576,7 +4577,14 @@ function drawBoss(b,ac){var x=b.x,y=b.y,A=b.aT||0,ph2=b.enraged,pulse=Math.sin(A
     var _ang=Math.atan2(_bl.vy||0,_bl.vx||1);
     FX.save();FX.translate(_bl.x,_bl.y);FX.rotate(_ang);
     FX.fillStyle='rgba('+_bc+',0.95)';FX.strokeStyle='rgba('+_bc+',0.95)';
-    if(_bbi===6){            // SCARECROW — a bundle of straw, several loose stalks
+    if(TEX.proj){            // PAINTED projectiles (AutoSprite, 9x 96px cells, row = boss index).
+      // Pages and petals TUMBLE; everything else keeps its velocity heading from the
+      // rotate(_ang) above so shards streak and thorns fly point-first. Droplet, page,
+      // straw and bolt get a small size bump — their silhouettes are thinner.
+      if(_bbi===0||_bbi===2)FX.rotate(A*0.13);
+      var _ps=[34,30,30,30,34,30,34,32,30][_bbi]||30;
+      FX.drawImage(TEX.proj,_bbi*96,0,96,96,-_ps/2,-_ps/2,_ps,_ps);
+    }else if(_bbi===6){      // fallbacks below: atlas not loaded yet — SCARECROW — a bundle of straw, several loose stalks
       FX.lineWidth=2.2;FX.lineCap='round';
       for(var _st=-2;_st<=2;_st++){FX.beginPath();FX.moveTo(-13,_st*2.6);FX.lineTo(13,_st*3.4+Math.sin(A*0.2+_st)*2);FX.stroke();}
       FX.fillStyle='rgba('+_core+',0.9)';FX.fillRect(-4,-1,9,2);

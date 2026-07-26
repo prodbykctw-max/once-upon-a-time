@@ -397,6 +397,10 @@ pre-deploy gate to stop the glyph rule regressing a third time.
   (`BOSS_GORE[0]`) with a near-black glow on the dark library backdrop. Now cream
   paper with dark ink, torn edge, tumbling. Painted AutoSprite replacements for
   all nine projectiles specced in `docs/PROJECTILE_ART_BRIEF.md`.
+- **Painted boss projectiles shipped end-to-end from the cloud** — first use of
+  AutoSprite from a cloud session (network policy opened + MCP-over-HTTP with a
+  Bearer key). Nine painted pieces, one per boss's matter, composed into a 9x96
+  atlas (`TEXDATA.proj`); canvas primitives retained as the load fallback.
 - **Boss music** now darkens on the same eased `GS.bossMood` curve as the Shadow of
   the Groom visuals; the mechanism existed in `musTick` but its `danger` flag was
   wired only to the runner's chaser, so RPG bosses had no musical change at all.
