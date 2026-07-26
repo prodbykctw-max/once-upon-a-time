@@ -34,6 +34,18 @@ render loop," pointing work at `src/scenes/` instead of `index.html`. Rewritten 
 the shipped architecture; your July 25 session note is preserved verbatim.
 `DEVELOPMENT_RECORD.md` (committed 07-25) is now the canonical full history.
 
+## 🔴 ACTIVE — LANDSCAPE IS BROKEN (client-reported on device, 2026-07-26)
+Client played in landscape on iPhone/Safari: *"This is how horrible everything
+looks sideways."* Portrait is fine. **Full brief with 10 annotated screenshots,
+root-cause analysis and code line refs: `docs/LANDSCAPE_FIX_BRIEF.md`.**
+Headline: in landscape a fixed *world-space* camera margin below the floor
+becomes ~39% of a short viewport (vs ~15% in portrait), so a featureless
+ground slab eats the screen and hides the painted backdrops. Plus blank
+untextured platforms, a tile column into the sky, a backdrop seam, and
+overlay/footer clipping on register / how-to / game-over.
+✅ Resolved by the same report: the landscape **control cluster fits on screen**
+— the long-open "verify landscape controls on device" item is now confirmed OK.
+
 ## 🚨 REPO CHANGED — read before you deploy (2026-07-22, laptop session)
 1. **Assets are now EXTERNAL.** `index.html` shrank 4.4 MB → 0.30 MB; every
    embedded base64 blob ≥1 KB was extracted to **`web/<sha1>.<ext>`** (55 files,
