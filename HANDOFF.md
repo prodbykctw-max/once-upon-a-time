@@ -34,6 +34,19 @@ render loop," pointing work at `src/scenes/` instead of `index.html`. Rewritten 
 the shipped architecture; your July 25 session note is preserved verbatim.
 `DEVELOPMENT_RECORD.md` (committed 07-25) is now the canonical full history.
 
+## 🟡 ACTIVE — RPG end-of-stage SCORED TALLY (client request, 2026-07-26)
+Client wants a proper arcade rank-out after each RPG boss instead of rolling
+straight into the next stage. **Spec + reference image:
+`docs/STAGE_CLEAR_TALLY.md`.** Note: `showLevelClear()` already exists and
+works (overlay, freeze, PROCEED button) — this is a **content/presentation
+change to that function**, not a new screen. Today it prints *cumulative run*
+totals; the client wants *this stage's* performance scored per metric with
+achieved/par values and a TOTAL. Time and distance already reset per stage
+(`GS.tick`, `GS.dist`); kills, foes-spawned, damage-taken, per-stage notes and
+a `STAGE_PAR[9]` table all need adding. RPG only — the runner has no stage boss.
+Heads-up: the current tally uses `✦ ◈ ♪ ◆ ▶` as visual elements, which breaks
+the no-stock-glyphs directive — free chance to retire them during the redesign.
+
 ## 🔴 ACTIVE — LANDSCAPE IS BROKEN (client-reported on device, 2026-07-26)
 Client played in landscape on iPhone/Safari: *"This is how horrible everything
 looks sideways."* Portrait is fine. **Full brief with 10 annotated screenshots,
