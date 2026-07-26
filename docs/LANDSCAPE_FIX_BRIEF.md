@@ -75,6 +75,84 @@ fixing #0 will not fix #1, and vice-versa. Both need doing.
 
 ---
 
+## 0b. RUNNER: obstacles balloon in landscape / on any larger screen 🔴🔴
+
+> Client: *"the arches are so high you wouldn't even think you have to roll under
+> them"* … *"obstacles gain size greatly on any larger screen."*
+
+![runner obstacles](landscape/09-runner-squeezed.jpg)
+
+**Obstacles are sized off viewport WIDTH while the hero is sized off HEIGHT.**
+
+```js
+var laneW = W*0.185;                                        // line 2350 — width
+var obW   = Math.max(laneW, H*0.125)*1.1;                   // line 2620 — hazard basis
+...
+var figH  = H*0.34;                                         // line 4626 — hero, height
+```
+
+The `Math.max(laneW, H*0.125)` guard was added to stop obstacles being *starved in
+portrait* (narrow `W` ⇒ small `laneW`). It works there — but it has no upper
+bound, so as soon as `W > H` the `laneW` term wins and grows with the screen:
+
+| viewport | laneW | H*0.125 | **obW** | hero figH | **obW / figH** |
+|---|---|---|---|---|---|
+| portrait 430×932 | 79.6 | 116.5 | **128** | 317 | **0.40** |
+| landscape 932×430 | 172.4 | 53.8 | **190** | 146 | **1.30** |
+| desktop 1920×1080 | 355 | 135 | **391** | 367 | **1.06** |
+
+So an obstacle is **0.40× the hero's height in portrait but 1.30× in landscape —
+3.3× larger relative to the character.** That is precisely why a roll-under arch
+stops reading as something you duck under: it towers over her instead of sitting
+at chest height. Same mechanism on a big desktop window.
+
+**Fix direction:** size hazards from the **same basis as the hero** so the
+affordance is a constant fraction of the character in every orientation — e.g.
+derive `obW` from `figH`, or clamp the width term:
+`obW = Math.min(laneW, H*0.125*1.4)*1.1`. Keep the portrait floor (that guard is
+doing real work); just add the ceiling it never had.
+
+**Verify:** a roll-under gate should occupy the same fraction of Jandé's height in
+portrait, landscape, and a maximized desktop window.
+
+---
+
+## 0c. RPG: seam lines still appear between backdrop layers while scrolling 🔴
+
+> Client: *"there are still lines when you move between the layers of the
+> background on the RPG."*
+
+The wall band was fixed for this and the painted backdrop was **not**. Compare —
+wall band (line 3563, correct):
+
+```js
+var x0=Math.round(wx), x1=Math.round(wx+wW2), tw=x1-x0;   // shared integer edges
+FX.drawImage(TEX.walls, …, x0, wTop, tw, wBandH);
+```
+
+Painted backdrop (line 3539-3543, **still fractional**):
+
+```js
+var bh=Math.max(groundY+40,H*0.94), bw=bh*(_bg.width/_bg.height), by=groundY+30-bh;
+var boff=(-cam*0.045)%(bw*2); if(boff>0)boff-=bw*2;
+for(var bx=boff; bx<W+bw; bx+=bw){        // bx and bw both fractional
+  … FX.drawImage(_bg, bx, by, bw, bh);    // ← no rounding, edges don't meet
+}
+```
+
+`bw` is a float and `bx` accumulates floats, so each tile is drawn at a fractional
+x with fractional width. Adjacent tiles don't share an exact edge → a **1px
+gap/seam that scrolls across the screen** — the same bug class already solved for
+the walls. Apply the identical snap: round each tile's left and right edge and
+derive the width from the difference (`tw = x1 - x0`), never from `bw` directly.
+
+**Also:** the mirror parity here is `Math.round((bx-boff)/bw)%2` — an index
+relative to `boff`, which itself wraps. The wall band deliberately keys parity to
+a *stable world index* (`Math.round((wx+cam*0.35)/wW2)`) so tiles never flip-flash
+when the offset wraps. The backdrop should do the same.
+
+---
+
 ## 1. RPG: a giant flat slab of ground eats ~40% of the screen 🔴 WORST
 
 ![ground slab](landscape/06-rpg-ground-slab-blank-platforms.jpg)
@@ -224,12 +302,30 @@ sound/pause buttons in landscape. Nothing to do — noting it so it doesn't get
 ---
 
 ## Suggested order
-1. **#1 camera/ground ratio** — single biggest visual win, makes the painted
-   backdrops actually visible.
-2. **#2 blank platforms + tile column/backdrop seam** — reads as broken geometry.
-3. **#4/#5/#6 overlay & footer clipping** — pure CSS under the existing
+All four root-caused items are **independent bugs** — none of the fixes resolves
+another, so all four need doing.
+
+1. **#0 décor baseline missing `* ZOOM`** — the props-under-the-floor /
+   flying-on-jump bug. Smallest diff, most obviously "broken" to a player.
+2. **#0b runner hazard scale** — one-line clamp; restores the roll-under
+   affordance in landscape *and* on desktop.
+3. **#1 camera/ground ratio** — biggest visual win, makes the painted backdrops
+   actually visible instead of hidden behind the slab.
+4. **#0c backdrop tile rounding** — reuse the wall-band snap that already exists
+   ten lines away.
+5. **#2 blank platforms + tile column** — reads as broken geometry.
+6. **#4/#5/#6 overlay & footer clipping** — pure CSS under the existing
    `(orientation:landscape)` query.
-4. **#7 title seam**, **#8 d-pad target size**.
+7. **#7 title seam**, **#8 d-pad target size**.
+
+### The through-line
+Four of these are the same mistake in different places: **a quantity that should
+scale with the world (or with the hero) is instead pinned to a raw screen
+dimension.** `groundY` forgets `ZOOM`; prop geometry is fixed screen px; `obW`
+follows `W` while the hero follows `H`; backdrop tiles use unrounded float
+widths. Portrait accidentally hides all four because `W < H` there. Anything that
+sizes gameplay art should key off the hero/world scale, not off `W` or `H`
+directly — worth a grep for other `H*` / `W*` constants in the draw paths.
 
 ## Verifying
 Portrait must not regress. Repro at ~932×430 CSS px with `body.mobile` active;

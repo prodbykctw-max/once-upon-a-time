@@ -47,6 +47,15 @@ matches the real floor (statues/candles sit buried), and `groundY` tracks
 when you jump**. Prop sizes (`propSp/dh2/dw2/plant`) are fixed screen px too,
 so nothing is sized right per orientation. Client: *"statues and candles are
 under the floor, then in the air when you jump."*
+**Two more root-caused (client-reported 07-26):** (a) RUNNER hazards are sized
+off viewport WIDTH (`obW=max(laneW,H*0.125)`, `laneW=W*0.185`) while the hero is
+sized off HEIGHT (`figH=H*0.34`) — so an obstacle is 0.40x her height in
+portrait but 1.30x in landscape (3.3x bigger relative to her), which is why
+roll-under arches tower instead of reading as duckable; same on any large
+desktop window. The portrait floor is fine, it just never got a ceiling.
+(b) The painted RPG backdrop still tiles at **fractional** x/width (line 3539)
+so seam lines scroll across — the wall band's `Math.round` shared-edge snap
+(line 3563) was never applied to it.
 Second, separate bug: in landscape a fixed *world-space* camera margin below the floor
 becomes ~39% of a short viewport (vs ~15% in portrait), so a featureless
 ground slab eats the screen and hides the painted backdrops. Plus blank
