@@ -6,6 +6,26 @@ supposed to be any of those buttons anywhere for moving forward."*
 
 He's right, and it's worse than the one arrow.
 
+## Caught live on device — this is not theoretical
+
+![live](refs/stage-clear-live-glyphs.jpg)
+
+Client's own words on seeing it: **"Apple glyph button."** On the STAGE CLEAR
+screen, portrait, iOS Safari:
+
+- the `▶` on **PROCEED TO STAGE II** renders as the **blue-and-white iOS emoji
+  ▶️**, not a glyph in the game's font — a rounded Apple UI chip sitting on a
+  hand-painted storybook button;
+- the `✦` under *STAGE I CLEAR* renders as a **yellow emoji sparkle**;
+- the `✦` trophy markers render **blue-tinted**, so "EAR FOR MUSIC" and friends
+  are bulleted with iOS emoji.
+
+This is exactly the failure the directive was written to prevent: the OS
+substitutes its own emoji font and the mark stops belonging to the game. It
+also proves the point that these can't be judged from source — they look like
+harmless text characters in the editor and render as Apple artwork on device.
+
+
 ## This is a REGRESSION, not an un-done task
 
 The sweep **was** completed on 2026-07-21:

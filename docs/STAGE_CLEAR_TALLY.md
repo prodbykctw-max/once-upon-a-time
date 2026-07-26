@@ -31,6 +31,25 @@ like a *reward* rather than a status readout:
 
 ---
 
+## The current screen, live on device
+
+![current](refs/stage-clear-live-glyphs.jpg)
+
+Confirms the gap this request is about. The board reads **"THIS RUN SO FAR"**
+and lists *cumulative* values — Stage I/IX, Grace Notes 37, Distance 351m,
+Resonance LV 1, Score 18,652. There is no per-stage performance, no par to beat
+and no per-metric payout, so nothing on screen tells the player *how well they
+just played that stage* — which is the whole point of the reference.
+
+Two other things visible in the same shot:
+- **Content is clipped.** "OBJECTIVES · ×1.0 MULTIPLIER" is cut off mid-heading
+  and its rows never appear; the scroll region ends before the content does.
+  The new tally is *taller* than what's there now, so this must be fixed as
+  part of the work, not after it.
+- **The glyphs render as Apple emoji** (`▶` on PROCEED, `✦` in the trophy
+  rows) — see `docs/GLYPH_SWEEP.md`. Worth doing both passes in one edit since
+  they touch the same lines.
+
 ## What already exists (don't rebuild it)
 
 `showLevelClear()` (index.html ~line 4701) is **already wired and working**:
