@@ -3896,9 +3896,23 @@ function drawTile(t,ac,pc){var x=t.c*T,y=t.r*T,s=T;
   // sit against the opaque wall band. Over a painted backdrop that read as a sheet
   // of translucent glass floating in front of the scenery — so ground the tile.
   FX.fillStyle=shade(pc,0.42);FX.fillRect(x,y,s,s);
+  // MATERIAL: use the stage's baked floor texture as the tile body. A flat tint
+  // read as a blank cream slab against the painted backdrops (worst in the light
+  // library palette) — the platforms looked like debug boxes rather than level
+  // geometry. The tint now sits OVER real texture instead of replacing it.
+  if(TEX.floors){
+    FX.imageSmoothingEnabled=false;
+    FX.drawImage(TEX.floors,GS.ai*96,0,96,96,x,y,s,s);
+    FX.imageSmoothingEnabled=true;
+    var gt=FX.createLinearGradient(x,y,x,y+s);
+    gt.addColorStop(0,'rgba('+pc+',0.46)');gt.addColorStop(0.5,'rgba('+pc+',0.30)');gt.addColorStop(1,'rgba('+pc+',0.20)');
+    FX.fillStyle=gt;FX.fillRect(x,y,s,s);
+    FX.fillStyle='rgba(0,0,0,0.16)';FX.fillRect(x,y+s*0.72,s,s*0.28);   // seat the base in shadow
+  }else{
   var g=FX.createLinearGradient(x,y,x,y+s);
   g.addColorStop(0,'rgba('+pc+',0.92)');g.addColorStop(0.5,'rgba('+pc+',0.70)');g.addColorStop(1,'rgba('+pc+',0.50)');
   FX.fillStyle=g;FX.fillRect(x,y,s,s);
+  }
   // ── STONE BLOCK TEXTURE ───────────────────────────────────
   FX.strokeStyle='rgba(0,0,0,0.17)';FX.lineWidth=1;
   FX.beginPath();FX.moveTo(x,y+s*.5);FX.lineTo(x+s,y+s*.5);FX.stroke();
