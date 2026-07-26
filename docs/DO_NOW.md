@@ -1,0 +1,118 @@
+# DO NOW — prioritized, 2026-07-26
+
+Client is on a dying laptop battery. **Work top to bottom.** Ordered by impact ÷
+effort, so if you only get through item 1 and 2 the game is materially better.
+
+Line numbers are against `index.html` at commit `728c46c`. Everything below is
+already root-caused — no investigation needed.
+
+---
+
+## 1. ONE-LINE FIX — décor detaches from the floor on jump 🔴 (30 sec)
+
+**Line 3596:**
+```js
+var groundY=Math.min(floorY,(FLOOR_R*T-(GS.camY||0))*_wz);
+```
+→
+```js
+var groundY=(FLOOR_R*T-(GS.camY||0))*_wz;
+```
+
+**Why:** `floorY = H*0.82` is a **fixed screen row** that doesn't move with the
+camera. In landscape the at-rest value is 349 against a clamp of 353 — **4px of
+headroom** — so any jump pins `groundY` and the props stop tracking the stage
+floor. Portrait's clamp is ~475px away, which is why it only shows sideways.
+
+The `*_wz` you added is correct; the clamp in front of it is what's left of the
+bug. Client: *"locked to the background floor, but not the stage floor."*
+
+If the backdrop image needs a bound so it can't fly off, clamp **that draw rect
+only** — the décor baseline must be unclamped. Props are world objects.
+
+**Verify:** jump on `?stage=0` in landscape, watch a candelabra base — welded to
+the floor for the whole arc.
+
+---
+
+## 2. ONE-LINE FIX — PRODBYKCTW footer covers THE BOUTIQUE in portrait 🔴 (30 sec)
+
+**Line 340** is `.site-footer{display:none}` — but it's inside the
+`@media (orientation:landscape) and (max-height:560px)` block at **line 329**, so
+it only applies sideways. In **portrait** the footer is still
+`position:absolute; bottom:12px; z-index:6` and lands on top of the THE BOUTIQUE
+button on the how-to screen.
+
+**Fix:** the collision is caused by *content height*, not orientation. Either let
+the footer flow with the scroll content on `#howToScreen` (already
+`overflow-y:auto`), or hide it on short viewports regardless of orientation.
+Portrait is the primary orientation — this is the more important half.
+
+---
+
+## 3. GLYPH SWEEP — 47 sites, mostly deletions 🔴 (the bulk, but mechanical)
+
+Full list with line numbers and replacements: **`docs/GLYPH_SWEEP.md`**.
+You already cleared the `▶` on PROCEED (thank you) — **47 sites remain**:
+15 in the HTML/CSS block (<line 1000), 32 in the JS block.
+
+**Client caught these live and named it: "Apple glyph button."** On device iOS
+substitutes its own emoji font — `✦` renders as a yellow emoji sparkle, trophy
+bullets render blue. Screenshot: `docs/refs/stage-clear-live-glyphs.jpg`.
+
+**These cannot be judged from source** — in the editor they look like ordinary
+text characters. That's why they regressed twice.
+
+Fastest path:
+1. **~Half are pure decoration → just delete** (`✦ QUEEN'S REGISTRY ✦` →
+   `QUEEN'S REGISTRY`). No layout change.
+2. **Most of the rest → plain words** (`⚙ SETTINGS` → `SETTINGS`).
+3. **Only ~6 need a drawn primitive** (shop pips, cleared tick, cache beacon, map
+   legend). `arc()` is fine — **a shape you draw is a made asset.** Do NOT
+   re-embed an icon atlas.
+4. The canvas `♪` at line ~2865 should reuse the Grace Note sprite already in
+   `TEX.items` instead of a font character.
+
+---
+
+## 4. Overlay clips its own content (do with #3, same screens)
+
+In the client's STAGE CLEAR shot, `OBJECTIVES · ×1.0 MULTIPLIER` is cut off
+**mid-heading** and its rows never render — the scroll region ends before the
+content does. The new scored tally is **taller**, so this got worse, not better.
+
+Make sure on a short viewport the **TOTAL row and the PROCEED button are
+reachable without scrolling** (sticky footer inside `#overlay`, or tighter
+vertical rhythm under the landscape query).
+
+---
+
+## 5. Par-time calibration (client's call, not code)
+
+You shipped `STAGE_PAR=[150,160,165,170,180,185,190,200,215]`. The derived table
+in `docs/STAGE_CLEAR_TALLY.md` is `[70,70,80,90,95,100,105,115,120]` — computed
+from `stageEnd=330`, `T=32`, run `6.4px/frame`, boss HP `7+ai*2`. **Yours are
+~2× that.** Not wrong — but if stages routinely finish far under par, the TIME
+row stops meaning anything.
+
+Also note **par must scale with the difficulty setting** (`PAR_DIFF` in that
+doc). Boss HP already scales ×1.4 on Hard, so on a Normal clock **Hard players
+can never beat par.**
+
+---
+
+## Then: the guard that stops #3 recurring
+
+Add a pre-deploy gate in `tools/deploy.sh` that **fails the deploy** on non-ASCII
+outside comments, allow-listing real accents (`é È à ç ü ö ñ`), typographic
+punctuation (`— – ‘ ’ “ ” … ·`), `×`, `°`, and `═ ─` (comment box-drawing).
+
+The no-stock-glyph rule has now regressed twice because nothing enforces it.
+Sweeping without the gate just resets the clock.
+
+---
+
+## Reference docs (don't read unless you need detail)
+- `docs/LANDSCAPE_FIX_BRIEF.md` — all landscape issues + the #0 reopen with numbers
+- `docs/GLYPH_SWEEP.md` — every glyph site, line-by-line
+- `docs/STAGE_CLEAR_TALLY.md` — tally spec + par derivation + scoring formulas
