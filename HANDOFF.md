@@ -38,7 +38,16 @@ the shipped architecture; your July 25 session note is preserved verbatim.
 Client played in landscape on iPhone/Safari: *"This is how horrible everything
 looks sideways."* Portrait is fine. **Full brief with 10 annotated screenshots,
 root-cause analysis and code line refs: `docs/LANDSCAPE_FIX_BRIEF.md`.**
-Headline: in landscape a fixed *world-space* camera margin below the floor
+**ROOT CAUSE (issue #0):** the backdrop/décor band is drawn in **screen space**
+while the world is drawn `scale(ZOOM)` — and `drawMansionBG` computes
+`groundY = min(H*0.82, 14*32 - camY)` with **no `* ZOOM`**. Since side-mode
+`ZOOM` is clamped to [0.5,0.78] and is never 1, the props' ground line never
+matches the real floor (statues/candles sit buried), and `groundY` tracks
+`camY` at rate 1.0 while the floor tracks it at 0.78 — so they **drift apart
+when you jump**. Prop sizes (`propSp/dh2/dw2/plant`) are fixed screen px too,
+so nothing is sized right per orientation. Client: *"statues and candles are
+under the floor, then in the air when you jump."*
+Second, separate bug: in landscape a fixed *world-space* camera margin below the floor
 becomes ~39% of a short viewport (vs ~15% in portrait), so a featureless
 ground slab eats the screen and hides the painted backdrops. Plus blank
 untextured platforms, a tile column into the sky, a backdrop seam, and

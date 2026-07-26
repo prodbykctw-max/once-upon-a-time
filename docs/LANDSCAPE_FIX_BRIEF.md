@@ -10,6 +10,71 @@ clipping/overflow.
 
 ---
 
+## 0. Décor props sink under the floor / fly up when you jump 🔴🔴 ROOT CAUSE
+
+> Client: *"the statues and candles are under the floor, and then when you jump
+> they're in the air — nothing is sized properly for the horizontal version."*
+
+This one is provable by inspection, and it explains both halves of that sentence.
+
+**The backdrop is drawn in screen space; the world is drawn scaled by `ZOOM`.
+They are never reconciled.** In `draw()` (~line 3709):
+
+```js
+drawMansionBG(st);                                   // screen-space, NO zoom
+FX.save(); FX.scale(ZOOM,ZOOM); FX.translate(-GS.camX,-GS.camY);   // world
+```
+
+And inside `drawMansionBG` (line 3502):
+
+```js
+var floorY  = H*0.82;
+var groundY = Math.min(floorY, 14*32-(GS.camY||0));   // ← missing  * ZOOM
+```
+
+The décor props (statues, candelabras) are then planted on `groundY` (line 3609).
+
+**Where the floor actually renders:** `(FLOOR_R*T - camY) * ZOOM`
+**Where the props are planted:** `FLOOR_R*T - camY` (no `* ZOOM`)
+
+These agree **only if `ZOOM === 1`** — and in side mode `ZOOM` is clamped to
+`[0.5, 0.78]` and is *never* 1 (line 826-828). So:
+
+1. **"Under the floor."** The prop baseline is computed at 1.0 scale while the
+   world renders at 0.645–0.78, so the props' ground line lands at a different
+   screen row than the real floor. They sit buried or hover.
+2. **"In the air when you jump."** `groundY` tracks `camY` at rate **1.0**; the
+   world floor tracks it at rate **ZOOM (0.78)**. Jumping changes `camY`, and the
+   two move at *different speeds* — so the props visibly swim relative to the
+   ground. This is a drift bug, not a constant offset.
+3. **"Nothing is sized properly sideways."** The prop draw constants are fixed
+   **screen** pixels — `propSp=340`, `dh2=176`, `dw2=106`, `plant=176*14/240+2`
+   (lines 3599–3609). They don't scale with `ZOOM`, so at 0.78 (landscape) vs
+   0.645 (portrait) the props are the wrong size *relative to the world* in each
+   orientation — and the spacing between them drifts too.
+
+**Why it looks worse in landscape:** the `Math.min(floorY, …)` clamp partly hides
+it when `H` is tall. Portrait `H≈932 → floorY≈764`; landscape `H≈430 →
+floorY≈353`. The much lower clamp in landscape changes which branch wins and how
+often, so the mismatch is exposed far more of the time.
+
+**Fix direction**
+- Multiply the baseline by the world scale: `groundY = (FLOOR_R*T - camY) * ZOOM`
+  (use `FLOOR_R`, not the hard-coded `14`).
+- Scale the prop geometry by `ZOOM` too (`dh2`, `dw2`, `plant`, `propSp`) so props
+  keep a constant *world* size in both orientations.
+- Or cleaner: draw the décor band **inside** the world transform with the other
+  world objects, and let the existing `scale/translate` handle it — then the
+  parallax factor is the only thing that needs separate treatment.
+
+Verify by jumping on `?stage=0`: prop bases must stay welded to the floor line
+through the whole arc, in **both** orientations.
+
+**Note:** issue #1 below (the giant ground slab) is a *separate* framing bug —
+fixing #0 will not fix #1, and vice-versa. Both need doing.
+
+---
+
 ## 1. RPG: a giant flat slab of ground eats ~40% of the screen 🔴 WORST
 
 ![ground slab](landscape/06-rpg-ground-slab-blank-platforms.jpg)
