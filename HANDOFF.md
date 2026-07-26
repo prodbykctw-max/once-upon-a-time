@@ -75,7 +75,13 @@ only ~6 need a drawn primitive. Includes a proposed `tools/deploy.sh` gate that
 FAILS the deploy on non-ASCII outside comments — the rule keeps coming back
 because nothing enforces it.
 
-## 🟡 ACTIVE — RPG end-of-stage SCORED TALLY (client request, 2026-07-26)
+## ✅ DONE — RPG end-of-stage SCORED TALLY (laptop `23f8558`/`24049d4`)
+Shipped: per-metric arcade rank-out with achieved/par columns, derived
+`STAGE_PAR=[70..120]` + `PAR_DIFF` difficulty scaling, per-stage counters
+(`GS.kills/dmgTaken/notes0`), sticky action row. Remaining: one play-test pass
+on the par values (client's call).
+
+### (was) 🟡 ACTIVE — RPG end-of-stage SCORED TALLY
 Client wants a proper arcade rank-out after each RPG boss instead of rolling
 straight into the next stage. **Spec + reference image:
 `docs/STAGE_CLEAR_TALLY.md`.** Note: `showLevelClear()` already exists and
