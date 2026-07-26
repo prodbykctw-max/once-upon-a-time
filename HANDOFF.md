@@ -44,6 +44,13 @@ totals; the client wants *this stage's* performance scored per metric with
 achieved/par values and a TOTAL. Time and distance already reset per stage
 (`GS.tick`, `GS.dist`); kills, foes-spawned, damage-taken, per-stage notes and
 a `STAGE_PAR[9]` table all need adding. RPG only — the runner has no stage boss.
+**Par times + scoring are now specced** in the same doc — derived from the real
+constants (`stageEnd=330`, `T=32`, run 6.4px/f, boss HP `7+ai*2`) rather than
+guessed: `STAGE_PAR=[70,70,80,90,95,100,105,115,120]` seconds, rising 1:10→2:00
+with the difficulty ramp, plus a `PAR_DIFF` multiplier (par MUST scale with the
+difficulty setting or Hard can never beat par — boss HP already scales ×1.4).
+Scoring formulas included; note the reference's TIME row is exactly
+`10000 − secondsOver×20`. Needs one play-test calibration pass.
 Heads-up: the current tally uses `✦ ◈ ♪ ◆ ▶` as visual elements, which breaks
 the no-stock-glyphs directive — free chance to retire them during the redesign.
 
