@@ -6,7 +6,7 @@
 **Tie-in:** the single *"Once Upon A Time"*
 **Purpose:** a promotional browser game for fan engagement + email capture
 **Live build:** https://prodbykctw-max.github.io/once-upon-a-time/
-**Document assembled:** July 25, 2026 — supersedes and consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment, and adds **Era IV — The Living Bosses** (the boss-overhaul session), previously undocumented.
+**Document assembled:** July 25, 2026 · **updated July 26, 2026 (Era V)** — supersedes and consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment, and adds **Era IV — The Living Bosses** (the boss-overhaul session), previously undocumented.
 
 ---
 
@@ -14,9 +14,9 @@
 
 | | |
 |---|---|
-| **Full development span** | ~May 2026 → July 25, 2026 |
+| **Full development span** | ~May 2026 → July 26, 2026 |
 | **Development sessions** | 5 origin/design sessions + parallel production sessions + the boss-overhaul session (this record's new Era IV) |
-| **Commits shipped** | 140+ on the mainline (plus a patch-delivered RPG overhaul and the boss overhaul) |
+| **Commits shipped** | 150+ on the mainline (patch-delivered RPG overhaul, boss overhaul, Era V landscape/tally/audio/art) |
 | **Game modes** | 2 (Action RPG · Royal Runner) |
 | **Themed stages** | 9 per mode |
 | **Engine pivots** | 5 (Canvas2D → WebGL → Phaser 3 → Godot 4 → hand-written WebGL, shipped as Canvas2D + WebGL hybrid) |
@@ -24,6 +24,8 @@
 | **RPG bosses** | **9 unique — one per stage**, each with idle + themed defeat animation, signature VFX & movement (The Groom Who Lied is the finale) |
 | **Hero animations** | 10 (idle, run, jump, attack, dash, block, dance + Refrain, Belt, Downstrike) |
 | **RPG enemy archetypes** | 6 (goblin, raven, sprite, Bramble Knight, Wisp Swarm, Rose Wraith) |
+| **Boss projectiles** | 9 painted pieces — each boss throws its own matter (AutoSprite, first cloud-generated art) |
+| **Stock glyphs in shipped UI** | **0** — swept 52 → 0, enforced by a deploy gate |
 | **Deliverable** | 1 self-contained client-side build, external hashed assets, live on GitHub Pages |
 | **Art pipeline** | AutoSprite (characters/bosses) + Blender/Cycles (environments), keyed/normalized/embedded/externalized through baker scripts |
 
@@ -343,7 +345,7 @@ One client-side page — Canvas2D RPG + hand-written WebGL Runner + synthesized 
 ## Newly closed in Era IV
 Silksong feature set (**applied + deployed**) · Shadow of the Groom, Wanderer's Map, Wanderer's Atlas, vivid power-ups (**live**) · new enemy archetypes + Refrain/Belt/Downstrike hero poses (**wired**) · 9 unique bosses + defeat animations (**live**) · larger per-type sprites (**live**) · persistent stages, STAGE CLEAR sequence, Stage Select (**live**).
 
-## Era V — Landscape, tally & polish (Jul 25–26, 2026)
+# ERA V — SIDEWAYS, SCORED & PAINTED (Jul 25–26, 2026) · [CLOUD + LAPTOP]
 Client play-tested on device (iPhone/Safari) and reported the game looked broken
 sideways. Root-caused to **one recurring mistake**: quantities that should scale
 with the world or the hero were pinned to raw screen dimensions, which portrait
@@ -382,7 +384,7 @@ July 21 baked-icon system is no longer in the build and new UI reintroduced raw
 Unicode that iOS renders as Apple emoji), the overlay content clipping, and a
 pre-deploy gate to stop the glyph rule regressing a third time.
 
-### Era V addendum - pre-game layout + boss score (Jul 26, cloud session)
+### Era V continued — pre-game layout + boss score (Jul 26, cloud session)
 - **Landscape was unstartable.** `body` is `overflow:hidden` and only the how-to
   screen and results overlay ever received `overflow-y`, so once content passed the
   bottom of a short viewport it was unreachable - BEGIN, ENTER THE KINGDOM and the
@@ -412,12 +414,27 @@ pre-deploy gate to stop the glyph rule regressing a third time.
   shipping symbol/emoji characters — after regressing twice, the rule is enforced.
 - **Overlay clipping** closed by the laptop's sticky `.ov-btns` action row.
 
+### Era V close-out (Jul 26, cloud session)
+- **Glyph sweep finished: 52 → 0** (38 laptop + 14 cloud). The final sites became
+  made assets — a drawn eighth-note for runner coins and the death-bloom, drawn
+  map-legend markers, CSS pips and cleared-tick. **`tools/glyph_gate.py` now runs
+  inside `deploy.sh`** and fails any deploy shipping symbol/emoji characters.
+- **First cloud-generated art:** with the environment network policy opened and a
+  Bearer key, the cloud session drove AutoSprite's MCP endpoint directly and
+  shipped the nine painted boss projectiles end-to-end (generate → best-of-4 →
+  semantic background removal → 9x96 atlas → `TEXDATA.proj` → deploy). The art
+  pipeline no longer requires the laptop.
+- **Boss music** darkens on the eased `GS.bossMood` curve (minor third, drone,
+  harder pulse, enrage peak riding the real `boss.enraged` flag).
+- Overlay actions made always-reachable via the laptop's sticky `.ov-btns`.
+
 ## Still open
 | Item | Status | Note |
 |---|---|---|
-| **Rotate the Cloudflare API token** | OPEN | Client action — the assistant cannot perform credential rotation |
-| Landscape controls on device | OPEN | Needs the client's exact phone dimensions to reproduce |
-| Combat & economy tuning | OPEN | Play-test dials — beacon range, Atlas price, Refrain speed, Belt range |
+| **Rotate the Cloudflare API token** | OPEN | Client action |
+| **Rotate the AutoSprite API key** | OPEN | Client action — key was shared in chat for the projectile pass |
+| Landscape controls on device | RESOLVED 07-26 | Client's own screenshots confirm the cluster fits; pre-game screens fixed & scrollable |
+| Combat & economy tuning | OPEN | Play-test dials — par times, beacon range, Atlas price, Refrain speed, Belt range |
 | Stage-Select starting stats | OPEN (design) | Late stages begin at LV1 stats; option to grant stage-scaled stats on request |
 | Lake Wraith idle form | RESOLVED per client | Humanoid idle kept; violent puddle-transformation defeat shipped |
 | EmailJS credentials | OPEN | Placeholders unfilled; signups fall back to `localStorage` |
@@ -459,11 +476,16 @@ JULY 2026
               · persistent stages (backtrack) · STAGE CLEAR end-of-level tally + Proceed · Stage Select
               · asset externalization + guarded gh-pages deploy (+ real-photo leak purge & remediation)
 
-Jul 25       THIS DOCUMENT — complete record assembled; live build confirmed deployed and functional
+Jul 26       ERA V — landscape root-caused & fixed (decor/hazard/seams/slab), scored STAGE
+             CLEAR tally + derived par times, boss-fight score (bossMood-driven), pre-game
+             layout & scroll blocker fixed, glyph sweep 52→0 + deploy gate, nine painted
+             AutoSprite projectiles generated FROM THE CLOUD, docs made current same-day
+
+Jul 25/26    THIS DOCUMENT — complete record assembled; live build confirmed deployed and functional
 ```
 
 ---
 
 *Jandé — "Once Upon A Time"*
-*Complete development record · PRODBYKCTW · assembled July 25, 2026*
+*Complete development record · PRODBYKCTW · assembled July 25, updated July 26, 2026*
 *Consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment — and adds Era IV: The Living Bosses.*
