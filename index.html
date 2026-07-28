@@ -3774,9 +3774,9 @@ function drawMansionBG(st){
     // Every atlas cell carries ~14px of transparent pad below the prop; without
     // compensating, tall thin props (e.g. the marble statue) read as floating.
     // Shift down by the scaled pad + 2px so each base plants on the track line.
-    var plant=(146*14/240+2)*_wz;
+    var plant=(176*14/240+2)*_wz;
     for(var px5=off5-propSp;px5<W+propSp;px5+=propSp){
-      var dh2=146*_wz,dw2=88*_wz; // trimmed from 176x106 (client: decor read oversized on desktop) -> ~1.1x her height
+      var dh2=176*_wz,dw2=106*_wz;
       FX.fillStyle='rgba(0,0,0,0.32)';
       FX.beginPath();FX.ellipse(px5+dw2/2,groundY-2,dw2*0.42,6*_wz,0,0,6.28);FX.fill();
       FX.drawImage(TEX.decor,decorCell(ai)*144,0,144,240,px5,groundY-dh2+plant,dw2,dh2);}
