@@ -2166,7 +2166,7 @@ var GLWORLD=(function(){
   // props (bush/fountain/statue/critters, kinds 5+) are unchanged.
   //          0tree 1birch 2blsm 3will 4oak  5bush 6fnt 7angl 8sunfl 9dais 10swanS 11swan 12glb 13top 14bun 15bun
   //   kind 8 = the Golden Hour sunflower stalk (only stage 7 uses it) — now tall.
-  var PROPH=[3.35, 2.75, 3.15, 2.90, 3.55, 0.80,1.50,1.60, 2.05, 1.00, 1.40,  0.48, 0.70,0.58,0.48,0.50]; // indoor set (pot/globe-table/topiary) cut to ~human scale — client: library plants towered 2x over Jande. Outdoor trees untouched; they SHOULD tower.
+  var PROPH=[3.35, 2.75, 3.15, 2.90, 3.55, 0.80,1.50,1.60, 2.05, 1.00, 1.40,  0.44, 0.62,0.54,0.48,0.50]; // indoor set (pot/globe-table/topiary) cut to ~human scale — client: library plants towered 2x over Jande. Outdoor trees untouched; they SHOULD tower.
   // which kinds sway in the wind (foliage) vs stay rigid (marble/critters/globe)
   //        0tr 1bi 2bl 3wi 4oa 5bu 6fn 7an 8gl 9da 10sS 11sw 12gb 13tp 14bn 15bn
   var FOLIAGE=[1, 1,  1,  1,  1,  1,  0,  0,  1,  1,  0,   0,   0,   1,   0,   0];
@@ -3774,9 +3774,9 @@ function drawMansionBG(st){
     // Every atlas cell carries ~14px of transparent pad below the prop; without
     // compensating, tall thin props (e.g. the marble statue) read as floating.
     // Shift down by the scaled pad + 2px so each base plants on the track line.
-    var plant=(176*14/240+2)*_wz;
+    var plant=(146*14/240+2)*_wz;
     for(var px5=off5-propSp;px5<W+propSp;px5+=propSp){
-      var dh2=176*_wz,dw2=106*_wz;
+      var dh2=146*_wz,dw2=88*_wz; // trimmed from 176x106 (client: decor read oversized on desktop) -> ~1.1x her height
       FX.fillStyle='rgba(0,0,0,0.32)';
       FX.beginPath();FX.ellipse(px5+dw2/2,groundY-2,dw2*0.42,6*_wz,0,0,6.28);FX.fill();
       FX.drawImage(TEX.decor,decorCell(ai)*144,0,144,240,px5,groundY-dh2+plant,dw2,dh2);}

@@ -435,6 +435,11 @@ pre-deploy gate to stop the glyph rule regressing a third time.
   pot/globe/topiary set was cut to human scale. Outdoor trees still tower, as
   designed. Fifth and final instance of the screen-vs-world sizing bug class.
 
+- **Décor size pass (client-directed, web version):** RPG track décor trimmed
+  176x106 -> 146x88 world px (candelabras ~1.1x her height instead of 1.32x and
+  3.1x her width); runner globe-table/topiary/pot nudged down again. Measured
+  against the hero, verified on fresh desktop captures.
+
 ## Still open
 | Item | Status | Note |
 |---|---|---|
