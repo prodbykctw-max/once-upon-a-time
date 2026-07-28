@@ -428,6 +428,13 @@ pre-deploy gate to stop the glyph rule regressing a third time.
   harder pulse, enrage peak riding the real `boss.enraged` flag).
 - Overlay actions made always-reachable via the laptop's sticky `.ov-btns`.
 
+- **Runner décor scale unified (client-reported from the record PDF):** prop
+  billboard heights were a fixed 560px base while the hero scales with viewport
+  height — a topiary stood ~4x Jandé on a landscape phone. The base is now
+  H-anchored (identical at the tuned portrait reference) and the indoor
+  pot/globe/topiary set was cut to human scale. Outdoor trees still tower, as
+  designed. Fifth and final instance of the screen-vs-world sizing bug class.
+
 ## Still open
 | Item | Status | Note |
 |---|---|---|
