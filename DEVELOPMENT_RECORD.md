@@ -442,6 +442,18 @@ pre-deploy gate to stop the glyph rule regressing a third time.
   Working Principle #10 in action: explicit direction = act, self-originated
   aesthetic changes = propose and wait.
 
+- **Jelly UI (client-directed):** springy squash-on-press for every button and
+  touch pad (a `.tpress` class from `tbind`, since iOS `:active` is unreliable
+  under `preventDefault`) and a single-bounce `jellyIn` pop for cards, panels and
+  the results overlay (staggered rows). Entirely CSS + a class toggle — no
+  library, honoring the one-file rule. Fully disabled by `body.rm`, which now
+  tracks BOTH the in-game reduce-motion setting and the OS
+  `prefers-reduced-motion` preference.
+- **The record itself became a build artifact:** the illustrated PDF (client
+  edition) is generated from this document plus live-build captures by
+  `scratchpad/record/build_client.py` — regenerate, never hand-rebuild. Gallery
+  screenshots are re-shot from the deployed bytes after every visual change.
+
 ## Still open
 | Item | Status | Note |
 |---|---|---|

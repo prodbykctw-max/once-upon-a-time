@@ -22,6 +22,23 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🌙 07-26 EVENING (cloud session) — décor scale, jelly UI, illustrated record
+- **Runner décor scale fixed at the root** (fifth screen-vs-world instance): prop
+  heights were a fixed 560px base vs the H-scaled hero — ~4x her height on a
+  landscape phone. Now `H*0.601`-anchored (identical at the tuned portrait
+  reference) with the indoor pot/globe/topiary set cut to furniture scale.
+- **Scope correction honored:** an RPG candelabra trim shipped alongside it was
+  the cloud session over-reading feedback; client corrected (runner only) and it
+  was reverted same-day. Working Principle #10 applies to sessions, not just art.
+- **Jelly UI shipped** (client-directed): CSS spring press + single-bounce card
+  pop, staggered overlay rows, `.tpress` hook in `tbind` for touch pads. All
+  gated by `body.rm` = reduce-motion setting OR OS preference. Don't add motion
+  outside this system, and don't animate under `body.rm`.
+- **Illustrated Development Record PDF** (client edition, for Jandé): generated
+  by `build_client.py` from DEVELOPMENT_RECORD.md + fresh captures of the LIVE
+  build; play-link buttons embedded; internal plumbing (bug log, credentials)
+  stripped. Regenerate, never hand-edit.
+
 Paid, professional-grade promo game for the R&B artist **Jandé** (always
 accented: Jandé / JANDÉ). $5k upfront + $5k on delivery. Commercial bar.
 

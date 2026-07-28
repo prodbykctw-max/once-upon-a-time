@@ -101,6 +101,9 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   back — all-Storyboo read as "AI slop" to the client.
 - **Never assign `ZOOM` directly** — `setZoom()` is the only safe path (see the
   July 25 note below).
+- **Jelly UI:** all UI motion lives in the JELLY UI CSS block, gated by
+  `body.rm` (reduce-motion setting + OS preference via `applyMotionClass()`).
+  New buttons/cards get the existing classes; never animate under `body.rm`.
 - **Mobile first:** fixed-timestep loop, DPR cap, touch-action lockouts stay.
   Touch controls must keep working in portrait AND landscape.
 - Never commit API keys; never commit photos of Jandé (real person, public repo).
