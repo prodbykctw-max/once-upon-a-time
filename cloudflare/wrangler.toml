@@ -1,0 +1,9 @@
+name = "jande-leaderboard"
+main = "leaderboard-worker.js"
+compatibility_date = "2024-11-01"
+workers_dev = true
+
+# KV namespace "jande-leaderboard" (already created in the account)
+[[kv_namespaces]]
+binding = "LB"
+id = "9dc38fa2efba4f8d9cd412b512d3c3ef"

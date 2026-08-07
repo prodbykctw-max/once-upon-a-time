@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import BootScene from './scenes/BootScene.js';
+import IntroScene from './scenes/IntroScene.js';
+import RegisterScene from './scenes/RegisterScene.js';
 import TitleScene from './scenes/TitleScene.js';
 import GameScene from './scenes/GameScene.js';
 import UIScene from './scenes/UIScene.js';
@@ -10,7 +12,6 @@ import UIScene from './scenes/UIScene.js';
 // sprites are GPU-batched textures, not re-painted shapes every frame.
 const config = {
   type: Phaser.AUTO,                // WebGL with Canvas fallback
-  parent: 'game',
   backgroundColor: '#04000c',
   pixelArt: false,                  // our sprites are hi-res, keep smoothing
   roundPixels: true,
@@ -23,12 +24,12 @@ const config = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 1600 },
+      gravity: { y: 1200 },
       debug: false,                 // flip true to see hitboxes
     },
   },
   // Scenes run in order; UIScene runs parallel on top of GameScene.
-  scene: [BootScene, TitleScene, GameScene, UIScene],
+  scene: [BootScene, IntroScene, RegisterScene, TitleScene, GameScene, UIScene],
 };
 
 // eslint-disable-next-line no-new
