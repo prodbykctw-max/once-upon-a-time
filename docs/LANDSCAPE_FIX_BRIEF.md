@@ -7,6 +7,13 @@ everything looks sideways."*
 Portrait is fine. **Everything below is landscape-only** (plus #0b, which also
 hits any large desktop window). Twelve issues.
 
+> **⚠️ HISTORICAL — code quotes below are pre-`dabe9e2`.** This brief repeatedly
+> quotes `var floorY = H*0.82` as a **fixed screen row**. As of 2026-08-09 that
+> line no longer exists: `floorY` derives from `groundY`, and the ground fraction
+> is the single `GROUNDF` constant (0.72). The diagnoses here are still correct
+> *for the build they were written against* — do not copy the snippets into
+> current code. See `docs/GROUND_LINE_UNDERCROFT.md`.
+
 **#0, #0b, #0c and #1 are root-caused down to the line** — those four are what
 make the game feel broken, and they are four *independent* bugs. The rest
 (#2–#8) are clipping/overflow and cosmetics.

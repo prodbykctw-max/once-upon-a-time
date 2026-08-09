@@ -22,6 +22,30 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🎬 08-09 (cloud session) — ground line raised + undercroft built
+> ✅ **DONE — spec: `docs/GROUND_LINE_UNDERCROFT.md` (`dabe9e2`). RPG only.**
+- **`GROUNDF=0.72`** replaces three independent hard-coded `0.82`s (both camera
+  branches + `drawMansionBG`'s `floorY`). They agreed by coincidence, not by
+  construction. **`floorY` now derives from `groundY`** — the earth band can
+  never tear away from the tiles again at any anchor.
+  **Never re-introduce a literal ground fraction; read `GROUNDF`.**
+- **`LH` 18 → 20.** At 18 the landscape camera clamped to the world's own bottom
+  edge at **0.744** and raising the anchor below that did *nothing* there
+  (measured: identical `camY` at 0.72 and 0.65). Both orientations now reach 0.72.
+- **`SLAB_R=2`** caps how many ground rows are *DRAWN*; collision is untouched.
+  Tiles are opaque, so without it the new rows buried the undercroft they were
+  added to expose.
+- **`drawUndercroft` / `drawUCLayer`** — shared substrate + one themed layer per
+  stage (library stacks · meadow roots · petal cobble · rose cistern · **Mirror
+  Lake seen from under the water** · glade mycelium · sunflower taproots · **Sky
+  Gardens: no ground at all, open sky** · palace foundations). Parallaxed 0.6-0.9×.
+  **It is play space, not decor** — pits drop her through it before the death plane.
+- **Sixth screen-vs-world instance found and deleted:** the "abyss below the
+  track" gradient compared WORLD units against screen `H` after `restore()` and
+  therefore never drew at all. Removed rather than repaired — one owner per band.
+- **`drawLyric` reseated** (was another fixed `H-92`, landed on her feet at 0.72).
+  **SIDE MODE ONLY** — it is shared with ROYAL RUNNER, which is left as it was.
+
 ## 🌙 07-26 EVENING (cloud session) — décor scale, jelly UI, illustrated record
 - **Runner décor scale fixed at the root** (fifth screen-vs-world instance): prop
   heights were a fixed 560px base vs the H-scaled hero — ~4x her height on a
@@ -151,7 +175,10 @@ so seam lines scroll across — the wall band's `Math.round` shared-edge snap
 (line 3563) was never applied to it.
 Second, separate bug: in landscape a fixed *world-space* camera margin below the floor
 becomes ~39% of a short viewport (vs ~15% in portrait), so a featureless
-ground slab eats the screen and hides the painted backdrops. Plus blank
+ground slab eats the screen and hides the painted backdrops.
+*(Superseded 08-09 `dabe9e2`: the below-floor band is no longer featureless — it
+is `drawUndercroft`, a per-stage cross-section — and the anchor is `GROUNDF`,
+not a literal. See the 08-09 entry at the top of this file.)* Plus blank
 untextured platforms, a tile column into the sky, a backdrop seam, and
 overlay/footer clipping on register / how-to / game-over.
 ✅ **#0 RESOLVED 07-26 (`24049d4`):** clamp removed, verified in code. *(was:* the `* _wz` half landed, but the leftover

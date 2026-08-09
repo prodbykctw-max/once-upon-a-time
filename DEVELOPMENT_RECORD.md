@@ -508,10 +508,71 @@ Jul 26       ERA V — landscape root-caused & fixed (decor/hazard/seams/slab), 
              AutoSprite projectiles generated FROM THE CLOUD, docs made current same-day
 
 Jul 25/26    THIS DOCUMENT — complete record assembled; live build confirmed deployed and functional
+
+Aug 9        ERA VI — CENTRE FRAME: RPG ground line raised 0.82 → 0.72 (GROUNDF, one constant
+             replacing three coincidentally-agreeing literals), LH 18 → 20 so landscape could
+             actually reach it, SLAB_R separating drawn depth from collision depth, and the
+             UNDERCROFT — a per-stage cross-section beneath the play line (Mirror Lake from
+             under the water; Sky Gardens with no ground at all). Sixth screen-vs-world
+             instance found and deleted.
 ```
 
 ---
 
+## ERA VI — CENTRE FRAME (August 9, 2026)
+
+**Client:** *"She's too far at the bottom, it's not like Mario — Mario is kind of
+like center screen. Can we adjust that, and let's discuss what's gonna be beneath,
+underneath all of that."*
+
+The two halves of that sentence are one problem. Raising the floor is exactly what
+exposes the space under it — 18% of the screen became 28% — so the content question
+had to be answered in the same change or the framing change would read as a bug.
+
+**Framing.** `GROUNDF = 0.72` now governs the ground surface, replacing a hard-coded
+`0.82` in **three independent places** (both camera branches and `drawMansionBG`'s
+`floorY`) that agreed by coincidence rather than by construction. `floorY` derives
+from the true scaled world floor now, so the painted earth band can never tear away
+from the tiles again. Her head moved from 69% of the screen to 63%; the ground from
+75% to 72%, landing on the Mario 1-1 / Hollow Knight reference.
+
+**The landscape discovery.** At `LH=18` the landscape camera clamped to the world's
+own bottom edge at **0.744** — raising the anchor below that did *nothing* there,
+proven by an identical `camY` at both 0.72 and 0.65. `LH` 18 → 20 gave the camera
+two more rows of world to look at, and both orientations now reach 0.72. Deeper pits
+came free.
+
+**`SLAB_R`.** Tiles are opaque, so the six new rows buried the very band they were
+added to expose. `SLAB_R=2` caps how many ground rows are *drawn* while leaving
+collision completely alone, and the deepest drawn row gets a cut face so the floor
+reads as seated on the cross-section rather than stopping in mid-air.
+
+**The undercroft.** `drawUndercroft` / `drawUCLayer`: a shared substrate plus one
+themed layer per stage, parallaxed at 0.6–0.9× so it recedes behind her. The
+library's lower stacks and lamp pools; meadow roots over a buried drystone wall; a
+petal-strewn cobble bed; the Rose Waltz cistern; **Mirror Lake seen from under the
+water** — shafts, caustics, swan shadows, bubbles; glade mycelium; sunflower
+taproots; palace foundations with a lit window. **Sky Gardens gets no ground at
+all** — open sky and cloud decks far below, because the vertigo is the stage. It is
+not decoration: pits drop her through this band before the death plane, so it is
+drawn to read at speed and stay darker than she is.
+
+**Sixth screen-vs-world instance.** The "abyss below the track" gradient compared
+`GS.LH*T - GS.camY` (world units) against screen `H` after `FX.restore()`. On a
+portrait phone that is 1167 vs 844 — the test never passed and the gradient never
+drew, in any build, ever. Deleted rather than repaired: `drawUndercroft` owns that
+band alone, and two owners of the same band is precisely how the décor baseline and
+the backdrop seams drifted apart. `drawLyric`'s fixed `H-92` was the seventh, caught
+the same day and fixed for side mode only — it is shared with Royal Runner, which
+was left exactly as it was.
+
+*Verified: all nine stages rendered in portrait and landscape with zero page errors;
+landscape confirmed reaching 0.72; death plane, boss anchor, reduce-motion, runner
+parity, glyph gate and the `web/` reference audit all re-run clean. Spec:
+`docs/GROUND_LINE_UNDERCROFT.md` · commit `dabe9e2`.*
+
+---
+
 *Jandé — "Once Upon A Time"*
-*Complete development record · PRODBYKCTW · assembled July 25, updated July 26, 2026*
+*Complete development record · PRODBYKCTW · assembled July 25, updated August 9, 2026*
 *Consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment — and adds Era IV: The Living Bosses.*

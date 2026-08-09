@@ -64,6 +64,10 @@ and **hard-aborts if anything sensitive is staged**.
   (`isSolid(leadC,grow)`) so they don't glide over gaps. Flyers are exempt — they fly.
 - **Bosses:** nine unique, one per stage (`BOSS_NAME`, `drawBoss`, `drawBossAura`);
   **The Groom Who Lied** is the stage-9 finale. Gate → sealed arena → defeat → STAGE CLEAR.
+- **RPG camera & ground:** `GROUNDF` / `SLAB_R` / `LH` (game-state block) drive both
+  camera branches in `update()`; `drawMansionBG` derives `floorY` from `groundY`.
+- **Under the floor:** `drawUndercroft` + `drawUCLayer` + the `UCROFT[]` palette
+  table — one themed cross-section per stage, drawn before the tiles.
 - **Runner:** `updateT` / `drawT` + the GLWORLD engine and `GLWDATA`.
 - **Atlases:** `TEXDATA`→`TEX` — `walls, floors, decor, chaser, foes (136×152),
   items, boss (200×280, 9×9 idle+defeat), props`.
@@ -101,6 +105,24 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   back — all-Storyboo read as "AI slop" to the client.
 - **Never assign `ZOOM` directly** — `setZoom()` is the only safe path (see the
   July 25 note below).
+- **The RPG ground line is `GROUNDF` (0.72) — never a literal.** It was a
+  hard-coded `0.82` in three independent places (both camera branches and
+  `drawMansionBG`'s `floorY`) that agreed only by coincidence. `floorY` now
+  derives from the scaled world floor; keep it derived. `SLAB_R` (2) caps how
+  many ground rows are **drawn** and is deliberately separate from collision
+  depth — `LH` (20) is the collision/camera bound. Spec:
+  `docs/GROUND_LINE_UNDERCROFT.md`.
+- **Below the floor is `drawUndercroft`'s, and only its.** One owner per band —
+  the dead "abyss" gradient existed because there were two. It is also real play
+  space (pits drop her through it), so anything added there must read at speed,
+  stay darker than the hero, and go still under `body.rm` (multiply animated
+  terms by `amb`).
+- **Screen-vs-world is THE recurring bug of this project — seven instances so
+  far.** Décor baseline, runner hazards, backdrop seams, ground slab, wordmark,
+  the abyss gradient, the lyric line. Before pinning any quantity to `W`, `H`, or
+  a raw screen fraction, ask whether it should scale with the world instead; if
+  it must be a screen fraction, derive it from the world value rather than
+  restating the number. Portrait hides these — always check landscape.
 - **Jelly UI:** all UI motion lives in the JELLY UI CSS block, gated by
   `body.rm` (reduce-motion setting + OS preference via `applyMotionClass()`).
   New buttons/cards get the existing classes; never animate under `body.rm`.
