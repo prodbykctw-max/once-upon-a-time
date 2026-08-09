@@ -946,6 +946,26 @@ function resize(){
 // ════════════════════════════════════════════════════════════
 var T=32, GRAV=0.52, MASKS=5;
 var PW=30, PH=86; // hero collision box (scaled to ~5'3.75")
+// ── GROUND LINE — ONE constant, three consumers ─────────────────────────────
+// Where the track's floor surface sits as a share of the viewport. Read by BOTH
+// camera branches (portrait anchor + landscape clamp) AND by drawMansionBG's
+// floorY, which must land on the same pixel or the painted earth band tears away
+// from the tiles. It was hard-coded as 0.82 in all three places; they agreed only
+// by luck. Client, 2026-08-09: "she's too far at the bottom, it's not like Mario,
+// Mario is kind of like center screen." 0.82 put her head at 69% of the screen
+// under 615px of empty sky. 0.72 lands on the Mario 1-1 / Hollow Knight reference
+// (~70-75%) and reads as her being the subject rather than a detail.
+var GROUNDF=0.72;
+// How many rows of the ground column are actually DRAWN. Collision is unchanged —
+// the tiles still exist in GS.solid and pit() still carves them — this is purely
+// what the player sees. Raising LH to 20 gave the camera room to reach GROUNDF,
+// but tiles are opaque, so without this the six new rows simply buried the
+// undercroft they were added to expose. Two rows reads as a solid shelf; below
+// it the cross-section takes over. Measured: on a 390x844 phone the touch cluster
+// starts at y=672 and the ground line lands at 608, so the band the player can
+// actually SEE is only ~64px — a 3-row slab (56px) left 8px of it. Two rows (37px)
+// keeps the shelf chunky and gives the cross-section room to exist.
+var SLAB_R=2;
 var GS={};
 function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
   setZoom(BASEZ);   // never inherit a cinematic zoom into a new/restarted stage
@@ -962,7 +982,7 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
     camX:0,camY:0,tick:0,lyricT:0,titleT:210,won:false,finale:0,endT:0,trans:false,paused:false,mapOpen:false,blocking:false,blockHits:0,
     dmgT:0,shieldT:0,fxMax:{},levelUpT:0,
     solid:{},tiles:[],bkbl:[],enemies:[],notes:[],pwr:[],ptcl:[],boss:null,bossActive:false,
-    gateOpen:false,gateFlash:0,gateCol:88,arrowT:0,LW:1e9,LH:18,
+    gateOpen:false,gateFlash:0,gateCol:88,arrowT:0,LW:1e9,LH:20,
     speed:5.2,dist:0,nextTheme:(_fin?12:330),obs:[],genC:0,groundR:14,
     stats:{dj:0,sl:0},toasts:[],newAch:[],blendT:1,prevPc:null,prevAc:null,prevAi:0,
     magT:0,boostT:0,x2T:0,gemsLive:0,
@@ -1120,7 +1140,7 @@ function pruneTrack(gs){
 
 // ---------- 9 DISTINCT LEVEL LAYOUTS (legacy platformer, unused in runner mode) ----------
 function buildLevel(gs){
-  var LW=100,LH=18,FLOOR=14;gs.LW=LW;gs.LH=LH;gs.FLOOR=FLOOR;
+  var LW=100,LH=20,FLOOR=14;gs.LW=LW;gs.LH=LH;gs.FLOOR=FLOOR;  // LH kept in step with initGS
   for(var c=0;c<LW;c++){for(var r=FLOOR;r<LH;r++)setT(gs,c,r,'G');}
   for(c=0;c<LW;c++)setT(gs,c,0,'G');
   for(r=0;r<LH;r++){setT(gs,0,r,'G');setT(gs,LW-1,r,'G');}
@@ -1705,7 +1725,7 @@ function update(){
     // band below the floor. Anchor the ground row near the lower screen (sky
     // fills above); this keeps the tile floor aligned with drawMansionBG's
     // groundY (which also references FLOOR_R*T - camY).
-    GS.camY+=((FLOOR_R*T-VH*0.82)-GS.camY)*0.14;
+    GS.camY+=((FLOOR_R*T-VH*GROUNDF)-GS.camY)*0.14;
   }else{
     GS.camY+=(p.y-VH*0.55-GS.camY)*0.09;
     // Cap how far BELOW the floor the camera may look, as a share of the viewport
@@ -1713,9 +1733,15 @@ function update(){
     // run to the bottom of the level: the same ~6-7 tiles of dead ground is 15% of
     // a tall portrait screen but ~39% of a short landscape one, which is why
     // landscape showed a giant featureless slab and buried the painted backdrop.
-    // Anchoring the ground surface at ~82% of the viewport matches the portrait
+    // Anchoring the ground surface at GROUNDF of the viewport matches the portrait
     // branch above, so the framing reads the same in both orientations.
-    var _cyMax=Math.max(0,Math.min(GS.LH*T-VH,FLOOR_R*T-VH*0.82));
+    //
+    // NOTE the second term of the min(): GS.LH*T-VH is the world's own bottom edge,
+    // and at LH=18 it capped landscape at 0.744 — raising GROUNDF below that did
+    // NOTHING in landscape (measured: identical camY at 0.72 and 0.65). LH went
+    // 18 -> 20 so there IS world below the floor to look at and both orientations
+    // can actually reach GROUNDF. Deeper pits are a welcome side effect.
+    var _cyMax=Math.max(0,Math.min(GS.LH*T-VH,FLOOR_R*T-VH*GROUNDF));
     GS.camY=Math.max(0,Math.min(GS.camY,_cyMax));
   }
 
@@ -3673,9 +3699,213 @@ function _hills(hz,po,col,amp,sp){var o=po%sp;if(o>0)o-=sp;FX.fillStyle=col;FX.b
   for(var x=o-sp;x<W+sp;x+=sp/2){FX.quadraticCurveTo(x+sp/4,hz-amp,x+sp/2,hz);}FX.lineTo(W+sp,hz);FX.closePath();FX.fill();}
 function _hedges(hz,po,col,h){var sp=64,o=po%sp;if(o>0)o-=sp;FX.fillStyle=col;
   for(var x=o-sp;x<W+sp;x+=sp){FX.beginPath();FX.arc(x,hz,h,Math.PI,0);FX.fill();FX.fillRect(x-h,hz-2,h*2,4);}}
+// ══ UNDERCROFT — what lies beneath the play line ═══════════════════════════
+// Raising GROUNDF 0.82 -> 0.72 exposed ~28% of the screen below the floor (it
+// was 18%). What lived there was a flat translucent gradient: passable as a
+// shadow, a bug at a third of the screen. This is the cross-section that
+// replaces it — a shared substrate plus one themed layer per stage, parallaxed
+// at ~0.6-0.9x the ground so it RECEDES and never competes with her silhouette.
+// Not pure decoration: pits drop her through this band before the death plane at
+// LH*T+150, so it has to read at speed and stay darker than she is.
+var UCROFT=[
+  {k:'stacks' ,t:'#5a4028',m:'#3a2718',b:'#241708'}, // 0 ONCE UPON A PAGE  — the library's lower stacks
+  {k:'roots'  ,t:'#4b4426',m:'#33301c',b:'#1c1b0f'}, // 1 FIRST LIGHT MEADOW— topsoil, roots, a buried wall
+  {k:'cobble' ,t:'#4a3f42',m:'#332b30',b:'#1d181c'}, // 2 THE PETAL MILE    — cobble bed, settled petals
+  {k:'cistern',t:'#3d4238',m:'#27332f',b:'#141d1c'}, // 3 THE ROSE WALTZ    — the fountain's cistern
+  {k:'water'  ,t:'#2f6f86',m:'#1d4a63',b:'#0d2739'}, // 4 THE MIRROR LAKE   — under the surface
+  {k:'myc'    ,t:'#33344a',m:'#232336',b:'#131321'}, // 5 THE WISHING GLADE — glowing mycelium
+  {k:'taproot',t:'#5c4620',m:'#3f2f14',b:'#241a0a'}, // 6 THE GOLDEN HOUR   — sunflower taproots
+  {k:'void'   ,t:'',m:'',b:''},                      // 7 THE SKY GARDENS   — nothing. That's the point.
+  {k:'found'  ,t:'#463a44',m:'#2e2632',b:'#1a151f'}  // 8 HER ENCORE        — palace foundations, lit windows
+];
+// deterministic per-index jitter: scatter must be stable frame to frame or the
+// whole band shimmers. Math.random() here would strobe at 60fps.
+function _uh(i){var s=Math.sin(i*127.1)*43758.5453;return s-Math.floor(s);}
+// positive modulo — JS % keeps the sign, and the parallax offset is negative, so
+// a raw % sends every wrapped element off-screen left and it never comes back.
+function _uw(v,m){v=v%m;return v<0?v+m:v;}
+function drawUndercroft(ai,cam,floorY,tick,amb){
+  var y0=Math.max(0,floorY),bh=H-y0; if(bh<=1)return;
+  var u=UCROFT[ai]||UCROFT[1],px=-cam*0.6,i,x,n,per;
+  FX.save();FX.beginPath();FX.rect(0,y0,W,bh);FX.clip();
+  if(u.k==='void'){
+    // 7 SKY GARDENS — there is no ground under a floating marble path. The
+    // undercroft IS the drop: sky continuing down, clouds far below. The vertigo
+    // is the stage's whole idea, so this one gets emptiness on purpose.
+    var vg=FX.createLinearGradient(0,y0,0,H);
+    vg.addColorStop(0,'#9dc4e6');vg.addColorStop(0.45,'#84add8');vg.addColorStop(1,'#5f83b8');
+    FX.fillStyle=vg;FX.fillRect(0,y0,W,bh);
+    for(i=0;i<9;i++){                                                        // cloud decks receding into the drop
+      var cw=70+_uh(i)*120,cx=_uw(px*(0.22+_uh(i+40)*0.2)+i*210,W+420)-210,cy=y0+bh*(0.14+_uh(i+9)*0.62);
+      FX.fillStyle='rgba(255,255,255,'+(0.26+_uh(i+3)*0.30)+')';
+      FX.beginPath();FX.ellipse(cx,cy,cw,cw*0.22,0,0,6.28);FX.fill();
+      FX.fillStyle='rgba(120,150,190,'+(0.10+_uh(i+17)*0.10)+')';           // underside so they have volume
+      FX.beginPath();FX.ellipse(cx+cw*0.10,cy+cw*0.10,cw*0.82,cw*0.13,0,0,6.28);FX.fill();
+    }
+  }else{
+    var g=FX.createLinearGradient(0,y0,0,H);
+    g.addColorStop(0,u.t);g.addColorStop(0.45,u.m);g.addColorStop(1,u.b);
+    FX.fillStyle=g;FX.fillRect(0,y0,W,bh);
+    // strata — sagging bands so the cut reads as layered ground, not flat paint
+    for(i=1;i<=3;i++){
+      var sy=y0+bh*(0.20*i+0.06);
+      FX.strokeStyle='rgba(0,0,0,'+(0.16-i*0.03)+')';FX.lineWidth=Math.max(1,bh*0.012);
+      FX.beginPath();FX.moveTo(0,sy);
+      for(var sx=0;sx<=W;sx+=W/6)FX.lineTo(sx,sy+Math.sin((sx+px*0.5)*0.006+i)*bh*0.035);
+      FX.stroke();
+    }
+    // embedded grit, carried on the parallax so the band visibly scrolls
+    for(i=0;i<26;i++){
+      var qx=_uw(px*0.9+i*97,W+80)-40,qy=y0+bh*(0.14+_uh(i)*0.80),qr=1.2+_uh(i+70)*3.4;
+      FX.fillStyle='rgba(255,246,214,'+(0.05+_uh(i+11)*0.07)+')';
+      FX.beginPath();FX.ellipse(qx,qy,qr,qr*0.72,_uh(i+5)*3,0,6.28);FX.fill();
+    }
+    // Layers lay out against ch, not bh. The substrate gradient fills the whole
+    // band, but the touch cluster covers its lower half on a phone — detail placed
+    // at bh*0.56 lands behind the D-pad and is drawn for nobody. ch is the part
+    // that's actually looked at.
+    drawUCLayer(u.k,px,y0,bh*0.66,bh,tick,amb);
+  }
+  // the cut itself — crisp line + sunlit lip, so the floor reads SOLID and
+  // planted on something instead of floating over a wash.
+  FX.fillStyle='rgba(0,0,0,0.28)';FX.fillRect(0,y0,W,3);
+  FX.fillStyle='rgba(255,246,214,0.10)';FX.fillRect(0,y0+3,W,4);
+  FX.restore();
+}
+// Per-stage layer. Every tiling loop uses n = ceil(W/sp)+2 with period n*sp so the
+// wrap lands on an exact multiple of the spacing — otherwise the last and first
+// element sit at the wrong distance and a seam scrolls across, the same way the
+// backdrop tiles used to. `amb` is 0 under reduce-motion: every animated term is
+// multiplied by it so the band goes still rather than disappearing.
+function drawUCLayer(k,px,y0,bh,fullh,tick,amb){
+  var i,x,n,per,sp;
+  if(k==='stacks'){
+    sp=118;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.85+i*sp,per)-sp;
+      var sh=bh*0.62,sy=y0+bh*0.16;
+      FX.fillStyle='rgba(0,0,0,0.44)';FX.fillRect(x,sy,sp*0.52,sh);          // shelf end, in shadow
+      FX.fillStyle='rgba(255,214,150,0.20)';FX.fillRect(x+sp*0.52,sy,4,sh);  // its lit edge
+      FX.fillStyle='rgba(255,214,150,0.09)';FX.fillRect(x-2,sy,2,sh);        // rim on the dark side
+      for(var b=0;b<4;b++){FX.fillStyle='rgba(0,0,0,0.26)';FX.fillRect(x,sy+sh*(0.22+b*0.20),sp*0.52,2);}
+    }
+    for(i=0;i<3;i++){                                                        // reading-lamp pools between them
+      var lx=_uw(px*0.85+i*380+180,W+300)-150,ly=y0+bh*0.42,lr=bh*0.70;
+      var lg=FX.createRadialGradient(lx,ly,0,lx,ly,lr);
+      lg.addColorStop(0,'rgba(255,217,138,0.40)');lg.addColorStop(1,'rgba(255,217,138,0)');
+      FX.fillStyle=lg;FX.beginPath();FX.arc(lx,ly,lr,0,6.28);FX.fill();
+    }
+  }else if(k==='roots'){
+    sp=64;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.9+i*sp,per)-sp;
+      var rl=bh*(0.22+_uh(i)*0.40);
+      FX.strokeStyle='rgba(210,190,140,0.16)';FX.lineWidth=1.6;
+      FX.beginPath();FX.moveTo(x,y0+2);
+      FX.quadraticCurveTo(x+(_uh(i+7)-0.5)*40,y0+rl*0.6,x+(_uh(i+3)-0.5)*54,y0+rl);FX.stroke();
+      FX.strokeStyle='rgba(210,190,140,0.10)';FX.lineWidth=0.9;
+      FX.beginPath();FX.moveTo(x,y0+rl*0.5);FX.lineTo(x+(_uh(i+21)-0.5)*44,y0+rl*0.9);FX.stroke();
+    }
+    sp=46;n=Math.ceil(W/sp)+2;per=n*sp;                                      // a buried drystone wall
+    for(i=0;i<n;i++){
+      x=_uw(px*0.62+i*sp,per)-sp;
+      var wy=y0+bh*0.56;
+      FX.fillStyle='rgba(150,148,128,0.13)';FX.fillRect(x,wy+(i%2)*11,40,10);
+      FX.fillStyle='rgba(150,148,128,0.09)';FX.fillRect(x+6,wy+11-(i%2)*11,40,10);
+    }
+  }else if(k==='cobble'){
+    sp=34;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(var r=0;r<3;r++)for(i=0;i<n;i++){
+      x=_uw(px*0.9+i*sp+r*17,per)-sp;
+      FX.fillStyle='rgba(210,206,214,'+(0.11-r*0.025)+')';
+      FX.beginPath();FX.ellipse(x+17,y0+bh*(0.10+r*0.15),15,8,0,0,6.28);FX.fill();
+    }
+    for(i=0;i<22;i++){                                                       // petals settled into the bed
+      var pxp=_uw(px*1.05+i*83,W+60)-30,pyp=y0+bh*(0.30+_uh(i)*0.62);
+      FX.fillStyle='rgba(244,169,200,'+(0.13+_uh(i+4)*0.14)+')';
+      FX.beginPath();FX.ellipse(pxp,pyp,4.4,2.4,_uh(i+2)*3,0,6.28);FX.fill();
+    }
+  }else if(k==='cistern'){
+    sp=150;n=Math.ceil(W/sp)+2;per=n*sp;
+    var ah=bh*0.50,ay=y0+bh*0.10;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.7+i*sp,per)-sp;
+      FX.strokeStyle='rgba(226,232,220,0.13)';FX.lineWidth=Math.max(2,bh*0.028);
+      FX.beginPath();FX.moveTo(x+18,ay+ah);FX.lineTo(x+18,ay+ah*0.45);
+      FX.quadraticCurveTo(x+75,ay-ah*0.16,x+132,ay+ah*0.45);FX.lineTo(x+132,ay+ah);FX.stroke();
+    }
+    var wy2=y0+bh*0.74;                                                      // the cistern's still water
+    var wg=FX.createLinearGradient(0,wy2,0,H);
+    wg.addColorStop(0,'rgba(150,205,190,0.20)');wg.addColorStop(1,'rgba(20,50,48,0.35)');
+    FX.fillStyle=wg;FX.fillRect(0,wy2,W,H-wy2);
+    FX.fillStyle='rgba(214,244,232,0.16)';
+    for(i=0;i<5;i++)FX.fillRect(_uw(px*0.9+i*160,W+120)-60,wy2+Math.sin(tick*0.03*amb+i)*1.5,70,1.4);
+  }else if(k==='water'){
+    // 4 MIRROR LAKE — the showpiece. Above the line she's running on glitter;
+    // below it you are looking UP through the water she's running on.
+    for(i=0;i<6;i++){                                                        // light shafts from the surface
+      var sx3=_uw(px*0.5+i*190,W+260)-130;
+      var lg2=FX.createLinearGradient(sx3,y0,sx3+bh*0.5,H);
+      lg2.addColorStop(0,'rgba(226,246,255,0.20)');lg2.addColorStop(1,'rgba(226,246,255,0)');
+      FX.fillStyle=lg2;FX.beginPath();
+      FX.moveTo(sx3-16,y0);FX.lineTo(sx3+16,y0);FX.lineTo(sx3+58,H);FX.lineTo(sx3+2,H);FX.closePath();FX.fill();
+    }
+    FX.strokeStyle='rgba(226,246,255,0.22)';FX.lineWidth=1.4;                // caustics under the cut
+    for(i=0;i<3;i++){FX.beginPath();
+      for(var cx2=0;cx2<=W;cx2+=14)FX.lineTo(cx2,y0+6+i*7+Math.sin((cx2+px+tick*1.4*amb)*0.03+i)*3);
+      FX.stroke();}
+    for(i=0;i<3;i++){                                                        // swans gliding above, seen from below
+      var wx=_uw(px*1.15+tick*0.35*amb+i*300,W+240)-120;
+      FX.fillStyle='rgba(8,26,40,0.20)';
+      FX.beginPath();FX.ellipse(wx,y0+bh*(0.16+i*0.06),26,7,0,0,6.28);FX.fill();
+    }
+    for(i=0;i<14;i++){                                                       // bubbles rising
+      var bx2=_uw(px*1.2+i*71,W+40)-20,byy=H-_uw(tick*(0.5+_uh(i)*0.7)*amb+i*53,fullh);
+      if(byy>y0){FX.strokeStyle='rgba(226,246,255,0.22)';FX.lineWidth=1;
+        FX.beginPath();FX.arc(bx2,byy,1.4+_uh(i+8)*2.2,0,6.28);FX.stroke();}
+    }
+  }else if(k==='myc'){
+    sp=58;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.95+i*sp,per)-sp;
+      FX.strokeStyle='rgba(159,224,176,0.16)';FX.lineWidth=1.2;
+      FX.beginPath();FX.moveTo(x,y0+4);
+      FX.bezierCurveTo(x+26,y0+bh*0.30,x-22,y0+bh*0.55,x+10,y0+bh*0.85);FX.stroke();
+    }
+    for(i=0;i<20;i++){                                                       // the glade's lights, underground
+      var dx=_uw(px*0.95+i*93,W+60)-30,dy=y0+bh*(0.12+_uh(i)*0.80);
+      var pl=0.5+0.5*Math.sin(tick*0.05*amb+i*1.7);
+      var gg=FX.createRadialGradient(dx,dy,0,dx,dy,9);
+      gg.addColorStop(0,'rgba(255,224,138,'+(0.28*pl+0.10)+')');gg.addColorStop(1,'rgba(255,224,138,0)');
+      FX.fillStyle=gg;FX.beginPath();FX.arc(dx,dy,9,0,6.28);FX.fill();
+    }
+  }else if(k==='taproot'){
+    sp=126;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.9+i*sp,per)-sp;
+      FX.strokeStyle='rgba(201,162,74,0.20)';FX.lineWidth=Math.max(3,bh*0.045);
+      FX.beginPath();FX.moveTo(x+63,y0);FX.quadraticCurveTo(x+52,y0+bh*0.5,x+70,y0+bh*0.92);FX.stroke();
+      FX.strokeStyle='rgba(201,162,74,0.12)';FX.lineWidth=1.4;
+      for(var f=1;f<4;f++){FX.beginPath();FX.moveTo(x+60,y0+bh*0.2*f);
+        FX.lineTo(x+60+(f%2?-1:1)*(26+f*8),y0+bh*(0.2*f+0.16));FX.stroke();}
+    }
+  }else{ // 'found' — 8 HER ENCORE
+    sp=128;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.75+i*sp,per)-sp;
+      FX.fillStyle='rgba(228,214,228,0.10)';FX.fillRect(x+10,y0+bh*0.08,52,bh*0.80);  // foundation pier
+      FX.fillStyle='rgba(0,0,0,0.16)';FX.fillRect(x+62,y0+bh*0.08,8,bh*0.80);         // its shadow side
+      for(var c3=0;c3<4;c3++){FX.fillStyle='rgba(0,0,0,0.12)';FX.fillRect(x+10,y0+bh*(0.16+c3*0.18),52,2);}
+      var wr2=bh*0.34,wcx=x+96,wcy=y0+bh*0.46;                                        // a lit undercroft window
+      var wg2=FX.createRadialGradient(wcx,wcy,0,wcx,wcy,wr2);
+      wg2.addColorStop(0,'rgba(255,207,138,0.22)');wg2.addColorStop(1,'rgba(255,207,138,0)');
+      FX.fillStyle=wg2;FX.beginPath();FX.arc(wcx,wcy,wr2,0,6.28);FX.fill();
+      FX.fillStyle='rgba(255,214,150,0.20)';FX.fillRect(wcx-8,y0+bh*0.38,16,bh*0.16);
+    }
+  }
+}
 function drawMansionBG(st){
   var pc=hexS(st.pc),ac=hexS(st.ac),cam=GS.camX,ai=GS.ai,tick=GS.tick;
-  var floorY=H*0.82;
   // The world is drawn scaled by ZOOM (see draw(): FX.scale(ZOOM,ZOOM)), so the
   // real floor lands at (FLOOR_R*T - camY) * ZOOM. This baseline used to omit the
   // * ZOOM (and hard-code 14), so it only agreed with the floor when ZOOM===1 —
@@ -3692,6 +3922,11 @@ function drawMansionBG(st){
   // not the stage floor"). The clamp was a sanity bound from when groundY was
   // UNSCALED; now that it tracks the world correctly it is actively harmful.
   var groundY=(FLOOR_R*T-(GS.camY||0))*_wz; // top of the track tiles — tracks the world floor exactly
+  // floorY WAS a third hard-coded H*0.82, independent of the camera. It only ever
+  // agreed with groundY because the camera happened to anchor the floor at the same
+  // 0.82 — i.e. by coincidence, not by construction. Derive it and the earth band
+  // can never tear away from the tiles again, at any GROUNDF, in any orientation.
+  var floorY=groundY;
   // ── base: fairytale daytime sky ──
   var _sk=SIDE_SKY[ai]||SIDE_SKY[0];
   var bgG=FX.createLinearGradient(0,0,0,H);
@@ -3851,11 +4086,7 @@ function drawMansionBG(st){
   //    earth so the floor reads solid and planted; INDOORS it's the polished
   //    parquet. A herringbone wood floor under a meadow was the giveaway.
   if(_bg){
-    var erG=FX.createLinearGradient(0,floorY,0,H);
-    erG.addColorStop(0,'rgba(46,58,30,0.22)');erG.addColorStop(0.45,'rgba(32,42,22,0.42)');erG.addColorStop(1,'rgba(16,22,12,0.62)');
-    FX.fillStyle=erG;FX.fillRect(0,floorY,W,H-floorY);
-    FX.fillStyle='rgba(0,0,0,0.20)';FX.fillRect(0,floorY,W,3);        // crisp ground line
-    FX.fillStyle='rgba(255,246,214,0.05)';FX.fillRect(0,floorY+3,W,5); // sunlit lip
+    drawUndercroft(ai,cam,floorY,tick,_amb);
   }else{
   // ── floor base gradient (polished wood / stone) ──
   var flG=FX.createLinearGradient(0,floorY,0,H);
@@ -3972,11 +4203,14 @@ function draw(){
     FX.font='900 22px Storyboo,sans-serif';FX.textAlign='center';
     FX.fillStyle='rgba(255,90,150,'+Math.min(1,GS.comboT/40)+')';
     FX.fillText('COMBO ×'+GS.combo,W/2,H*0.20);}
-  // abyss below the track (tall screens / pits)
-  var gy2=GS.LH*T-GS.camY;
-  if(gy2<H){var ab2=FX.createLinearGradient(0,gy2,0,Math.min(H,gy2+140));
-    ab2.addColorStop(0,'rgba(96,66,88,0.35)');ab2.addColorStop(1,'rgba(44,28,46,0.85)');
-    FX.fillStyle=ab2;FX.fillRect(0,gy2,W,H-gy2);}
+  // The old "abyss below the track" gradient lived here and was DEAD CODE: its
+  // gy2 was GS.LH*T-GS.camY, i.e. WORLD units compared against screen H after
+  // FX.restore() — the same world-quantity-as-screen-quantity bug that produced
+  // the floating decor, the landscape hazards and the backdrop seams. On a
+  // portrait phone gy2 came out 1167 vs H=844, so the test never passed and
+  // nothing drew. drawUndercroft now owns every pixel below the floor line, in
+  // one place, correctly scaled — so the broken duplicate is gone rather than
+  // repaired (two owners of the same band is how they drifted apart to begin with).
   drawLyric(ac);drawPowerHUD(ac);drawDist(ac);drawToasts();
   // (start-of-run instruction banner removed at request — the how-to page
   //  before play covers controls)
@@ -4036,6 +4270,7 @@ function drawTile(t,ac,pc){var x=t.c*T,y=t.r*T,s=T;
     FX.fillStyle='rgba(200,150,255,'+(pl*0.5)+')';FX.beginPath();FX.arc(x+s/2,y+s/2,4,0,6.28);FX.fill();
     FX.strokeStyle='rgba(180,120,255,'+(pl*0.4)+')';FX.lineWidth=1;FX.beginPath();FX.moveTo(x+s/2,y+4);FX.lineTo(x+s/2,y+s-4);FX.moveTo(x+4,y+s/2);FX.lineTo(x+s-4,y+s/2);FX.stroke();return;}
   if(t.t!=='G'&&t.t!=='P')return;
+  if(t.t==='G'&&t.r>=FLOOR_R+SLAB_R)return;   // see SLAB_R — undercroft shows through below
   var isTop=!isSolid(t.c,t.r-1),isL=!isSolid(t.c-1,t.r),isR=!isSolid(t.c+1,t.r),isBtm=!isSolid(t.c,t.r+1);
   var fH=13; // 2.5D front-face depth in px
   // ── BODY ──────────────────────────────────────────────────
@@ -4096,7 +4331,18 @@ function drawTile(t,ac,pc){var x=t.c*T,y=t.r*T,s=T;
   if(isTop&&isL){var sf=FX.createLinearGradient(x-5,y,x,y);sf.addColorStop(0,'rgba(0,0,0,0.54)');sf.addColorStop(1,'rgba('+pc+',0.28)');FX.fillStyle=sf;FX.fillRect(x-5,y+2,5,s-2+(isBtm?fH:0));}
   if(isTop&&isR){var sf2=FX.createLinearGradient(x+s,y,x+s+5,y);sf2.addColorStop(0,'rgba('+pc+',0.32)');sf2.addColorStop(1,'rgba(0,0,0,0.60)');FX.fillStyle=sf2;FX.fillRect(x+s,y+2,5,s-2+(isBtm?fH:0));}
   // ── INNER DEPTH SHADOW ────────────────────────────────────
-  FX.fillStyle='rgba(0,0,0,0.30)';FX.fillRect(x,y+s-2,s,2);FX.fillRect(x+s-2,y,2,s);}
+  FX.fillStyle='rgba(0,0,0,0.30)';FX.fillRect(x,y+s-2,s,2);FX.fillRect(x+s-2,y,2,s);
+  // ── CUT FACE ──────────────────────────────────────────────
+  // The deepest DRAWN ground row is where the slab meets the undercroft. isBtm is
+  // false here (there IS solid below, it's just culled), so the platform front-face
+  // branch never fires and the column would otherwise stop dead in mid-air. This
+  // darkens into the cross-section so the floor reads as seated on it.
+  if(t.t==='G'&&t.r===FLOOR_R+SLAB_R-1){
+    var cg=FX.createLinearGradient(x,y+s-11,x,y+s+4);
+    cg.addColorStop(0,'rgba(0,0,0,0)');cg.addColorStop(1,'rgba(0,0,0,0.66)');
+    FX.fillStyle=cg;FX.fillRect(x,y+s-11,s,11);
+    FX.fillStyle='rgba(0,0,0,0.50)';FX.fillRect(x,y+s,s,3);
+  }}
 function drawBkbl(b,ac){var x=b.c*T,y=b.r*T,s=T,isG=b.t==='G';FX.fillStyle=isG?'#2A1A00':'#1A0040';FX.fillRect(x,y,s,s);FX.fillStyle=isG?'#FFD700':'#C8A0FF';FX.fillRect(x+4,y+4,s-8,s-8);FX.fillStyle='rgba(255,255,255,0.17)';FX.fillRect(x+4,y+4,s-8,3);var pl=Math.sin(GS.tick*.08+b.c*.5)*.1+.08;FX.fillStyle='rgba('+(isG?'255,215,0':'200,160,255')+','+pl+')';FX.fillRect(x-2,y-2,s+4,s+4);}
 function drawNote(sh,ac){var x=sh.x,y=sh.y+Math.sin(sh.anim*.07)*4.5,p2=Math.sin(sh.anim*.1)*.5+.5;
   if(spinFrame(SPIN.note,x+4,y+2,40,sh.anim))return;   // animated 64-bit collectible
@@ -4820,7 +5066,28 @@ function drawMap(ac){var st=STAGES[GS.ai];FX.fillStyle='rgba(8,0,18,0.92)';FX.fi
   FX.fillStyle=GS.gateOpen?'rgba(100,255,150,1)':'rgba(180,80,255,1)';_sq(lxc+400,FX.fillStyle);FX.fillText(GS.gateOpen?'GATE OPEN':'GATE LOCKED',lxc+410,ly);}
 function drawLyric(ac){var t2=GS.lyricT%900,al=t2<50?t2/50*.3:t2>840?(1-(t2-840)/60)*.3:.3;if(al<.01)return;
   var lines=['"Once upon a time..."','"The song was a promise. The promise was a lie."','"Her voice is the only ring she needs."','"She turned heartbreak into a headline."','"JANDÉ – Once Upon A Time"'];
-  var li=Math.floor(GS.ai*1.9+(GS.lyricT/900))%lines.length;FX.globalAlpha=al;FX.fillStyle='rgba(255,245,220,0.88)';FX.font='300 italic 15px Storyboo, Georgia, serif';FX.textAlign='center';FX.fillText(lines[li],W/2,H-92);FX.globalAlpha=1;}
+  var li=Math.floor(GS.ai*1.9+(GS.lyricT/900))%lines.length;FX.globalAlpha=al;
+  // H-92 was ANOTHER fixed screen offset — with the ground line at 0.82 it sat on
+  // bare wash, but at 0.72 it landed straight across the tile band and the hero's
+  // feet. Seat it inside the undercroft instead: centred in the band below the
+  // floor, still clear of the touch controls, so it reads as an engraved caption
+  // in the earth rather than a stray label floating over the play area.
+  // SIDE MODE ONLY. drawLyric is shared with ROYAL RUNNER, which has no world
+  // floor and no camY — deriving the position there would move a caption the
+  // client never asked to move. The runner keeps H-92 exactly as it was.
+  var _ly=H-92,_lw=W*0.92;
+  if(MODE==='side'){
+    // Sit it in the gap between the bottom of the ground slab and the top of the
+    // touch cluster (measured at 645..672 on a 390x844 phone) — not at the band's
+    // midpoint, which is behind the D-pad. maxWidth condenses the long lines so
+    // they stop running under the action buttons instead of being clipped by them.
+    var _fy=(FLOOR_R*T-(GS.camY||0))*((typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1);
+    _ly=Math.min(H-92,_fy+Math.max(40,(H-_fy)*0.24));
+    _lw=W*0.66;
+  }
+  FX.fillStyle='rgba(0,0,0,0.45)';FX.font='300 italic 15px Storyboo, Georgia, serif';FX.textAlign='center';
+  FX.fillText(lines[li],W/2,_ly+1,_lw);
+  FX.fillStyle='rgba(255,245,220,0.88)';FX.fillText(lines[li],W/2,_ly,_lw);FX.globalAlpha=1;}
 
 // ---------- HUD DOM ----------
 function updateHUD(){
