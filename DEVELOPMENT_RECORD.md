@@ -510,11 +510,14 @@ Jul 26       ERA V — landscape root-caused & fixed (decor/hazard/seams/slab), 
 Jul 25/26    THIS DOCUMENT — complete record assembled; live build confirmed deployed and functional
 
 Aug 9        ERA VI — CENTRE FRAME: RPG ground line raised 0.82 → 0.72 (GROUNDF, one constant
-             replacing three coincidentally-agreeing literals), LH 18 → 20 so landscape could
-             actually reach it, SLAB_R separating drawn depth from collision depth, and the
-             UNDERCROFT — a per-stage cross-section beneath the play line (Mirror Lake from
-             under the water; Sky Gardens with no ground at all). Sixth screen-vs-world
-             instance found and deleted.
+             replacing three coincidentally-agreeing literals), LH 18 → 20, SLAB_R separating
+             drawn depth from collision depth, and the UNDERCROFT — a per-stage cross-section
+             beneath the play line (Mirror Lake from under the water; Sky Gardens with no
+             ground at all). Sixth screen-vs-world instance found and deleted.
+Aug 10       ERA VI cont. — "Higher": GROUNDF → 0.65 (Mario-on-a-phone is 66%, not the
+             raw-NES 87% everyone quotes), LH → 22 DERIVED from GROUNDF, landscape camera
+             rewritten to anchor-first/follow-second because it had never honoured GROUNDF
+             at all, and CTRL_TOP measured instead of guessed.
 ```
 
 ---
@@ -571,8 +574,46 @@ landscape confirmed reaching 0.72; death plane, boss anchor, reduce-motion, runn
 parity, glyph gate and the `web/` reference audit all re-run clean. Spec:
 `docs/GROUND_LINE_UNDERCROFT.md` · commit `dabe9e2`.*
 
+### Era VI, second pass — "Higher." (August 10)
+
+The client looked at 0.72 and asked for higher still. Settling the reference
+properly explained why. **SMB1's ground sits at 86.7% of the NES frame** — the
+number everyone quotes, and the wrong one for a phone. That 4:3 frame is
+letterboxed into a 19.5:9 screen, and the black bars absorb everything below, so
+the ground actually lands at **66% of the physical screen** and Mario's head at
+63%. By that measure 0.82 was nowhere near, and 0.72 was *still* below it.
+`GROUNDF` went to **0.65** — her head at 56%, ground at 65%.
+
+Raising it exposed something the first pass had claimed and got wrong:
+**landscape had never honoured `GROUNDF` at all.** That branch eased toward
+`p.y - VH*0.55` and used `GROUNDF` only as a *ceiling*, so while she stands on the
+floor the follow target always won and the ground sat wherever `0.55` put it. The
+constant did nothing; it had merely agreed near 0.72 by coincidence — the exact
+failure mode as the three coincidentally-agreeing `0.82`s that started all of
+this. Proof: dropping 0.72 → 0.65 left `camY` at 87 in both. Rewritten to **anchor
+first, follow second** — the resting frame *is* the anchor and the follow term
+only pulls the camera up when she climbs. `camY` 87 → 123, ground at exactly
+0.650, and a sampled jump arc confirms she holds at rest and stays at 23% of the
+view at the top of a climb instead of sliding off.
+
+`LH` 20 → **22**, and this time *derived* rather than chosen: the branch only runs
+while `VH ≤ LH*T`, so the worst case is `VH == LH*T`, which reduces to
+`LH*T ≥ FLOOR_R*T / GROUNDF` = 448/0.65 = 689 → `LH ≥ 21.5`. **Lowering `GROUNDF`
+again requires raising `LH` with it** or landscape silently pins to the world's
+bottom edge, which is precisely what it did at 18.
+
+Last, the undercroft's content window stopped being a guess. It had been "0.66 of
+the band" — another magic screen fraction, in a project whose signature bug is
+magic screen fractions. `#mCtrl` is positioned off `env(safe-area-inset-bottom)`
+and genuinely cannot be derived from `H`, so **`CTRL_TOP` is now measured**: on
+resize, and again on the start-of-run toggle where the pads actually receive their
+`.on` class. Both the undercroft and the lyric line read it, and the lyric finally
+fits its full line instead of disappearing under the DASH button.
+
+*Commit `32b280f`.*
+
 ---
 
 *Jandé — "Once Upon A Time"*
-*Complete development record · PRODBYKCTW · assembled July 25, updated August 9, 2026*
+*Complete development record · PRODBYKCTW · assembled July 25, updated August 10, 2026*
 *Consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment — and adds Era IV: The Living Bosses.*

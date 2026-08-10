@@ -22,6 +22,26 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🎬 08-10 (cloud session) — ground line raised AGAIN to 0.65
+> ✅ **DONE — `32b280f`. Client: "Higher."** Spec updated: `docs/GROUND_LINE_UNDERCROFT.md`.
+- **`GROUNDF` 0.72 → 0.65, `LH` 20 → 22.** Her head sits at 56%, ground at 65%.
+- **The Mario number, settled.** SMB1's ground is at 86.7% *of the NES frame* —
+  the figure everyone quotes, and the wrong one for a phone. Letterboxed 4:3 into
+  19.5:9, the ground lands at **66% of the physical screen**, head at 63%. 0.82
+  and 0.72 were both below Mario-on-a-phone; **0.65 is it.**
+- **Landscape had NEVER honoured `GROUNDF`.** The branch eased toward
+  `p.y - VH*0.55` and used `GROUNDF` only as a *ceiling*, so while she's grounded
+  the follow target won. Proof: 0.72 → 0.65 left `camY` at 87 in both. Now
+  **anchor first, follow second** — the follow term only pulls the camera UP when
+  she climbs. `camY` 87 → 123 = ground at exactly 0.650.
+- **⚠️ `LH` IS DERIVED FROM `GROUNDF`: `LH*T >= FLOOR_R*T / GROUNDF`.** Lowering
+  `GROUNDF` again **requires** raising `LH` or landscape silently pins to the
+  world's bottom edge (which is what it did at 18). Derivation is in the code.
+- **`CTRL_TOP` replaces the guessed `0.66`-of-the-band fudge.** `#mCtrl` sits on
+  `env(safe-area-inset-bottom)` — it cannot be derived from `H`, so it is now
+  MEASURED (on resize, and again on the start-of-run toggle where the pads
+  actually get `.on`). Consumed by the undercroft's content window and the lyric.
+
 ## 🎬 08-09 (cloud session) — ground line raised + undercroft built
 > ✅ **DONE — spec: `docs/GROUND_LINE_UNDERCROFT.md` (`dabe9e2`). RPG only.**
 - **`GROUNDF=0.72`** replaces three independent hard-coded `0.82`s (both camera

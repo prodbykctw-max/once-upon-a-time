@@ -105,13 +105,25 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   back — all-Storyboo read as "AI slop" to the client.
 - **Never assign `ZOOM` directly** — `setZoom()` is the only safe path (see the
   July 25 note below).
-- **The RPG ground line is `GROUNDF` (0.72) — never a literal.** It was a
+- **The RPG ground line is `GROUNDF` (0.65) — never a literal.** It was a
   hard-coded `0.82` in three independent places (both camera branches and
   `drawMansionBG`'s `floorY`) that agreed only by coincidence. `floorY` now
   derives from the scaled world floor; keep it derived. `SLAB_R` (2) caps how
   many ground rows are **drawn** and is deliberately separate from collision
-  depth — `LH` (20) is the collision/camera bound. Spec:
+  depth. **`LH` (22) is DERIVED from `GROUNDF`: `LH*T >= FLOOR_R*T / GROUNDF`** —
+  lower `GROUNDF` again and you MUST raise `LH` with it, or landscape silently
+  pins to the world's bottom edge and stops matching portrait. The landscape
+  camera anchors first and only follows her UP; it must never go back to easing
+  at `p.y - VH*0.55`, which made `GROUNDF` a no-op there. Spec:
   `docs/GROUND_LINE_UNDERCROFT.md`.
+- **The framing reference is Mario ON A PHONE (~66% ground), not raw NES (~87%).**
+  The 4:3 frame is letterboxed into a tall screen and the bars absorb the bottom.
+  Quoting the NES number will send you back down to 0.82.
+- **`CTRL_TOP` is measured, never guessed.** `#mCtrl` sits on
+  `env(safe-area-inset-bottom)`, so where the touch pads start cannot be derived
+  from `H`. It is read on resize AND on the start-of-run toggle (the pads only
+  get `.on` there). Anything laying out against the bottom of the screen should
+  use it rather than inventing another fraction.
 - **Below the floor is `drawUndercroft`'s, and only its.** One owner per band —
   the dead "abyss" gradient existed because there were two. It is also real play
   space (pits drop her through it), so anything added there must read at speed,
