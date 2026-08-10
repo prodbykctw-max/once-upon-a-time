@@ -514,6 +514,10 @@ Aug 9        ERA VI — CENTRE FRAME: RPG ground line raised 0.82 → 0.72 (GROU
              drawn depth from collision depth, and the UNDERCROFT — a per-stage cross-section
              beneath the play line (Mirror Lake from under the water; Sky Gardens with no
              ground at all). Sixth screen-vs-world instance found and deleted.
+Aug 10       ERA VI cont. — REAL WIND: canopies re-done as per-column SHEAR spans pivoting at
+             the trunks with travelling gusts (row warp can never be wind); span count pinned
+             at 16 after measuring that 49 costs 60fps; butterflies/sparkles/birds gated to
+             outdoor stages only.
 Aug 10       ERA VI cont. — LIVING BACKDROPS: row-warp ripple + canopy breeze applied to the
              existing paintings, a near band at 3.5x parallax for a real second depth plane,
              god rays on each painting's real light source, and life at three depths. No new
@@ -663,6 +667,45 @@ reduce-motion factor, so that setting yields a still painting rather than a
 broken one.
 
 *Spec: `docs/LIVING_BACKDROPS.md` · commit `95718dc`.*
+
+### Era VI, fourth pass — real wind (August 10)
+
+The client's verdict on the first living-backdrop pass was precise and correct:
+*"On the Mirror Lake, the trees should be blowing in the wind. Those actual trees
+should be blowing… I need it to be animated… we're delivering a production grade
+game, I want the background to be production grade."*
+
+Row displacement, it turns out, can never be wind. It moves an entire horizontal
+band together, so every tree at a given height slides in lockstep — the eye reads
+that as heat haze or water, never as air moving through branches. Real wind bends
+each tree about its own trunk and arrives in gusts that roll along a treeline,
+leaving neighbours out of phase.
+
+Canopies are now drawn as vertical spans, each carrying a shear transform that is
+zero at the pivot row where the trunks meet the ground and full at the crown,
+driven by a travelling wave plus a slower travelling gust envelope — without the
+gust it is metronomic and reads as a mechanism. Pivots came off the art: Mirror
+Lake's willows pivot exactly at the waterline, the Rose Waltz's marble colonnade
+is excluded outright, and Her Encore's castle stands still while the trees below
+it blow. Water kept the row warp, which was always the right tool for it.
+
+The technique came with two constraints that had to be measured rather than
+guessed, and they pull against each other. Adjacent spans lean by different
+amounts, and that step shows as a vertical line wherever the art is smooth — the
+lake's sky exposed it at about 1.5px, cured by dropping the wave's spatial
+frequency until the step went sub-pixel, verified at 2x zoom. Meanwhile a shear
+matrix takes canvas off its fast axis-aligned blit path, so every span is a
+filtered textured quad and the span *count* is the entire cost: a probe found 12
+and 24 spans both holding a full 16.7ms frame while 49 cost 20ms, straight out of
+60fps. The count is therefore pinned at sixteen and the frequency chosen to suit
+— phase spread traded for frame rate, on purpose.
+
+The same pass removed the butterflies, sparkles and birds from indoors. They had
+been drawing on every stage including the library, which wants window light and
+dust and nothing else; the shafts the client singled out as good were strengthened
+instead.
+
+*Commit `83f71df`.*
 
 ---
 

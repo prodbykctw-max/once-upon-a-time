@@ -22,6 +22,27 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🌬️ 08-10 (cloud session) — REAL WIND + no butterflies indoors
+> ✅ **DONE — `83f71df`.** Spec updated: `docs/LIVING_BACKDROPS.md`.
+- **Row warp was never wind.** It moves a whole horizontal band together, so every
+  tree at a height slides in lockstep — heat haze, not wind. Canopies are now
+  **vertical spans with a SHEAR transform**: zero at the pivot row (trunks), full
+  swing at the crown, driven by a travelling wave + a travelling GUST envelope.
+  Water keeps the row warp; that part was always right.
+- Pivots/amplitudes read off the art. **Mirror Lake's willows pivot exactly at the
+  waterline (0.645). The Rose Waltz colonnade and Her Encore's castle are stone
+  and are excluded.** Petal Mile gets the biggest swing (14px).
+- **⚠️ TWO NUMBERS YOU CANNOT TUNE INDEPENDENTLY.** (1) Seam: the lean step
+  between spans is `amp x dPhase x spanWidth`; raise the amplitude or the spatial
+  frequency and vertical lines appear in smooth sky. (2) Cost: a shear matrix
+  leaves canvas's fast blit path, so the SPAN COUNT is the whole cost —
+  measured 12 spans 16.7ms, 24 spans 16.7ms, 49 spans **20.0ms**. `LB_SPANS` is
+  therefore PINNED at 16 and the frequency is chosen to suit. Don't "improve"
+  this by adding spans.
+- **Butterflies/sparkles/birds are now OUTDOOR-ONLY** via `LIVEBG[ai].in`. They
+  were drawing inside the library. The library keeps its window shafts (now
+  stronger, 6 at 0.20) and dust motes — the parts the client called out as good.
+
 ## 🌿 08-10 (cloud session) — LIVING BACKDROPS
 > ✅ **DONE — `95718dc`. Spec: `docs/LIVING_BACKDROPS.md`. RPG only, NO new art.**
 Client: *"Now it just looks like a picture. A beautiful picture but still a flat

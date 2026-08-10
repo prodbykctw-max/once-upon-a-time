@@ -126,6 +126,16 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   from `H`. It is read on resize AND on the start-of-run toggle (the pads only
   get `.on` there). Anything laying out against the bottom of the screen should
   use it rather than inventing another fraction.
+- **Canopy wind is per-COLUMN SHEAR, never row warp.** Row displacement moves a
+  whole horizontal band together and reads as heat haze; trees must pivot at their
+  trunks. Two coupled limits, both measured, both easy to break: the seam step
+  between spans is `amp x dPhase x spanWidth` (raise either and vertical lines
+  appear in smooth sky), and a shear matrix leaves canvas's fast blit path so the
+  **span count is the entire cost** — 24 spans is free, 49 costs 60fps.
+  **`LB_SPANS` is pinned at 16 on purpose; do not raise it.**
+- **Butterflies, sparkles and birds are OUTDOOR-ONLY** (`LIVEBG[ai].in`). They were
+  drawing inside the library; the client called it out. Interiors get window
+  shafts and dust, nothing winged.
 - **The backdrops are LIVE, not stills — `LIVEBG[]` + `drawMansionBG`'s warp pass.**
   Each painting is re-blitted as rows with a per-row x-offset (water ripple,
   canopy breeze), plus a near band at 3.5x parallax, god rays and life at three

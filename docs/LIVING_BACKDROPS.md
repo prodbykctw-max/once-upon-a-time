@@ -1,4 +1,87 @@
-# LIVING BACKDROPS — ✅ SHIPPED (`95718dc`)
+# LIVING BACKDROPS — ✅ SHIPPED (`95718dc`, real wind in `83f71df`)
+
+> **Update 2026-08-10 — client:** *"On the Mirror Lake, the trees should be
+> blowing in the wind. Those actual trees should be blowing… I need it to be
+> animated… we're delivering a production grade game, I want the background to be
+> production grade."* And: *"I don't think it will be butterflies inside the
+> library."*
+
+## Why the first pass wasn't wind
+
+Row displacement moves an entire horizontal band **together**, so every tree at a
+given height slides in lockstep. That reads as heat haze or water. It never reads
+as wind.
+
+Real wind bends each tree **about its own trunk**, and arrives in **gusts** that
+roll along the treeline, leaving neighbours out of phase.
+
+## Per-column shear
+
+The canopy is drawn as vertical spans, each with a shear transform: zero
+displacement at the pivot row (where trunks meet the ground), full swing at the
+crown.
+
+```
+x' = x + k·(pivotY − y)/bandH   →   transform(1, 0, −k/bandH, 1, k·pivotY/bandH, 0)
+```
+
+`k` is a travelling wave **plus a slower travelling gust envelope** — without the
+gust it is metronomic and reads as a mechanism.
+
+Pivots and amplitudes are read off the art:
+
+| stage | band (image fractions) | swing | why |
+|---|---|---|---|
+| 0 library | — | — | interior; no wind indoors |
+| 1 meadow | 0.55–0.99 | 6px | foreground trees and hedgerow; distant hills stay solid |
+| 2 petal mile | 0.00–0.60 | **14px** | the canopy *is* the stage |
+| 3 rose waltz | 0.20–0.50 | 5.5px | **the marble colonnade is excluded** |
+| 4 mirror lake | 0.04–0.645 | 11px | willows pivot exactly at the waterline |
+| 5 glade | 0.00–0.92 | 4px | dusk, still air |
+| 6 golden hour | 0.46–0.93 | 9.5px | sunflower heads pivot at the soil line |
+| 7 sky gardens | 0.00–0.95 | 3.5px | island foliage stirs |
+| 8 her encore | 0.88–1.00 | 6px | foreground trees only — **the castle is stone** |
+
+## Two constraints, both measured
+
+**Seams.** Adjacent spans lean by different amounts and the step shows as a
+vertical line wherever the art is smooth — sky is the worst case. The step is
+`amp × dPhase × spanWidth`. 14px spans at `x*0.0100` gave ~1.5px and were plainly
+visible in the lake's sky. Dropping the spatial frequency to `x*0.0013` puts it
+sub-pixel; verified by rendering the smooth half of the sky at 2× zoom.
+
+**Frame rate.** A shear matrix takes canvas **off** its fast axis-aligned blit
+path, so each span is a filtered textured quad and the **count** is what costs.
+Isolated by probe on the heaviest stage:
+
+| spans | median frame |
+|---|---|
+| 0 (no wind) | 16.7ms |
+| 12 | **16.7ms** |
+| 24 | **16.7ms** |
+| ~30 (variable, merge-threshold) | 17.2ms |
+| 49 (fixed 8px) | **20.0ms** — out of 60fps |
+
+So `LB_SPANS` is **pinned at 16** rather than derived from a merge threshold, and
+the wave frequency is chosen to keep seams sub-pixel at that width. Some phase
+spread is traded for 60fps, deliberately. Median is back to 16.6–16.7ms on every
+stage; p95 costs ~1.5ms.
+
+## Butterflies and sparkles are outdoor-only
+
+The winged sprites, floating cross-sparkles and birds were drawn on **every**
+stage, including the library interior. `LIVEBG[ai].in` marks an interior and
+gates all three. The library keeps what the client liked — the window shafts,
+now stronger (6 rays at 0.20, was 5 at 0.13) — plus its dust motes.
+
+---
+
+*Original brief below, from the first pass. The row-warp section is superseded
+for canopies (it still governs water); everything else stands.*
+
+---
+
+# LIVING BACKDROPS — original brief (`95718dc`)
 
 **Client, 2026-08-10:** *"Can the background of each stage come to life? Like
 become more immersive? Now it just looks like a picture. A beautiful picture but
