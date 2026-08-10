@@ -22,6 +22,22 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🌻 08-10 (cloud session) — per-stage wind FREQUENCY (`9f25578`)
+Client: *"Shouldn't the sunflowers be blowing in the breeze too."*
+- **They already were** — 9px swing, base pinned at 0. Sampling left/mid/right
+  thirds showed why it looked static: 4/6/9, 8/8/10, -6/-4/-1 — **the whole field
+  slid ONE WAY together.** A uniform slide across near-identical flowers has no
+  landmark to be seen against. Willows read only because a trunk IS a landmark.
+- **The fix is FREQUENCY, not amplitude.** `wnd` gained a 4th element, `frq`.
+  Seams only show against SMOOTH pixels, so a band that is wall-to-wall texture
+  can carry a high frq: sunflowers 4.2, encore treeline 3.2, blossom 3.0 —
+  while **Mirror Lake and Sky Gardens stay at 1.0 because their bands contain
+  open sky.** After: 13/5/-2 and -2/0/6, i.e. clumps rocking in OPPOSITE
+  directions. Costs nothing; span count untouched.
+- **`LB_PAD` 11 -> 28, `LB_KMAX` 20.** A peak lean plus the span overlap wanted
+  ~17px of padding, so strong gusts sampled past the offscreen and left a pale
+  sliver down the left edge. If you raise any amplitude, check this first.
+
 ## 🌬️ 08-10 (cloud session) — REAL WIND + no butterflies indoors
 > ✅ **DONE — `83f71df`.** Spec updated: `docs/LIVING_BACKDROPS.md`.
 - **Row warp was never wind.** It moves a whole horizontal band together, so every

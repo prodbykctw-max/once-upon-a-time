@@ -42,6 +42,55 @@ Pivots and amplitudes are read off the art:
 | 7 sky gardens | 0.00–0.95 | 3.5px | island foliage stirs |
 | 8 her encore | 0.88–1.00 | 6px | foreground trees only — **the castle is stone** |
 
+## frq — why spatial frequency is per stage
+
+**Client:** *"Shouldn't the sunflowers be blowing in the breeze too… they could
+just be kind of moving back and forth."*
+
+They already were. Measured before changing anything: the heads swung up to
+**9px**, the base was pinned at **0**. The shear was working exactly as designed.
+
+Sampling the left / middle / right thirds separately showed the real problem:
+
+```
+left  mid  right
+   4    6      9
+   8    8     10
+  -6   -4     -1
+```
+
+**Every part of the field moved the same direction by the same amount.** A
+uniform slide across near-identical flowers has no landmark to be read against,
+so it looks like nothing at all. The willows read fine at the same setting only
+because a big distinct trunk *is* a landmark.
+
+So the fix is **frequency, not amplitude.**
+
+The low frequency had been forced on every stage by the seam rule — but a seam is
+only visible against **smooth** pixels. A band that is wall-to-wall texture hides
+a 2px step completely. The sunflower band starts at 0.46 and contains **no sky**,
+so it carries the highest `frq` in the game; Mirror Lake and Sky Gardens have open
+sky inside their bands and stay at 1.0.
+
+| stage | frq | why |
+|---|---|---|
+| 4 mirror lake · 7 sky gardens | **1.0** | open sky inside the band — seams would show |
+| 1 meadow | 2.2 | some smooth grass |
+| 3 rose waltz | 2.4 | greenery above the colonnade |
+| 5 glade | 2.8 | dense fungal cover |
+| 2 petal mile | 3.0 | dense blossom |
+| 8 her encore | 3.2 | dark foreground treeline |
+| **6 golden hour** | **4.2** | pure flower texture, no sky at all |
+
+After: `12/8/3`, `15/10/5`, then `13/5/-2` and `-2/0/6` — neighbouring clumps rock
+in **opposite** directions, which is what a breeze crossing a field looks like.
+Costs nothing; the span count is untouched.
+
+**Also fixed here:** a pale sliver down the left edge on strong gusts. `LB_PAD`
+was 11 while a peak lean plus the span overlap could ask for ~17px, so the shear
+sampled past the offscreen edge into nothing. Padding is now 28 with the clamp
+(`LB_KMAX`) held at 20, strictly inside it.
+
 ## Two constraints, both measured
 
 **Seams.** Adjacent spans lean by different amounts and the step shows as a

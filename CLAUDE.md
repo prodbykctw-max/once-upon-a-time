@@ -133,6 +133,12 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   appear in smooth sky), and a shear matrix leaves canvas's fast blit path so the
   **span count is the entire cost** — 24 spans is free, 49 costs 60fps.
   **`LB_SPANS` is pinned at 16 on purpose; do not raise it.**
+- **Wind FREQUENCY is per stage (`wnd[3]`), and amplitude is not the knob you
+  think it is.** A field can swing 9px and still look frozen if every part of it
+  leans the same way — there is no landmark to see a uniform slide against. Raise
+  `frq` so neighbouring clumps rock in opposite directions. Ceiling on `frq` is
+  what the band CONTAINS: seams only show against smooth pixels, so texture-filled
+  bands take 3-4x while any band containing open sky must stay near 1.0.
 - **Butterflies, sparkles and birds are OUTDOOR-ONLY** (`LIVEBG[ai].in`). They were
   drawing inside the library; the client called it out. Interiors get window
   shafts and dust, nothing winged.

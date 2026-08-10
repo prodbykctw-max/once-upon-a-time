@@ -707,6 +707,36 @@ instead.
 
 *Commit `83f71df`.*
 
+### Era VI, fifth pass — the sunflowers, and why amplitude was the wrong knob (August 10)
+
+*"Shouldn't the sunflowers be blowing in the breeze too… they could just be kind
+of moving back and forth."*
+
+Measurement first, and it contradicted the obvious reading: the sunflower heads
+were already swinging up to nine pixels with the field base pinned at zero. The
+shear was working. Sampling the left, middle and right thirds of the field
+separately explained the gap between the numbers and the eye — 4/6/9, then
+8/8/10, then −6/−4/−1. Every part of the field was moving the same direction by
+the same amount. A uniform slide across a field of near-identical flowers has no
+landmark to be read against, so it registers as nothing. The willows had read
+fine at the identical setting only because a large distinct trunk *is* a landmark.
+
+The fix was spatial frequency, not amplitude. The low frequency had been imposed
+on every stage by the seam rule, but a seam is only visible against smooth
+pixels; a band that is wall-to-wall texture swallows a two-pixel step whole. The
+sunflower band begins at 0.46 and contains no sky at all, so it now carries the
+highest frequency in the game, while Mirror Lake and the Sky Gardens — whose
+bands do contain open sky — stay at the base value. Afterwards the same
+measurement read 13/5/−2 and −2/0/6: neighbouring clumps rocking in opposite
+directions, which is what a breeze crossing a field actually looks like. It cost
+nothing, because the span count never changed.
+
+The same pass closed a pale sliver down the left edge that appeared on strong
+gusts: the offscreen's padding was smaller than a peak lean plus the span
+overlap, so the shear sampled past the edge into nothing.
+
+*Commit `9f25578`.*
+
 ---
 
 *Jandé — "Once Upon A Time"*
