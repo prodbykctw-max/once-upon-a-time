@@ -3738,6 +3738,203 @@ function _hills(hz,po,col,amp,sp){var o=po%sp;if(o>0)o-=sp;FX.fillStyle=col;FX.b
   for(var x=o-sp;x<W+sp;x+=sp/2){FX.quadraticCurveTo(x+sp/4,hz-amp,x+sp/2,hz);}FX.lineTo(W+sp,hz);FX.closePath();FX.fill();}
 function _hedges(hz,po,col,h){var sp=64,o=po%sp;if(o>0)o-=sp;FX.fillStyle=col;
   for(var x=o-sp;x<W+sp;x+=sp){FX.beginPath();FX.arc(x,hz,h,Math.PI,0);FX.fill();FX.fillRect(x-h,hz-2,h*2,4);}}
+// ══ LIVING BACKDROP ════════════════════════════════════════════════════════
+// Client, 2026-08-10: "Now it just looks like a picture. A beautiful picture but
+// still a flat photo. Can we bring the exact image to life?"
+//
+// Two reasons it read flat. (1) ONE plane at ONE speed: sky, mountains, trees and
+// foreground grass all scrolled together at cam*0.045, which is a photo on a
+// conveyor belt. (2) Nothing moved INSIDE it — no wind, no water, no changing
+// light. So this animates the paintings themselves rather than covering them:
+//
+//  · ROW WARP. Each painting is re-blitted as horizontal rows with a per-row
+//    x-offset. A ripple in the water — Mirror Lake and Her Encore already have
+//    their reflections PAINTED IN, so rippling those rows is free realism — and
+//    a breeze through the canopy, strongest at the treetops and tapering to zero
+//    where the trunks meet the ground.
+//  · NEAR BAND. The painting's own lower slice, re-drawn darkened and run at 3.5x
+//    the parallax, so there is finally more than one depth plane. Darkened to a
+//    silhouette on purpose: it must read as nearer ground, not as a visible
+//    duplicate of a tree you can also see behind it.
+//  · GOD RAYS anchored to each painting's REAL light source (Golden Hour's sun is
+//    at x=0.29, the library's windows are up top), with motes drifting in them.
+//  · LIFE AT THREE DEPTHS, each tier with its own parallax rate. The difference
+//    in speed IS the depth cue — one layer of petals reads as stickers, three
+//    reads as air.
+//
+// Every animated term is multiplied by `amb` (0 under reduce-motion), so the
+// whole system goes to a still painting rather than disappearing.
+//
+// wat/swy/near are fractions of the IMAGE height, so they stay correct at any
+// GROUNDF, any zoom and any orientation — they were read off the actual art.
+var LIVEBG=[
+ // 0 ONCE UPON A PAGE — library interior. No wind indoors, no water; it's all
+ //   window light and dust. Warm breathing = candle/lamp flicker.
+ {wat:null,          swy:null,             ray:[5,0.50,0.06,0.13,'255,232,168'], amb:'motes',     near:null,            bre:[0.05,'255,214,140']},
+ // 1 FIRST LIGHT MEADOW — horizon at 0.30; the sway band is the foreground
+ //   grass and hedgerow, not the distant hills (those shouldn't wobble).
+ {wat:null,          swy:[0.58,0.98,1.3],  ray:[3,0.62,0.10,0.07,'255,246,206'], amb:'pollen',    near:[0.87,1.00,0.34], bre:[0.03,'255,246,206']},
+ // 2 THE PETAL MILE — cherry canopy fills the top 0.56. The whole stage is
+ //   blossom, so this one gets the strongest breeze and the most petals.
+ {wat:null,          swy:[0.00,0.56,2.2],  ray:[3,0.45,0.05,0.08,'255,232,240'], amb:'petals',    near:[0.86,1.00,0.32], bre:[0.03,'255,226,238']},
+ // 3 THE ROSE WALTZ — stone colonnade must NOT move; only the hedges behind it.
+ {wat:null,          swy:[0.28,0.72,1.1],  ray:[4,0.50,0.04,0.09,'255,248,220'], amb:'petals',    near:[0.88,1.00,0.28], bre:[0.03,'255,248,220']},
+ // 4 THE MIRROR LAKE — waterline read off the art at 0.645. The willows above it
+ //   sway; the lake below ripples. The water IS the near plane, so no near band.
+ {wat:[0.645,1.00],  swy:[0.08,0.60,1.5],  ray:[3,0.55,0.08,0.08,'226,246,255'], amb:'pollen',    near:null,            bre:[0.04,'214,240,255']},
+ // 5 THE WISHING GLADE — dusk. Everything breathes slightly; the painted glows
+ //   pulse; fireflies carry the motion.
+ {wat:null,          swy:[0.00,1.00,0.9],  ray:null,                             amb:'fireflies', near:null,            bre:[0.10,'150,200,255']},
+ // 6 THE GOLDEN HOUR — sunflower field 0.50-0.90 nods in the wind; rays anchored
+ //   to the sun the painting actually has, at x=0.29.
+ {wat:null,          swy:[0.50,0.90,2.4],  ray:[5,0.29,0.12,0.13,'255,226,140'], amb:'pollen',    near:[0.86,1.00,0.34], bre:[0.05,'255,222,140']},
+ // 7 THE SKY GARDENS — nothing to sway and nothing to ripple; the life is the
+ //   cloud sea moving between the islands.
+ {wat:null,          swy:null,             ray:[3,0.50,0.05,0.06,'255,255,255'], amb:'cloud',     near:null,            bre:[0.03,'220,240,255']},
+ // 8 HER ENCORE — the river with the sunset on it, 0.70-0.90. Strong warm
+ //   breathing = the palace windows guttering.
+ {wat:[0.70,0.90],   swy:null,             ray:[4,0.55,0.40,0.10,'255,190,120'], amb:'embers',    near:null,            bre:[0.07,'255,180,110']}
+];
+// Offscreen the painting is composited into before it is warped back out. It is
+// PADDED horizontally so a displaced row still has real pixels to sample — the
+// naive version reads past the edge and leaves a transparent notch down one side.
+var _lbC=null,_lbX=null,_lbW=0,_lbH=0,_lbD=1,LB_PAD=11;
+function _lbEnsure(w,h,d){
+  if(!_lbC){_lbC=document.createElement('canvas');_lbX=_lbC.getContext('2d');}
+  w=Math.max(1,Math.ceil(w));h=Math.max(1,Math.ceil(h));
+  if(_lbW!==w||_lbH!==h||_lbD!==d){
+    _lbW=w;_lbH=h;_lbD=d;_lbC.width=Math.ceil(w*d);_lbC.height=Math.ceil(h*d);
+  }
+  _lbX.setTransform(d,0,0,d,0,0);
+  _lbX.clearRect(0,0,w,h);
+  return _lbX;
+}
+// The mirror-tiling itself, factored out so the direct path and the offscreen
+// path cannot drift apart. Integer edge snap + stable world-space parity are
+// load-bearing: without them a 1px seam scrolls across, and tiles flip-flash.
+function _lbTile(ctx,xo,_bg,cam,bw,bh,by){
+  var bpar=cam*0.045,boff=(-bpar)%(bw*2);if(boff>0)boff-=bw*2;
+  for(var bx=boff;bx<W+bw;bx+=bw){
+    var bx0=Math.round(bx),bx1=Math.round(bx+bw),btw=bx1-bx0;
+    var bk=Math.round((bx+bpar)/bw);
+    if(bk&1){ctx.save();ctx.translate(bx0+xo+btw,0);ctx.scale(-1,1);ctx.translate(-(bx0+xo),0);ctx.drawImage(_bg,bx0+xo,by,btw,bh);ctx.restore();}
+    else ctx.drawImage(_bg,bx0+xo,by,btw,bh);
+  }
+}
+// Same tiling, but blitting only a horizontal SLICE of the source image. The
+// near band needs ~14% of the painting; drawing all of it and clipping the rest
+// away meant three full-size image draws per frame for a strip the height of a
+// hedge, and it showed up as a 50ms frame on the canopy stage.
+function _lbTileSlice(ctx,_bg,cam,bw,bh,by,f0,f1){
+  var sy=f0*_bg.height,sh=(f1-f0)*_bg.height,dy=by+f0*bh,dh=(f1-f0)*bh;
+  var bpar=cam*0.045,boff=(-bpar)%(bw*2);if(boff>0)boff-=bw*2;
+  for(var bx=boff;bx<W+bw;bx+=bw){
+    var bx0=Math.round(bx),bx1=Math.round(bx+bw),btw=bx1-bx0;
+    var bk=Math.round((bx+bpar)/bw);
+    if(bk&1){ctx.save();ctx.translate(bx0+btw,0);ctx.scale(-1,1);ctx.translate(-bx0,0);
+      ctx.drawImage(_bg,0,sy,_bg.width,sh,bx0,dy,btw,dh);ctx.restore();}
+    else ctx.drawImage(_bg,0,sy,_bg.width,sh,bx0,dy,btw,dh);
+  }
+}
+// Per-row horizontal displacement, in screen px. Water grows toward the bottom
+// (nearer water has bigger waves); canopy grows toward the TOP and tapers to
+// zero at the trunks, which is what wind actually does to a treeline.
+function _lbDisp(y,lb,by,bh,tick,amb){
+  var d=0,f,g;
+  if(lb.wat){
+    var t0=by+lb.wat[0]*bh,t1=by+lb.wat[1]*bh;
+    if(y>=t0&&y<=t1){
+      f=(y-t0)/Math.max(1,t1-t0);
+      d+=(1.0+f*6.0)*Math.sin(y*0.055-tick*0.045*amb+f*2.2)
+        +(0.5+f*2.2)*Math.sin(y*0.130+tick*0.031*amb);
+    }
+  }
+  if(lb.swy){
+    var s0=by+lb.swy[0]*bh,s1=by+lb.swy[1]*bh;
+    if(y>=s0&&y<=s1){
+      g=1-(y-s0)/Math.max(1,s1-s0);
+      d+=lb.swy[2]*g*(Math.sin(tick*0.021*amb+y*0.012)+0.5*Math.sin(tick*0.037*amb+y*0.030));
+    }
+  }
+  return d<-LB_PAD?-LB_PAD:(d>LB_PAD?LB_PAD:d);
+}
+// ── LIFE AT THREE DEPTHS ────────────────────────────────────────────────────
+// One layer of petals reads as stickers stuck to the glass. THREE layers moving
+// at different rates reads as air with depth in it, which is the whole point.
+// Each tier gets its own parallax multiplier, size, alpha and drift speed; the
+// far tier is small, pale and slow, the near tier is large, bright and fast.
+// Positions are deterministic per index (see _uh) — Math.random() would strobe.
+var LBTIER=[{p:0.10,s:0.45,a:0.34,v:0.30},{p:0.45,s:0.80,a:0.62,v:0.62},{p:1.30,s:1.45,a:0.92,v:1.15}];
+function drawBGLife(kind,cam,bandB,tick,amb){
+  if(!kind||bandB<8)return;
+  FX.save();FX.beginPath();FX.rect(0,0,W,bandB);FX.clip();
+  for(var t=0;t<3;t++){
+    var T2=LBTIER[t],n=(kind==='cloud')?4:(kind==='birds'?3:(t===2?7:11));
+    var px=-cam*0.045*(1+T2.p*7);       // relative to the far plane's own speed
+    for(var i=0;i<n;i++){
+      var id=t*37+i,r1=_uh(id),r2=_uh(id+91),r3=_uh(id+211);
+      var sp=W*0.42+r1*W*0.55;
+      var x,y,al=T2.a*(0.55+r2*0.45),sz;
+      if(kind==='petals'||kind==='leaves'){
+        // drift down and sideways, with a flutter that reverses — a falling petal
+        // does not travel in a straight line and the eye knows it
+        var fall=(tick*(0.55+r1*0.75)*T2.v*amb+r2*bandB*3)%(bandB+80);
+        y=fall-40;
+        x=_uw(px*0.8+i*sp+Math.sin(fall*0.02+r3*6)*34*T2.s,W+120)-60;
+        sz=(4.6+r3*3.4)*T2.s;
+        FX.fillStyle=(kind==='petals')?'rgba(255,196,222,'+al+')':'rgba(216,180,110,'+al+')';
+        FX.save();FX.translate(x,y);FX.rotate(fall*0.03+r1*6);
+        FX.beginPath();FX.ellipse(0,0,sz,sz*0.52,0,0,6.28);FX.fill();FX.restore();
+      }else if(kind==='fireflies'){
+        // hover rather than travel: a slow wander plus an out-of-phase blink
+        var wx=Math.sin(tick*0.012*T2.v*amb+r1*6.3)*46*T2.s;
+        var wy=Math.cos(tick*0.009*T2.v*amb+r2*6.3)*30*T2.s;
+        x=_uw(px+i*sp,W+120)-60+wx;
+        y=bandB*(0.18+r3*0.66)+wy;
+        var bl=0.35+0.65*Math.pow(0.5+0.5*Math.sin(tick*0.05*amb+r1*9),3);
+        sz=(2.0+r2*2.2)*T2.s;
+        var fg=FX.createRadialGradient(x,y,0,x,y,sz*4.5);
+        fg.addColorStop(0,'rgba(255,238,150,'+(al*bl)+')');fg.addColorStop(1,'rgba(255,238,150,0)');
+        FX.fillStyle=fg;FX.beginPath();FX.arc(x,y,sz*4.5,0,6.28);FX.fill();
+        FX.fillStyle='rgba(255,252,214,'+(al*bl)+')';FX.beginPath();FX.arc(x,y,sz,0,6.28);FX.fill();
+      }else if(kind==='motes'||kind==='pollen'){
+        // dust hanging in light: almost no lateral travel, a lazy vertical bob
+        x=_uw(px*0.7+i*sp+Math.sin(tick*0.006*T2.v*amb+r1*6)*26,W+120)-60;
+        y=bandB*(0.10+r3*0.78)+Math.sin(tick*0.010*T2.v*amb+r2*6)*20*T2.s;
+        sz=(1.1+r2*1.9)*T2.s;
+        FX.fillStyle=(kind==='motes')?'rgba(255,240,200,'+(al*0.75)+')':'rgba(255,250,214,'+(al*0.8)+')';
+        FX.beginPath();FX.arc(x,y,sz,0,6.28);FX.fill();
+      }else if(kind==='embers'){
+        var rise=(tick*(0.35+r1*0.5)*T2.v*amb+r2*bandB*3)%(bandB*0.7);
+        y=bandB*0.92-rise;
+        x=_uw(px+i*sp+Math.sin(rise*0.04+r3*6)*22,W+120)-60;
+        sz=(1.4+r2*1.8)*T2.s;
+        var eb=al*(1-rise/(bandB*0.7));
+        FX.fillStyle='rgba(255,168,96,'+eb+')';FX.beginPath();FX.arc(x,y,sz,0,6.28);FX.fill();
+      }else if(kind==='cloud'){
+        // the cloud sea the sky islands float in — wide, soft, barely moving
+        var cw2=W*(0.30+r1*0.40)*T2.s;
+        x=_uw(px*1.6+tick*0.06*T2.v*amb+i*sp*1.6,W+cw2*2.4)-cw2*1.2;
+        y=bandB*(0.16+r3*0.70);
+        FX.fillStyle='rgba(255,255,255,'+(al*0.30)+')';
+        FX.beginPath();FX.ellipse(x,y,cw2,cw2*0.16,0,0,6.28);FX.fill();
+      }
+    }
+    // a bird or two crossing the far distance — cheap, and the eye reads it
+    // instantly as "this is a world, not a wallpaper"
+    if(t===0&&(kind==='pollen'||kind==='cloud'||kind==='embers')){
+      for(var b2=0;b2<2;b2++){
+        var bt=(tick*0.42*amb+b2*900)%(W+300),bxx=bt-150;
+        var byy=bandB*(0.13+b2*0.07)+Math.sin(bt*0.012)*12;
+        var fl=Math.sin(tick*0.22*amb+b2*2)*4;
+        FX.strokeStyle='rgba(46,54,68,0.42)';FX.lineWidth=1.4;
+        FX.beginPath();FX.moveTo(bxx-6,byy+fl);FX.quadraticCurveTo(bxx-3,byy-2,bxx,byy);
+        FX.quadraticCurveTo(bxx+3,byy-2,bxx+6,byy+fl);FX.stroke();
+      }
+    }
+  }
+  FX.restore();
+}
 // ══ UNDERCROFT — what lies beneath the play line ═══════════════════════════
 // Raising GROUNDF 0.82 -> 0.72 exposed ~28% of the screen below the floor (it
 // was 18%). What lived there was a flat translucent gradient: passable as a
@@ -3946,6 +4143,13 @@ function drawUCLayer(k,px,y0,bh,fullh,tick,amb){
 }
 function drawMansionBG(st){
   var pc=hexS(st.pc),ac=hexS(st.ac),cam=GS.camX,ai=GS.ai,tick=GS.tick;
+  // DECLARED AT THE TOP, not next to the sparkle loop where it used to live. The
+  // living-backdrop pass below reads it ~160 lines earlier than that; `var`
+  // hoists the binding but NOT the assignment, so it was undefined there and
+  // every animated term silently evaluated to false. A reduce-motion flag that
+  // fails closed is exactly the kind of bug that ships looking like "it just
+  // didn't work on my phone".
+  var _amb=SET.reduceMotion?0:1;
   // The world is drawn scaled by ZOOM (see draw(): FX.scale(ZOOM,ZOOM)), so the
   // real floor lands at (FLOOR_R*T - camY) * ZOOM. This baseline used to omit the
   // * ZOOM (and hard-code 14), so it only agreed with the floor when ZOOM===1 —
@@ -4003,23 +4207,93 @@ function drawMansionBG(st){
     // (the interior wall band below is skipped whenever a backdrop is loaded). Scaled
     // to cover the whole play height with its own ground seated at the play floor, and
     // mirror-tiled on a slow parallax so the distant world reads continuous.
-    var bh=Math.max(groundY+40,H*0.94),bw=bh*(_bg.width/_bg.height),by=groundY+30-bh;
     // SNAP TO INTEGER EDGES, like the wall band does. bw is a float and bx
     // accumulated floats, so adjacent tiles never shared an exact edge — leaving a
     // 1px seam that scrolled across the screen. Round each tile's left/right and
     // derive the width from the difference. Parity is keyed to a STABLE WORLD
     // index (not one relative to boff, which wraps) so tiles never flip-flash.
-    var bpar=cam*0.045;
-    var boff=(-bpar)%(bw*2);if(boff>0)boff-=bw*2;
-    for(var bx=boff;bx<W+bw;bx+=bw){
-      var bx0=Math.round(bx),bx1=Math.round(bx+bw),btw=bx1-bx0;
-      var bk=Math.round((bx+bpar)/bw);            // stable world-space tile index
-      if(bk&1){FX.save();FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);FX.drawImage(_bg,bx0,by,btw,bh);FX.restore();}
-      else FX.drawImage(_bg,bx0,by,btw,bh);
+    // (All of that now lives in _lbTile so the flat and warped paths share it.)
+    var bh=Math.max(groundY+40,H*0.94),bw=bh*(_bg.width/_bg.height),by=groundY+30-bh;
+    var lb=LIVEBG[ai]||{};
+    var bandB=Math.max(1,Math.ceil(groundY+30));     // the painting ends at the play floor
+    var warp=!!((lb.wat||lb.swy)&&_amb>0);
+    if(!warp){
+      _lbTile(FX,0,_bg,cam,bw,bh,by);               // nothing to animate — draw it straight
+    }else{
+      // Composite once into the padded offscreen, then blit back row by row with
+      // the displacement applied. Rows that don't move are BATCHED into single
+      // draws, so a stage with one narrow band costs a handful of extra calls
+      // rather than one per row of the screen.
+      var lx=_lbEnsure(W+LB_PAD*2,bandB,DPR);
+      _lbTile(lx,LB_PAD,_bg,cam,bw,bh,by);
+      var rh=document.body.classList.contains('mobile')?5:4;
+      var runY=0,runD=_lbDisp(rh*0.5,lb,by,bh,tick,_amb);
+      for(var ly=rh;ly<bandB;ly+=rh){
+        var dNow=_lbDisp(ly+rh*0.5,lb,by,bh,tick,_amb);
+        // keep collecting while the offset is unchanged (both zero, or both equal)
+        if(Math.abs(dNow-runD)<0.35)continue;
+        FX.drawImage(_lbC,(LB_PAD-runD)*DPR,runY*DPR,W*DPR,(ly-runY)*DPR,0,runY,W,ly-runY);
+        runY=ly;runD=dNow;
+      }
+      // FINAL FLUSH — mandatory, not a tidy-up. The run that reaches the bottom
+      // never sees an offset change, so without this everything from the last
+      // change down to the play floor is simply never drawn: on a stage whose
+      // only band is the canopy, that is two thirds of the painting missing,
+      // showing raw sky gradient with the wash over it.
+      if(runY<bandB)FX.drawImage(_lbC,(LB_PAD-runD)*DPR,runY*DPR,W*DPR,(bandB-runY)*DPR,0,runY,W,bandB-runY);
+    }
+    // ── NEAR BAND: the painting's own lower slice, darkened and run 3.5x faster.
+    //    This is what actually creates depth — two planes at different speeds.
+    //    It is deliberately crushed to a silhouette: at full brightness you read
+    //    it as the SAME tree twice, which is worse than no parallax at all.
+    if(lb.near){
+      // Scale it up slightly (nearer things are bigger) and seat the slice's
+      // BOTTOM on the play floor, then clip to exactly where that slice lands —
+      // clipping to the far plane's rows instead would smear it up the screen.
+      var nSc=1.10,nbh=bh*nSc,nbw=bw*nSc;
+      var nby=(groundY+34)-lb.near[1]*nbh;
+      var nT=nby+lb.near[0]*nbh,nB=nby+lb.near[1]*nbh;
+      var nCT=Math.max(0,nT),nCB=Math.min(bandB,nB);
+      if(nCB-nCT>2){
+        FX.save();
+        FX.beginPath();FX.rect(0,nCT,W,nCB-nCT);FX.clip();
+        FX.globalAlpha=lb.near[2];
+        _lbTileSlice(FX,_bg,cam*3.5,nbw,nbh,nby,lb.near[0],lb.near[1]);   // 3.5x the far plane's parallax
+        FX.globalAlpha=1;
+        var ng=FX.createLinearGradient(0,nT,0,nB);   // shadowed, heavier at its base
+        ng.addColorStop(0,'rgba(12,16,14,0.00)');ng.addColorStop(1,'rgba(8,12,10,0.44)');
+        FX.fillStyle=ng;FX.fillRect(0,nCT,W,nCB-nCT);
+        FX.restore();
+      }
+    }
+    // ── GOD RAYS, anchored to the light source the painting actually has ──
+    if(lb.ray&&_amb>0){
+      var rn=lb.ray[0],rxA=W*lb.ray[1],ryA=bandB*lb.ray[2],rAl=lb.ray[3],rC=lb.ray[4];
+      FX.save();FX.beginPath();FX.rect(0,0,W,bandB);FX.clip();
+      for(var ri=0;ri<rn;ri++){
+        var rph=tick*0.0035+ri*1.9;
+        var rSpread=(ri/(rn-1||1)-0.5)*2.1+Math.sin(rph)*0.16;
+        var rEndX=rxA+rSpread*W*0.85,rW=W*(0.045+0.03*(0.5+0.5*Math.sin(rph*1.7)));
+        var rg3=FX.createLinearGradient(rxA,ryA,rEndX,bandB);
+        rg3.addColorStop(0,'rgba('+rC+','+(rAl*(0.75+0.25*Math.sin(rph*2.3)))+')');
+        rg3.addColorStop(1,'rgba('+rC+',0)');
+        FX.fillStyle=rg3;FX.beginPath();
+        FX.moveTo(rxA-rW*0.30,ryA);FX.lineTo(rxA+rW*0.30,ryA);
+        FX.lineTo(rEndX+rW,bandB);FX.lineTo(rEndX-rW,bandB);FX.closePath();FX.fill();
+      }
+      FX.restore();
+    }
+    // ── BREATHING LIGHT: a slow global warm/cool drift so the light is never
+    //    frozen. On stage 5 it is the glade's glows pulsing; on 8, the palace
+    //    windows guttering. Tiny amplitude on purpose — it should be felt, not seen.
+    if(lb.bre&&_amb>0){
+      var brA=lb.bre[0]*(0.5+0.5*Math.sin(tick*0.008));
+      FX.fillStyle='rgba('+lb.bre[1]+','+brA+')';FX.fillRect(0,0,W,bandB);
     }
     var _bwash=FX.createLinearGradient(0,0,0,groundY+30);   // aerial depth so the fighters pop in front
     _bwash.addColorStop(0,'rgba(6,3,12,0.04)');_bwash.addColorStop(1,'rgba(6,3,12,0.17)');
     FX.fillStyle=_bwash;FX.fillRect(0,0,W,groundY+30);
+    drawBGLife(lb.amb,cam,bandB,tick,_amb);   // life at three depths, in front of the wash
   }else if(window._FARSCENE)drawFarScene(ai,cam,groundY,tick,ac);
   // ── BAKED 2.5D WALL BAND — only when there's NO painted backdrop (a loaded
   //    backdrop is the full unimpeded background; the wall would cover it). ──
@@ -4098,7 +4372,6 @@ function drawMansionBG(st){
       FX.beginPath();FX.arc(gxx,gyy,3.2,0,6.28);FX.fill();
       FX.fillStyle='rgba(255,255,255,0.6)';FX.beginPath();FX.arc(gxx-1,gyy-1,1.1,0,6.28);FX.fill();}}
   // ── ambient magic: sparkles, drifting fairies, birds (reduce-motion trims them) ──
-  var _amb=SET.reduceMotion?0:1;
   for(var sk2=0;sk2<(_amb?12:0);sk2++){
     var tw=Math.sin(tick*0.11+sk2*2.1);if(tw<0.2)continue;
     var sxx=(sk2*211+((sk2%2)?-1:1)*tick*0.4)%W;if(sxx<0)sxx+=W;
