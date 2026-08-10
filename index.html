@@ -919,9 +919,29 @@ function applyTouchMode(){
   var mc=document.getElementById('mCtrl');
   if(mc)mc.classList.toggle('on',t&&MODE==='side'&&running);
 }
+// ── CTRL_TOP — where the touch pads start, in screen px ──────────────────────
+// The undercroft's usable window is floor line -> here; anything drawn below is
+// behind the D-pad and rendered for nobody. This was a guessed 0.66-of-the-band
+// fudge, which is the same class of mistake as every other magic screen
+// fraction in this project: MEASURE the thing instead. #mCtrl is positioned off
+// env(safe-area-inset-bottom), so it genuinely differs per device and per
+// orientation and cannot be derived from H. Re-measured on every resize; falls
+// back to the full height when the pads are hidden (desktop/keyboard play),
+// where the whole band really is visible.
+var CTRL_TOP=1e9;
+function measureCtrlTop(){
+  try{
+    var mc=document.getElementById('mCtrl');
+    if(mc&&mc.classList.contains('on')){
+      var b=mc.getBoundingClientRect();
+      CTRL_TOP=(b.height>0)?b.top:1e9;
+    }else CTRL_TOP=1e9;
+  }catch(_e){CTRL_TOP=1e9;}
+}
 function resize(){
   W=window.innerWidth;H=window.innerHeight;
   applyTouchMode();   // re-evaluate: the answer can change (rotate, external display)
+  measureCtrlTop();   // the undercroft's usable window depends on where the pads sit
   // phones: cap canvas density at 1.5× — full 2-3× costs more GPU than it's worth
   DPR=document.body.classList.contains('mobile')?Math.min(1.5,window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1);
   glC.width=W*DPR;glC.height=H*DPR;glC.style.width=W+'px';glC.style.height=H+'px';
@@ -953,9 +973,10 @@ var PW=30, PH=86; // hero collision box (scaled to ~5'3.75")
 // from the tiles. It was hard-coded as 0.82 in all three places; they agreed only
 // by luck. Client, 2026-08-09: "she's too far at the bottom, it's not like Mario,
 // Mario is kind of like center screen." 0.82 put her head at 69% of the screen
-// under 615px of empty sky. 0.72 lands on the Mario 1-1 / Hollow Knight reference
-// (~70-75%) and reads as her being the subject rather than a detail.
-var GROUNDF=0.72;
+// under 615px of empty sky. 0.72 landed on the Mario 1-1 / Hollow Knight
+// reference (~70-75%); client asked for HIGHER still, so 0.65 — her head at 56%,
+// genuinely centre-screen, with a third of the view given to the undercroft.
+var GROUNDF=0.65;
 // How many rows of the ground column are actually DRAWN. Collision is unchanged —
 // the tiles still exist in GS.solid and pit() still carves them — this is purely
 // what the player sees. Raising LH to 20 gave the camera room to reach GROUNDF,
@@ -982,7 +1003,7 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
     camX:0,camY:0,tick:0,lyricT:0,titleT:210,won:false,finale:0,endT:0,trans:false,paused:false,mapOpen:false,blocking:false,blockHits:0,
     dmgT:0,shieldT:0,fxMax:{},levelUpT:0,
     solid:{},tiles:[],bkbl:[],enemies:[],notes:[],pwr:[],ptcl:[],boss:null,bossActive:false,
-    gateOpen:false,gateFlash:0,gateCol:88,arrowT:0,LW:1e9,LH:20,
+    gateOpen:false,gateFlash:0,gateCol:88,arrowT:0,LW:1e9,LH:22,
     speed:5.2,dist:0,nextTheme:(_fin?12:330),obs:[],genC:0,groundR:14,
     stats:{dj:0,sl:0},toasts:[],newAch:[],blendT:1,prevPc:null,prevAc:null,prevAi:0,
     magT:0,boostT:0,x2T:0,gemsLive:0,
@@ -1140,7 +1161,7 @@ function pruneTrack(gs){
 
 // ---------- 9 DISTINCT LEVEL LAYOUTS (legacy platformer, unused in runner mode) ----------
 function buildLevel(gs){
-  var LW=100,LH=20,FLOOR=14;gs.LW=LW;gs.LH=LH;gs.FLOOR=FLOOR;  // LH kept in step with initGS
+  var LW=100,LH=22,FLOOR=14;gs.LW=LW;gs.LH=LH;gs.FLOOR=FLOOR;  // LH kept in step with initGS
   for(var c=0;c<LW;c++){for(var r=FLOOR;r<LH;r++)setT(gs,c,r,'G');}
   for(c=0;c<LW;c++)setT(gs,c,0,'G');
   for(r=0;r<LH;r++){setT(gs,0,r,'G');setT(gs,LW-1,r,'G');}
@@ -1727,7 +1748,17 @@ function update(){
     // groundY (which also references FLOOR_R*T - camY).
     GS.camY+=((FLOOR_R*T-VH*GROUNDF)-GS.camY)*0.14;
   }else{
-    GS.camY+=(p.y-VH*0.55-GS.camY)*0.09;
+    // ANCHOR FIRST, FOLLOW SECOND. The old form eased toward `p.y - VH*0.55` and
+    // used GROUNDF only as a ceiling — so while she was standing on the floor the
+    // FOLLOW target won and the ground sat wherever 0.55 happened to put it.
+    // GROUNDF was never actually honoured in landscape; it just coincidentally
+    // agreed near 0.72. Proof: dropping GROUNDF 0.72 -> 0.65 left camY at 87 in
+    // both, i.e. the constant did nothing. Now the resting frame IS the anchor,
+    // and the follow term only ever pulls the camera UP, when she climbs toward
+    // the top of the view. Landscape matches portrait by construction.
+    var _anch=FLOOR_R*T-VH*GROUNDF;
+    var _tgt=Math.min(_anch,p.y-VH*0.18);   // she never rises above 18% of the view
+    GS.camY+=(_tgt-GS.camY)*0.09;
     // Cap how far BELOW the floor the camera may look, as a share of the viewport
     // rather than a fixed world margin. The old clamp (GS.LH*T-VH) let the camera
     // run to the bottom of the level: the same ~6-7 tiles of dead ground is 15% of
@@ -1738,10 +1769,18 @@ function update(){
     //
     // NOTE the second term of the min(): GS.LH*T-VH is the world's own bottom edge,
     // and at LH=18 it capped landscape at 0.744 — raising GROUNDF below that did
-    // NOTHING in landscape (measured: identical camY at 0.72 and 0.65). LH went
-    // 18 -> 20 so there IS world below the floor to look at and both orientations
-    // can actually reach GROUNDF. Deeper pits are a welcome side effect.
-    var _cyMax=Math.max(0,Math.min(GS.LH*T-VH,FLOOR_R*T-VH*GROUNDF));
+    // NOTHING in landscape (measured: identical camY at 0.72 and 0.65). LH now
+    // gives both orientations enough world below the floor to actually reach
+    // GROUNDF. Deeper pits are a welcome side effect.
+    //
+    // MINIMUM LH FOR A GIVEN GROUNDF: this branch only runs while VH <= LH*T, so
+    // the worst case is VH == LH*T. Substituting into
+    //   LH*T - VH >= FLOOR_R*T - VH*GROUNDF
+    // gives LH*T >= FLOOR_R*T / GROUNDF. At GROUNDF 0.65 that's 448/0.65 = 689,
+    // i.e. LH >= 21.5 -> 22. Lower GROUNDF again and LH MUST go up with it or
+    // landscape silently pins to the world's bottom edge and stops matching
+    // portrait, exactly as it did at 18.
+    var _cyMax=Math.max(0,Math.min(GS.LH*T-VH,_anch));
     GS.camY=Math.max(0,Math.min(GS.camY,_cyMax));
   }
 
@@ -3761,10 +3800,11 @@ function drawUndercroft(ai,cam,floorY,tick,amb){
       FX.beginPath();FX.ellipse(qx,qy,qr,qr*0.72,_uh(i+5)*3,0,6.28);FX.fill();
     }
     // Layers lay out against ch, not bh. The substrate gradient fills the whole
-    // band, but the touch cluster covers its lower half on a phone — detail placed
-    // at bh*0.56 lands behind the D-pad and is drawn for nobody. ch is the part
-    // that's actually looked at.
-    drawUCLayer(u.k,px,y0,bh*0.66,bh,tick,amb);
+    // band, but the touch cluster covers its lower part on a phone — detail placed
+    // below CTRL_TOP is drawn for nobody. ch is the measured part that's actually
+    // looked at, floored at 40% of the band so a device with very tall pads still
+    // gets a readable cross-section rather than a sliver.
+    drawUCLayer(u.k,px,y0,Math.max(bh*0.40,Math.min(bh,CTRL_TOP-y0)),bh,tick,amb);
   }
   // the cut itself — crisp line + sunlit lip, so the floor reads SOLID and
   // planted on something instead of floating over a wash.
@@ -5078,11 +5118,14 @@ function drawLyric(ac){var t2=GS.lyricT%900,al=t2<50?t2/50*.3:t2>840?(1-(t2-840)
   var _ly=H-92,_lw=W*0.92;
   if(MODE==='side'){
     // Sit it in the gap between the bottom of the ground slab and the top of the
-    // touch cluster (measured at 645..672 on a 390x844 phone) — not at the band's
-    // midpoint, which is behind the D-pad. maxWidth condenses the long lines so
-    // they stop running under the action buttons instead of being clipped by them.
+    // touch cluster — not at the band's midpoint, which is behind the D-pad.
+    // CTRL_TOP is measured, so this follows the pads across devices and
+    // orientations instead of guessing at a screen fraction. maxWidth condenses
+    // the long lines so they stop running under the action buttons.
     var _fy=(FLOOR_R*T-(GS.camY||0))*((typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1);
-    _ly=Math.min(H-92,_fy+Math.max(40,(H-_fy)*0.24));
+    var _lb=Math.min(H-92,CTRL_TOP-14);
+    _ly=Math.max(_fy+SLAB_R*T*((typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1)+16,
+                 Math.min(_lb,_fy+(H-_fy)*0.30));
     _lw=W*0.66;
   }
   FX.fillStyle='rgba(0,0,0,0.45)';FX.font='300 italic 15px Storyboo, Georgia, serif';FX.textAlign='center';
@@ -5486,6 +5529,7 @@ function startGame(){
   document.body.classList.toggle('mobile',isTouch);
   // ACTION RPG gets the pad + attack; Temple View stays swipe-only
   document.getElementById('mCtrl').classList.toggle('on',isTouch&&MODE==='side');
+  measureCtrlTop();   // the pads only get .on here, so resize()'s reading was stale
   if(isTouch&&!window._rpgCtrl){window._rpgCtrl=true;
     // Held movement pads. Tracked by pointer id rather than a single "active"
     // flag so a thumb can SLIDE from ◀ to ▶ without lifting (a knob handled
