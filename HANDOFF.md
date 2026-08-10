@@ -22,6 +22,31 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🌿 08-10 (cloud session) — LIVING BACKDROPS
+> ✅ **DONE — `95718dc`. Spec: `docs/LIVING_BACKDROPS.md`. RPG only, NO new art.**
+Client: *"Now it just looks like a picture. A beautiful picture but still a flat
+photo. Can we bring the exact image to life?"*
+- **Row warp** re-blits each painting as rows with a per-row x-offset: a water
+  ripple (Mirror Lake and Encore already have their reflections PAINTED IN, so
+  rippling them is free realism) and a canopy breeze that tapers to zero at the
+  trunks. Bands are fractions of the IMAGE, read off the art — **stone
+  colonnades and distant hills are excluded on purpose; they must not wobble.**
+- **Near band**: a thin slice of the painting's own base at 3.5x parallax,
+  crushed to a silhouette. Two planes at different speeds = depth. Crushed
+  deliberately — at full brightness it reads as the same tree twice.
+- **God rays** anchored to each painting's real light source; **life at three
+  depths** (petals/fireflies/pollen/embers/cloud/birds) — the difference in
+  SPEED is the depth cue.
+- **⚠️ Three traps for whoever touches this next:** (1) the row-batching loop's
+  FINAL FLUSH is mandatory — without it everything below the last offset change
+  is never drawn (two thirds of a canopy stage). (2) `_amb` must stay declared at
+  the TOP of `drawMansionBG`; it used to sit ~160 lines below this pass and `var`
+  hoisting made every animated term silently false. (3) Use `_lbTileSlice`, not
+  `_lbTile`, for band draws — clipping a full-height blit cost a 50ms frame.
+- **Perf measured, not assumed:** median frame time unchanged (16.7ms vsync) on
+  every stage, p95 +0.5ms, worst frame within noise of the old build.
+- All tuning lives in the `LIVEBG[]` table.
+
 ## 🎬 08-10 (cloud session) — ground line raised AGAIN to 0.65
 > ✅ **DONE — `32b280f`. Client: "Higher."** Spec updated: `docs/GROUND_LINE_UNDERCROFT.md`.
 - **`GROUNDF` 0.72 → 0.65, `LH` 20 → 22.** Her head sits at 56%, ground at 65%.

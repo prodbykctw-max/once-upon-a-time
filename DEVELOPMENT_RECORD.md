@@ -514,6 +514,10 @@ Aug 9        ERA VI — CENTRE FRAME: RPG ground line raised 0.82 → 0.72 (GROU
              drawn depth from collision depth, and the UNDERCROFT — a per-stage cross-section
              beneath the play line (Mirror Lake from under the water; Sky Gardens with no
              ground at all). Sixth screen-vs-world instance found and deleted.
+Aug 10       ERA VI cont. — LIVING BACKDROPS: row-warp ripple + canopy breeze applied to the
+             existing paintings, a near band at 3.5x parallax for a real second depth plane,
+             god rays on each painting's real light source, and life at three depths. No new
+             art. Median frame time unchanged.
 Aug 10       ERA VI cont. — "Higher": GROUNDF → 0.65 (Mario-on-a-phone is 66%, not the
              raw-NES 87% everyone quotes), LH → 22 DERIVED from GROUNDF, landscape camera
              rewritten to anchor-first/follow-second because it had never honoured GROUNDF
@@ -611,6 +615,54 @@ resize, and again on the start-of-run toggle where the pads actually receive the
 fits its full line instead of disappearing under the DASH button.
 
 *Commit `32b280f`.*
+
+### Era VI, third pass — living backdrops (August 10)
+
+*"Now it just looks like a picture. A beautiful picture but still a flat photo.
+Can we bring the exact image to life?"*
+
+Two structural reasons it read flat. The whole painting scrolled at one speed, so
+sky, mountains and foreground grass all moved together — a photograph on a
+conveyor belt, with no parallax and therefore no depth. And nothing moved inside
+it: no wind, no water, no changing light.
+
+The answer was to animate **the paintings themselves**, with no new art at all.
+Each backdrop is now composited into a padded offscreen and blitted back as
+horizontal rows, each with its own x-offset — a **water ripple** where the art
+has water, and a **canopy breeze** that is strongest at the treetops and tapers
+to zero where the trunks meet the ground. Mirror Lake and Her Encore already had
+their reflections *painted in*, so rippling those rows was free realism: the
+mirror-flat lake finally moves. The bands are fractions of the image and were
+read off the actual art — Mirror Lake's waterline really is at 0.645, Golden
+Hour's sun really is at x=0.29 — so they hold at any ground line, zoom or
+orientation. Stone colonnades and distant hills are excluded deliberately.
+
+Depth came from two further layers. A **near band** takes a thin slice of the
+painting's own base and redraws it at 3.5× the parallax, crushed to a silhouette
+— two planes at different speeds is what actually creates depth, and the crushing
+is the point, because at full brightness the eye reads it as the same tree twice.
+And **life at three depths** — petals, fireflies, pollen, embers, cloud, birds —
+each tier with its own parallax rate, because the difference in *speed* is the
+cue. One layer of petals reads as stickers on glass; three reads as air.
+
+Three bugs surfaced in the building. The row-batching loop never flushed its
+final run, so on a canopy-only stage two thirds of the painting was never drawn
+at all — caught by rendering against the deployed build side by side rather than
+by reading the code. `_amb`, the reduce-motion flag, was declared ~160 lines
+below the new pass that read it; `var` hoists the binding but not the assignment,
+so it was `undefined` and every animated term silently evaluated false — a motion
+flag that fails closed, which is precisely the bug that ships as "it just didn't
+work on my phone." And the near band was drawing the full-height painting and
+clipping 86% of it away, worth a 50ms frame until it was given a source-slice
+blit of its own.
+
+Cost was measured over 300 frames rather than assumed: median frame time
+unchanged at the 16.7ms vsync on every stage, p95 up half a millisecond, worst
+frame within noise of the old build. Everything animated is multiplied by the
+reduce-motion factor, so that setting yields a still painting rather than a
+broken one.
+
+*Spec: `docs/LIVING_BACKDROPS.md` · commit `95718dc`.*
 
 ---
 

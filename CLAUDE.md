@@ -68,6 +68,8 @@ and **hard-aborts if anything sensitive is staged**.
   camera branches in `update()`; `drawMansionBG` derives `floorY` from `groundY`.
 - **Under the floor:** `drawUndercroft` + `drawUCLayer` + the `UCROFT[]` palette
   table — one themed cross-section per stage, drawn before the tiles.
+- **Living backdrops:** `LIVEBG[]` + `_lbTile` / `_lbTileSlice` / `_lbDisp` /
+  `drawBGLife`, all inside `drawMansionBG`'s painted-backdrop branch.
 - **Runner:** `updateT` / `drawT` + the GLWORLD engine and `GLWDATA`.
 - **Atlases:** `TEXDATA`→`TEX` — `walls, floors, decor, chaser, foes (136×152),
   items, boss (200×280, 9×9 idle+defeat), props`.
@@ -124,6 +126,17 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   from `H`. It is read on resize AND on the start-of-run toggle (the pads only
   get `.on` there). Anything laying out against the bottom of the screen should
   use it rather than inventing another fraction.
+- **The backdrops are LIVE, not stills — `LIVEBG[]` + `drawMansionBG`'s warp pass.**
+  Each painting is re-blitted as rows with a per-row x-offset (water ripple,
+  canopy breeze), plus a near band at 3.5x parallax, god rays and life at three
+  depths. Bands are fractions of the IMAGE, read off the art, so they survive any
+  `GROUNDF`/zoom/orientation. **Stone and distant hills are excluded on purpose —
+  they must not wobble.** Three traps: the row-batching **final flush is
+  mandatory** (without it everything below the last offset change is never
+  drawn); `_amb` must stay declared at the TOP of `drawMansionBG` (`var` hoisting
+  made every animated term silently false when it sat below); and band draws use
+  `_lbTileSlice`, never a clipped full-height `_lbTile`. Spec:
+  `docs/LIVING_BACKDROPS.md`.
 - **Below the floor is `drawUndercroft`'s, and only its.** One owner per band —
   the dead "abyss" gradient existed because there were two. It is also real play
   space (pits drop her through it), so anything added there must read at speed,
