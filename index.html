@@ -3768,40 +3768,53 @@ function _hedges(hz,po,col,h){var sp=64,o=po%sp;if(o>0)o-=sp;FX.fillStyle=col;
 // wat/swy/near are fractions of the IMAGE height, so they stay correct at any
 // GROUNDF, any zoom and any orientation — they were read off the actual art.
 var LIVEBG=[
- // wnd:[topFrac, pivotFrac, amp] — pivot is where the TRUNKS meet the ground and
- //   must not move; amp is the crown's swing in px. in:1 marks an interior.
+ // wnd:[topFrac, pivotFrac, amp, frq] — pivot is where the TRUNKS meet the ground
+ //   and must not move; amp is the crown's swing in px; frq multiplies the wind's
+ //   SPATIAL frequency (see _lbWindK for why it is per-stage). in:1 = interior.
  // 0 ONCE UPON A PAGE — library INTERIOR. No wind indoors, no water, and no
  //   butterflies or sparkles either (client: "I don't think it will be
  //   butterflies inside the library"). It is all window light and dust.
- {wat:null,          wnd:null,              in:1, ray:[6,0.50,0.05,0.20,'255,232,168'], amb:'motes',     near:null,             bre:[0.05,'255,214,140']},
+ {wat:null,          wnd:null,                   in:1, ray:[6,0.50,0.05,0.20,'255,232,168'], amb:'motes',     near:null,             bre:[0.05,'255,214,140']},
  // 1 FIRST LIGHT MEADOW — horizon at 0.30. Wind takes the foreground trees and
- //   hedgerow only; the distant hills must stay solid.
- {wat:null,          wnd:[0.55,0.99,6.0],   in:0, ray:[3,0.62,0.10,0.08,'255,246,206'], amb:'pollen',    near:[0.87,1.00,0.34], bre:[0.03,'255,246,206']},
- // 2 THE PETAL MILE — cherry canopy fills the top 0.60 and IS the stage. Biggest
- //   swing in the game; the blossom should visibly heave.
- {wat:null,          wnd:[0.00,0.60,14.0],  in:0, ray:[3,0.45,0.05,0.09,'255,232,240'], amb:'petals',    near:[0.86,1.00,0.32], bre:[0.03,'255,226,238']},
+ //   hedgerow only; the distant hills must stay solid. Mid frq: the band has some
+ //   smooth grass in it.
+ {wat:null,          wnd:[0.55,0.99,6.0,2.2],    in:0, ray:[3,0.62,0.10,0.08,'255,246,206'], amb:'pollen',    near:[0.87,1.00,0.34], bre:[0.03,'255,246,206']},
+ // 2 THE PETAL MILE — cherry canopy fills the top 0.60 and IS the stage. Dense
+ //   blossom hides seams, so it gets both the biggest swing and a high frq.
+ {wat:null,          wnd:[0.00,0.60,14.0,3.0],   in:0, ray:[3,0.45,0.05,0.09,'255,232,240'], amb:'petals',    near:[0.86,1.00,0.32], bre:[0.03,'255,226,238']},
  // 3 THE ROSE WALTZ — the marble colonnade starts around 0.5 and must NOT move.
  //   Only the greenery above it.
- {wat:null,          wnd:[0.20,0.50,5.5],   in:0, ray:[4,0.50,0.04,0.10,'255,248,220'], amb:'petals',    near:[0.88,1.00,0.28], bre:[0.03,'255,248,220']},
+ {wat:null,          wnd:[0.20,0.50,5.5,2.4],    in:0, ray:[4,0.50,0.04,0.10,'255,248,220'], amb:'petals',    near:[0.88,1.00,0.28], bre:[0.03,'255,248,220']},
  // 4 THE MIRROR LAKE — client, by name: "those actual trees should be blowing in
  //   the wind." Willows pivot at the shoreline (= the waterline, 0.645) and the
- //   lake below ripples. Water is the near plane, so no near band.
- {wat:[0.645,1.00],  wnd:[0.04,0.645,11.0], in:0, ray:[3,0.55,0.08,0.09,'226,246,255'], amb:'pollen',    near:null,             bre:[0.04,'214,240,255']},
- // 5 THE WISHING GLADE — dusk, still air. A slow breathing sway, fireflies carry
- //   the rest.
- {wat:null,          wnd:[0.00,0.92,4.0],   in:0, ray:null,                              amb:'fireflies', near:null,             bre:[0.10,'150,200,255']},
- // 6 THE GOLDEN HOUR — the sunflower field nods; heads pivot at the soil line.
- {wat:null,          wnd:[0.46,0.93,9.5],   in:0, ray:[5,0.29,0.12,0.15,'255,226,140'], amb:'pollen',    near:[0.86,1.00,0.34], bre:[0.05,'255,222,140']},
- // 7 THE SKY GARDENS — the islands' foliage stirs; the cloud sea does the rest.
- {wat:null,          wnd:[0.00,0.95,3.5],   in:0, ray:[3,0.50,0.05,0.07,'255,255,255'], amb:'cloud',     near:null,             bre:[0.03,'220,240,255']},
+ //   lake below ripples. frq stays LOW: this band contains open sky, which is
+ //   where span seams show. Water is the near plane, so no near band.
+ {wat:[0.645,1.00],  wnd:[0.04,0.645,11.0,1.0],  in:0, ray:[3,0.55,0.08,0.09,'226,246,255'], amb:'pollen',    near:null,             bre:[0.04,'214,240,255']},
+ // 5 THE WISHING GLADE — dusk. Dense fungal cover, so a high frq reads as each
+ //   cluster stirring on its own.
+ {wat:null,          wnd:[0.00,0.92,4.5,2.8],    in:0, ray:null,                              amb:'fireflies', near:null,             bre:[0.10,'150,200,255']},
+ // 6 THE GOLDEN HOUR — client: "shouldn't the sunflowers be blowing in the breeze
+ //   too... they could just be kind of moving back and forth." They WERE moving —
+ //   measured 9px — but the whole field slid as ONE BOARD, and a uniform slide
+ //   across near-identical flowers has no landmark to read against, so it looked
+ //   static. The band is pure flower texture with no sky in it, so it can carry
+ //   the highest frq in the game: neighbouring clumps now rock in OPPOSITE
+ //   directions, which is what actually reads as a breeze through a field.
+ {wat:null,          wnd:[0.46,0.93,10.5,4.2],   in:0, ray:[5,0.29,0.12,0.15,'255,226,140'], amb:'pollen',    near:[0.86,1.00,0.34], bre:[0.05,'255,222,140']},
+ // 7 THE SKY GARDENS — band is mostly open sky between islands: frq must stay low.
+ {wat:null,          wnd:[0.00,0.95,3.5,1.0],    in:0, ray:[3,0.50,0.05,0.07,'255,255,255'], amb:'cloud',     near:null,             bre:[0.03,'220,240,255']},
  // 8 HER ENCORE — river 0.70-0.88 catches the sunset; the dark foreground trees
- //   below it blow. The castle between them is stone and stays put.
- {wat:[0.70,0.88],   wnd:[0.88,1.00,6.0],   in:0, ray:[4,0.55,0.40,0.11,'255,190,120'], amb:'embers',    near:null,             bre:[0.07,'255,180,110']}
+ //   below it blow. Dense silhouette, so a high frq is free. The castle between
+ //   them is stone and stays put.
+ {wat:[0.70,0.88],   wnd:[0.88,1.00,6.0,3.2],    in:0, ray:[4,0.55,0.40,0.11,'255,190,120'], amb:'embers',    near:null,             bre:[0.07,'255,180,110']}
 ];
 // Offscreen the painting is composited into before it is warped back out. It is
 // PADDED horizontally so a displaced row still has real pixels to sample — the
 // naive version reads past the edge and leaves a transparent notch down one side.
-var _lbC=null,_lbX=null,_lbW=0,_lbH=0,_lbD=1,LB_PAD=11;
+// LB_PAD must exceed the largest lean PLUS the span overlap, or a strong gust
+// samples past the offscreen's left edge and leaves a pale transparent sliver
+// down the side of the screen. LB_KMAX keeps the clamp strictly inside it.
+var _lbC=null,_lbX=null,_lbW=0,_lbH=0,_lbD=1,LB_PAD=28,LB_KMAX=20;
 function _lbEnsure(w,h,d){
   if(!_lbC){_lbC=document.createElement('canvas');_lbX=_lbC.getContext('2d');}
   w=Math.max(1,Math.ceil(w));h=Math.max(1,Math.ceil(h));
@@ -3848,7 +3861,7 @@ function _lbDisp(y,lb,by,bh,tick,amb){
   var f=(y-t0)/Math.max(1,t1-t0);
   var d=(1.6+f*9.0)*Math.sin(y*0.055-tick*0.045*amb+f*2.2)
        +(0.8+f*3.2)*Math.sin(y*0.130+tick*0.031*amb);
-  return d<-LB_PAD?-LB_PAD:(d>LB_PAD?LB_PAD:d);
+  return d<-LB_KMAX?-LB_KMAX:(d>LB_KMAX?LB_KMAX:d);
 }
 // ── WIND — per-COLUMN shear, which is the difference between shimmer and trees ──
 // Row displacement moves an entire horizontal band together, so every tree at a
@@ -3875,10 +3888,21 @@ function _lbDisp(y,lb,by,bh,tick,amb){
 // was plainly visible. 8px at x*0.0045 puts it near 0.4px — sub-pixel, gone —
 // while still spreading ~100 degrees of phase across the screen so the treeline
 // does not lean as one board.
-function _lbWindK(x,amp,tick,amb){
-  var t=tick*amb;
-  var gust=0.30+0.70*Math.pow(0.5+0.5*Math.sin(t*0.0062+x*0.0007),2);
-  return amp*gust*(Math.sin(t*0.030+x*0.0013)+0.40*Math.sin(t*0.071+x*0.0032));
+// frq IS PER STAGE, and the reason is what the art in the band looks like, not
+// taste. A seam between spans is only visible against SMOOTH pixels — open sky.
+// A band that is wall-to-wall texture (a sunflower field, a blossom canopy, a
+// dark treeline) hides a 2px step completely, so it can carry a high frequency
+// and its clumps rock in OPPOSITE directions. A band containing sky (Mirror
+// Lake, Sky Gardens) must stay near 1.0 or vertical lines appear.
+//
+// This matters more than amplitude. The sunflower field was already swinging 9px
+// and still looked static, because at frq 1.0 the entire field slid ONE WAY
+// together and a uniform slide across near-identical flowers has no landmark to
+// be seen against. Raising frq, not amp, is what makes a field read as breezy.
+function _lbWindK(x,amp,frq,tick,amb){
+  var t=tick*amb,f=frq||1;
+  var gust=0.30+0.70*Math.pow(0.5+0.5*Math.sin(t*0.0062+x*0.0007*f),2);
+  return amp*gust*(Math.sin(t*0.030+x*0.0013*f)+0.40*Math.sin(t*0.071+x*0.0032*f));
 }
 // An undisplaced stretch, in one draw. The call that covers the gap from the
 // last band down to the play floor is MANDATORY, not tidy-up: nothing below the
@@ -3905,7 +3929,7 @@ function _lbRows(y0,y1,lb,by,bh,tick,amb){
 // 16.7ms to 20ms, i.e. straight out of 60fps.
 function _lbWindDraw(x0,x1,k,y0,y1,bandH,ov){
   if(x1<=x0)return;
-  if(k>LB_PAD)k=LB_PAD;else if(k<-LB_PAD)k=-LB_PAD;
+  if(k>LB_KMAX)k=LB_KMAX;else if(k<-LB_KMAX)k=-LB_KMAX;
   FX.save();
   FX.transform(1,0,-k/bandH,1,k*y1/bandH,0);
   var dx=x0-ov,dw=(x1-x0)+ov*2;
@@ -3918,12 +3942,12 @@ function _lbWindDraw(x0,x1,k,y0,y1,bandH,ov){
 // frequency is then chosen so the lean step between adjacent spans stays
 // sub-pixel at that width. Trading phase spread for frame rate, deliberately.
 var LB_SPANS=16;
-function _lbWind(y0,y1,amp,tick,amb){
+function _lbWind(y0,y1,amp,frq,tick,amb){
   var bandH=y1-y0; if(bandH<2)return;
   var cw=W/LB_SPANS,ov=3;               // 3px overlap so no span leaves a gap
   for(var i=0;i<LB_SPANS;i++){
     var x0=i*cw;
-    _lbWindDraw(x0,x0+cw,_lbWindK(x0+cw*0.5,amp,tick,amb),y0,y1,bandH,ov);
+    _lbWindDraw(x0,x0+cw,_lbWindK(x0+cw*0.5,amp,frq,tick,amb),y0,y1,bandH,ov);
   }
 }
 // ── LIFE AT THREE DEPTHS ────────────────────────────────────────────────────
@@ -4296,7 +4320,7 @@ function drawMansionBG(st){
       var lx=_lbEnsure(W+LB_PAD*2,bandB,DPR);
       _lbTile(lx,LB_PAD,_bg,cam,bw,bh,by);
       var segs=[];
-      if(lb.wnd)segs.push([Math.max(0,by+lb.wnd[0]*bh),Math.min(bandB,by+lb.wnd[1]*bh),'w',lb.wnd[2]]);
+      if(lb.wnd)segs.push([Math.max(0,by+lb.wnd[0]*bh),Math.min(bandB,by+lb.wnd[1]*bh),'w',lb.wnd[2],lb.wnd[3]]);
       if(lb.wat)segs.push([Math.max(0,by+lb.wat[0]*bh),Math.min(bandB,by+lb.wat[1]*bh),'r',0]);
       segs.sort(function(a,b){return a[0]-b[0];});
       var cy=0,si;
@@ -4304,7 +4328,7 @@ function drawMansionBG(st){
         var s0=Math.max(cy,segs[si][0]),s1=segs[si][1];
         if(s1<=s0)continue;
         _lbPlain(cy,s0);                                    // untouched gap above this band
-        if(segs[si][2]==='w')_lbWind(s0,s1,segs[si][3],tick,_amb);
+        if(segs[si][2]==='w')_lbWind(s0,s1,segs[si][3],segs[si][4],tick,_amb);
         else _lbRows(s0,s1,lb,by,bh,tick,_amb);
         cy=s1;
       }
