@@ -22,6 +22,26 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🌲 08-10 (cloud session) — FOREGROUND PLANE (`43a124e`)
+Client: *"the candlesticks give it a different layer for it to move behind"* /
+*"I want the backgrounds to feel like spaces, not a flat picture."*
+- **Everything used to sit BEHIND her.** A stack of behind-planes is still
+  scenery. `drawForeground()` adds a near plane at ~1.7x the world's screen rate,
+  drawn AFTER the world transform so it OCCLUDES the hero — top fringe (willow
+  strands / blossom limbs / ivy / sunflower heads / library soffit) plus
+  occasional slim trunks sweeping past.
+- **⚠️ Three rules that came out of getting it wrong first:** (1) a trunk STOPS AT
+  THE GROUND — the first version ran 0..H and put a haze band through the lake and
+  the undercroft; (2) a near trunk is near-SILHOUETTE and tapered, never a tinted
+  parallel-sided gradient (that is a light shaft); (3) alpha stays at 0.62, NOT
+  opaque — the strip crosses the play area and a foe behind it must stay readable.
+- Fringe thins through the middle of the screen on purpose: that is where she
+  fights.
+- No new assets. Median frame time unchanged (16.7ms). Spec:
+  `docs/FOREGROUND_PLANE.md`.
+- **This is the ceiling for flat paintings.** Real spaces need Blender-separated
+  depth layers — next step, blocked only on laptop render time.
+
 ## 🌻 08-10 (cloud session) — per-stage wind FREQUENCY (`9f25578`)
 Client: *"Shouldn't the sunflowers be blowing in the breeze too."*
 - **They already were** — 9px swing, base pinned at 0. Sampling left/mid/right

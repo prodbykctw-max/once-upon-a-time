@@ -70,7 +70,7 @@ and **hard-aborts if anything sensitive is staged**.
   table — one themed cross-section per stage, drawn before the tiles.
 - **Living backdrops:** `LIVEBG[]` + `_lbTile` / `_lbTileSlice` / `_lbDisp` /
   `drawBGLife`, all inside `drawMansionBG`'s painted-backdrop branch.
-- **Runner:** `updateT` / `drawT` + the GLWORLD engine and `GLWDATA`.
+- **In front of her:** `drawForeground` + `FORE[]` — the near plane, drawn after\n  the world transform in `draw()`.\n- **Runner:** `updateT` / `drawT` + the GLWORLD engine and `GLWDATA`.
 - **Atlases:** `TEXDATA`→`TEX` — `walls, floors, decor, chaser, foes (136×152),
   items, boss (200×280, 9×9 idle+defeat), props`.
 - **Persistence:** `jande_maps`, `jande_clears`, `jande_shop`, `jande_settings`,
@@ -126,6 +126,13 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   from `H`. It is read on resize AND on the start-of-run toggle (the pads only
   get `.on` there). Anything laying out against the bottom of the screen should
   use it rather than inventing another fraction.
+- **There is a plane IN FRONT of the hero — `drawForeground` / `FORE[]`.** Drawn
+  after the world transform so it occludes her, at ~1.7x the world's screen rate.
+  Rules learned the hard way: a trunk **stops at the ground**; a near trunk is a
+  tapered near-**silhouette**, never a tinted parallel gradient; and its alpha
+  stays ~0.62 because the strip crosses the play area and a foe behind it must
+  stay readable. Keep the fringe thin through mid-screen — that is where she
+  fights. Spec: `docs/FOREGROUND_PLANE.md`.
 - **Canopy wind is per-COLUMN SHEAR, never row warp.** Row displacement moves a
   whole horizontal band together and reads as heat haze; trees must pivot at their
   trunks. Two coupled limits, both measured, both easy to break: the seam step

@@ -737,6 +737,41 @@ overlap, so the shear sampled past the edge into nothing.
 
 *Commit `9f25578`.*
 
+### Era VI, sixth pass — the plane in front (August 10)
+
+The client had already diagnosed this himself, in passing, while praising the
+library: *"It is the fact that I have those candlesticks there that kind of gives
+it a different layer for it to move behind, and that's nice."*
+
+Every plane in the game sat behind her — the painted backdrop, the near band, the
+undercroft — and a stack of behind-planes is still scenery. Parallax sells depth
+by also putting something in FRONT of the subject, moving faster than the world.
+The library read differently for exactly one reason: its candlesticks are world
+props she walks behind. Nothing else in the game had a near plane at all.
+
+`drawForeground` adds one: a per-stage near layer at roughly 1.7x the world's own
+screen rate, drawn after the world transform is restored so it genuinely occludes
+the hero. A top fringe — willow strands, cherry limbs in blossom, ivy, sunflower
+heads leaning over the edge, a library soffit with hung lamps — hanging deeper at
+the screen edges and thinning through the middle, which is both how a canopy
+frames a view and how the play area stays legible. And occasional slim trunks
+sweeping between camera and player.
+
+Three corrections came out of rendering it rather than reading it. The trunk
+first ran the full height of the screen as a soft gradient, putting a vertical
+haze band through the lake and the undercroft and reading as a fault rather than
+a tree; a trunk stops at the ground. Even bounded, a tinted gradient with
+parallel sides is a light shaft, so it was rebuilt as a tapered, leaning
+near-silhouette with a limb. And its alpha was held at 0.62 rather than opaque,
+because the strip crosses the play area and a foe or projectile behind it has to
+stay readable — depth is not worth a death.
+
+No new assets, frame time unchanged. This is also the ceiling of what flat
+paintings can give: genuine spaces, with real angles and cast shadows, need the
+backdrops re-rendered as separated depth layers out of Blender.
+
+*Commit `43a124e`.*
+
 ---
 
 *Jandé — "Once Upon A Time"*
