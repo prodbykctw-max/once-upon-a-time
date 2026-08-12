@@ -361,7 +361,13 @@ body.mobile .hud-masks svg{width:26px;height:26px}
 body.mobile .tbtn{width:46px;height:46px;font-size:20px}  /* bigger tap targets */
 body.mobile #topBtns{top:8px;right:10px;gap:10px}
 /* clear the home indicator and the rounded corners on notched iPhones */
-body.mobile #mCtrl{bottom:calc(18px + env(safe-area-inset-bottom,0px));
+/* CLEAR THE HOME-INDICATOR GESTURE STRIP. Client: the pads sat close enough to
+   the bottom edge that iOS read presses near them as the system swipe-up /
+   app-switcher gesture. Measured: only 18px of screen below the pads in portrait
+   (10px in landscape) — Apple asks for ~34pt of clearance. Raised to 52px, which
+   is still 87px clear of the play floor (ground line 549, pads now start 636 on a
+   390x844 phone), so nothing touches the platform she runs on. */
+body.mobile #mCtrl{bottom:calc(52px + env(safe-area-inset-bottom,0px));
   padding-left:calc(16px + env(safe-area-inset-left,0px));
   padding-right:calc(16px + env(safe-area-inset-right,0px));
   align-items:flex-end}
@@ -374,7 +380,12 @@ body.mobile .bb-w{width:66vw}
 body.mobile #bossBar{bottom:150px}
 /* landscape phones: tuck controls into corners, lower */
 @media (orientation:landscape) and (max-height:560px){
-  body.mobile #mCtrl{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+  /* Landscape can't have both: the screen is 390 tall, the pad cluster is ~154,
+     and the ground line sits at 253 — the pads ALREADY start above it at 226.
+     So this is raised only enough to clear the gesture strip (10 -> 28px) rather
+     than the full 52; going further would push them further into the play area.
+     The real fix there is a shorter cluster, not more lift. */
+  body.mobile #mCtrl{bottom:calc(28px + env(safe-area-inset-bottom,0px))}
   /* size controls by viewport HEIGHT in landscape so the cluster stays short
      enough to fit above the home indicator / browser bar */
   body.mobile .mdiam{--ak:clamp(52px,15vh,72px)}
@@ -1052,7 +1063,11 @@ function groundCol(gs,c){for(var r=FLOOR_R;r<gs.LH;r++)setT(gs,c,r,'G');}
 function rnd01(n){var v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);}
 // Every foe goes through here so the stage knows how many it spawned — that's the
 // denominator in the clear tally's "FOES SILENCED 14/14".
-function addFoe(gs,o){gs.foesTotal=(gs.foesTotal||0)+1;gs.foes.push(o);}
+function addFoe(gs,o){
+  // The viewer is for LOOKING at the backdrop. Foes crossing it, and their
+  // death bursts, are exactly what gets in the way of judging the art.
+  if(typeof BGVIEW!=='undefined'&&BGVIEW)return;
+  gs.foesTotal=(gs.foesTotal||0)+1;gs.foes.push(o);}
 // Par times per stage (SECONDS), derived from the real constants rather than
 // guessed: stageEnd=330 columns x T=32 / 384px-per-second run speed = 27.5s of
 // pure travel, scaled by each stage's STAGE_RECIPE overhead (gaps, foes,
@@ -1730,7 +1745,10 @@ function update(){
   var _pvy=p.vy,_pg=p.onGround;p.y+=p.vy;collideV(p,PW,PH);
   if(!_pg&&p.onGround){p.airJumps=1;if(_pvy>3){sfx('land');if(navigator.vibrate)navigator.vibrate(25);}}
   p.x=Math.max((GS.pruneC||0)*T+T,p.x); // pruned world behind — no walking into the void
-  if(p.y>GS.LH*T+150){p.dead=true;p.vy=-10;GS.masks=0;updateHUD();if(navigator.vibrate)navigator.vibrate([100,40,100]);return;}
+  if(p.y>GS.LH*T+150){
+    if(BGVIEW){ // viewer: a pit lifts her back onto the floor instead of ending the look
+      p.y=(FLOOR_R-3)*T; p.vy=0; return; }
+    p.dead=true;p.vy=-10;GS.masks=0;updateHUD();if(navigator.vibrate)navigator.vibrate([100,40,100]);return;}
   if(p.inv>0)p.inv--;
 
   // ── OBSTACLES (slide shrinks hitbox to bottom 46px) ──
@@ -1844,6 +1862,17 @@ function update(){
   for(var pwi=0;pwi<GS.pwr.length;pwi++){var pw=GS.pwr[pwi];if(pw.got)continue;pw.anim++;
     if(p.x<pw.x+26&&p.x+PW>pw.x-2&&p.y<pw.y+26&&p.y+PH>pw.y){pw.got=true;applyPowerup(pw.type);sfx('pw');ptcl(pw.x+12,pw.y+12,'gbk');if(pw.cache){GS.cacheGot=true;GS.toasts.push({txt:'CACHE CLAIMED',sub:'THE WANDERER REWARDS THE CURIOUS',t:170,max:170,ico:'crown'});}}}
 
+  // ── dying foes: hold them on screen for a beat so the kill is legible ──
+  for(var _dq=GS.foes.length-1;_dq>=0;_dq--){var _df=GS.foes[_dq];
+    if(!_df.dying)continue;
+    if(_df.dieT===0){                       // one outward burst, from the struck edge
+      var _dd=(GS.p.x+PW/2)<(_df.x+26)?1:-1;    // away from her: front or back, never over
+      gore(_df.x+26+_dd*24,_df.y+26,_dd,goreOf(_df),14);
+    }
+    _df.dieT++;
+    _df.y+=Math.min(4,_df.dieT*0.35);       // tips and drops
+    if(_df.dieT>26){GS.foes.splice(_dq,1);}
+  }
   var _po=0;for(var pi=0;pi<GS.ptcl.length;pi++){var pp=GS.ptcl[pi];pp.x+=pp.vx;pp.y+=pp.vy;pp.vy+=pp.g||0;pp.vx*=pp.dr||0.95;pp.life-=pp.d;if(pp.life>0)GS.ptcl[_po++]=pp;}GS.ptcl.length=_po;
 }
 
@@ -3309,10 +3338,17 @@ function nextBoss(b){
   var dur={CHASE:110,JUMP:70,SLAM:80,SHOOT:75,CHARGE:55,WAIT:50,RAGE:90,DRIFT:100};
   b.stateTimer=Math.floor((dur[b.state]||80)*(b.enraged?0.7:1));}
 
-function hitE(e){e.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);GS.score+=120;ptcl(e.x+22,e.y+24,'hit',goreOf(e));
-  if(e.hp<=0){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);ptcl(e.x+22,e.y+10,'kill',goreOf(e));updateHUD();}
+function hitE(e){e.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);GS.score+=120;
+  gore(e.x+22+((GS.p.x<e.x)?22:-22),e.y+24,(GS.p.x<e.x)?1:-1,goreOf(e),6);
+  if(e.hp<=0){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);
+    // OUTWARD from the struck side, not a 22-blob burst dropped on the body
+    gore(e.x+22+((GS.p.x<e.x)?26:-26),e.y+22,(GS.p.x<e.x)?1:-1,goreOf(e),14);updateHUD();}
   else{e.stg=true;e.stgT=20;e.vx*=-2;}}
-function hitB(b){if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd=16;GS.score+=550;
+function hitB(b){
+  // boss hits emit outward from the struck side, same rule as the foes — the
+  // screenshot he sent had the Revenant completely buried under its own burst
+  try{var _bd=(GS.p.x+PW/2)<(b.x+b.W/2)?1:-1;
+      gore(b.x+b.W/2+_bd*(b.W*0.35),b.y+b.H*0.45,_bd,'255,120,170',8);}catch(_e){}if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd=16;GS.score+=550;
   var _gore=(typeof BOSS_GORE!=='undefined'&&BOSS_GORE[b.bi])||null;
   ptcl(b.x+b.W/2,b.y+28,'bhit',_gore);   // hit spray in the villain's own colour
   if(b.state!=='RAGE'){b.state='WAIT';b.stateT=0;b.stateTimer=24;}
@@ -3323,7 +3359,7 @@ function hitB(b){if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd
     GS.bossKO=1;GS.hitstop=Math.max(GS.hitstop,6);   // a beat of impact, then the cinematic defeat
     document.getElementById('bossBar').classList.remove('on');document.getElementById('bbPh').classList.remove('show');}
   document.getElementById('bbF').style.width=(Math.max(0,b.hp)/b.mhp*100)+'%';updateHUD();}
-function hurtP(p){if(p.inv>0)return;
+function hurtP(p){if(p.inv>0||BGVIEW)return;   // viewer: nothing interrupts a look at the art
   if(GS.shieldT>0){ptcl(p.x+14,p.y+30,'dash');p.inv=30;return;}
   GS.dmgTaken=(GS.dmgTaken||0)+1;   // per-stage damage, for the clear tally
   if(GS.blocking){ptcl(p.x+(p.faceL?0:PW),p.y+30,'slash');GS.blockHits++;p.inv=45;p.vx=p.faceL?4:-4;if(GS.blockHits%2===0){GS.masks--;updateHUD();}}
@@ -3347,10 +3383,27 @@ function ptcl(x,y,tp,colO){var r=Math.random;
     sbk:{n:14,c:'155,68,255',r:4,vx:9,vy:-6,g:.22,dr:.93,d:.026},gbk:{n:16,c:'255,215,0',r:4,vx:9,vy:-7,g:.24,dr:.93,d:.024},
     spit:{n:6,c:'200,160,255',r:3,vx:4,vy:4,g:.05,dr:.97,d:.05},hit:{n:7,c:'255,45,138',r:3,vx:7,vy:-5,g:.2,dr:.93,d:.052},
     kill:{n:22,c:'200,160,255',r:5,vx:11,vy:-9,g:.25,dr:.92,d:.02},hurt:{n:10,c:'255,51,85',r:4,vx:9,vy:-6,g:.22,dr:.93,d:.04},
-    bhit:{n:16,c:'255,215,0',r:5,vx:12,vy:-9,g:.25,dr:.92,d:.024},bdie:{n:30,c:'255,45,138',r:7,vx:16,vy:-11,g:.28,dr:.91,d:.012},
-    bph:{n:30,c:'255,51,85',r:5,vx:13,vy:-9,g:.26,dr:.92,d:.016}};
+    bhit:{n:9,c:'255,215,0',r:3,vx:12,vy:-9,g:.25,dr:.92,d:.038},bdie:{n:18,c:'255,45,138',r:4,vx:16,vy:-11,g:.28,dr:.91,d:.020},
+    bph:{n:16,c:'255,51,85',r:3,vx:13,vy:-9,g:.26,dr:.92,d:.026}};
   var d=D[tp]||D.note;
   for(var i=0;i<d.n;i++)GS.ptcl.push({x:x,y:y,r:d.r*(0.5+r()*0.8),col:colO||d.c,vx:(r()-.5)*d.vx*2,vy:d.vy<0?d.vy*r():(r()-.5)*d.vy*2,g:d.g,dr:d.dr,life:1,d:d.d});}
+// DIRECTIONAL gore. Client: "where blood is covering the viewer's vision of the
+// monster and his death you need to remove that and just let it be coming out
+// from the front or the back."
+//
+// The old kill burst spawned 22 blobs AT THE BODY'S CENTRE with a symmetric
+// +/-11 spread, so half of them flew back across the corpse and blanketed it.
+// This emits from the struck EDGE and throws everything OUTWARD along dir, so
+// the body stays legible and the spray reads as coming out of it.
+function gore(x,y,dir,col,n){
+  var r=Math.random;
+  for(var i=0;i<n;i++){
+    var sp=3+r()*9;
+    GS.ptcl.push({gore:1,x:x+dir*(r()*6),y:y+(r()-0.5)*22,r:1.4+r()*2.0,col:col,
+      vx:dir*sp,                        // OUTWARD only — never back over the body
+      vy:-2-r()*5,g:0.26,dr:0.93,life:1,d:0.022});
+  }
+}
 
 // ════════════════════════════════════════════════════════════
 //  DRAW (FX canvas over the WebGL background)
@@ -3602,7 +3655,13 @@ function rpgXP(a){RPG.xp+=a;var up=false;
   else updateHUD();   // refresh the XP bar on every gain, not only on level-up
   try{localStorage.setItem('jande_rpg',JSON.stringify(RPG));}catch(x){}}
 function addPop(x,y,txt){GS.pops.push({x:x,y:y,txt:''+txt,t:52});}
-function killFoe(f){f.alive=false;GS.kills=(GS.kills||0)+1;sfx('kill');GS.hitstop=3;
+function killFoe(f){
+  // Client: "you can't really see them die too well." They were removed the
+  // instant hp hit zero — there was no death to watch, just a puff where the body
+  // had been. It now stays on screen for a beat, tipping and fading, so the kill
+  // reads. dieT counts up; the draw pass keeps rendering while it is set.
+  f.dying=1;f.dieT=0;f.alive=false;
+  GS.kills=(GS.kills||0)+1;sfx('kill');GS.hitstop=3;
   GS.combo++;GS.comboT=130;
   var cm=1+0.25*Math.min(GS.combo-1,8);
   var sc=Math.round((f.tp?160:120)*runMult()*cm);
@@ -3764,7 +3823,10 @@ function loadCards(){
 // CB_MAXSEP is the backstop that makes migration impossible even if someone
 // dials the spread up later — it clamps each card's separation FROM THE BASE,
 // which is the quantity that actually has to stay bounded.
-var CB_BASE=0.045, CB_SPREAD=0.010, CB_MAXSEP=80;
+// Aligned to the Will Hill values he supplied from src/render/backdrop.js:
+// DEPTH_SPREAD 0.010, MAX_SEPARATION 90, STRIP_MAX_SEPARATION 400. The spread
+// already matched; the two clamps were mine (80 and 300) and are now his.
+var CB_BASE=0.045, CB_SPREAD=0.010, CB_MAXSEP=90, CB_STRIPMAX=400;
 function cardSep(cam,c){
   if(c.strip){
     // THE ONE EXCEPTION: a ground strip gets a REAL rate and a loose clamp.
@@ -3773,7 +3835,7 @@ function cardSep(cam,c){
     // nothing in it to notice having moved; all you see is that it outruns the
     // scenery, which is exactly the cue that it is nearer.
     var so=-cam*(CB_BASE*2.2)+cam*CB_BASE;
-    return so<-300?-300:(so>300?300:so);
+    return so<-CB_STRIPMAX?-CB_STRIPMAX:(so>CB_STRIPMAX?CB_STRIPMAX:so);
   }
   // NOT the water: this lake's reflections are painted in, and they are a
   // landmark. Let the water outrun the willows and the reflections stop lining
@@ -4211,8 +4273,13 @@ function drawCards(ai,cam,bw,bh,by,bandB,tick,amb){
       var cx=bx0+c.x*sc+cardSep(cam,c),cy=by+c.y*sc;
       if(cx>W+8||cx+cw<-8)continue;
       FX.save();
-      if(mir){FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);
-        cx=bx0+(set.w-c.x-im.width)*sc-cardSep(cam,c);}
+      // MIRRORED TILES: apply the transform ONLY. The first version also flipped
+      // the card's x by hand — two mirrors cancel, so every card on every odd
+      // tile landed displaced from the hole it was cut out of, and the blurry
+      // inpainted base showed through beside it. That is the "gaps in space".
+      // Under this transform a sub-rect drawn at its NORMAL x already lands
+      // mirrored and in register with the mirrored base plate.
+      if(mir){FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);}
       if(c.wind&&amb>0){
         // Wind pivots at the BOTTOM OF THE MOVING MASS — the card's own base,
         // which for a cut willow is where its trunk meets the shore. Shear is
@@ -4933,7 +5000,13 @@ function draw(){
   for(i=0;i<GS.pwr.length;i++)if(!GS.pwr[i].got)drawPwr(GS.pwr[i]);
   for(i=0;i<GS.obs.length;i++)if(!GS.obs[i].hit)drawObs(GS.obs[i],ac,pc);
   // RPG FOES (pixel sprites)
-  if(TEX.foes)for(i=0;i<GS.foes.length;i++){var fo2=GS.foes[i];if(!fo2.alive)continue;
+  if(TEX.foes)for(i=0;i<GS.foes.length;i++){var fo2=GS.foes[i];
+    if(!fo2.alive&&!fo2.dying)continue;
+    // A dying foe fades and tips over across its 26 ticks. It is drawn at full
+    // opacity for the first third so the body is unmistakably SEEN before it goes.
+    var _dAl=1,_dRot=0;
+    if(fo2.dying){var _dt=fo2.dieT/26;_dAl=_dt<0.34?1:1-(_dt-0.34)/0.66;_dRot=_dt*0.5*(fo2.face===-1?-1:1);}
+    if(_dAl<=0.02)continue;
     var ffr=Math.floor(fo2.anim/7)%6+fo2.tp*6;
     // Per-type size so the hand-painted detail actually reads (cells are 136x152;
     // drawing near-native keeps it crisp). Brutes tower, flyers are lighter — all
@@ -4941,14 +5014,14 @@ function draw(){
     var FSZ=[[112,124],[100,110],[100,110],[138,152],[88,96],[124,138]];
     var _fs=FSZ[fo2.tp]||[112,124], fW=_fs[0], fH=_fs[1];
     var fdx2=fo2.x-(fW-52)/2, fdy2=fo2.y-(fH-58);       // grow from the same feet + centre so they stay planted
+    FX.save();
+    if(_dAl<1)FX.globalAlpha=_dAl;
+    if(_dRot){FX.translate(fdx2+fW/2,fdy2+fH);FX.rotate(_dRot);FX.translate(-(fdx2+fW/2),-(fdy2+fH));}
     if(fo2.face===-1){ // mirror about the sprite's own centre
-      FX.save();
       FX.translate(fdx2+fW/2,0);FX.scale(-1,1);FX.translate(-(fdx2+fW/2),0);
-      FX.drawImage(TEX.foes,ffr*136,0,136,152,fdx2,fdy2,fW,fH);
-      FX.restore();
-    }else{
-      FX.drawImage(TEX.foes,ffr*136,0,136,152,fdx2,fdy2,fW,fH);
-    }}
+    }
+    FX.drawImage(TEX.foes,ffr*136,0,136,152,fdx2,fdy2,fW,fH);
+    FX.restore();}
   // STAGE BOSS
   if(GS.boss&&(GS.boss.alive||GS.bossDeadT>0))drawBoss(GS.boss,ac); // keep drawing through the defeat animation
   // WANDERER'S MAP: once the map is found, a ✦ beacon glows over the hidden cache
@@ -4958,7 +5031,24 @@ function draw(){
     FX.fillStyle='rgba(150,255,196,'+(0.6+0.35*Math.sin(GS.tick*0.15))+')';
     starMark(GS.cacheX+4,GS.cacheY-30+Math.sin(GS.tick*0.12)*6,9);}
   // particles
-  for(i=0;i<GS.ptcl.length;i++){var pp=GS.ptcl[i];FX.globalAlpha=Math.max(0,pp.life*pp.life);FX.fillStyle='rgba('+pp.col+',1)';FX.beginPath();FX.arc(pp.x,pp.y,pp.r,0,6.28);FX.fill();}
+  for(i=0;i<GS.ptcl.length;i++){var pp=GS.ptcl[i];
+    FX.globalAlpha=Math.max(0,pp.life*pp.life);
+    FX.fillStyle='rgba('+pp.col+',1)';
+    if(pp.gore){
+      // GORE READS AS BLOBS BECAUSE IT IS DRAWN AS CIRCLES. Client, on his own
+      // screenshot: "the quality of the blood, it just looks like blobs." A
+      // droplet in flight is not a disc — it is stretched along its own velocity
+      // and it is OPAQUE, not a soft translucent bokeh dot. So: small, elongated
+      // along travel, and alpha that stays solid until it dies rather than
+      // fading across the whole life.
+      var sp2=Math.sqrt(pp.vx*pp.vx+pp.vy*pp.vy)||1;
+      FX.globalAlpha=Math.max(0,Math.min(1,pp.life*2.2));
+      FX.save();FX.translate(pp.x,pp.y);FX.rotate(Math.atan2(pp.vy,pp.vx));
+      FX.beginPath();FX.ellipse(0,0,pp.r*(1+sp2*0.16),pp.r*0.52,0,0,6.28);FX.fill();
+      FX.restore();
+    }else{
+      FX.beginPath();FX.arc(pp.x,pp.y,pp.r,0,6.28);FX.fill();
+    }}
   FX.globalAlpha=1;
   // damage pops
   FX.font='bold 13px Storyboo,sans-serif';FX.textAlign='center';
@@ -6277,6 +6367,47 @@ window._devState=function(){var t=GS.t3||{},p=GS.p||{};return {mode:MODE,ai:GS.a
   laneX:t.laneX,lane:t.lane,py:t.py,slid:t.slid,anim:p.anim,dead:p.dead,noteGone:p.noteGone,inv:p.inv,
   obs:(t.obs||[]).map(function(o){return o.tp+'@'+Math.round(o.z)+'L'+o.lane;}).slice(0,12)};};
 window._devWallet=function(g){var w=wallet();if(g!=null)w.gems=g;setWallet(w);if(window.GS&&GS.p)GS.gemsLive=w.gems;return w.gems;};}
+// ── the backdrop viewer, see the ?bg=1 note at the boot call ────────────────
+var BGVIEW=false;
+function bgGo(ai){
+  BGVIEW=true;
+  ai=((ai%9)+9)%9;                      // wrap both ways, so NEXT past 8 lands on 0
+  MODE='side'; START_STAGE=ai;
+  try{localStorage.setItem('jande_bgview_stage',ai);}catch(e){}
+  var lab=document.getElementById('bgvName');
+  if(lab)lab.textContent=(ai+1)+' / 9  ·  '+STAGES[ai].n;
+  if(!running){ startGame(); }
+  else { GS={}; CHECKPOINT=ai; CHECKPOINT_X=0; RUN_CONTINUES=0; initGS(ai); setZoom(BASEZ); updateHUD(); }
+}
+function bgViewer(){
+  var st=0; try{st=+(localStorage.getItem('jande_bgview_stage')||0)||0;}catch(e){}
+  var m=null; try{m=location.search.match(/stage=(\d)/);}catch(e){}
+  if(m)st=Math.min(8,+m[1]);
+  var bar=document.createElement('div');
+  bar.id='bgvBar';
+  bar.style.cssText='position:fixed;left:0;right:0;top:0;z-index:9999;display:flex;gap:6px;'+
+    'align-items:center;justify-content:center;padding:6px 8px;'+
+    'background:rgba(12,8,18,0.82);font-family:var(--body),system-ui,sans-serif;'+
+    'font-size:12px;color:#ffe9c2;pointer-events:auto';
+  function btn(txt,fn){
+    var b=document.createElement('button');
+    b.textContent=txt;
+    b.style.cssText='font:inherit;font-weight:700;padding:7px 12px;border-radius:8px;border:0;'+
+      'background:#7a4ea8;color:#fff;cursor:pointer;touch-action:manipulation';
+    b.onclick=function(e){e.preventDefault();e.stopPropagation();fn();};
+    return b;
+  }
+  var nm=document.createElement('span'); nm.id='bgvName';
+  nm.style.cssText='flex:1;text-align:center;letter-spacing:.02em';
+  bar.appendChild(btn('PREV',function(){bgGo(GS.ai-1);}));
+  bar.appendChild(nm);
+  bar.appendChild(btn('RESET',function(){bgGo(GS.ai);}));
+  bar.appendChild(btn('NEXT',function(){bgGo(GS.ai+1);}));
+  document.body.appendChild(bar);
+  // the pads sit below this bar, so the undercroft's usable window changes
+  try{measureCtrlTop();}catch(e){}
+  bgGo(st);
+}
 function startGame(){
   // WIPE BOTH CANVASES FIRST. #fxC is cleared to transparent every frame, so
   // whatever is still sitting on #glC underneath shows through — entering a run,
@@ -6477,6 +6608,22 @@ function wire(){applyMotionClass();
   loadBGs();     // photoreal backdrops (no-op until BG_DATA is filled)
   loadSideBG();  // painted per-stage side backdrops
   loadCards();   // and their multiplane cut, where one exists
+  // ══ BACKDROP VIEWER — ?bg=1 ═══════════════════════════════════════════════
+  // Client: "create a version of the game real quick that I could just use to
+  // look at the backgrounds and move through them... hit next for the next
+  // background next stage... without having to worry about death... skip through
+  // each stage real quick."
+  //
+  // Deliberately a URL FLAG on the shipped build rather than a separate page, so
+  // what he reviews is byte-for-byte the game that ships — a separate harness can
+  // drift from it, and then the review is of something nobody plays. Normal
+  // players cannot reach it: nothing links here and the whole thing is gated on
+  // the query string.
+  //
+  // It boots straight past title/login/mode/how-to into the stage, makes her
+  // unkillable, silences the foes so nothing interrupts a look at the art, and
+  // puts PREV/NEXT + a RESET on screen.
+  try{ if(/[?&]bg=1/.test(location.search)) setTimeout(bgViewer,60); }catch(_bv){}
   loadTex();     // pixel-art world pack
   loadSprites(); // preload sprites in background
 }
