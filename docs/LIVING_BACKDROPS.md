@@ -48,6 +48,34 @@ paired with the area floor and confidence dropped further (`pred_iou` 0.62,
 **Unclaimed pixels are not holes.** They simply stay on the base plate, so low
 coverage means less of the image parallaxes — degraded, never broken.
 
+## Character scale — the zoom, and why both constants had to move
+
+**Client:** *"Can we zoom in on the characters a bit more? Jandé and the enemies
+definitely deserve to be seen clearly."* Then: across the board.
+
+`ZOOM = min(BASE, W/VIEW_W*BASE, H/VIEW_H*BASE)`. **Portrait is width-bound**
+(the `W/VIEW_W` term wins on a narrow screen); **landscape is cap-bound** (`BASE`
+wins). Move one constant and only one orientation changes. Both moved:
+`BASE` 0.78 → **0.92**, `VIEW_W` 520 → **440**.
+
+That asymmetry is also why the same character was **6.0%** of the screen in
+portrait and **17.2%** in landscape — nearly three times the size sideways.
+
+| | ZOOM | hero | foe (44×48 world) |
+|---|---|---|---|
+| portrait | 0.585 → **0.815** | 50 → **70px** | 26×28 → **36×39px** |
+| landscape | 0.780 → **0.920** | 67 → **79px** | — |
+
+**Where to stop is read-ahead, not taste.** She now sees **9.3 tiles ahead** in
+portrait. The NES showed 16 tiles with Mario at ~40% across — **~9.6 ahead** — so
+this lands *on* the reference. The next notch (BASE 0.98 / VIEW_W 400) makes her
+82px but drops read-ahead to 7.9 tiles, below anything the genre does. Reaction
+time is not worth trading for size.
+
+Nothing else moves: the ground line is `GROUNDF*H` **by construction**, so it is
+unchanged; the backdrop is screen-space and sized off `H`, so the cards and their
+rates are untouched.
+
 ## The rate spread
 
 ```

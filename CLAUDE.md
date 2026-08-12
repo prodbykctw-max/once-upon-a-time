@@ -118,6 +118,12 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   camera anchors first and only follows her UP; it must never go back to easing
   at `p.y - VH*0.55`, which made `GROUNDF` a no-op there. Spec:
   `docs/GROUND_LINE_UNDERCROFT.md`.
+- **Character scale is `BASE` + `VIEW_W` in `resize()`, and BOTH must move.**
+  Portrait is WIDTH-bound, landscape is CAP-bound, so changing one constant only
+  zooms one orientation — that is how the hero ended up 6% of the screen upright
+  and 17% sideways. Now BASE 0.92 / VIEW_W 440 (hero 70px / 79px). **The limit is
+  READ-AHEAD:** 9.3 tiles ahead in portrait, which is the NES/Mario figure
+  (~9.6). Going bigger drops below it and costs reaction time.
 - **The framing reference is Mario ON A PHONE (~66% ground), not raw NES (~87%).**
   The 4:3 frame is letterboxed into a tall screen and the bars absorb the bottom.
   Quoting the NES number will send you back down to 0.82.
