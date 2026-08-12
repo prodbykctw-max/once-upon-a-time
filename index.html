@@ -1101,7 +1101,28 @@ var BOSS_GORE=['26,20,34','120,170,60','255,150,205','200,20,55','110,200,255','
 // what they are made of, anything humanoid bleeds red.
 //        0 thorn goblin  1 raven      2 sprite      3 bramble knight 4 wisp        5 rose wraith
 var FOE_GORE=['118,168,54','58,52,72','226,150,255','96,150,52','150,235,255','196,26,64'];
-function goreOf(f){return (f&&FOE_GORE[f.tp])||FOE_GORE[0];}
+// The older GS.enemies set is drawn by CREATURE, not by archetype, so its bleed
+// has to key off the creature too — a golem and a fairy share the tp 'WARDEN'
+// but one is stone and one is light. Every one of these used to spray the
+// generic lavender default because the 'kill' bursts were called untinted.
+// Same rule throughout: a thing bleeds what it is MADE of; only flesh bleeds red.
+var CREATURE_GORE={
+  cupid:'255,182,205',        // rose-pink, it is a valentine
+  fairy:'186,255,236',        // pale light
+  imp:'150,64,180',           // violet ichor
+  wraith:'58,52,72',          // smoke, same as the raven
+  fallenangel:'255,236,190',  // gold-white feathers and light
+  sorcerer:'138,96,255',      // arcane violet
+  gargoyle:'128,128,138',     // STONE — grit, never blood
+  bear:'168,32,38',           // flesh
+  lion:'176,38,34',           // flesh
+  dragon:'255,138,52',        // ember
+  golem:'132,120,96'          // earth and stone
+};
+function goreOf(f){
+  if(f&&f.cr&&CREATURE_GORE[f.cr])return CREATURE_GORE[f.cr];
+  return (f&&FOE_GORE[f.tp])||FOE_GORE[0];
+}
 function buildBossArena(gs){
   var g=gs.genC, FL=FLOOR_R, ai=gs.ai, r, c;
   for(c=g;c<g+5;c++)groundCol(gs,c);                 // solid approach to the gate
@@ -1734,7 +1755,8 @@ function update(){
           if(p.downbeat&&!p.onGround){p.vy=-11.5;p.airJumps=1;}   // Downbeat pogo off the boss
           else{p.vx+=(p.faceL?1:-1)*3.0;}                     // blowback recoil
         }}
-      else if(_bov&&p.vy>3&&p.y+PH<bs.y+bs.H*0.55){hitB(bs);p.vy=-11.5;p.airJumps=1;ptcl(p.x+PW/2,bs.y+10,'kill');}
+      else if(_bov&&p.vy>3&&p.y+PH<bs.y+bs.H*0.55){hitB(bs);p.vy=-11.5;p.airJumps=1;
+        ptcl(p.x+PW/2,bs.y+10,'kill',(typeof BOSS_GORE!=='undefined'&&BOSS_GORE[bs.bi])||null);}
       if(!bs.alive){GS.bossActive=false;GS.bossDeadT=90;GS.bossDeadMax=90;}
     }
   }
@@ -3270,14 +3292,14 @@ function updateEnemies(){
     if((e.vy||0)>0&&(isSolid(feL,feR)||isSolid(feRt,feR))){e.y=feR*T-50;e.vy=0;}
     e.x=Math.max(T,Math.min(e.x,(GS.LW-1)*T-44));
     // FALL DEATH counts as kill
-    if(e.y>GS.LH*T+60){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);ptcl(e.x+22,(GS.LH-1)*T,'kill');updateHUD();continue;}
+    if(e.y>GS.LH*T+60){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);ptcl(e.x+22,(GS.LH-1)*T,'kill',goreOf(e));updateHUD();continue;}
     for(var bi=e.bullets.length-1;bi>=0;bi--){var bl=e.bullets[bi];bl.x+=bl.vx;bl.y+=bl.vy;bl.life-=0.013;
       if(bl.life<=0){e.bullets.splice(bi,1);continue;}
       if(p.inv===0&&!p.dashing&&bl.x<p.x+PW&&bl.x+8>p.x&&bl.y<p.y+PH&&bl.y+8>p.y){hurtP(p);e.bullets.splice(bi,1);}}
     if(p.inv===0&&!p.dashing&&p.x<e.x+42&&p.x+PW>e.x+2&&p.y<e.y+48&&p.y+PH>e.y+2){
       var stomp=p.vy>2&&(p.y+PH)<(e.y+26);
       if(p.diving&&p.vy>4){hitE(e);hitE(e);p.vy=-9;p.diving=false;}
-      else if(stomp){hitE(e);p.vy=-11.5;ptcl(p.x+PW/2,e.y,'kill');}
+      else if(stomp){hitE(e);p.vy=-11.5;ptcl(p.x+PW/2,e.y,'kill',goreOf(e));}
       else hurtP(p);}
     if(e.atkCd>0)e.atkCd--;}
   if(!GS.gateOpen&&gateClear){GS.gateOpen=true;GS.gateFlash=45;
@@ -3345,11 +3367,15 @@ function hitE(e){e.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);GS.score+=120;
     gore(e.x+22+((GS.p.x<e.x)?26:-26),e.y+22,(GS.p.x<e.x)?1:-1,goreOf(e),14);updateHUD();}
   else{e.stg=true;e.stgT=20;e.vx*=-2;}}
 function hitB(b){
-  // boss hits emit outward from the struck side, same rule as the foes — the
-  // screenshot he sent had the Revenant completely buried under its own burst
-  try{var _bd=(GS.p.x+PW/2)<(b.x+b.W/2)?1:-1;
-      gore(b.x+b.W/2+_bd*(b.W*0.35),b.y+b.H*0.45,_bd,'255,120,170',8);}catch(_e){}if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd=16;GS.score+=550;
+  // A VILLAIN BLEEDS WHAT IT IS MADE OF. BOSS_GORE already encodes that — ink for
+  // the Ink Warden, sap for the Thistle Ogre, petals for the Blossom Revenant,
+  // water for the Lake Wraith, spores, straw, storm-light — and real red only for
+  // the two humanoids. The directional-spray change hardcoded ONE pink for every
+  // boss, which put pink blood on a creature made of ink. Read the table.
   var _gore=(typeof BOSS_GORE!=='undefined'&&BOSS_GORE[b.bi])||null;
+  try{var _bd=(GS.p.x+PW/2)<(b.x+b.W/2)?1:-1;
+      gore(b.x+b.W/2+_bd*(b.W*0.35),b.y+b.H*0.45,_bd,_gore||'200,20,55',8);}catch(_e){}
+  if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd=16;GS.score+=550;
   ptcl(b.x+b.W/2,b.y+28,'bhit',_gore);   // hit spray in the villain's own colour
   if(b.state!=='RAGE'){b.state='WAIT';b.stateT=0;b.stateTimer=24;}
   if(b.hp<=0){b.alive=false;b.bullets=[];GS.score+=7000;
