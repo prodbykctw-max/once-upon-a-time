@@ -3742,71 +3742,81 @@ function loadSideBG(){for(var k in SIDE_BG_DATA){(function(i){var im=new Image()
 // run on the same stage.
 var CARD_DATA={
  1:{w:768,h:384,base:'web/a8b293354798.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/681d4459e416.webp',x:0,y:0},
-   {n:'mountains', d:0.22,s:'web/6cc143d18d6f.webp',x:0,y:64},
-   {n:'hills',     d:0.42,s:'web/66033270b5c2.webp',x:0,y:140},
-   {n:'midtrees',  d:0.62,s:'web/688f7f1c59e7.webp',x:0,y:204,wind:1},
-   {n:'foretrees', d:0.80,s:'web/12cef9aab7c3.webp',x:0,y:298,wind:1},
-   {n:'verge',     d:0.90,s:'web/a9d92b7d68f3.webp',x:3,y:319,strip:1}
+   {n:'sky',       d:0.05,s:'web/46670187173b.webp'},
+   {n:'mountains', d:0.22,s:'web/65c1b365cc06.webp'},
+   {n:'hills',     d:0.42,s:'web/07226a888e46.webp'},
+   {n:'midtrees',  d:0.62,s:'web/5257a7aa59c7.webp',wind:1},
+   {n:'foretrees', d:0.80,s:'web/edcdd2241afe.webp',wind:1},
+   {n:'verge',     d:0.90,s:'web/d7005d2649ec.webp',strip:1}
  ]},
  2:{w:768,h:384,base:'web/87e8864bcb9f.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/cd33bad807f7.webp',x:0,y:0},
-   {n:'fartrees',  d:0.30,s:'web/28f9d48ac383.webp',x:0,y:0},
-   {n:'canopy',    d:0.68,s:'web/97afffd73fe4.webp',x:1,y:0,wind:1},
-   {n:'trunks',    d:0.58,s:'web/475d401664e8.webp',x:0,y:169,wind:1},
-   {n:'path',      d:0.88,s:'web/56cf4d97e7ac.webp',x:0,y:181,strip:1}
+   {n:'sky',       d:0.05,s:'web/3f509687bcbe.webp'},
+   {n:'fartrees',  d:0.30,s:'web/d8eee8b81b59.webp'},
+   {n:'canopy',    d:0.68,s:'web/b5986595b6f5.webp',wind:1},
+   {n:'trunks',    d:0.58,s:'web/c5e457f5df33.webp',wind:1},
+   {n:'path',      d:0.88,s:'web/ae424d8c7cc0.webp',strip:1}
  ]},
  3:{w:768,h:384,base:'web/3f78a8cbc643.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/70b84b8a96da.webp',x:0,y:0},
-   {n:'hedges',    d:0.35,s:'web/6a977612c885.webp',x:0,y:53,wind:1},
-   {n:'colonnade', d:0.62,s:'web/4617e8b96fd5.webp',x:0,y:165},
-   {n:'fountains', d:0.85,s:'web/1b9736d6881e.webp',x:0,y:282},
-   {n:'terrace',   d:0.92,s:'web/489d91e4f849.webp',x:0,y:342,strip:1}
+   {n:'sky',       d:0.05,s:'web/e0a58669e9b6.webp'},
+   {n:'hedges',    d:0.35,s:'web/1b0d2411a708.webp',wind:1},
+   {n:'colonnade', d:0.62,s:'web/29a4ba0af7be.webp'},
+   {n:'fountains', d:0.85,s:'web/4c7fd1f104fa.webp'},
+   {n:'terrace',   d:0.92,s:'web/fb1b08ab7d9b.webp',strip:1}
  ]},
- 8:{w:768,h:384,base:'web/c9de9a62ff1b.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/36ebbcbc38cb.webp',x:0,y:0},
-   {n:'mountains', d:0.20,s:'web/ee280d89a6ad.webp',x:273,y:131},
-   {n:'castle',    d:0.45,s:'web/93df2ea83dd0.webp',x:0,y:96},
-   {n:'river',     d:0.75,s:'web/35a11882ed38.webp',x:0,y:271,ripple:1},
-   {n:'foretrees', d:0.90,s:'web/88bbea410d37.webp',x:0,y:290,wind:1}
- ]},
- 4:{w:768,h:384,base:'web/e768eb80cd70.webp',cards:[
-   {n:'sky',      d:0.05,s:'web/b6da064f5440.webp',x:0,  y:0},
-   {n:'mountains',d:0.25,s:'web/07f47c3ce9fb.webp',x:63, y:72},
-   {n:'midhills', d:0.45,s:'web/651fd57fc7c0.webp',x:0,  y:69},
-   {n:'willowL',  d:0.76,s:'web/5a81ee9c9143.webp',x:0,  y:213,wind:1},
-   {n:'willowC',  d:0.74,s:'web/6e4060348055.webp',x:244,y:222,wind:1},
-   {n:'willowR',  d:0.76,s:'web/191248543a6b.webp',x:561,y:182,wind:1},
-   {n:'shore',    d:0.86,s:'web/07754fa7dc7c.webp',x:148,y:205,strip:1},
-   {n:'water',    d:0.92,s:'web/142300a7be28.webp',x:0,  y:244,ripple:1}
+ 4:{w:768,h:384,base:'web/b8a65f863904.webp',cards:[
+   {n:'sky',       d:0.05,s:'web/629a31cd3b9a.webp'},
+   {n:'mountains', d:0.25,s:'web/5f804a05238b.webp'},
+   {n:'midhills',  d:0.45,s:'web/73b6fe8a848a.webp'},
+   {n:'willowL',   d:0.76,s:'web/7de95447eea8.webp',wind:1},
+   {n:'willowC',   d:0.74,s:'web/23b13c2f50fc.webp',wind:1},
+   {n:'willowR',   d:0.76,s:'web/ac2627eb3a56.webp',wind:1},
+   {n:'shore',     d:0.86,s:'web/879e3064b91f.webp',strip:1},
+   {n:'water',     d:0.92,s:'web/0645308caf10.webp',ripple:1}
  ]},
  5:{w:768,h:768,base:'web/e0914a8dcd1f.webp',cards:[
-   {n:'farcover',  d:0.20,s:'web/6709c6ec7580.webp',x:0,y:0,wind:1},
-   {n:'midcover',  d:0.50,s:'web/21d77bfe5861.webp',x:0,y:217,wind:1},
-   {n:'nearcover', d:0.78,s:'web/babb99565c92.webp',x:0,y:440,wind:1},
-   {n:'ground',    d:0.92,s:'web/6628dcf9d84d.webp',x:11,y:661,strip:1}
+   {n:'farcover',  d:0.20,s:'web/6f1ecdf40b4b.webp',wind:1},
+   {n:'midcover',  d:0.50,s:'web/7f8e12cc4f2d.webp',wind:1},
+   {n:'nearcover', d:0.78,s:'web/18b2b27dea48.webp',wind:1},
+   {n:'ground',    d:0.92,s:'web/716d90bb864d.webp',strip:1}
  ]},
  6:{w:768,h:384,base:'web/369207315215.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/694d62750408.webp',x:0,y:0},
-   {n:'hills',     d:0.30,s:'web/dc022935ddd5.webp',x:0,y:71},
-   {n:'field',     d:0.65,s:'web/67315c5d3db6.webp',x:0,y:177,wind:1},
-   {n:'verge',     d:0.90,s:'web/1c4bc998d81b.webp',x:0,y:268,strip:1}
+   {n:'sky',       d:0.05,s:'web/b2a233247950.webp'},
+   {n:'hills',     d:0.30,s:'web/d6d2fc0e2be2.webp'},
+   {n:'field',     d:0.65,s:'web/47d42e011d42.webp',wind:1},
+   {n:'verge',     d:0.90,s:'web/84e02d0bdece.webp',strip:1}
  ]},
  7:{w:768,h:768,base:'web/6a1f24e2e61e.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/58ad632f9671.webp',x:0,y:0},
-   {n:'farisles',  d:0.28,s:'web/2cdf10b4918f.webp',x:0,y:43,wind:1},
-   {n:'midisles',  d:0.55,s:'web/166817c0dc89.webp',x:0,y:279,wind:1},
-   {n:'nearisles', d:0.80,s:'web/c3cc967f7586.webp',x:0,y:525,wind:1}
+   {n:'sky',       d:0.05,s:'web/9c2c62b370d5.webp'},
+   {n:'farisles',  d:0.28,s:'web/3fa91154d177.webp',wind:1},
+   {n:'midisles',  d:0.55,s:'web/9562be853de3.webp',wind:1},
+   {n:'nearisles', d:0.80,s:'web/cf8092628453.webp',wind:1}
+ ]},
+ 8:{w:768,h:384,base:'web/c9de9a62ff1b.webp',cards:[
+   {n:'sky',       d:0.05,s:'web/5ef6e76f7c75.webp'},
+   {n:'mountains', d:0.20,s:'web/d88ab0a1d875.webp'},
+   {n:'castle',    d:0.45,s:'web/1746637eaa15.webp'},
+   {n:'river',     d:0.75,s:'web/ec6339bee4ed.webp',ripple:1},
+   {n:'foretrees', d:0.90,s:'web/24f683009739.webp',wind:1}
  ]}
 };
 var CARD_IMG={},CARD_READY={};
 function loadCards(){
   for(var k in CARD_DATA){(function(i){
-    var set=CARD_DATA[i],need=set.cards.length+1,got=0;
-    function done(){if(++got>=need)CARD_READY[i]=true;}
-    var b=new Image();b.onload=function(){CARD_IMG[set.base]=b;done();};b.onerror=done;b.src=set.base;
+    var set=CARD_DATA[i],need=set.cards.length+1,got=0,failed=false;
+    // FAIL LOUD. The first version called done() from onerror too, so a single
+    // 404 still marked the stage READY — drawCards then skipped that card and
+    // drew the inpainted base in its place, which is a smeared push-pull fill
+    // where the art used to be. A missing card must drop the WHOLE stage back to
+    // the flat plate, which still looks like the painting, rather than silently
+    // showing the fill it was supposed to hide.
+    function done(){if(++got>=need&&!failed)CARD_READY[i]=true;}
+    function fail(src){failed=true;CARD_READY[i]=false;
+      try{console.warn('card asset failed, stage '+i+' falls back to flat:',src);}catch(_e){}}
+    var b=new Image();b.onload=function(){CARD_IMG[set.base]=b;done();};
+    b.onerror=function(){fail(set.base);};b.src=set.base;
     for(var j=0;j<set.cards.length;j++){(function(c){
-      var im=new Image();im.onload=function(){CARD_IMG[c.s]=im;done();};im.onerror=done;im.src=c.s;
+      var im=new Image();im.onload=function(){CARD_IMG[c.s]=im;done();};
+      im.onerror=function(){fail(c.s);};im.src=c.s;
     })(set.cards[j]);}
   })(k);}
 }
@@ -4269,9 +4279,10 @@ function drawCards(ai,cam,bw,bh,by,bandB,tick,amb){
     FX.restore();
     for(var ci=0;ci<set.cards.length;ci++){
       var c=set.cards[ci],im=CARD_IMG[c.s];if(!im)continue;
-      var cw=im.width*sc,ch=im.height*sc;
-      var cx=bx0+c.x*sc+cardSep(cam,c),cy=by+c.y*sc;
-      if(cx>W+8||cx+cw<-8)continue;
+      // FULL-FRAME cards: same rect as the base plate, so a card is ALWAYS in
+      // register with the hole it was lifted from. There is no per-card offset to
+      // get wrong — which is what the displacement bug was.
+      var cw=btw,ch=bh,cx=bx0+cardSep(cam,c),cy=by;
       FX.save();
       // MIRRORED TILES: apply the transform ONLY. The first version also flipped
       // the card's x by hand — two mirrors cancel, so every card on every odd
