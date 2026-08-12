@@ -32,7 +32,19 @@ def iou(a, b):
         return 0.0
     return inter / float(np.count_nonzero(a | b))
 
-def gen(sam, coarse):
+def gen(sam, coarse, dense=False):
+    if dense and not coarse:
+        # DENSE PLATES (library book spines, fungal glade, sunflower field, sky
+        # islands) came in at 62-74% where the open ones hit 91-94%. The doc is
+        # right that raising points_per_side does not help — but crop_n_layers is
+        # a different lever: it re-runs SAM on sub-CROPS, so each region is seen
+        # at higher EFFECTIVE resolution rather than just sampled more often.
+        # Paired with a lower area floor and confidence bar, which is what the
+        # doc says actually finds small detail.
+        return SamAutomaticMaskGenerator(
+            sam, points_per_side=28, pred_iou_thresh=0.62,
+            stability_score_thresh=0.74, min_mask_region_area=25,
+            crop_n_layers=1, crop_n_points_downscale_factor=2)
     if coarse:
         return SamAutomaticMaskGenerator(
             sam, points_per_side=28, pred_iou_thresh=0.88,
@@ -45,12 +57,15 @@ def gen(sam, coarse):
         stability_score_thresh=0.80, min_mask_region_area=60,
         crop_n_layers=0)
 
-def main(src, tag):
+def main(src, tag, dense=False):
+    global DENSE
+    DENSE = dense
     os.makedirs(OUT, exist_ok=True)
     bgr = cv2.imread(src, cv2.IMREAD_COLOR)
     rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
     # SAM sees more on a larger plate; these are only 768x384.
-    rgb = cv2.resize(rgb, (rgb.shape[1] * 2, rgb.shape[0] * 2), interpolation=cv2.INTER_CUBIC)
+    sc = min(2.0, 1536.0 / max(rgb.shape[0], rgb.shape[1]))
+    rgb = cv2.resize(rgb, (int(rgb.shape[1]*sc), int(rgb.shape[0]*sc)), interpolation=cv2.INTER_CUBIC)
     H, W = rgb.shape[:2]
     print(f'{tag}: plate {W}x{H}', flush=True)
 
@@ -59,7 +74,7 @@ def main(src, tag):
 
     res = {}
     for name in ('coarse', 'fine'):
-        m = gen(sam, name == 'coarse').generate(rgb)
+        m = gen(sam, name == 'coarse', DENSE).generate(rgb)
         m.sort(key=lambda d: -d['area'])
         res[name] = m
         cov = np.zeros((H, W), bool)
@@ -100,4 +115,4 @@ def main(src, tag):
     print(f'{tag}: saved {len(merged)} masks', flush=True)
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], len(sys.argv) > 3)

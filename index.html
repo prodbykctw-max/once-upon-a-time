@@ -1747,8 +1747,39 @@ function update(){
   var newAnim=GS.levelClear?'dance':p.atkT>0?(p.belt?'belt':p.downbeat?'downstrike':'attack'):p.dashing?'dash':p.refraining?'refrain':!p.onGround?'jump':p.sliding?'dash':Math.abs(p.vx)>0.6?'run':(p.idleT>420?'dance':'idle');
   if(newAnim!==p.anim){p.anim=newAnim;p.frame=0;p.animT=0;}
   p.idleT=(p.onGround&&Math.abs(p.vx)<0.6&&p.atkT<=0)?p.idleT+1:0;
+  // ── IDLE BREATHING — measured, then timed to a real cadence ────────────────
+  // Client: "she's breathing too fast and she's bending like a hunch and over
+  // breathing... her idle needs less movement and less frequent."
+  //
+  // MEASURED off the sheet before changing anything (tools/measure_idle.py):
+  //  · It holds ONE clean out-and-back cycle — furthest-from-f0 is f2, mid
+  //    sequence, and the wrap step f5->f0 is the SMALLEST at 18.1 against a mean
+  //    step of 40.5. So this is NOT the multi-cycle trap; the art is fine.
+  //  · Cadence was 6 frames x 9 ticks = 54 ticks = 0.90s per breath =
+  //    67 BREATHS PER MINUTE. A human at rest is 12-16.
+  //  · Her head line travels 9px of 154 = 5.8% of her height. Quiet breathing
+  //    moves a shoulder line 1-2%. Frames 2 and 3 are the deep ones (head rows
+  //    11 and 9 against 2 at rest) — that is the hunch.
+  //  · Her feet stay planted (bottom row 150-151 on every frame), so the dip is a
+  //    COMPRESSION, not a bob. Which rules out the obvious fix: offsetting the
+  //    sprite upward would lift her feet and break the single ground-contact
+  //    number.
+  //
+  // So the frames are held for UNEVEN times instead of a flat rate: she rests at
+  // the top of the cycle and passes briefly through the deep poses, which is what
+  // quiet breathing actually looks like — a long still exhale, a quick inhale.
+  // 224 ticks total = 3.7s = 16 breaths/min, with the hunched pose on screen ~11%
+  // of the loop instead of 33%. No frames dropped; none of the art is discarded.
+  //
+  // Slowing a 6-frame loop this far would normally turn it into a slideshow, so
+  // p.animF carries the sub-frame position and drawHero cross-fades between the
+  // current frame and the next. That is what makes the slow cadence possible.
+  var HOLD_IDLE=[70,30,12,12,30,70];
   var spd={idle:9,run:4,jump:7,dash:4,attack:2,dance:6,belt:3,downstrike:3,refrain:8}[p.anim]||6;
-  p.animT++;if(p.animT>=spd){p.animT=0;var nf=SPRITES[p.anim].frames;
+  if(p.anim==='idle')spd=HOLD_IDLE[p.frame%HOLD_IDLE.length];
+  p.animT++;
+  p.animF=(p.anim==='idle')?(p.animT/spd):0;      // 0..1 through the current frame
+  if(p.animT>=spd){p.animT=0;var nf=SPRITES[p.anim].frames;
     if(p.anim==='jump'||p.anim==='attack'){p.frame=Math.min(p.frame+1,nf-1);}else p.frame=(p.frame+1)%nf;}
 
   // ── CAMERA: leads in the direction she faces ──
@@ -5745,6 +5776,20 @@ function drawHero(p){
   if(p.faceL){FX.translate(dx+drawW,0);FX.scale(-1,1);FX.translate(-dx,0);}
   FX.imageSmoothingEnabled=true;
   FX.drawImage(img, fr*cw, 0, cw-4, ch, dx, dy, drawW, drawH);
+  // IDLE CROSS-FADE. The breath is held for up to 70 ticks a frame now, which on
+  // six discrete poses would read as a slideshow — the frames would step rather
+  // than breathe. Blend the NEXT frame in across the hold so the pose moves
+  // continuously. Idle only: every other animation is fast enough that its steps
+  // are already invisible, and cross-fading an attack would smear it.
+  // Eased, not linear — a breath accelerates out of stillness and settles back.
+  if(p.anim==='idle'&&p.animF>0.001&&!p.dashing){
+    var t2=p.animF,e2=t2*t2*(3-2*t2);              // smoothstep
+    if(e2>0.004){
+      FX.globalAlpha=e2;
+      FX.drawImage(img, ((fr+1)%sp.frames)*cw, 0, cw-4, ch, dx, dy, drawW, drawH);
+      FX.globalAlpha=1;
+    }
+  }
   FX.restore();FX.globalAlpha=1;
   // scream rings when firing wave
   if(p.screamT>0){var srt=18-p.screamT;FX.strokeStyle='rgba(200,160,255,'+(p.screamT/18*0.8)+')';FX.lineWidth=2;var mx=p.x+(p.faceL?2:PW-2),my=p.y+PH*0.2;for(var sr=0;sr<3;sr++){var rr=srt*2+sr*8;FX.beginPath();FX.arc(mx,my,rr,p.faceL?2.4:-0.7,p.faceL?3.9:0.7);FX.stroke();}}

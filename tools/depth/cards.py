@@ -45,12 +45,29 @@ def sky_mask(rgb):
         got |= m[1:-1, 1:-1].astype(bool)
     return got
 
-def fill_holes(m):
+def fill_holes(m, maxfrac=0.02):
+    """Fill only SMALL enclosed gaps.
+
+    The naive version (flood the inverse from 0,0 and keep everything it cannot
+    reach) is catastrophic for a region that spans the frame: a full-width
+    treeline touches the left, right and bottom borders, so the entire area
+    BELOW it is 'enclosed' and gets filled. Measured: a 9-mask treeline came back
+    as 97.4% of the plate. The doc's warning is the milder form of the same bug —
+    a wheel with real gaps coming back a solid disc.
+
+    So: fill an enclosed component only if it is genuinely small. That keeps dark
+    leaves inside a canopy without swallowing the sky, the path and the lake."""
     h, w = m.shape
-    ff = np.zeros((h + 2, w + 2), np.uint8)
-    inv = (~m).astype(np.uint8) * 255
-    cv2.floodFill(inv, ff, (0, 0), 0)
-    return m | (inv > 0)
+    inv = (~m).astype(np.uint8)
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(inv, 8)
+    out = m.copy()
+    lim = maxfrac * h * w
+    for i in range(1, n):
+        x, y, bw_, bh_, area = stats[i]
+        touches = (x == 0 or y == 0 or x + bw_ >= w or y + bh_ >= h)
+        if not touches and area <= lim:
+            out |= (lab == i)
+    return out
 
 def pushpull(rgb, hole, levels=7):
     """Push-pull pyramid fill. NOT a downward stretch — that gives vertical
@@ -74,7 +91,11 @@ def pushpull(rgb, hole, levels=7):
 def main(src, tag, regions_json):
     bgr = cv2.imread(src, cv2.IMREAD_COLOR)
     rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-    rgb = cv2.resize(rgb, (rgb.shape[1] * 2, rgb.shape[0] * 2), interpolation=cv2.INTER_CUBIC)
+    # MUST match segment.py's scaling exactly. The masks were computed at that
+    # size; any divergence silently misaligns every card with the image it was
+    # cut from, and the recompose check would be the only thing that caught it.
+    sc = min(2.0, 1536.0 / max(rgb.shape[0], rgb.shape[1]))
+    rgb = cv2.resize(rgb, (int(rgb.shape[1]*sc), int(rgb.shape[0]*sc)), interpolation=cv2.INTER_CUBIC)
     H, W = rgb.shape[:2]
     masks = np.load(f'{OUT}/{tag}_masks.npy')
     regions = json.load(open(regions_json))     # [{name, depth, box:[x0,y0,x1,y1], maxArea?, holes?}]
@@ -141,16 +162,26 @@ def main(src, tag, regions_json):
 
     # ── cards + inpainted base ──
     taken = np.zeros((H, W), bool)
+    kept = []
     for c in cards:
         m = c['mask'] & ~taken
+        # A card can be emptied here: every pixel it wanted was already claimed
+        # by a nearer-to-front region. That is a legitimate outcome (the region
+        # was redundant), but np.where on an empty mask throws, so it has to be
+        # DROPPED rather than crash the cut.
+        if np.count_nonzero(m) < 200:
+            print(f'  ! {c["name"]}: fully claimed by earlier cards — dropped', flush=True)
+            continue
         taken |= m
         c['mask'] = m
+        kept.append(c)
         rgba = np.dstack([rgb, (m * 255).astype(np.uint8)])
         ys, xs = np.where(m)
         c['crop'] = [int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1]
         x0, y0, x1, y1 = c['crop']
         cv2.imwrite(f'{OUT}/{tag}_{c["name"]}.png',
                     cv2.cvtColor(rgba[y0:y1, x0:x1], cv2.COLOR_RGBA2BGRA))
+    cards = kept
     base = pushpull(rgb, taken)
     cv2.imwrite(f'{OUT}/{tag}_base.png', cv2.cvtColor(base, cv2.COLOR_RGB2BGR))
 
