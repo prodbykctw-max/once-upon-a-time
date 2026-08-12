@@ -149,7 +149,7 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
 - **Butterflies, sparkles and birds are OUTDOOR-ONLY** (`LIVEBG[ai].in`). They were
   drawing inside the library; the client called it out. Interiors get window
   shafts and dust, nothing winged.
-- **Stages 1,2,3,4,8 are MULTIPLANE — `CARD_DATA` + `drawCards`.** An inpainted
+- **Stages 1-8 EXCEPT 0 are MULTIPLANE — `CARD_DATA` + `drawCards`.** An inpainted
   base plate plus cut cards, each on its own rate:
   `rate = BASE + (depth-0.5)*SPREAD` with BASE 0.045, SPREAD 0.010, separation
   clamped to +/-80px. **The spread must stay TINY** — wide spreads read as the set
@@ -159,6 +159,11 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   NOT a ground strip** where its reflections are painted in — they are a
   landmark. Cards are cut by `tools/depth`; method and numbers are the client's,
   from his Will Hill: Player One techniques doc. Spec: `docs/LIVING_BACKDROPS.md`.
+- **The LIBRARY (stage 0) stays FLAT on purpose.** Its cut ran fine (91% coverage,
+  lossless recompose) and was discarded: its bands are the building's three
+  FLOORS, not depth planes, so different rates shear the columns that run through
+  all three. It is also the plate that already reads as a space and the one the
+  client praised. Coverage is not the goal; usable cards are.
 - **The backdrops are LIVE, not stills — `LIVEBG[]` + `drawMansionBG`'s warp pass.**
   Each painting is re-blitted as rows with a per-row x-offset (water ripple,
   canopy breeze), plus a near band at 3.5x parallax, god rays and life at three

@@ -1,4 +1,7 @@
-# LIVING BACKDROPS — ✅ SHIPPED · now MULTIPLANE on 5 of 9 stages
+# LIVING BACKDROPS — ✅ SHIPPED · MULTIPLANE on 8 of 9 stages
+
+> **The library is deliberately NOT carded — see "The one plate that must stay
+> flat" below.** It is a decision, not a gap.
 
 > **Update 2026-08-11 — the backdrop stopped being one flat image.**
 > Stages **1, 2, 3, 4 and 8** are now an inpainted base plate plus 5–8 cut
@@ -6,6 +9,44 @@
 > `drawCards`. Method and rate model are **prodbyKCTW's**, from his Techniques
 > doc for *Will Hill: Player One*. Stages 0, 5, 6, 7 remain on the flat path
 > until their cuts land.
+
+## The one plate that must stay flat — ONCE UPON A PAGE
+
+The library cut *ran*, cleanly: 91.0% coverage (up from 62.9% in dense mode),
+recompose 0.000%, four tidy bands. It was thrown away anyway.
+
+Its bands are the building's three **floors**, stacked vertically. They are not
+depth planes — they are all at roughly the same distance. Give them different
+rates and the columns that run through all three floors shear apart. That is
+approach #1 on the doc's own "does not work" list: *horizontal bands slice
+straight through objects.*
+
+It is also the plate that already reads as a space, because that painting has
+real perspective built into it — receding shelves, arched windows at an angle,
+cast shadows. It is the one the client singled out as working. Carding it by
+floor band would have actively broken the best backdrop in the game.
+
+**Coverage is not the goal; usable cards are.** A plate can cut perfectly and
+still be the wrong thing to cut.
+
+## Dense plates need sub-crops, not a bigger grid
+
+Four plates came in far below the rest — library 62.9%, glade 61.8%, golden hour
+71.9%, sky gardens 74.1%. The doc is explicit that raising `points_per_side` does
+not find small detail, and that held. What worked was `crop_n_layers=1`, which
+re-runs SAM on sub-CROPS so each region is seen at higher *effective resolution*,
+paired with the area floor and confidence dropped further (`pred_iou` 0.62,
+`stability` 0.74, `min_region` 25):
+
+| plate | before | after |
+|---|---|---|
+| library | 62.9% | **91.0%** |
+| sky gardens | 74.1% | **80.9%** |
+| golden hour | 71.9% | 76.4% |
+| glade | 61.8% | 68.3% |
+
+**Unclaimed pixels are not holes.** They simply stay on the base plate, so low
+coverage means less of the image parallaxes — degraded, never broken.
 
 ## The rate spread
 
@@ -66,7 +107,7 @@ parallax. Both return early where a real cut exists. Stages still flat keep them
 
 ## Cost
 
-30 new assets across 5 stages, **415 KB**. `web/` 5.26 → 5.67 MB. Median frame
+42 assets across 8 stages, **888 KB**. `web/` 5.26 → 6.13 MB. Median frame
 time unchanged at 16.7ms.
 
 ---
