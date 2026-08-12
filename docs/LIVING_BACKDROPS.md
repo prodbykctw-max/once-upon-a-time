@@ -1,4 +1,81 @@
-# LIVING BACKDROPS — ✅ SHIPPED (`95718dc`, real wind in `83f71df`)
+# LIVING BACKDROPS — ✅ SHIPPED · now MULTIPLANE on 5 of 9 stages
+
+> **Update 2026-08-11 — the backdrop stopped being one flat image.**
+> Stages **1, 2, 3, 4 and 8** are now an inpainted base plate plus 5–8 cut
+> **cards**, each scrolling at its own rate. Cut by `tools/depth` (SAM), wired by
+> `drawCards`. Method and rate model are **prodbyKCTW's**, from his Techniques
+> doc for *Will Hill: Player One*. Stages 0, 5, 6, 7 remain on the flat path
+> until their cuts land.
+
+## The rate spread
+
+```
+rate = BASE + (depth − 0.5) × SPREAD        BASE 0.045, SPREAD 0.010
+separation from the base plate clamped to ±80px
+```
+
+A wide spread does **not** read as depth — it reads as the set falling over.
+Cards slide off each other, the empty plate shows through, and because each card
+wraps on its own phase a fast card migrates a whole plate width across a level.
+The target is the **lenticular** effect: small enough that nothing distorts, with
+depth coming from *relative* rates.
+
+**Measured on Mirror Lake**, camX 47 → 10047, via the exact `_devCards` hook:
+
+| card | separation from base |
+|---|---|
+| sky | **+45px** |
+| mountains | +25px |
+| midhills | +5px |
+| willows | −26px |
+| water | −42px |
+| shore (ground strip) | −300px, at its clamp |
+
+87px of total spread across a 10,047px stage = **0.87%**, against his measured
+77px/7680px = 1.0%. Same regime.
+
+**Image correlation cannot verify this honestly** — cards overlap on screen and
+the static HUD sits over the top rows. Two attempts confidently reported +0px for
+cards that were plainly moving. `_devCards` reports the computed offsets directly.
+
+## The ground-strip exception, and where it does NOT apply
+
+A verge/shore/path gets a **real** rate (2.2×) and a loose clamp. The clamp
+exists to stop a *discrete object* migrating, and that failure needs a landmark
+to be visible on; a featureless full-width band has none. All you see is that it
+outruns the scenery, which is the cue that it is nearer.
+
+**The water is deliberately excluded.** Mirror Lake's reflections are painted in,
+and they *are* a landmark — let the water outrun the willows and the reflections
+stop lining up with the trees casting them.
+
+## Wind and ripple belong to cards now
+
+A willow card shears about **its own base** — for a cut willow that is exactly
+where the trunk meets the shore — and is subdivided into 4 *within* the card, so
+sections of one crown drift out of step instead of the cutout leaning like a
+board. The water card ripples in rows. Mirrored tiles mirror their cards' x
+positions, or the cards detach from the plate they were cut from.
+
+## Retired on card stages
+
+The **near band** (3.5×) and the **foreground plane** (1.7×) were stand-ins for
+depth planes that did not exist, at rates far outside the spread that reads as
+parallax. Both return early where a real cut exists. Stages still flat keep them
+— half a depth cue beats none — and the two systems never run on the same stage.
+
+## Cost
+
+30 new assets across 5 stages, **415 KB**. `web/` 5.26 → 5.67 MB. Median frame
+time unchanged at 16.7ms.
+
+---
+
+*Everything below is the flat-plate era. It still governs stages 0, 5, 6 and 7.*
+
+---
+
+# LIVING BACKDROPS — flat-plate era (`95718dc`, real wind in `83f71df`)
 
 > **Update 2026-08-10 — client:** *"On the Mirror Lake, the trees should be
 > blowing in the wind. Those actual trees should be blowing… I need it to be
