@@ -952,8 +952,25 @@ function resize(){
   // of the view so more of the level ahead is visible on every device. Narrow
   // screens pull back further still (min of the axis fits), floored so it
   // never goes microscopic. Camera/bounds/culling read VW/VH world units.
+  // Client: "Can we zoom in on the characters a bit more? Jandé and the enemies
+  // definitely deserve to be seen clearly" — and then, across the board.
+  //
+  // THE TWO ORIENTATIONS ARE BOUND BY DIFFERENT TERMS, so both constants have to
+  // move or only one of them changes. Portrait is WIDTH-bound (the W/VIEW_W term
+  // wins on a narrow screen); landscape is CAP-bound (BASE wins). That asymmetry
+  // is also why she used to be 6.0% of the screen in portrait and 17.2% in
+  // landscape — the same character, nearly three times the size sideways.
+  //
+  //   portrait   ZOOM 0.585 -> 0.815   hero 50 -> 70px  (6.0% -> 8.3% of H)
+  //   landscape  ZOOM 0.780 -> 0.920   hero 67 -> 79px  (17.2% -> 20.3%)
+  //
+  // WHERE TO STOP is read-ahead, not taste. At these values she sees 9.3 tiles
+  // ahead of her in portrait. The NES showed 16 tiles with Mario at ~40% across,
+  // i.e. ~9.6 ahead — so this lands on the reference rather than under it. Going
+  // further (BASE 0.98 / VIEW_W 400) makes her 82px but drops read-ahead to 7.9
+  // tiles, which is below anything the genre does and costs reaction time.
   if(MODE==='side'){
-    var BASE=0.78, VIEW_W=520, VIEW_H=320;
+    var BASE=0.92, VIEW_W=440, VIEW_H=320;
     ZOOM=Math.min(BASE, W/VIEW_W*BASE, H/VIEW_H*BASE);
     ZOOM=Math.max(0.5,ZOOM);
   }else{ZOOM=1;}
