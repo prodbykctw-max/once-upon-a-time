@@ -3621,6 +3621,71 @@ function loadBGs(){for(var k in BG_DATA){(function(i){var im=new Image();im.onlo
 var SIDE_BG_DATA={0:'web/7026911858d1.webp',1:'web/1fa28057a711.webp',2:'web/44187ebf6a44.webp',3:'web/afcfb1d92476.webp',4:'web/da0a81c9b45f.webp',5:'web/9d4d20ccbac3.webp',6:'web/14ab4c11ab60.webp',7:'web/1ae0890e08c3.webp',8:'web/a4a908d52b36.webp'};
 var SIDE_BG_IMG={};
 function loadSideBG(){for(var k in SIDE_BG_DATA){(function(i){var im=new Image();im.onload=function(){SIDE_BG_IMG[i]=im;};im.src=SIDE_BG_DATA[i];})(k);}}
+// ══ MULTIPLANE CARDS ═══════════════════════════════════════════════════════
+// The backdrop stops being one flat image here. Each plate is cut (offline, by
+// tools/depth) into cards over an inpainted base, and the cards scroll at
+// slightly different rates. This is Disney's 1937 multiplane camera: artwork on
+// separate panes at different distances, moved at different speeds.
+//
+// THE MENTAL MODEL IS CARDBOARD CUTOUTS. Every card is a whole, clean piece;
+// move one and what shows behind it is the next piece, complete. Which is why
+// the cut had to be lossless (recompose 0.000%) before any of this was wired.
+//
+// A stage with no entry here keeps the flat path — the two systems never both
+// run on the same stage.
+var CARD_DATA={
+ 4:{w:768,h:384,base:'web/e768eb80cd70.webp',cards:[
+   {n:'sky',      d:0.05,s:'web/b6da064f5440.webp',x:0,  y:0},
+   {n:'mountains',d:0.25,s:'web/07f47c3ce9fb.webp',x:63, y:72},
+   {n:'midhills', d:0.45,s:'web/651fd57fc7c0.webp',x:0,  y:69},
+   {n:'willowL',  d:0.76,s:'web/5a81ee9c9143.webp',x:0,  y:213,wind:1},
+   {n:'willowC',  d:0.74,s:'web/6e4060348055.webp',x:244,y:222,wind:1},
+   {n:'willowR',  d:0.76,s:'web/191248543a6b.webp',x:561,y:182,wind:1},
+   {n:'shore',    d:0.86,s:'web/07754fa7dc7c.webp',x:148,y:205,strip:1},
+   {n:'water',    d:0.92,s:'web/142300a7be28.webp',x:0,  y:244,ripple:1}
+ ]}
+};
+var CARD_IMG={},CARD_READY={};
+function loadCards(){
+  for(var k in CARD_DATA){(function(i){
+    var set=CARD_DATA[i],need=set.cards.length+1,got=0;
+    function done(){if(++got>=need)CARD_READY[i]=true;}
+    var b=new Image();b.onload=function(){CARD_IMG[set.base]=b;done();};b.onerror=done;b.src=set.base;
+    for(var j=0;j<set.cards.length;j++){(function(c){
+      var im=new Image();im.onload=function(){CARD_IMG[c.s]=im;done();};im.onerror=done;im.src=c.s;
+    })(set.cards[j]);}
+  })(k);}
+}
+// ── THE RATE SPREAD IS THE WHOLE TRICK, AND IT MUST BE TINY ────────────────
+//   rate = BASE + (depth - 0.5) * SPREAD
+// A wide spread does NOT read as depth. It reads as the set falling over: cards
+// slide off each other, the empty plate shows through, and because each card
+// wraps on its own phase a fast card migrates a whole plate width across a
+// level — the tree that starts the stage on the left finishes it on the right.
+// That is not parallax.
+//
+// The target is the LENTICULAR effect: the shift is small enough that nothing
+// distorts, and depth comes from RELATIVE rates, not distance travelled.
+// CB_MAXSEP is the backstop that makes migration impossible even if someone
+// dials the spread up later — it clamps each card's separation FROM THE BASE,
+// which is the quantity that actually has to stay bounded.
+var CB_BASE=0.045, CB_SPREAD=0.010, CB_MAXSEP=80;
+function cardSep(cam,c){
+  if(c.strip){
+    // THE ONE EXCEPTION: a ground strip gets a REAL rate and a loose clamp.
+    // The clamp exists to stop a DISCRETE OBJECT migrating, and that failure
+    // needs a landmark to be visible on. A featureless full-width band has
+    // nothing in it to notice having moved; all you see is that it outruns the
+    // scenery, which is exactly the cue that it is nearer.
+    var so=-cam*(CB_BASE*2.2)+cam*CB_BASE;
+    return so<-300?-300:(so>300?300:so);
+  }
+  // NOT the water: this lake's reflections are painted in, and they are a
+  // landmark. Let the water outrun the willows and the reflections stop lining
+  // up with the trees casting them.
+  var rel=-cam*((c.d-0.5)*CB_SPREAD);
+  return rel<-CB_MAXSEP?-CB_MAXSEP:(rel>CB_MAXSEP?CB_MAXSEP:rel);
+}
 // Classic library book spine palette — muted, realistic, no neon
 var _BKPAL=['110,25,25','25,45,100','28,72,38','105,62,28','72,38,98','18,65,72','135,48,20','52,68,108','85,72,26','55,40,35','30,55,88','98,44,28','145,125,88','38,55,40'];
 var _bgW=null,_bgF=null,_bgV=null,_bgP=null;
@@ -4027,6 +4092,68 @@ function drawBGLife(kind,cam,bandB,tick,amb){
   }
   FX.restore();
 }
+// ── the multiplane draw ─────────────────────────────────────────────────────
+// Base plate first, then every card back-to-front, each offset by its own tiny
+// separation. Mirror-tiling is preserved from the flat path (it is what hides
+// the repeat seam), and a mirrored tile mirrors its cards' x positions too —
+// otherwise the cards detach from the plate they were cut out of.
+function drawCards(ai,cam,bw,bh,by,bandB,tick,amb){
+  var set=CARD_DATA[ai],base=CARD_IMG[set.base];
+  if(!base)return;
+  var sc=bw/set.w;                                   // plate px -> screen px
+  var bpar=cam*CB_BASE,boff=(-bpar)%(bw*2);if(boff>0)boff-=bw*2;
+  FX.save();FX.beginPath();FX.rect(0,0,W,bandB);FX.clip();
+  for(var bx=boff;bx<W+bw;bx+=bw){
+    var bx0=Math.round(bx),bx1=Math.round(bx+bw),btw=bx1-bx0;
+    var mir=(Math.round((bx+bpar)/bw))&1;
+    FX.save();
+    if(mir){FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);}
+    FX.drawImage(base,bx0,by,btw,bh);
+    FX.restore();
+    for(var ci=0;ci<set.cards.length;ci++){
+      var c=set.cards[ci],im=CARD_IMG[c.s];if(!im)continue;
+      var cw=im.width*sc,ch=im.height*sc;
+      var cx=bx0+c.x*sc+cardSep(cam,c),cy=by+c.y*sc;
+      if(cx>W+8||cx+cw<-8)continue;
+      FX.save();
+      if(mir){FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);
+        cx=bx0+(set.w-c.x-im.width)*sc-cardSep(cam,c);}
+      if(c.wind&&amb>0){
+        // Wind pivots at the BOTTOM OF THE MOVING MASS — the card's own base,
+        // which for a cut willow is where its trunk meets the shore. Shear is
+        // zero there and grows upward, so the trunk stays dead still and only
+        // the crown moves. Subdivided WITHIN the card, so sections of one crown
+        // drift out of step instead of the whole cutout leaning like a board.
+        var piv=cy+ch,sub=4,sw2=cw/sub;
+        for(var q=0;q<sub;q++){
+          var k=_lbWindK(cx+q*sw2+sw2*0.5,9.0,1.6,tick,amb);
+          if(k>LB_KMAX)k=LB_KMAX;else if(k<-LB_KMAX)k=-LB_KMAX;
+          FX.save();FX.transform(1,0,-k/ch,1,k*piv/ch,0);
+          FX.drawImage(im,(q*sw2/cw)*im.width,0,im.width/sub,im.height,
+                          cx+q*sw2,cy,sw2+0.6,ch);
+          FX.restore();
+        }
+      }else if(c.ripple&&amb>0){
+        // The lake, in rows. Its reflections are painted in, so this is the same
+        // free realism as before — only now the water is its own card and the
+        // trees it reflects are theirs.
+        var rh2=document.body.classList.contains('mobile')?5:4;
+        for(var ry=0;ry<ch;ry+=rh2){
+          var f=ry/Math.max(1,ch);
+          var dx=(1.6+f*9.0)*Math.sin((cy+ry)*0.055-tick*0.045*amb+f*2.2)
+                +(0.8+f*3.2)*Math.sin((cy+ry)*0.130+tick*0.031*amb);
+          var sh2=Math.min(rh2,ch-ry);
+          FX.drawImage(im,0,(ry/ch)*im.height,im.width,(sh2/ch)*im.height,
+                          cx+dx,cy+ry,cw,sh2+0.6);
+        }
+      }else{
+        FX.drawImage(im,cx,cy,cw,ch);
+      }
+      FX.restore();
+    }
+  }
+  FX.restore();
+}
 // ══ FOREGROUND PLANE — the things that pass IN FRONT of her ════════════════
 // Client, on the library: "It is the fact that I have those candlesticks there
 // that kind of gives it a different layer for it to move behind, and that's
@@ -4058,6 +4185,13 @@ var FORE=[
 ];
 function drawForeground(ai,cam,tick,amb){
   if(MODE!=='side')return;                       // RPG only — the runner is 3D
+  // RETIRED ON CARD STAGES. This whole plane was invented content standing in
+  // for depth the backdrop did not have, run at 1.7x — far outside the tiny
+  // spread that actually reads as parallax. Where a real multiplane cut exists,
+  // the cards ARE the near planes and this would be a second, contradictory
+  // depth system drawn on top of them. Stages still on the flat plate keep it
+  // until their cut lands.
+  if(CARD_READY[ai])return;
   var f=FORE[ai]; if(!f)return;
   var z=(typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1;
   var px=-cam*z*1.7;                             // nearer than the world, so faster
@@ -4442,6 +4576,9 @@ function drawMansionBG(st){
     var bh=Math.max(groundY+40,H*0.94),bw=bh*(_bg.width/_bg.height),by=groundY+30-bh;
     var lb=LIVEBG[ai]||{};
     var bandB=Math.max(1,Math.ceil(groundY+30));     // the painting ends at the play floor
+    if(CARD_READY[ai]){                              // multiplane cut exists for this stage
+      drawCards(ai,cam,bw,bh,by,bandB,tick,_amb);
+    }else{
     var warp=!!((lb.wat||lb.wnd)&&_amb>0);
     if(!warp){
       _lbTile(FX,0,_bg,cam,bw,bh,by);               // nothing to animate — draw it straight
@@ -4468,11 +4605,18 @@ function drawMansionBG(st){
       }
       _lbPlain(cy,bandB);                                   // FINAL FLUSH — see _lbPlain
     }
-    // ── NEAR BAND: the painting's own lower slice, darkened and run 3.5x faster.
+    }
+    // ── NEAR BAND — RETIRED ON CARD STAGES. It was the painting's own lower
+    //    slice re-run at 3.5x and crushed to a silhouette: a stand-in for a
+    //    depth plane, built when there were no real ones. A 3.5x rate is exactly
+    //    the "set falling over" failure — the same tree at two speeds, hidden by
+    //    darkening it until you could not tell. Where a real cut exists the
+    //    cards replace it outright; stages still on the flat plate keep it until
+    //    theirs are cut, because half a depth cue beats none.
+    if(lb.near&&!CARD_READY[ai]){
     //    This is what actually creates depth — two planes at different speeds.
     //    It is deliberately crushed to a silhouette: at full brightness you read
     //    it as the SAME tree twice, which is worse than no parallax at all.
-    if(lb.near){
       // Scale it up slightly (nearer things are bigger) and seat the slice's
       // BOTTOM on the play floor, then clip to exactly where that slice lands —
       // clipping to the far plane's rows instead would smear it up the screen.
@@ -6013,6 +6157,10 @@ function loop(ts){if(!running)return;
 if(location.hash.indexOf('dev')<0){window._devStep=window._devState=function(){return 'add #dev to the URL to enable dev hooks';};}else{window._devStep=function(n){for(var i=0;i<(n||1);i++){try{update();}catch(e){}}try{draw();musTick();}catch(e){}return 'stepped '+(n||1);};
 window._glDbg=function(){try{return GLW.dbg();}catch(e){return 'err: '+e.message;}};
 window._devMut=function(f){try{return f(GS,TC);}catch(e){return 'err: '+e.message;}};
+// exact per-card parallax readout — image correlation cannot separate cards that
+// overlap on screen, nor tell them from the static HUD drawn on top of them.
+window._devCards=function(){var st=CARD_DATA[GS.ai];if(!st)return null;var o={cam:Math.round(GS.camX),base:-GS.camX*CB_BASE};
+  for(var i=0;i<st.cards.length;i++){var c=st.cards[i];o[c.n]=+( -GS.camX*CB_BASE+cardSep(GS.camX,c) ).toFixed(1);}return o;};
 window._devState=function(){var t=GS.t3||{},p=GS.p||{};return {mode:MODE,ai:GS.ai,finale:GS.finale,won:GS.won,
   glwOK:(typeof glwOK!=='undefined')?glwOK:null,gl:(function(){try{return GLW.dbg();}catch(e){return null;}})(),
   zoom:ZOOM,VW:Math.round(VW),VH:Math.round(VH),camX:Math.round(GS.camX||0),
@@ -6219,6 +6367,7 @@ function wire(){applyMotionClass();
   initTitleBG();
   loadBGs();     // photoreal backdrops (no-op until BG_DATA is filled)
   loadSideBG();  // painted per-stage side backdrops
+  loadCards();   // and their multiplane cut, where one exists
   loadTex();     // pixel-art world pack
   loadSprites(); // preload sprites in background
 }
