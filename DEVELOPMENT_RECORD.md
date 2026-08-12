@@ -459,6 +459,7 @@ pre-deploy gate to stop the glyph rule regressing a third time.
 |---|---|---|
 | **Rotate the Cloudflare API token** | OPEN | Client action |
 | **Rotate the AutoSprite API key** | OPEN | Client action — key was shared in chat for the projectile pass |
+| **AutoSprite key for cloud sessions** | OPEN (client) | Diagnosed 08-12: network + endpoint are fine, the key is the only missing link. `tools/autosprite.py` is the ready client; `export AUTOSPRITE_KEY=…` (env only, never a file) unblocks it. Key page: `https://www.autosprite.io/apikey` |
 | Landscape controls on device | RESOLVED 07-26 | Client's own screenshots confirm the cluster fits; pre-game screens fixed & scrollable |
 | Combat & economy tuning | OPEN | Play-test dials — par times, beacon range, Atlas price, Refrain speed, Belt range |
 | Stage-Select starting stats | OPEN (design) | Late stages begin at LV1 stats; option to grant stage-scaled stats on request |
@@ -771,6 +772,47 @@ paintings can give: genuine spaces, with real angles and cast shadows, need the
 backdrops re-rendered as separated depth layers out of Blender.
 
 *Commit `43a124e`.*
+
+### Era VI, seventh pass — depth cards, framing, gore (August 11–12)
+
+The client supplied his own **Will Hill: Player One** techniques doc and asked
+for the parallax and SAM cutting to be lifted from it. What shipped:
+
+- **Multiplane on 8 of 9 stages** — `tools/depth` cuts each painting into an
+  inpainted base plate plus full-frame cards, each drawn at
+  `rate = BASE + (depth − 0.5) × SPREAD` (0.045 / 0.010, separation clamped to
+  ±80px). **The library stays flat on purpose**: its bands are the building's
+  three floors, not depth planes. Spec: `docs/LIVING_BACKDROPS.md`.
+  *(`7246ac5` → `d7efd7e`.)*
+- **The "gaps in space" bug was the loader, not the cut.** `loadCards()` called
+  `done()` from `onerror`, so a failed image still marked the stage ready and the
+  smeared inpaint base drew in place of art. Now fail-loud, with a flat fallback.
+  Cards also went full-frame, which deletes the position bookkeeping that had
+  already caused one mirrored-tile displacement. *(`ff8befa`.)*
+- **Zoom across the board** — `BASE` 0.92 + `VIEW_W` 440 (hero 50→70px portrait,
+  67→79px landscape). Both constants had to move: portrait is width-bound,
+  landscape cap-bound. The limit is read-ahead, held at the NES figure.
+  *(`eb6be01`, `67223f4`.)*
+- **Her idle**: 67 breaths/min → 16, hunch cut from 33% of the loop to 11%,
+  measured by `tools/measure_idle.py`. *(`3fc0383`.)*
+- **Backdrop viewer** `?bg=1` — flip through all nine stages, no death. Touch pads
+  raised clear of the iOS home-indicator strip. *(`4618719`.)*
+- **Only plant life sways** — wind stripped from 9 of the 16 cards; ground, rock,
+  stone and hills are static. *(`84a5179`.)*
+- **Themed gore across all 26 characters** — the system already existed
+  (`BOSS_GORE`/`FOE_GORE`); three untinted bursts, a hardcoded pink for every
+  boss hit, and a missing creature-level map were defeating it. `CREATURE_GORE`
+  added; only five characters bleed red, all of them flesh. *(`4618719`,
+  `4e5bd29`.)*
+
+**AutoSprite, diagnosed (Aug 12).** The blocker is *only* the credential. From
+this container `www.autosprite.io/api/mcp` initializes and lists all 30 tools
+unauthenticated; `tools/call` returns *"Unauthorized: provide an MCP API key."*
+The claude.ai connector is a separate path (OAuth) and stays offline, but it is
+not needed. `tools/autosprite.py` is the committed client — JSON-RPC over HTTP
+with SSE framing, `Authorization: Bearer $AUTOSPRITE_KEY`, key read from the
+environment only. `python3 tools/autosprite.py ping` reports whether the key is
+present. (`api.autosprite.io` does not exist — the API is served from `www`.)
 
 ---
 

@@ -22,6 +22,38 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🔑 08-12 (cloud session) — AUTOSPRITE: it's the key, nothing else
+Client: *"diagnose that AutoSprite situation, you should just be able to go to
+the website."* He's right — and the website is not the problem either.
+
+Measured from this container, not guessed:
+
+| link | state |
+|---|---|
+| network policy | **OK** — `www.autosprite.io` 200 through the agent proxy |
+| MCP endpoint | **OK** — `POST /api/mcp` initializes (`autosprite-mcp`), `tools/list` returns all 30 tools **unauthenticated** |
+| credential | **MISSING** — `tools/call` → *"Unauthorized: provide an MCP API key from https://www.autosprite.io/apikey"* |
+| claude.ai connector | offline, and **irrelevant** — it authenticates by OAuth; the endpoint wants `Authorization: Bearer` |
+
+- `api.autosprite.io` **does not exist** (proxy 502 on CONNECT). The API is
+  served from `www` — see the signed URLs in `tools/boss_urls.json`.
+- The key never survives a container reset: it was only ever a shell env var,
+  never written to disk. That is deliberate — **keep it that way.**
+- **`tools/autosprite.py` is now committed** so no future session re-derives the
+  transport (this is the third time). JSON-RPC over HTTP, SSE-framed replies,
+  Bearer from `$AUTOSPRITE_KEY`.
+
+```bash
+export AUTOSPRITE_KEY=vspk_…          # env only — never a file, never a commit
+python3 tools/autosprite.py ping       # server info + "key in environment: yes/NO"
+python3 tools/autosprite.py tools
+python3 tools/autosprite.py call list_characters '{"limit":5}'
+```
+
+**Blocked on this:** the AutoSprite-animated blood the client asked for (the
+canvas droplets are an explicit stopgap). One `export` unblocks it.
+**Still open separately:** rotating the old key, which was shared in chat.
+
 ## 🌲 08-10 (cloud session) — FOREGROUND PLANE (`43a124e`)
 Client: *"the candlesticks give it a different layer for it to move behind"* /
 *"I want the backgrounds to feel like spaces, not a flat picture."*

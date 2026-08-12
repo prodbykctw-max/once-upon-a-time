@@ -86,6 +86,13 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
 - The sprite faces **RIGHT**; left is a mirror.
 - Character/boss art comes from **AutoSprite**; environments from **Blender/Cycles**.
   Bakers/composers live in `tools/`.
+- **AutoSprite from a cloud session: use `tools/autosprite.py`, not the connector.**
+  The claude.ai connector does OAuth; AutoSprite's own MCP endpoint
+  (`POST https://www.autosprite.io/api/mcp`, JSON-RPC + SSE) wants
+  `Authorization: Bearer`. The endpoint is reachable and lists its tools without
+  auth — **the only thing that ever blocks a session is the key**, which lives in
+  `$AUTOSPRITE_KEY` and nowhere else (never a file, never a commit, gone after
+  every container reset). `python3 tools/autosprite.py ping` says whether it's set.
 
 ## Conventions / guardrails
 - Keep the artist's name accented everywhere: **Jandé / JANDÉ**.
