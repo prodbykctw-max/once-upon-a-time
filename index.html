@@ -3745,15 +3745,15 @@ var CARD_DATA={
    {n:'sky',       d:0.05,s:'web/46670187173b.webp'},
    {n:'mountains', d:0.22,s:'web/65c1b365cc06.webp'},
    {n:'hills',     d:0.42,s:'web/07226a888e46.webp'},
-   {n:'midtrees',  d:0.62,s:'web/5257a7aa59c7.webp',wind:1},
-   {n:'foretrees', d:0.80,s:'web/edcdd2241afe.webp',wind:1},
+   {n:'midtrees',  d:0.62,s:'web/5257a7aa59c7.webp'},
+   {n:'foretrees', d:0.80,s:'web/edcdd2241afe.webp'},
    {n:'verge',     d:0.90,s:'web/d7005d2649ec.webp',strip:1}
  ]},
  2:{w:768,h:384,base:'web/87e8864bcb9f.webp',cards:[
    {n:'sky',       d:0.05,s:'web/3f509687bcbe.webp'},
    {n:'fartrees',  d:0.30,s:'web/d8eee8b81b59.webp'},
-   {n:'canopy',    d:0.68,s:'web/b5986595b6f5.webp',wind:1},
-   {n:'trunks',    d:0.58,s:'web/c5e457f5df33.webp',wind:1},
+   {n:'canopy',    d:0.68,amp:13,frq:3.0,s:'web/b5986595b6f5.webp',wind:1},
+   {n:'trunks',    d:0.58,s:'web/c5e457f5df33.webp'},
    {n:'path',      d:0.88,s:'web/ae424d8c7cc0.webp',strip:1}
  ]},
  3:{w:768,h:384,base:'web/3f78a8cbc643.webp',cards:[
@@ -3774,9 +3774,9 @@ var CARD_DATA={
    {n:'water',     d:0.92,s:'web/0645308caf10.webp',ripple:1}
  ]},
  5:{w:768,h:768,base:'web/e0914a8dcd1f.webp',cards:[
-   {n:'farcover',  d:0.20,s:'web/6f1ecdf40b4b.webp',wind:1},
-   {n:'midcover',  d:0.50,s:'web/7f8e12cc4f2d.webp',wind:1},
-   {n:'nearcover', d:0.78,s:'web/18b2b27dea48.webp',wind:1},
+   {n:'farcover',  d:0.20,s:'web/6f1ecdf40b4b.webp'},
+   {n:'midcover',  d:0.50,s:'web/7f8e12cc4f2d.webp'},
+   {n:'nearcover', d:0.78,s:'web/18b2b27dea48.webp'},
    {n:'ground',    d:0.92,s:'web/716d90bb864d.webp',strip:1}
  ]},
  6:{w:768,h:384,base:'web/369207315215.webp',cards:[
@@ -3787,9 +3787,9 @@ var CARD_DATA={
  ]},
  7:{w:768,h:768,base:'web/6a1f24e2e61e.webp',cards:[
    {n:'sky',       d:0.05,s:'web/9c2c62b370d5.webp'},
-   {n:'farisles',  d:0.28,s:'web/3fa91154d177.webp',wind:1},
-   {n:'midisles',  d:0.55,s:'web/9562be853de3.webp',wind:1},
-   {n:'nearisles', d:0.80,s:'web/cf8092628453.webp',wind:1}
+   {n:'farisles',  d:0.28,s:'web/3fa91154d177.webp'},
+   {n:'midisles',  d:0.55,s:'web/9562be853de3.webp'},
+   {n:'nearisles', d:0.80,s:'web/cf8092628453.webp'}
  ]},
  8:{w:768,h:384,base:'web/c9de9a62ff1b.webp',cards:[
    {n:'sky',       d:0.05,s:'web/5ef6e76f7c75.webp'},
@@ -4010,7 +4010,7 @@ var LIVEBG=[
  // 1 FIRST LIGHT MEADOW — horizon at 0.30. Wind takes the foreground trees and
  //   hedgerow only; the distant hills must stay solid. Mid frq: the band has some
  //   smooth grass in it.
- {wat:null,          wnd:[0.55,0.99,6.0,2.2],    in:0, ray:[3,0.62,0.10,0.08,'255,246,206'], amb:'pollen',    near:[0.87,1.00,0.34], bre:[0.03,'255,246,206']},
+ {wat:null,          wnd:null            ,    in:0, ray:[3,0.62,0.10,0.08,'255,246,206'], amb:'pollen',    near:[0.87,1.00,0.34], bre:[0.03,'255,246,206']},
  // 2 THE PETAL MILE — cherry canopy fills the top 0.60 and IS the stage. Dense
  //   blossom hides seams, so it gets both the biggest swing and a high frq.
  {wat:null,          wnd:[0.00,0.60,14.0,3.0],   in:0, ray:[3,0.45,0.05,0.09,'255,232,240'], amb:'petals',    near:[0.86,1.00,0.32], bre:[0.03,'255,226,238']},
@@ -4024,7 +4024,7 @@ var LIVEBG=[
  {wat:[0.645,1.00],  wnd:[0.04,0.645,11.0,1.0],  in:0, ray:[3,0.55,0.08,0.09,'226,246,255'], amb:'pollen',    near:null,             bre:[0.04,'214,240,255']},
  // 5 THE WISHING GLADE — dusk. Dense fungal cover, so a high frq reads as each
  //   cluster stirring on its own.
- {wat:null,          wnd:[0.00,0.92,4.5,2.8],    in:0, ray:null,                              amb:'fireflies', near:null,             bre:[0.10,'150,200,255']},
+ {wat:null,          wnd:null            ,    in:0, ray:null,                              amb:'fireflies', near:null,             bre:[0.10,'150,200,255']},
  // 6 THE GOLDEN HOUR — client: "shouldn't the sunflowers be blowing in the breeze
  //   too... they could just be kind of moving back and forth." They WERE moving —
  //   measured 9px — but the whole field slid as ONE BOARD, and a uniform slide
@@ -4034,7 +4034,7 @@ var LIVEBG=[
  //   directions, which is what actually reads as a breeze through a field.
  {wat:null,          wnd:[0.46,0.93,10.5,4.2],   in:0, ray:[5,0.29,0.12,0.15,'255,226,140'], amb:'pollen',    near:[0.86,1.00,0.34], bre:[0.05,'255,222,140']},
  // 7 THE SKY GARDENS — band is mostly open sky between islands: frq must stay low.
- {wat:null,          wnd:[0.00,0.95,3.5,1.0],    in:0, ray:[3,0.50,0.05,0.07,'255,255,255'], amb:'cloud',     near:null,             bre:[0.03,'220,240,255']},
+ {wat:null,          wnd:null            ,    in:0, ray:[3,0.50,0.05,0.07,'255,255,255'], amb:'cloud',     near:null,             bre:[0.03,'220,240,255']},
  // 8 HER ENCORE — river 0.70-0.88 catches the sunset; the dark foreground trees
  //   below it blow. Dense silhouette, so a high frq is free. The castle between
  //   them is stone and stays put.
@@ -4292,6 +4292,8 @@ function drawCards(ai,cam,bw,bh,by,bandB,tick,amb){
       // mirrored and in register with the mirrored base plate.
       if(mir){FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);}
       if(c.wind&&amb>0){
+        // amp/frq are per CARD now. They used to be hardcoded 9.0/1.6 for every
+        // wind card, so tuning the pink canopy meant tuning the willows too.
         // Wind pivots at the BOTTOM OF THE MOVING MASS — the card's own base,
         // which for a cut willow is where its trunk meets the shore. Shear is
         // zero there and grows upward, so the trunk stays dead still and only
@@ -4299,7 +4301,7 @@ function drawCards(ai,cam,bw,bh,by,bandB,tick,amb){
         // drift out of step instead of the whole cutout leaning like a board.
         var piv=cy+ch,sub=4,sw2=cw/sub;
         for(var q=0;q<sub;q++){
-          var k=_lbWindK(cx+q*sw2+sw2*0.5,9.0,1.6,tick,amb);
+          var k=_lbWindK(cx+q*sw2+sw2*0.5,c.amp||9.0,c.frq||1.6,tick,amb);
           if(k>LB_KMAX)k=LB_KMAX;else if(k<-LB_KMAX)k=-LB_KMAX;
           FX.save();FX.transform(1,0,-k/ch,1,k*piv/ch,0);
           FX.drawImage(im,(q*sw2/cw)*im.width,0,im.width/sub,im.height,
