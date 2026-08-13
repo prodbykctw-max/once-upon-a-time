@@ -1037,7 +1037,7 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
     magT:0,boostT:0,x2T:0,gemsLive:0,
     foes:[],pops:[],deathNotes:[],combo:0,comboT:0,
     t3:{lane:0,laneX:0,py:0,vy:0,slid:0,obs:[],coins:[],nextZ:900,howT:300,
-        chase:0,chX:0,turnFx:0,lastTurnD:0,revAsk:false,revT:0,revUsed:false,grabT:0},
+        chase:0,chX:0,turnFx:0,bend:0,lastTurnD:0,revAsk:false,revT:0,revUsed:false,grabT:0},
     p:{x:3*T,y:8*T,vx:0,vy:0,onGround:false,onWall:false,wallDir:0,faceL:false,
        anim:'run',animT:0,frame:0,
        atk:false,atkT:0,atkDir:'r',dead:false,deadT:0,inv:0,
@@ -1945,7 +1945,7 @@ function updateT(){
     if(tt2.tp==='turn'&&!tt2.done&&tt2.z<320){turn=tt2;break;}}
   if(turn&&(TC.ml>0||TC.mr>0)){
     var sd=TC.ml>0?-1:1;TC.ml=TC.mr=0;
-    if(sd===turn.dir){turn.done=true;t3.turnFx=22*turn.dir;sfx('turn');
+    if(sd===turn.dir){turn.done=true;t3.turnFx=TURN_LEN*turn.dir;sfx('turn');
       GS.score+=Math.round(150*mult);GS.stats.tn=(GS.stats.tn||0)+1;misAdd('turns',1);
       if(navigator.vibrate)navigator.vibrate([15,15,45]);}
     else stumbleT(); // wrong way into the corner wall
@@ -1955,6 +1955,12 @@ function updateT(){
   }
   t3.laneX+=(t3.lane-t3.laneX)*0.28;
   if(t3.turnFx>0)t3.turnFx--;else if(t3.turnFx<0)t3.turnFx++;
+  // Asymmetric on purpose: the corner ARRIVES (pow < 1 front-loads the
+  // envelope) and the world then settles onto the new heading. A symmetric
+  // sine reads as a wobble out and back rather than a turn taken.
+  if(t3.turnFx){var _tu=1-Math.abs(t3.turnFx)/TURN_LEN;
+    t3.bend=Math.sin(Math.PI*Math.pow(_tu,0.72))*(t3.turnFx>0?1:-1);}
+  else t3.bend=0;
 
   // ── JUMP / SLIDE ──
   if(iU()&&!lJ)TC.jb=9;
@@ -2004,7 +2010,7 @@ function updateT(){
       continue;}
     if(o.tp==='turn'){
       if(!o.done&&o.z<-6){ // ran straight into the corner
-        if(GS.boostT>0){o.done=true;t3.turnFx=22*o.dir;misAdd('turns',1);} // boost auto-turns
+        if(GS.boostT>0){o.done=true;t3.turnFx=TURN_LEN*o.dir;misAdd('turns',1);} // boost auto-turns
         else{caughtT();return;}}
       continue;}
     if(o.tp==='pw'||o.tp==='gem'){
@@ -2054,6 +2060,25 @@ function updateT(){
 
 // perspective projection: scale factor for depth z (z=0 at player, grows into screen)
 function prjT(z){return 300/(300+z);}
+// ── CORNER TURNS ───────────────────────────────────────────────────────────
+// A corner used to be a 90px sideways SLIDE of the whole frame, and it read as
+// a pan because that is exactly what it was. In this projection
+// (sx = W/2 + wx*s, s = 300/(300+z)) a small camera yaw th displaces every
+// vertex by th*(300+z)*s = 300*th — the SAME number of pixels at every depth.
+// Near and far move together, so nothing rotates and no corner is read.
+// What a turn actually looks like is the PATH BENDING: a lateral world offset
+// that grows with depth, so the ground at her feet sweeps one way while the
+// path ahead swings the other. That is the pseudo-3D road curve, and the
+// screen offset it produces is TURN_FAR*W at the far plane, near zero at her
+// feet. The camera then yaws INTO it (TURN_FOLLOW) so the corner she is
+// heading for stays framed instead of sliding off the side.
+var TURN_LEN=30;        // frames the swing lasts (~0.5s at 60fps)
+var TURN_FAR=0.46;      // the far path sweeps this fraction of W at the peak
+var TURN_FOLLOW=0.55;   // how hard the camera yaws to follow the bend
+var TURN_FOCUS=700;     // the depth the camera keeps framed through the corner
+var _TB=0;              // bend coefficient — screen px = _TB * z*z * prjT(z)
+// z is clamped at 0: behind the camera z*z would flip the bend's sign.
+function bendPx(z){if(!_TB)return 0;var zb=z>0?z:0;return _TB*zb*zb*prjT(zb);}
 // draw one themed floor band with texture crossfade during theme shifts
 function floorBand(ai2,alpha,x,y,w,h){
   if(!TEX.floors){FX.globalAlpha=alpha;FX.fillStyle='rgba(40,26,18,1)';FX.fillRect(x,y,w,h);FX.globalAlpha=1;return;}
@@ -2147,7 +2172,7 @@ var GLWORLD=(function(){
   var gl,cv,Wp,Hp,vpY,gNear,corrW,ps;
   var progT,progS,progP,progH,meshT,meshH,skyBuf,dynBuf=null;
   var texGround=[],texProps=null,texBlob=null,texWall=null,texCeil=null,texGrass=null;
-  var propPool=[],curShift=0,propCycle=2816;
+  var propPool=[],curShift=0,curBend=0,propCycle=2816;
   var LOOK=[
     {fog:[0.93,0.80,0.56],skyTop:[0.70,0.50,0.28],sun:[0.5,0.33,0.0,0.0],tint:[0.86,0.72,0.52],hill:0,props:[12,13],hall:1},
     {fog:[0.98,0.85,0.70],skyTop:[0.44,0.62,0.94],sun:[0.30,0.30,1.0,0.85],tint:[1,1,1],hill:60,props:[0,1,11]},
@@ -2164,10 +2189,10 @@ var GLWORLD=(function(){
   function prog2(vs,fs){var p=gl.createProgram();gl.attachShader(p,sh2(gl.VERTEX_SHADER,vs));
     gl.attachShader(p,sh2(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);
     if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw gl.getProgramInfoLog(p);return p;}
-  var PROJ='float s=300.0/(300.0+z);float sx=uW*0.5+wx*s+uShift;float sy=uVpy+(uGnear-uVpy)*s-wy*s;gl_Position=vec4(sx/uW*2.0-1.0,1.0-sy/uH*2.0,z/1600.0*1.9-0.9,1.0);';
-  var VS_T='attribute vec2 aXZ;uniform float uW,uH,uVpy,uGnear,uCorrW,uWz,uHill,uShift;varying vec2 vUV;varying float vZ;varying float vHgt;'+
+  var PROJ='float zb=max(z,0.0);float s=300.0/(300.0+z);float sx=uW*0.5+(wx+uBend*zb*zb)*s+uShift;float sy=uVpy+(uGnear-uVpy)*s-wy*s;gl_Position=vec4(sx/uW*2.0-1.0,1.0-sy/uH*2.0,z/1600.0*1.9-0.9,1.0);';
+  var VS_T='attribute vec2 aXZ;uniform float uW,uH,uVpy,uGnear,uCorrW,uWz,uHill,uShift,uBend;varying vec2 vUV;varying float vZ;varying float vHgt;'+
     'float hill(vec2 p){return (sin(p.x*1.9+p.y*0.011)*0.55+sin(p.x*3.7+p.y*0.023+1.7)*0.30+sin(p.y*0.017+p.x)*0.35);}'+
-    'void main(){float zw=aXZ.y+uWz;float wx=aXZ.x*uCorrW;float edge=max(0.0,abs(aXZ.x)-0.85);'+
+    'void main(){float zw=aXZ.y+uWz;float wx=aXZ.x*uCorrW;float edge=min(max(0.0,abs(aXZ.x)-0.85),2.95);'+
     'float h=uHill*edge*(0.6+0.4*hill(vec2(aXZ.x,zw)))*(0.5+0.5*hill(vec2(aXZ.x*0.7+3.0,zw*0.7)));'+
     'float wy=h;float z=aXZ.y;vUV=vec2(aXZ.x*3.2,zw*0.045);vZ=z;vHgt=h;'+PROJ+'}';
   var FS_T='precision mediump float;uniform sampler2D uTex;uniform vec3 uFog;uniform vec3 uTint;uniform float uFogStart,uFogEnd;varying vec2 vUV;varying float vZ;varying float vHgt;'+
@@ -2176,11 +2201,11 @@ var GLWORLD=(function(){
     'void main(){vec2 wv=vUV+vec2(sin(vUV.y*1.3+vUV.x*0.9),cos(vUV.x*1.1+vUV.y*0.7))*0.14;vec2 uv=abs(fract(wv*0.5)*2.0-1.0);vec3 c=texture2D(uTex,uv).rgb*uTint;c*=(1.0-min(0.25,vHgt*0.002));'+
     'float f=smoothstep(uFogStart,uFogEnd,vZ);gl_FragColor=vec4(mix(c,uFog,f),1.0);}';
   var VS_S='attribute vec2 aP;varying vec2 vP;void main(){vP=aP;gl_Position=vec4(aP,0.9995,1.0);}';
-  var FS_S='precision mediump float;uniform vec3 uFog;uniform vec3 uSkyTop;uniform vec4 uSun;uniform float uHorizonY;uniform float uAspect;varying vec2 vP;'+
+  var FS_S='precision mediump float;uniform vec3 uFog;uniform vec3 uSkyTop;uniform vec4 uSun;uniform float uHorizonY;uniform float uAspect;uniform float uPan;varying vec2 vP;'+
     'void main(){float t=clamp((vP.y-uHorizonY)/(1.0-uHorizonY),0.0,1.0);vec3 c=mix(uFog,uSkyTop,pow(t,0.8));'+
-    'vec2 sp=vec2(uSun.x*2.0-1.0,1.0-uSun.y*2.0);float d=length(vec2((vP.x-sp.x)*uAspect,vP.y-sp.y));'+
+    'vec2 sp=vec2(uSun.x*2.0-1.0,1.0-uSun.y*2.0);float d=length(vec2((vP.x-uPan-sp.x)*uAspect,vP.y-sp.y));'+
     'c+=vec3(1.0,0.92,0.7)*uSun.z*0.35*exp(-d*d*18.0);c+=vec3(1.0,0.85,0.6)*uSun.w*0.12*exp(-d*3.0);gl_FragColor=vec4(c,1.0);}';
-  var VS_P='attribute vec4 aQ;attribute vec2 aUV;attribute vec3 aTint;uniform float uW,uH,uVpy,uGnear,uShift;varying vec2 vUV;varying float vZ;varying vec3 vTint;'+
+  var VS_P='attribute vec4 aQ;attribute vec2 aUV;attribute vec3 aTint;uniform float uW,uH,uVpy,uGnear,uShift,uBend;varying vec2 vUV;varying float vZ;varying vec3 vTint;'+
     'void main(){float wx=aQ.x;float wy=aQ.y;float z=aQ.z;vUV=aUV;vZ=z;vTint=aTint;'+PROJ+'}';
   var FS_P='precision mediump float;uniform sampler2D uTex;uniform vec3 uFog;uniform float uFogStart,uFogEnd;uniform float uAlpha;varying vec2 vUV;varying float vZ;varying vec3 vTint;'+
     'void main(){vec4 c=texture2D(uTex,vUV);if(c.a<0.35)discard;float f=smoothstep(uFogStart,uFogEnd,vZ);gl_FragColor=vec4(mix(c.rgb*vTint,uFog,f),c.a*uAlpha);}';
@@ -2188,7 +2213,7 @@ var GLWORLD=(function(){
   // bookcases standing on open terrain read as beams in a field, so stage 0
   // gets real wall + ceiling geometry in the same projection.
   var VS_H='attribute vec3 aP;attribute vec2 aUV;'+
-    'uniform float uW,uH,uVpy,uGnear,uShift,uWz,uWallX,uWallH,uUVz;'+
+    'uniform float uW,uH,uVpy,uGnear,uShift,uBend,uWz,uWallX,uWallH,uUVz;'+
     'varying vec2 vUV;varying float vZ;'+
     'void main(){float zw=aP.z+uWz;float wx=aP.x*uWallX;float wy=aP.y*uWallH;float z=aP.z;'+
     'vUV=vec2(zw*uUVz,aUV.y);vZ=z;'+PROJ+'}';
@@ -2258,11 +2283,22 @@ var GLWORLD=(function(){
   }
 
   function buildTerrain(){
-    var rows=72,cols=30,verts=[],idx=[],r,c2;
+    var rows=72,cols=30,pad=6,verts=[],idx=[],r,c2;
+    // The ORIGINAL 31 columns at exactly their old x, plus a skirt of `pad`
+    // columns each side out to +-7. Keeping the original vertices where they
+    // were is the point: hill height is evaluated per vertex and interpolated
+    // between them, so simply re-spacing a wider mesh would shift the terrain
+    // silhouette even with nothing turning. This way a straight frame is
+    // untouched and the skirt only fills what the swing uncovers.
+    var xs=[],c3;
+    for(c2=0;c2<pad;c2++)xs.push(-7.0+3.2*c2/pad);
+    for(c2=0;c2<=cols;c2++)xs.push(-3.8+7.6*c2/cols);
+    for(c2=1;c2<=pad;c2++)xs.push(3.8+3.2*c2/pad);
+    var nc=xs.length;
     for(r=0;r<=rows;r++){var t=r/rows,z=-60+1560*t*t*0.75+1560*t*0.25;
-      for(c2=0;c2<=cols;c2++)verts.push(-3.8+7.6*c2/cols,z);}
-    for(r=0;r<rows;r++)for(c2=0;c2<cols;c2++){
-      var a=r*(cols+1)+c2,b=a+1,c3=a+cols+1,d=c3+1;idx.push(a,b,c3,b,d,c3);}
+      for(c2=0;c2<nc;c2++)verts.push(xs[c2],z);}
+    for(r=0;r<rows;r++)for(c2=0;c2<nc-1;c2++){
+      var a=r*nc+c2,b=a+1;c3=a+nc;var d=c3+1;idx.push(a,b,c3,b,d,c3);}
     var vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);
     gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(verts),gl.STATIC_DRAW);
     var ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);
@@ -2336,6 +2372,7 @@ var GLWORLD=(function(){
     gl.uniform1f(gl.getUniformLocation(pr,'uVpy'),vpY);
     gl.uniform1f(gl.getUniformLocation(pr,'uGnear'),gNear);
     var u=gl.getUniformLocation(pr,'uShift');if(u)gl.uniform1f(u,curShift);
+    var b=gl.getUniformLocation(pr,'uBend');if(b)gl.uniform1f(b,curBend);
   }
   function drawDyn(pr,arr){
     if(!dynBuf)dynBuf=gl.createBuffer();
@@ -2499,8 +2536,8 @@ var GLWORLD=(function(){
     gl.bindTexture(gl.TEXTURE_2D,texGrass);gl.depthMask(true);
     drawDyn(progP,gq);gl.disable(gl.BLEND);
   }
-  function render(stage,wz,shift){
-    curShift=shift||0;
+  function render(stage,wz,shift,bend){
+    curShift=shift||0;curBend=bend||0;
     Wp=cv.width;Hp=cv.height;vpY=Hp*0.34;gNear=Hp*0.90;corrW=Wp*0.62;ps=Wp/960;
     var L=LOOK[stage];
     gl.viewport(0,0,Wp,Hp);
@@ -2512,6 +2549,7 @@ var GLWORLD=(function(){
     gl.uniform4fv(gl.getUniformLocation(progS,'uSun'),L.sun);
     gl.uniform1f(gl.getUniformLocation(progS,'uHorizonY'),1.0-(vpY/Hp)*2.0);
     gl.uniform1f(gl.getUniformLocation(progS,'uAspect'),Wp/Hp);
+    gl.uniform1f(gl.getUniformLocation(progS,'uPan'),curShift/Wp*2.0);
     gl.bindBuffer(gl.ARRAY_BUFFER,skyBuf);
     var aP=gl.getAttribLocation(progS,'aP');
     gl.enableVertexAttribArray(aP);gl.vertexAttribPointer(aP,2,gl.FLOAT,false,0,0);
@@ -2574,13 +2612,13 @@ var GLW=(function(){
     dbg:function(){return {booted:booted,failed:failed,texset:texset,pend:pend,lastStage:lastStage,
       imgs:imgs.filter(Boolean).length,props:!!propsImg,wall:!!wallImg,ceil:!!ceilImg,
       err:(typeof window!=='undefined'&&window._glError)||null};},
-    draw:function(stage,wz,shift){
+    draw:function(stage,wz,shift,bend){
     if(failed)return false;
     if(!booted){boot();return false;}
     if(!texset)return false;
     try{
       if(stage!==lastStage){GLWORLD.seedProps(stage);lastStage=stage;}
-      GLWORLD.render(stage,wz,shift);
+      GLWORLD.render(stage,wz,shift,bend);
     }catch(e){failed=true;return false;}
     return true;
   }};
@@ -2672,10 +2710,14 @@ function drawT(){
   var vpX=W/2,vpY=H*0.34,gNear=H*0.90,corrW=W*0.62,laneW=W*0.185;
   FX.clearRect(0,0,W,H);
   var wz=GS.dist*T*2.4; // world scroll (matches entity speed mv=eff*2.4)
-  var tfx=t3.turnFx||0,tShift=0;
-  if(tfx!==0){var tp2=Math.abs(tfx)/22;tShift=Math.sin(tp2*Math.PI)*(tfx>0?1:-1)*90;}
-  // outdoor stages: real GL world rendered into #glC beneath this canvas
-  var glwOK=isOut&&GLW.draw(ai,wz,tShift*DPR);
+  // ── CORNER: the path bends, the camera yaws to follow it ──
+  // _TB is fixed by ONE readable quantity — how far the far plane sweeps —
+  // rather than by a magic pixel count, so it holds at any screen width.
+  _TB=(t3.bend||0)*TURN_FAR*W/(1400*1400*prjT(1400));
+  var tShift=-TURN_FOLLOW*bendPx(TURN_FOCUS);
+  // outdoor stages: real GL world rendered into #glC beneath this canvas.
+  // GL works in device pixels, the 2D layer in CSS pixels — hence both *DPR.
+  var glwOK=isOut&&GLW.draw(ai,wz,tShift*DPR,_TB*DPR);
   // ── controlled loading backdrop ──
   // Outdoor stages are GL-only. Until the world's textures stream in (or if WebGL
   // is unavailable) paint the stage's OWN sky→fog palette, so a slow load reads
@@ -2689,7 +2731,7 @@ function drawT(){
     FX.fillStyle=_bg;FX.fillRect(0,0,W,H);
   }
   // ── WHIMSY: sunshine god-rays streaming from the vanishing point ──
-  whimsyRays(vpX,vpY);
+  whimsyRays(vpX+tShift,vpY);
   // ── corner-turn camera swing: whole world shears sideways ──
   FX.save();
   if(tShift)FX.translate(tShift,0);
@@ -2742,8 +2784,9 @@ function drawT(){
     // even, subtle runway tint across ALL three lanes (was biased to the
     // middle, which read as a different 'water' centre lane)
     FX.fillStyle='rgba(255,246,225,0.055)';
-    FX.beginPath();FX.moveTo(vpX-laneW*2.5*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
-    FX.lineTo(vpX+laneW*2.5*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
+    var _rb=bendPx(1400);
+    FX.beginPath();FX.moveTo(vpX+_rb-laneW*2.5*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
+    FX.lineTo(vpX+_rb+laneW*2.5*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
     FX.lineTo(vpX+laneW*3.3,gNear+20);FX.lineTo(vpX-laneW*3.3,gNear+20);FX.closePath();FX.fill();
   }else if(isOut){
     // GL world still streaming: the clean loading backdrop is already painted
@@ -2952,7 +2995,7 @@ function drawT(){
   for(i=0;i<t3.coins.length;i++)ents.push(t3.coins[i]);
   ents.sort(function(a,b){return b.z-a.z;});
   for(i=0;i<ents.length;i++){var e=ents[i];if(e.z<-40||e.z>1450)continue;
-    var es=prjT(e.z),ey=vpY+(gNear-vpY)*es,ex=vpX+(e.lane||0)*laneW*es*2.6;
+    var es=prjT(e.z),ey=vpY+(gNear-vpY)*es,ex=vpX+bendPx(e.z)+(e.lane||0)*laneW*es*2.6;
     // CONTACT SHADOW — pins every object to the floor plane
     if(e.tp!=='turn'&&!e.hit){
       var shw=(e.tp==='low'||e.tp==='gate'||e.tp==='wall')?obW*es*1.0:24*es;
@@ -3161,7 +3204,14 @@ function drawT(){
   }
   FX.imageSmoothingEnabled=true;
   // ── HERO ──
-  var p=GS.p,hx=vpX+t3.laneX*laneW*2.6,hy=gNear-t3.py;
+  // She stays INSIDE the camera yaw. The corner is carried by the bend, which
+  // is zero at her depth — so nothing is lost by keeping her in register with
+  // the near ground, and a great deal is gained: collision is lane-based, and
+  // an obstacle passing her mid-swing would otherwise sit most of a lane off
+  // where it actually is. The turn she performs is the BANK, not a slide.
+  // The outward swing is deliberately small for the same reason.
+  var hbk=t3.bend||0;
+  var p=GS.p,hx=vpX+t3.laneX*laneW*2.6-hbk*laneW*0.16,hy=gNear-t3.py;
   // grounded shadow: stays on the floor, shrinks + fades as she rises — the jump-timing anchor
   var shA=Math.max(0.10,0.36-t3.py*0.0011),shW2=38*(1-Math.min(0.5,t3.py/340));
   FX.fillStyle='rgba(0,0,0,'+(shA*0.45)+')';FX.beginPath();FX.ellipse(hx,gNear+3,shW2*1.5,10,0,0,6.28);FX.fill();
@@ -3200,6 +3250,8 @@ function drawT(){
     if(!(IMG[bkNm]&&IMG[bkNm].complete&&IMG[bkNm].naturalWidth))bkNm=p.anim;
     var isBk=bkNm.slice(0,2)==='bk',spd2=SPRITES[bkNm];
     if(spd2&&IMG[bkNm]){var img=IMG[bkNm];
+      if(hbk){FX.save();FX.translate(hx,hy);FX.rotate(hbk*0.26);
+        FX.scale(1-Math.abs(hbk)*0.18,1);FX.translate(-hx,-hy);}
       var fr=bkFrame(bkNm,spd2);
       var fCols=spd2.cols||spd2.frames,fsx=(fr%fCols)*spd2.cw,fsy=Math.floor(fr/fCols)*spd2.ch;
       var dh=H*0.26*(t3.slid>0?0.72:1),sc2=dh/spd2.ch,dw=spd2.cw*sc2;
@@ -3226,9 +3278,10 @@ function drawT(){
       }
       FX.globalAlpha=1;
       FX.imageSmoothingEnabled=true;
+      if(hbk)FX.restore();
     }
   }
-  FX.restore(); // end turn-swing shear
+  FX.restore(); // end camera yaw
   // death bloom — she becomes music (screen space)
   stepNotes();drawNotes();
   // boost speedlines (screen space)
@@ -6399,6 +6452,18 @@ window._devMut=function(f){try{return f(GS,TC);}catch(e){return 'err: '+e.messag
 // overlap on screen, nor tell them from the static HUD drawn on top of them.
 window._devCards=function(){var st=CARD_DATA[GS.ai];if(!st)return null;var o={cam:Math.round(GS.camX),base:-GS.camX*CB_BASE};
   for(var i=0;i<st.cards.length;i++){var c=st.cards[i];o[c.n]=+( -GS.camX*CB_BASE+cardSep(GS.camX,c) ).toFixed(1);}return o;};
+// exact per-depth corner readout. A turn is depth-dependent BY DEFINITION —
+// that is the whole difference between it and the pan it replaced — and a
+// fogged far band has too little contrast to prove that by correlation alone.
+// Passing a bend also REDRAWS at that bend without advancing the world, so two
+// frames can be compared with the turn as the only difference between them.
+window._devTurn=function(b){var t3=GS.t3;
+  if(b!=null){t3.bend=b;try{draw();}catch(e){}}
+  var pan=-TURN_FOLLOW*bendPx(TURN_FOCUS);
+  var o={bend:+(t3.bend||0).toFixed(3),len:TURN_LEN,pan:+pan.toFixed(1)};
+  var zs=[0,60,242,500,993,1400];
+  for(var i=0;i<zs.length;i++)o['z'+zs[i]]=+(bendPx(zs[i])+pan).toFixed(1);
+  return o;};
 window._devState=function(){var t=GS.t3||{},p=GS.p||{};return {mode:MODE,ai:GS.ai,finale:GS.finale,won:GS.won,
   glwOK:(typeof glwOK!=='undefined')?glwOK:null,gl:(function(){try{return GLW.dbg();}catch(e){return null;}})(),
   zoom:ZOOM,VW:Math.round(VW),VH:Math.round(VH),camX:Math.round(GS.camX||0),
