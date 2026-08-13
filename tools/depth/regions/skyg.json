@@ -1,6 +1,4 @@
 [
- {"name":"sky",       "depth":0.05, "box":[0.00,0.00,1.00,1.00], "holes":false, "isSky":true},
- {"name":"nearisles", "depth":0.78, "box":[0.00,0.60,1.00,1.00], "maxArea":0.50},
- {"name":"midisles",  "depth":0.52, "box":[0.00,0.28,1.00,0.72], "maxArea":0.45},
- {"name":"farisles",  "depth":0.24, "box":[0.00,0.00,1.00,0.38], "maxArea":0.45}
+ {"name":"sky",    "depth":0.05, "box":[0.00,0.00,1.00,1.00], "holes":false, "isSky":true},
+ {"name":"isles",  "depth":0.70, "box":[0.00,0.00,1.00,1.00], "maxArea":0.30, "close":11, "fill":true}
 ]

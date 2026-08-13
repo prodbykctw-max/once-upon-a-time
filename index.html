@@ -3861,62 +3861,49 @@ function loadSideBG(){for(var k in SIDE_BG_DATA){(function(i){var im=new Image()
 // A stage with no entry here keeps the flat path — the two systems never both
 // run on the same stage.
 var CARD_DATA={
- 1:{w:768,h:384,base:'web/a8b293354798.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/46670187173b.webp'},
-   {n:'mountains', d:0.22,s:'web/65c1b365cc06.webp'},
-   {n:'hills',     d:0.42,s:'web/07226a888e46.webp'},
-   {n:'midtrees',  d:0.62,s:'web/5257a7aa59c7.webp'},
-   {n:'foretrees', d:0.80,s:'web/edcdd2241afe.webp'},
-   {n:'verge',     d:0.90,s:'web/d7005d2649ec.webp',strip:1}
+ 1:{w:768,h:384,base:'web/e2b04720e4fb.webp',cards:[
+   {n:'sky',         d:0.05,pv:0.367,s:'web/2c44655e80a0.webp'},
+   {n:'mountains',   d:0.20,pv:0.482,s:'web/6dbf67f51bb2.webp'},
+   {n:'farhills',    d:0.40,pv:0.615,s:'web/ddf300f9e48b.webp'},
+   {n:'nearbank',    d:0.78,pv:0.885,s:'web/b8a29ac0a89d.webp'},
+   {n:'verge',       d:0.90,s:'web/04dbb76f3a2c.webp'}
  ]},
- 2:{w:768,h:384,base:'web/87e8864bcb9f.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/3f509687bcbe.webp'},
-   {n:'fartrees',  d:0.30,s:'web/d8eee8b81b59.webp'},
-   {n:'canopy',    d:0.68,amp:13,frq:3.0,s:'web/b5986595b6f5.webp',wind:1},
-   {n:'trunks',    d:0.58,s:'web/c5e457f5df33.webp'},
-   {n:'path',      d:0.88,s:'web/ae424d8c7cc0.webp',strip:1}
+ 2:{w:768,h:384,base:'web/8a8a9388050e.webp',cards:[
+   {n:'trees',       d:0.74,pv:0.635,amp:13,frq:3.0,wind:1,s:'web/6b934e4d7eca.webp'},
+   {n:'verge',       d:0.80,pv:0.716,s:'web/be0639cd5360.webp'},
+   {n:'path',        d:0.92,s:'web/b138b37af273.webp'}
  ]},
- 3:{w:768,h:384,base:'web/3f78a8cbc643.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/e0a58669e9b6.webp'},
-   {n:'hedges',    d:0.35,s:'web/1b0d2411a708.webp',wind:1},
-   {n:'colonnade', d:0.62,s:'web/29a4ba0af7be.webp'},
-   {n:'fountains', d:0.85,s:'web/4c7fd1f104fa.webp'},
-   {n:'terrace',   d:0.92,s:'web/fb1b08ab7d9b.webp',strip:1}
+ 3:{w:768,h:384,base:'web/146f46b18719.webp',cards:[
+   {n:'rosehedge',   d:0.10,pv:0.224,s:'web/2342ae16ddb1.webp'},
+   {n:'upperwalk',   d:0.20,pv:0.362,s:'web/de489e63686f.webp'},
+   {n:'backhedge',   d:0.44,pv:0.682,wind:1,s:'web/9b2f61ca5d12.webp'},
+   {n:'colonnade',   d:0.62,pv:0.896,s:'web/a32aca9a5d0f.webp'},
+   {n:'foreground',  d:0.78,pv:0.917,s:'web/8e12c77a3d94.webp'},
+   {n:'terrace',     d:0.92,s:'web/94f31f8abc4a.webp'}
  ]},
- 4:{w:768,h:384,base:'web/b8a65f863904.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/629a31cd3b9a.webp'},
-   {n:'mountains', d:0.25,s:'web/5f804a05238b.webp'},
-   {n:'midhills',  d:0.45,s:'web/73b6fe8a848a.webp'},
-   {n:'willowL',   d:0.76,s:'web/7de95447eea8.webp',wind:1},
-   {n:'willowC',   d:0.74,s:'web/23b13c2f50fc.webp',wind:1},
-   {n:'willowR',   d:0.76,s:'web/ac2627eb3a56.webp',wind:1},
-   {n:'shore',     d:0.86,s:'web/879e3064b91f.webp',strip:1},
-   {n:'water',     d:0.92,s:'web/0645308caf10.webp',ripple:1}
+ 4:{w:768,h:384,base:'web/097cc0a4ee93.webp',cards:[
+   {n:'sky',         d:0.05,pv:0.354,s:'web/dd08defaf948.webp'},
+   {n:'mountains',   d:0.22,pv:0.534,s:'web/c8f7607fc895.webp'},
+   {n:'midhills',    d:0.42,pv:0.594,s:'web/dcd941d26a50.webp'},
+   {n:'willowL',     d:0.82,pv:0.609,wind:1,s:'web/5e50211bc53d.webp'},
+   {n:'willowC',     d:0.82,pv:0.586,wind:1,s:'web/60c26cf928ab.webp'},
+   {n:'willowR',     d:0.82,pv:0.589,wind:1,s:'web/ad426dc9bafe.webp'},
+   {n:'shore',       d:0.86,pv:0.641,s:'web/9a3cbddad0d3.webp'},
+   {n:'water',       d:0.94,ripple:1,s:'web/eff33591c45f.webp'}
  ]},
- 5:{w:768,h:768,base:'web/e0914a8dcd1f.webp',cards:[
-   {n:'farcover',  d:0.20,s:'web/6f1ecdf40b4b.webp'},
-   {n:'midcover',  d:0.50,s:'web/7f8e12cc4f2d.webp'},
-   {n:'nearcover', d:0.78,s:'web/18b2b27dea48.webp'},
-   {n:'ground',    d:0.92,s:'web/716d90bb864d.webp',strip:1}
+ 6:{w:768,h:384,base:'web/5f41a915ba54.webp',cards:[
+   {n:'sky',         d:0.05,pv:0.341,s:'web/452e971fcb5f.webp'},
+   {n:'farhills',    d:0.26,pv:0.401,s:'web/44cc6443ac27.webp'},
+   {n:'farfield',    d:0.52,pv:0.643,wind:1,s:'web/a084357207d5.webp'},
+   {n:'nearfield',   d:0.70,pv:0.940,wind:1,s:'web/cd2b28960d95.webp'},
+   {n:'verge',       d:0.90,s:'web/2793f41dcd32.webp'}
  ]},
- 6:{w:768,h:384,base:'web/369207315215.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/b2a233247950.webp'},
-   {n:'hills',     d:0.30,s:'web/d6d2fc0e2be2.webp'},
-   {n:'field',     d:0.65,s:'web/47d42e011d42.webp',wind:1},
-   {n:'verge',     d:0.90,s:'web/84e02d0bdece.webp',strip:1}
- ]},
- 7:{w:768,h:768,base:'web/6a1f24e2e61e.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/9c2c62b370d5.webp'},
-   {n:'farisles',  d:0.28,s:'web/3fa91154d177.webp'},
-   {n:'midisles',  d:0.55,s:'web/9562be853de3.webp'},
-   {n:'nearisles', d:0.80,s:'web/cf8092628453.webp'}
- ]},
- 8:{w:768,h:384,base:'web/c9de9a62ff1b.webp',cards:[
-   {n:'sky',       d:0.05,s:'web/5ef6e76f7c75.webp'},
-   {n:'mountains', d:0.20,s:'web/d88ab0a1d875.webp'},
-   {n:'castle',    d:0.45,s:'web/1746637eaa15.webp'},
-   {n:'river',     d:0.75,s:'web/ec6339bee4ed.webp',ripple:1},
-   {n:'foretrees', d:0.90,s:'web/24f683009739.webp',wind:1}
+ 8:{w:768,h:384,base:'web/fa2329127b63.webp',cards:[
+   {n:'sky',         d:0.05,pv:0.604,s:'web/c7342379493a.webp'},
+   {n:'castle',      d:0.38,pv:0.750,s:'web/1720a6a6ad2f.webp'},
+   {n:'grounds',     d:0.68,pv:0.820,s:'web/0407235ad904.webp'},
+   {n:'river',       d:0.80,pv:0.820,ripple:1,s:'web/597dbfa668bd.webp'},
+   {n:'foretrees',   d:0.92,wind:1,s:'web/354d28abe785.webp'}
  ]}
 };
 var CARD_IMG={},CARD_READY={};

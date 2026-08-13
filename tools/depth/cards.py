@@ -89,7 +89,25 @@ def pushpull(rgb, hole, levels=7):
         pyr_c[i] = pyr_c[i] * w + up_c * (1 - w)
         pyr_a[i] = np.maximum(pyr_a[i], up_a)
     safe = np.maximum(pyr_a[0], 1e-5)[..., None]
-    return np.clip(pyr_c[0] / safe, 0, 255).astype(np.uint8)
+    out = np.clip(pyr_c[0] / safe, 0, 255)
+    # WHERE THE PYRAMID NEVER REACHED A REAL PIXEL there is nothing to pull from,
+    # and the divide leaves black. That is not hypothetical: once the cards are
+    # grouped by ground plane they cover more of the frame, and Her Encore's
+    # cover 100% of it — its base came back 100.000% black, which showed in game
+    # as solid black holes in the sky wherever a card had moved off its cut
+    # position. Fall back to a heavy blur of the ORIGINAL there. The hole sits
+    # behind its own card at rest, so a soft approximately-right colour is
+    # invisible; black is not.
+    # Two ways to be wrong here. An alpha of exactly zero (nothing to pull from)
+    # and an alpha so small the divide amplifies it into near-black. The second
+    # is the one that survived the first fix — Golden Hour kept 1.375% black
+    # under a 1e-3 threshold — so test the OUTPUT as well as the weight: a fill
+    # that came back black where the original is not black is a failed fill.
+    weak = (pyr_a[0] < 0.02) | ((out.max(axis=2) < 14) & (luma(rgb) > 14))
+    if weak.any():
+        blur = cv2.GaussianBlur(rgb.astype(np.float32), (0, 0), max(rgb.shape[:2]) / 40.0)
+        out[weak] = blur[weak]
+    return out.astype(np.uint8)
 
 def main(src, tag, regions_json):
     bgr = cv2.imread(src, cv2.IMREAD_COLOR)
