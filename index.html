@@ -4414,12 +4414,21 @@ function drawCards(ai,cam,bw,bh,by,bandB,tick,amb){
       if(c.wind&&amb>0){
         // amp/frq are per CARD now. They used to be hardcoded 9.0/1.6 for every
         // wind card, so tuning the pink canopy meant tuning the willows too.
-        // Wind pivots at the BOTTOM OF THE MOVING MASS — the card's own base,
-        // which for a cut willow is where its trunk meets the shore. Shear is
-        // zero there and grows upward, so the trunk stays dead still and only
-        // the crown moves. Subdivided WITHIN the card, so sections of one crown
-        // drift out of step instead of the whole cutout leaning like a board.
-        var piv=cy+ch,sub=4,sw2=cw/sub;
+        // Wind pivots at the BOTTOM OF THE MOVING MASS — where the trunk meets
+        // the ground. Shear is zero there and grows upward, so the trunk stays
+        // dead still and only the crown moves. Subdivided WITHIN the card, so
+        // sections of one crown drift out of step instead of the whole cutout
+        // leaning like a board.
+        //
+        // c.pv IS NOT OPTIONAL POLISH. When cards were cropped to their content,
+        // cy+ch WAS the trunk line and this read correctly. Going full-frame
+        // (which fixed the mirrored-tile displacement) silently moved every
+        // pivot to the bottom of the PLATE, so a willow rooted at 0.66 of the
+        // frame got 34% of the full swing at its own trunk — about 7px of the
+        // tree sliding along the shore it is planted in. pv is the measured
+        // bottom of the card's content, written by tools/depth/pack.py, and it
+        // puts the pivot back on the roots.
+        var piv=cy+ch*(c.pv||1),sub=4,sw2=cw/sub;
         for(var q=0;q<sub;q++){
           var k=_lbWindK(cx+q*sw2+sw2*0.5,c.amp||9.0,c.frq||1.6,tick,amb);
           if(k>LB_KMAX)k=LB_KMAX;else if(k<-LB_KMAX)k=-LB_KMAX;

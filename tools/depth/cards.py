@@ -6,6 +6,9 @@ Section 2 of the Techniques doc, followed rather than reinvented:
   * group masks into a region by 70% CONTAINMENT, never by centroid (a centroid
     rule put the sky on a column card, because the sky's centroid happened to
     land inside the column's box)
+  * regions are listed MOST SPECIFIC FIRST and overlaps resolve in that order,
+    but cards are emitted sorted by DEPTH — claim priority and draw order are
+    different axes
   * flood-fill the sky ONCE from the frame border inward, seeded a few px IN,
     because plates vignette to black at the edge and a border-row seed finds no
     sky at all
@@ -154,10 +157,17 @@ def main(src, tag, regions_json):
         print(f'  {r["name"]:14s} depth {r["depth"]:.2f}  {used:3d} masks  {100*acc.mean():5.2f}% of plate', flush=True)
 
     # ── ASSIGNMENT MAP — look at this before wiring anything ──
+    # Paint from `assign`, NOT by stamping each card's raw mask in turn. Region
+    # masks OVERLAP — that is the normal case, it is what the exclusivity pass
+    # downstream exists to resolve — so stamping them in order shows whichever
+    # region came LAST, not the one that actually wins the pixel. This map read
+    # "the hills own all three willows" while the cut was in fact giving the
+    # willows their own cards correctly. A diagnostic that lies is worse than
+    # none: `assign` is already first-claim-wins, so read it.
     pal = [(255,90,90),(90,200,255),(255,210,80),(150,255,150),(220,140,255),(255,160,60),(120,255,220),(255,120,180)]
     amap = (rgb * 0.30).astype(np.uint8)
     for i, c in enumerate(cards):
-        amap[c['mask']] = pal[i % len(pal)]
+        amap[assign == i] = pal[i % len(pal)]
     cv2.imwrite(f'{OUT}/{tag}_assign.png', cv2.cvtColor(amap, cv2.COLOR_RGB2BGR))
 
     # ── cards + inpainted base ──
@@ -181,7 +191,15 @@ def main(src, tag, regions_json):
         x0, y0, x1, y1 = c['crop']
         cv2.imwrite(f'{OUT}/{tag}_{c["name"]}.png',
                     cv2.cvtColor(rgba[y0:y1, x0:x1], cv2.COLOR_RGBA2BGRA))
+    # CLAIM ORDER AND DRAW ORDER ARE DIFFERENT AXES, and conflating them is a
+    # trap this cut walked straight into. Regions are listed MOST SPECIFIC FIRST
+    # so a willow beats the hillside behind it — but that same order would then
+    # draw the willow behind the hill. Widening the hills box once was enough to
+    # make it swallow all three willows and drop them from the cut entirely.
+    # So: overlaps resolve in LIST order, output is sorted by DEPTH.
+    kept.sort(key=lambda c: c['depth'])
     cards = kept
+    print(f'{tag}: draw order ' + ' -> '.join(c['name'] for c in cards), flush=True)
     base = pushpull(rgb, taken)
     cv2.imwrite(f'{OUT}/{tag}_base.png', cv2.cvtColor(base, cv2.COLOR_RGB2BGR))
 

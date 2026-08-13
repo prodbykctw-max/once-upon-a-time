@@ -4,7 +4,12 @@ Cut a flat painted backdrop into depth cards.
 
 Follows the method in prodbyKCTW's "Techniques" doc, section 2, rather than
 improvising:
-  * two passes, coarse then fine, merged at IoU < 0.75
+  * COARSE, MEDIUM and FINE (client, 2026-08-13: "let's do the coarse medium
+    fine recut"), cascaded and merged at IoU < 0.75. The middle tier is the one
+    that matters for depth cards: coarse returns whole masses and fine returns
+    fragments, while a usable card is an OBJECT — one tree, one hedge, one arch.
+    Two tiers meant those had to be assembled out of fragments or carved out of
+    a mass, which is what made the layering read wrong.
   * text is found by lowering the AREA FLOOR and CONFIDENCE, never by raising
     the sampling grid (measured there: 28 -> 48 moved coverage 85.0 -> 86.0
     while the lettering stayed missing)
@@ -15,7 +20,9 @@ int32 casting is not optional. This box runs NumPy 2.4, where an int16 array
 times a Python int stays int16, so r*299 + g*587 + b*114 wraps negative for any
 red above 109. That bug is why this file weights luminance in int32 only.
 """
-import sys, os, json, numpy as np, cv2, torch
+import sys, os, json, time, numpy as np, cv2, torch
+
+TIERS = ('coarse', 'medium', 'fine')
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator
 
 CKPT = '/tmp/sam/sam_vit_b.pth'
@@ -32,8 +39,8 @@ def iou(a, b):
         return 0.0
     return inter / float(np.count_nonzero(a | b))
 
-def gen(sam, coarse, dense=False):
-    if dense and not coarse:
+def gen(sam, tier, dense=False):
+    if dense and tier != 'coarse':
         # DENSE PLATES (library book spines, fungal glade, sunflower field, sky
         # islands) came in at 62-74% where the open ones hit 91-94%. The doc is
         # right that raising points_per_side does not help — but crop_n_layers is
@@ -45,10 +52,20 @@ def gen(sam, coarse, dense=False):
             sam, points_per_side=28, pred_iou_thresh=0.62,
             stability_score_thresh=0.74, min_mask_region_area=25,
             crop_n_layers=1, crop_n_points_downscale_factor=2)
-    if coarse:
+    if tier == 'coarse':
         return SamAutomaticMaskGenerator(
             sam, points_per_side=28, pred_iou_thresh=0.88,
             stability_score_thresh=0.95, min_mask_region_area=1800,
+            crop_n_layers=0)
+    if tier == 'medium':
+        # THE OBJECT TIER. Its area floor is the whole point: 400px at this scale
+        # is about a single tree crown or one arch of a colonnade — big enough to
+        # be a thing you would put on its own pane, small enough that it is not
+        # the entire treeline. Confidence sits between the other two so it takes
+        # solid objects without the fine tier's speculative fragments.
+        return SamAutomaticMaskGenerator(
+            sam, points_per_side=28, pred_iou_thresh=0.80,
+            stability_score_thresh=0.88, min_mask_region_area=400,
             crop_n_layers=0)
     # FINE: same grid on purpose. The doc is explicit that the grid is not what
     # finds lettering — the area floor and the confidence bar are.
@@ -73,27 +90,33 @@ def main(src, tag, dense=False):
     sam.to('cpu')
 
     res = {}
-    for name in ('coarse', 'fine'):
-        m = gen(sam, name == 'coarse', DENSE).generate(rgb)
+    for name in TIERS:
+        t0 = time.time()
+        m = gen(sam, name, DENSE).generate(rgb)
         m.sort(key=lambda d: -d['area'])
         res[name] = m
         cov = np.zeros((H, W), bool)
         for d in m:
             cov |= d['segmentation']
-        print(f'{tag}: {name:6s} {len(m):4d} masks, coverage {100*cov.mean():.1f}%', flush=True)
+        print(f'{tag}: {name:6s} {len(m):4d} masks, coverage {100*cov.mean():.1f}%'
+              f'  ({time.time()-t0:.0f}s)', flush=True)
 
-    # merge — keep every coarse mask, add a fine one only if it is not already
-    # saying the same thing as some coarse mask
+    # CASCADE. Each tier is compared against everything KEPT SO FAR, not just
+    # against coarse. With only two tiers that distinction did not exist; with
+    # three it does, and skipping it lets medium and fine both contribute their
+    # own copy of the same object.
     merged = list(res['coarse'])
-    added = 0
-    for d in res['fine']:
-        s = d['segmentation']
-        if all(iou(s, c['segmentation']) < 0.75 for c in res['coarse']):
-            merged.append(d); added += 1
+    for name in TIERS[1:]:
+        added = 0
+        for d in res[name]:
+            s2 = d['segmentation']
+            if all(iou(s2, c['segmentation']) < 0.75 for c in merged):
+                merged.append(d); added += 1
+        print(f'{tag}: +{added:4d} from {name}', flush=True)
     cov = np.zeros((H, W), bool)
     for d in merged:
         cov |= d['segmentation']
-    print(f'{tag}: merged {len(merged):4d} masks (+{added} fine), coverage {100*cov.mean():.1f}%', flush=True)
+    print(f'{tag}: merged {len(merged):4d} masks, coverage {100*cov.mean():.1f}%', flush=True)
 
     # NEGATIVE SPACE, scored by local contrast. Reviewing what was FOUND only
     # ever shows what was found; this is the view that shows the misses.
