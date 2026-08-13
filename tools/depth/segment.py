@@ -40,39 +40,37 @@ def iou(a, b):
     return inter / float(np.count_nonzero(a | b))
 
 def gen(sam, tier, dense=False):
-    if dense and tier != 'coarse':
-        # DENSE PLATES (library book spines, fungal glade, sunflower field, sky
-        # islands) came in at 62-74% where the open ones hit 91-94%. The doc is
-        # right that raising points_per_side does not help — but crop_n_layers is
-        # a different lever: it re-runs SAM on sub-CROPS, so each region is seen
-        # at higher EFFECTIVE resolution rather than just sampled more often.
-        # Paired with a lower area floor and confidence bar, which is what the
-        # doc says actually finds small detail.
-        return SamAutomaticMaskGenerator(
-            sam, points_per_side=28, pred_iou_thresh=0.62,
-            stability_score_thresh=0.74, min_mask_region_area=25,
-            crop_n_layers=1, crop_n_points_downscale_factor=2)
+    """One generator per tier. `dense` adds crop_n_layers on top of the tier's
+    own thresholds — it is NOT a tier of its own.
+
+    Getting that wrong cost a plate: the first three-tier version returned the
+    same dense generator for both medium and fine, so on the Golden Hour they
+    produced byte-identical output (601 masks each, fine contributing 0 new) and
+    the fine pass burned 400s duplicating the medium one.
+
+    crop_n_layers re-runs SAM on sub-CROPS, so each region is seen at higher
+    EFFECTIVE resolution rather than just sampled more often. That is the lever
+    for dense plates (library spines, fungal glade, sunflower field, sky isles),
+    which came in at 62-74% where open ones hit 91-94%. Raising points_per_side
+    is NOT the lever — the doc measured 28 -> 48 moving coverage 85.0 -> 86.0
+    while the lettering stayed missing.
+    """
     if tier == 'coarse':
-        return SamAutomaticMaskGenerator(
-            sam, points_per_side=28, pred_iou_thresh=0.88,
-            stability_score_thresh=0.95, min_mask_region_area=1800,
-            crop_n_layers=0)
-    if tier == 'medium':
+        iou, stab, area = 0.88, 0.95, 1800
+    elif tier == 'medium':
         # THE OBJECT TIER. Its area floor is the whole point: 400px at this scale
-        # is about a single tree crown or one arch of a colonnade — big enough to
-        # be a thing you would put on its own pane, small enough that it is not
-        # the entire treeline. Confidence sits between the other two so it takes
-        # solid objects without the fine tier's speculative fragments.
-        return SamAutomaticMaskGenerator(
-            sam, points_per_side=28, pred_iou_thresh=0.80,
-            stability_score_thresh=0.88, min_mask_region_area=400,
-            crop_n_layers=0)
-    # FINE: same grid on purpose. The doc is explicit that the grid is not what
-    # finds lettering — the area floor and the confidence bar are.
+        # is about one tree crown or one arch, big enough to be a thing you would
+        # put on its own pane and small enough not to be the entire treeline.
+        iou, stab, area = 0.80, 0.88, 400
+    else:
+        # FINE: same grid on purpose. The doc is explicit that the grid is not
+        # what finds small detail — the area floor and confidence bar are.
+        iou, stab, area = (0.62, 0.74, 25) if dense else (0.68, 0.80, 60)
     return SamAutomaticMaskGenerator(
-        sam, points_per_side=28, pred_iou_thresh=0.68,
-        stability_score_thresh=0.80, min_mask_region_area=60,
-        crop_n_layers=0)
+        sam, points_per_side=28, pred_iou_thresh=iou,
+        stability_score_thresh=stab, min_mask_region_area=area,
+        crop_n_layers=(1 if (dense and tier != 'coarse') else 0),
+        crop_n_points_downscale_factor=2)
 
 def main(src, tag, dense=False):
     global DENSE
