@@ -33,7 +33,15 @@ STAGES = {
     3: ('rose',   {'backhedge': 'wind:1', 'terrace': 'strip:1'}),
     4: ('lake',   {'willowL': 'wind:1', 'willowC': 'wind:1', 'willowR': 'wind:1',
                    'shore': 'strip:1', 'water': 'ripple:1'}),
-    5: ('glade',  {'ground': 'strip:1'}),
+    # 5 THE WISHING GLADE — deliberately NOT cut. Its cut ran fine (510 masks,
+    #   recompose 0.000%) and is discarded, exactly like the library's. The plate
+    #   is a tiling wallpaper, not a space: median clump area per horizontal band
+    #   measures 3177 / 2233 / 2351 / 2439 px, i.e. FLAT, with the topmost band
+    #   holding the LARGEST clumps. A painting with depth shrinks its motif as it
+    #   recedes; this one does not, so there is no depth in it to cut. Banding it
+    #   anyway would shear the 32% of the plate that is continuous foliage
+    #   between the clumps, and put a seam through unbroken growth wherever a
+    #   band boundary fell. Stage 5 keeps the flat living-backdrop path.
     6: ('golden', {'farfield': 'wind:1', 'nearfield': 'wind:1', 'verge': 'strip:1'}),
     7: ('skyg',   {}),
     8: ('encore', {'foretrees': 'wind:1', 'river': 'ripple:1'}),
