@@ -1785,7 +1785,7 @@ function update(){
 
   // ── ANIMATION (idle + dance easter egg when she stands still) ──
   var newAnim=GS.levelClear?'dance':p.atkT>0?(p.belt?'belt':p.downbeat?'downstrike':'attack'):p.dashing?'dash':p.refraining?'refrain':!p.onGround?'jump':p.sliding?'dash':Math.abs(p.vx)>0.6?'run':(p.idleT>420?'dance':'idle');
-  if(newAnim!==p.anim){p.anim=newAnim;p.frame=0;p.animT=0;}
+  if(newAnim!==p.anim){p.anim=newAnim;p.frame=0;p.animT=0;p.idleI=0;p.idleBeat=false;p.idleN=0;}
   p.idleT=(p.onGround&&Math.abs(p.vx)<0.6&&p.atkT<=0)?p.idleT+1:0;
   // ── IDLE BREATHING — measured, then timed to a real cadence ────────────────
   // Client: "she's breathing too fast and she's bending like a hunch and over
@@ -1811,16 +1811,57 @@ function update(){
   // 224 ticks total = 3.7s = 16 breaths/min, with the hunched pose on screen ~11%
   // of the loop instead of 33%. No frames dropped; none of the art is discarded.
   //
-  // Slowing a 6-frame loop this far would normally turn it into a slideshow, so
-  // p.animF carries the sub-frame position and drawHero cross-fades between the
-  // current frame and the next. That is what makes the slow cadence possible.
-  var HOLD_IDLE=[70,30,12,12,30,70];
+  // ── CORRECTION, 2026-08-13. Client: "it's like she's standing beside herself,
+  // splitting into a separate person to bend over and breathe."
+  //
+  // Two mistakes, and the first is what forced the second.
+  //
+  // 1. SLOWING THE LOOP WAS NOT ENOUGH, because the sheet is not a breath cycle.
+  //    Re-measured per frame (alpha bbox of web/865c17b4dacb.png):
+  //      frame 0  head y=2   h=149  w=77   <- rest
+  //      frame 1  head y=4   h=147  w=77   <- a 2px settle: the actual breath
+  //      frame 2  head y=11  h=139  w=83   <- a DEEP bend from the waist
+  //      frame 3  head y=9   h=142  w=84   <- still bent
+  //      frame 4  head y=2   h=149  w=77   <- rest again
+  //      frame 5  head y=2   h=149  w=77   <- rest again
+  //    0, 4 and 5 are the SAME pose. This is a bow-and-recover with three rest
+  //    frames on the end, not a six-phase breath — so looping it at ANY speed
+  //    makes her bow over and over. Slowing it only made each bow slower.
+  //
+  // 2. CROSS-FADING DISCRETE POSES DRAWS BOTH OF THEM. The blend laid frame 2
+  //    (bent) over frame 1 (upright) at partial alpha, and because the base
+  //    frame stays fully opaque the UNION of the two silhouettes is always
+  //    visible. That is the second person. No alpha value fixes it: a
+  //    cross-dissolve between two poses is a double exposure, not an in-between.
+  //
+  // So: BREATHE on 0<->1 — a 2px settle, about 1px at her drawn size, which is
+  // the scale a quiet idle actually moves at — and demote the deep bend to an
+  // occasional BEAT, so the pose still gets used without her bowing on a loop.
+  var IDLE_BREATH=[[0,150],[1,96]];                      // 246 ticks = 4.1s = ~15/min
+  var IDLE_BEAT=[[1,9],[2,15],[3,20],[2,13],[1,9]];      // 66 ticks = 1.1s of lean
+  // ONE beat per idle stint, and that is not a guess: she flips to the dance
+  // easter egg at p.idleT>420, so standing still only ever yields 420 ticks =
+  // 7s of idle. At 246 ticks a breath that is 1.7 breaths — a counter of 4 would
+  // have meant the deep bend never played at all. At 1 it lands once, at ~4.1s,
+  // and the dance takes over before it could come round again.
+  var IDLE_BEAT_EVERY=1;
   var spd={idle:9,run:4,jump:7,dash:4,attack:2,dance:6,belt:3,downstrike:3,refrain:8}[p.anim]||6;
-  if(p.anim==='idle')spd=HOLD_IDLE[p.frame%HOLD_IDLE.length];
-  p.animT++;
-  p.animF=(p.anim==='idle')?(p.animT/spd):0;      // 0..1 through the current frame
-  if(p.animT>=spd){p.animT=0;var nf=SPRITES[p.anim].frames;
-    if(p.anim==='jump'||p.anim==='attack'){p.frame=Math.min(p.frame+1,nf-1);}else p.frame=(p.frame+1)%nf;}
+  if(p.anim==='idle'){
+    var _sq=p.idleBeat?IDLE_BEAT:IDLE_BREATH;
+    if(!(p.idleI>=0)||p.idleI>=_sq.length)p.idleI=0;
+    p.frame=_sq[p.idleI][0];
+    p.animT++;
+    if(p.animT>=_sq[p.idleI][1]){
+      p.animT=0;p.idleI++;
+      if(p.idleI>=_sq.length){p.idleI=0;
+        if(p.idleBeat){p.idleBeat=false;p.idleN=0;}
+        else if((p.idleN=(p.idleN||0)+1)>=IDLE_BEAT_EVERY)p.idleBeat=true;}
+    }
+  }else{
+    p.animT++;
+    if(p.animT>=spd){p.animT=0;var nf=SPRITES[p.anim].frames;
+      if(p.anim==='jump'||p.anim==='attack'){p.frame=Math.min(p.frame+1,nf-1);}else p.frame=(p.frame+1)%nf;}
+  }
 
   // ── CAMERA: leads in the direction she faces ──
   var lead=p.faceL?0.62:0.38;
@@ -5958,20 +5999,11 @@ function drawHero(p){
   if(p.faceL){FX.translate(dx+drawW,0);FX.scale(-1,1);FX.translate(-dx,0);}
   FX.imageSmoothingEnabled=true;
   FX.drawImage(img, fr*cw, 0, cw-4, ch, dx, dy, drawW, drawH);
-  // IDLE CROSS-FADE. The breath is held for up to 70 ticks a frame now, which on
-  // six discrete poses would read as a slideshow — the frames would step rather
-  // than breathe. Blend the NEXT frame in across the hold so the pose moves
-  // continuously. Idle only: every other animation is fast enough that its steps
-  // are already invisible, and cross-fading an attack would smear it.
-  // Eased, not linear — a breath accelerates out of stillness and settles back.
-  if(p.anim==='idle'&&p.animF>0.001&&!p.dashing){
-    var t2=p.animF,e2=t2*t2*(3-2*t2);              // smoothstep
-    if(e2>0.004){
-      FX.globalAlpha=e2;
-      FX.drawImage(img, ((fr+1)%sp.frames)*cw, 0, cw-4, ch, dx, dy, drawW, drawH);
-      FX.globalAlpha=1;
-    }
-  }
+  // NO CROSS-FADE HERE, deliberately. Blending the next idle frame over this one
+  // does not make an in-between pose — the base frame stays opaque, so the union
+  // of both silhouettes shows and she reads as two overlapping people. See the
+  // idle-sequence note in update(): the smooth cadence comes from WHICH frames
+  // are used and for how long, never from dissolving between them.
   FX.restore();FX.globalAlpha=1;
   // scream rings when firing wave
   if(p.screamT>0){var srt=18-p.screamT;FX.strokeStyle='rgba(200,160,255,'+(p.screamT/18*0.8)+')';FX.lineWidth=2;var mx=p.x+(p.faceL?2:PW-2),my=p.y+PH*0.2;for(var sr=0;sr<3;sr++){var rr=srt*2+sr*8;FX.beginPath();FX.arc(mx,my,rr,p.faceL?2.4:-0.7,p.faceL?3.9:0.7);FX.stroke();}}
