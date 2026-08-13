@@ -22,6 +22,37 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🔄 08-13 (cloud session) — ROYAL RUNNER CORNERS ACTUALLY TURN (`4cb33bf`)
+Client: *"when you have to swipe to turn left or right, the character and stage
+should actually turn."*
+
+**The old corner was geometrically the wrong effect, not a weak one.** It slid
+the whole frame 90px sideways. In the runner's projection (`sx = W/2 + wx*s`,
+`s = 300/(300+z)`) a camera yaw displaces every vertex by `300*theta` — the SAME
+pixel count at every depth — so the slide already WAS a yaw, and a yaw here is
+indistinguishable from a pan. Near and far move together; nothing rotates.
+
+**Now the PATH BENDS**: `wx += uBend*z*z` in the shared GLSL `PROJ` string, so
+terrain, grass, the prop avenue and the library's hall curve together. The ground
+at her feet sweeps one way, the path ahead swings the other, and the camera yaws
+into it. Obstacles and coins ride the bend. She banks — pivoting at her FEET, not
+her centre.
+
+- She stays INSIDE the camera yaw **on purpose**: the bend is zero at her depth,
+  and collision is lane-based — drawn outside it an obstacle passing mid-swing
+  sits ~0.6 of a lane off where it really is.
+- The terrain grew a skirt to +-7 so it still covers the frame once it swings.
+  The original 31 columns keep their exact x (hill height is per-vertex and
+  interpolated — re-spacing them moves the silhouette with nothing turning), and
+  the hill profile is clamped at its old maximum so the skirt does not rear up.
+- **`_devTurn(bend)`** is the new hook: exact per-depth shift, and it redraws at
+  that bend WITHOUT advancing the world, so a controlled pair can be captured.
+
+**The control is the finding.** A uniform 90px pan of the same frame measures
+-42px in all four depth bands at r=1.00. The turn measures -25 / -34 / -16 / +28
+— four different numbers, crossing sign with depth. A pan cannot do that.
+Frame cost unchanged (1.0-1.6ms). Spec: `docs/CORNER_TURN.md`.
+
 ## 🔑 08-12 (cloud session) — AUTOSPRITE: it's the key, nothing else
 Client: *"diagnose that AutoSprite situation, you should just be able to go to
 the website."* He's right — and the website is not the problem either.

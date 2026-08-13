@@ -805,6 +805,47 @@ for the parallax and SAM cutting to be lifted from it. What shipped:
   added; only five characters bleed red, all of them flesh. *(`4618719`,
   `4e5bd29`.)*
 
+### Era VI, eighth pass — the runner's corners (August 13)
+
+**Client:** *"when you have to swipe to turn left or right, the character and
+stage should actually turn."*
+
+The old corner slid the whole frame 90px sideways over 22 frames. That was not a
+weak version of a turn — it was the wrong operation. In the runner's projection
+(`sx = W/2 + wx*s`, `s = 300/(300+z)`) a camera yaw `th` displaces every vertex
+by `th*(300+z)*s = 300*th`: **the same number of pixels at every depth**. The
+slide already WAS a yaw, and a yaw here is a pan. Near and far move together, and
+parallax is the only thing the eye reads a rotation from.
+
+What shipped is the pseudo-3D road curve — `wx += uBend*z*z`, added to the shared
+GLSL `PROJ` string so terrain, grass, the prop avenue and the library hall all
+bend together — with the camera yawing into it so the corner stays framed.
+Obstacles and coins are on the path and ride it round. The swing runs 30 frames
+on a front-loaded envelope, so a corner arrives and settles onto a new heading
+instead of wobbling out and back.
+
+Jande banks, pivoting at her **feet** (about the sprite centre her boots swing
+~30px and unstick from the floor), with a horizontal pinch standing in for
+shoulders coming round — the back-view sheet has no turned frames. She stays
+INSIDE the camera yaw, which reverses the first attempt: it is more correct
+cinematically to hold her still while the world turns, but the bend is zero at
+her depth so nothing is lost, and **collision is lane-based** — outside the yaw
+an obstacle passing her mid-swing sits ~0.6 of a lane from where it actually is.
+
+The ground plane grew a skirt to +-7 so it still covers the frame once it swings,
+with two rules learned on the way: the original 31 columns keep their exact x
+(hill height is per-vertex and interpolated, so re-spacing a wider mesh moves the
+terrain silhouette with nothing turning), and the hill profile is clamped at its
+old maximum or the new outer rows rear up as cliffs.
+
+**The control is the finding.** A uniform 90px pan of the same frame — the old
+corner — measures -42px in all four depth bands at r=1.00. The turn measures
+-25 / -34 / -16 / +28 across those bands: four different numbers, crossing sign
+with depth. A pan cannot do that. `_devTurn()` gives the exact per-depth figures
+and redraws without advancing the world; end-to-end, a swiped corner ran the bend
+0 -> 1 -> 0 over 30 frames and scored. Stages 0, 4 and 7 clean, frame cost
+unchanged. Spec: `docs/CORNER_TURN.md`. *(`4cb33bf`.)*
+
 **AutoSprite, diagnosed (Aug 12).** The blocker is *only* the credential. From
 this container `www.autosprite.io/api/mcp` initializes and lists all 30 tools
 unauthenticated; `tools/call` returns *"Unauthorized: provide an MCP API key."*

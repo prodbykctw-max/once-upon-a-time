@@ -71,6 +71,8 @@ and **hard-aborts if anything sensitive is staged**.
 - **Living backdrops:** `LIVEBG[]` + `_lbTile` / `_lbTileSlice` / `_lbDisp` /
   `drawBGLife`, all inside `drawMansionBG`'s painted-backdrop branch.
 - **In front of her:** `drawForeground` + `FORE[]` — the near plane, drawn after\n  the world transform in `draw()`.\n- **Runner:** `updateT` / `drawT` + the GLWORLD engine and `GLWDATA`.
+- **Runner corners:** `TURN_LEN/FAR/FOLLOW/FOCUS` + `bendPx` (next to `prjT`),
+  `t3.bend`, and `uBend` inside the shared GLSL `PROJ` string.
 - **Atlases:** `TEXDATA`→`TEX` — `walls, floors, decor, chaser, foes (136×152),
   items, boss (200×280, 9×9 idle+defeat), props`.
 - **Persistence:** `jande_maps`, `jande_clears`, `jande_shop`, `jande_settings`,
@@ -193,6 +195,16 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   space (pits drop her through it), so anything added there must read at speed,
   stay darker than the hero, and go still under `body.rm` (multiply animated
   terms by `amb`).
+- **A camera yaw in the runner IS a pan — do not "simplify" the corner bend
+  back into `uShift`.** The runner projects with `sx = W/2 + wx*s`,
+  `s = 300/(300+z)`, so a yaw `th` displaces every vertex by
+  `th*(300+z)*s = 300*th` — the SAME pixel count at every depth. That is why the
+  old 90px corner slide could never read as a turn no matter how it was tuned. A
+  corner needs the **path to bend**: `wx += uBend*z*z`, which is zero at her feet
+  and grows with depth, so near ground sweeps one way and the path ahead swings
+  the other. It lives in the shared `PROJ` string so terrain, grass, props and the
+  hall curve together. She stays INSIDE the camera yaw because collision is
+  lane-based. Spec: `docs/CORNER_TURN.md`.
 - **Screen-vs-world is THE recurring bug of this project — seven instances so
   far.** Décor baseline, runner hazards, backdrop seams, ground slab, wordmark,
   the abyss gradient, the lyric line. Before pinning any quantity to `W`, `H`, or
