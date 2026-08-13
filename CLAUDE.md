@@ -164,7 +164,24 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
 - **Butterflies, sparkles and birds are OUTDOOR-ONLY** (`LIVEBG[ai].in`). They were
   drawing inside the library; the client called it out. Interiors get window
   shafts and dust, nothing winged.
-- **Stages 1-8 EXCEPT 0 are MULTIPLANE — `CARD_DATA` + `drawCards`.** An inpainted
+- **Group cards by GROUND PLANE, not by object** (re-cut, 08-13). A thing and
+  the ground it stands on share a card unless it is genuinely nearer. The first
+  cut had the Petal Mile's blossom moving FASTER than its own trunks and the
+  Meadow's trees 0.36 of depth from their hillside — clean cuts, wrong layering,
+  which is most of what "the layering doesn't make sense" meant. Three times the
+  fix was MERGING two specced cards, never tuning the boundary. Corollaries:
+  claim order and draw order are different axes (list near planes early, emit by
+  depth); the number of usable planes is set by the PAINTING; and **`strip:1` is
+  retired** — ground-plane grouping puts objects into every ground band, so none
+  is featureless enough to qualify.
+- **A card's wind pivot is `pv`, measured, not the card's rect.** Cards are
+  full-frame, so the shear's zero point is the bottom of the PLATE unless `pv`
+  says otherwise — a willow rooted at 0.64 of the frame swings at its own trunk.
+- **Two plates are flat BY MEASUREMENT, like the library** — 5 Wishing Glade and
+  7 Sky Gardens. Median motif area per horizontal band is level (the Glade's top
+  band is the largest), so there is no depth in them to cut and banding them
+  would shear continuous foliage. Test before cutting a repeating plate.
+- **Stages 1-8 EXCEPT 0, 5 and 7 are MULTIPLANE — `CARD_DATA` + `drawCards`.** An inpainted
   base plate plus cut cards, each on its own rate:
   `rate = BASE + (depth-0.5)*SPREAD` with BASE 0.045, SPREAD 0.010, separation
   clamped to +/-80px. **The spread must stay TINY** — wide spreads read as the set

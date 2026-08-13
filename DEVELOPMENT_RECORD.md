@@ -805,6 +805,66 @@ for the parallax and SAM cutting to be lifted from it. What shipped:
   added; only five characters bleed red, all of them flesh. *(`4618719`,
   `4e5bd29`.)*
 
+### Era VI, ninth pass — the coarse/medium/fine re-cut, and her idle (August 13)
+
+**Client:** *"Let's do the coarse medium fine recut"* and *"Jandé appears to be
+glitching with the breasts — it's like she's standing beside herself, splitting
+into a separate person to bend over and breathe."*
+
+**The idle** shipped first, being a live bug. Two mistakes, the first forcing the
+second. The sheet is not a breath cycle: measured per frame, 0, 4 and 5 are the
+SAME upright pose, 1 is a 2px settle, and 2 and 3 are a deep bend from the waist
+— a bow-and-recover with three rest frames on the end. Looping it makes her bow
+repeatedly at any speed, so the previous pass's slowdown only made each bow
+slower. The cross-fade added to stop the slow loop reading as a slideshow then
+drew both poses at once — the base frame stays opaque, so the union of the two
+silhouettes is always visible, and that was the second person. There is no alpha
+that fixes a cross-dissolve between two poses. She now breathes on 0<->1 at
+~15/min, with the deep bend demoted to one occasional beat sized to the 7s of
+idle the dance easter egg actually allows.
+
+**The re-cut.** Six stages multiplane (1, 2, 3, 4, 6, 8), three flat, 38 assets
+replacing 49. The third SAM tier earned its place — coarse alone reaches 55.7%
+on the meadow where medium reaches 85.9%, and coarse cannot resolve gradual
+rolling hills at all (Rose Waltz 51.3/81.3, Encore 21.1/82.5). But **almost every
+defect that showed on screen was layering or tooling, not cutting**, and the list
+is the value of the pass:
+
+- Blossom at depth 0.68 over its own trunks at 0.58; foreground trees 0.36 of
+  depth from their hillside. Hence the rule: **group by ground plane, not by
+  object.** Three times the fix was merging two specced cards rather than tuning
+  the boundary between them.
+- **Claim order and draw order were the same list.** Regions must be listed
+  most-specific-first, but that also drew the willow behind the hill; one widened
+  box then swallowed all three lake willows and dropped them from the cut.
+- **The assignment map lied, twice** — first stamping overlapping masks in order
+  (showing the last claimer, not the winner), then indexing by card where the
+  data is indexed by region. A diagnostic that lies is worse than none.
+- SAM finds blossom and misses branches; finds sunflower heads and misses stems.
+  Both left the plant's body in the base for its own foliage to scroll off. Two
+  new levers, `close` and `fill`.
+- Going full-frame had **silently moved every wind pivot to the bottom of the
+  plate**, so a willow rooted at 0.64 of the frame swung at its own trunk. Cards
+  carry a measured `pv` now.
+- **`strip:1` retired everywhere.** Ground-plane grouping puts fences, rocks and
+  fountains INTO the ground bands, so none is featureless. It had put the Mirror
+  Lake shore 248px from the willows rooted in it; now 2px.
+- **Her Encore's inpainted base came back 100.000% black** — its cards cover the
+  whole frame, so push-pull had no source pixels. Solid black holes in the sunset
+  sky wherever a card had moved. The fill falls back to a blur of the original.
+
+**Two plates proved flat by measurement**, joining the library: the Wishing Glade
+(median motif area per band 3177/2233/2351/2439 — level, with the TOP band
+largest) and the Sky Gardens (islands alone, bottom/top 0.83). Both cuts ran fine
+and were discarded. They are tiling wallpaper, not spaces; banding them shears
+the continuous growth between motifs. Coverage was never the goal.
+
+Verified across all nine stages at ~5000px of travel: separation monotonic
+far-to-near on every cut stage, total spread 37-48px on a 768px plate, recompose
+0.000%, zero page errors, `web/` references exact. Spec:
+`docs/LIVING_BACKDROPS.md`; method: `tools/depth/README.md` and
+`tools/depth/regions/README.md`.
+
 ### Era VI, eighth pass — the runner's corners (August 13)
 
 **Client:** *"when you have to swipe to turn left or right, the character and

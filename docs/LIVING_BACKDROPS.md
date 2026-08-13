@@ -1,16 +1,86 @@
-# LIVING BACKDROPS — ✅ SHIPPED · MULTIPLANE on 8 of 9 stages
+# LIVING BACKDROPS — ✅ SHIPPED · MULTIPLANE on 6 of 9 stages
 
-> **The library is deliberately NOT carded — see "The one plate that must stay
-> flat" below.** It is a decision, not a gap.
+> **Three plates are deliberately NOT carded** — 0 the library, 5 the Wishing
+> Glade, 7 the Sky Gardens. Each is a decision with a measurement behind it, not
+> a gap. See "Plates that must stay flat" below.
 
-> **Update 2026-08-11 — the backdrop stopped being one flat image.**
-> Stages **1, 2, 3, 4 and 8** are now an inpainted base plate plus 5–8 cut
-> **cards**, each scrolling at its own rate. Cut by `tools/depth` (SAM), wired by
+> ## Update 2026-08-13 — THE COARSE / MEDIUM / FINE RE-CUT
+> Client: *"let's do the coarse medium fine recut"*, after grading the first cut
+> a C+ — *"some of the cut outs and movements and layering doesn't make sense."*
+>
+> **He was right, and it was almost never the cutting.** A third SAM tier did
+> earn its place (below), but every defect that actually showed on screen was a
+> LAYERING or a TOOLING error. The full list, because each one is a rule now:
+>
+> | what was wrong | why |
+> |---|---|
+> | Petal Mile blossom at d 0.68 over its own trunks at 0.58 | canopy outran the tree holding it |
+> | Meadow foretrees 0.36 of depth from their hillside | tree free to drift 80px off the ground it stands on |
+> | Canopy card was floating clumps | SAM finds blossom, misses the branch webbing → branches left in the base |
+> | Sunflower heads cut, stems and leaves not | heads scroll off the field they grow in |
+> | Castle towers stolen by `mountains` | at sunset both are the same blue-violet silhouette |
+> | Mirror Lake shore 248px from its own willows | `strip:1` on a band that has rocks in it and trees standing on it |
+> | Her Encore's base plate **100% black** | cards covered the whole frame; push-pull had nothing left to pull from |
+> | Assignment map lied, twice | painted overlapping masks in order, then indexed by card instead of region |
+>
+> **The medium tier is real and measurable.** Coarse returns whole masses, fine
+> returns fragments, and a usable card is neither — it is an OBJECT. On the
+> meadow plate coarse alone reaches **55.7%** where medium reaches **85.9%**;
+> coarse cannot resolve gradual rolling hills at all. Rose Waltz: 51.3 / 81.3.
+> Her Encore: 21.1 / 82.5.
+>
+> Stages **1, 2, 3, 4, 6, 8** are an inpainted base plus 3–8 cards. Cut by
+> `tools/depth` (SAM), packed by `pack.py`, wired by `swap.py`, drawn by
 > `drawCards`. Method and rate model are **prodbyKCTW's**, from his Techniques
-> doc for *Will Hill: Player One*. Stages 0, 5, 6, 7 remain on the flat path
-> until their cuts land.
+> doc for *Will Hill: Player One*.
 
-## The one plate that must stay flat — ONCE UPON A PAGE
+## THE RULE THE RE-CUT ADDED: group by GROUND PLANE, not by object
+
+A thing and the ground it stands on go on the same card unless it is genuinely
+nearer than that ground. A card should be a **plane of the scene, complete** —
+the hill and everything on it — which is exactly what a cel on a multiplane rig
+is. Cards get more internally complete, not more finely divided.
+
+Three times the fix was **merging two specced cards**, never tuning the boundary
+between them: Rose Waltz balustrade + fountains → one terrace plane; Her Encore
+castle + ramparts → one structure; and the same plate's distant peaks subsumed
+into the castle.
+
+**Claim order and draw order are different axes.** Regions are listed most
+specific first and overlaps resolve in that order; cards are emitted sorted by
+depth. Conflating them let one widened box swallow all three lake willows and
+drop them from the cut. In practice: list the NEAR planes early, so a tall object
+crossing a band boundary is claimed whole by the plane it stands on instead of
+being torn between two depths.
+
+**The number of usable planes is set by the PAINTING.** The meadow wanted six and
+supports five — a box tall enough to claim the edge conifers whole is also tall
+enough to claim the mid hills. Forcing the extra plane split single trees across
+two depths. Same lesson as the library staying flat.
+
+## Plates that must stay flat — and the test that decides it
+
+A painting with real depth makes the same motif **smaller as it recedes**. Median
+segmented-motif area per horizontal band is that test, and two plates fail it:
+
+| plate | median area by band (far → near) | verdict |
+|---|---|---|
+| 5 · THE WISHING GLADE | 3177 / 2233 / 2351 / 2439 | flat — no gradient, top band is the LARGEST |
+| 7 · THE SKY GARDENS | 4506 / 3747 / 4609 / 3744 (islands only) | flat — bottom/top 0.83 |
+
+Both cuts ran fine (510 and 578 masks, recompose 0.000%) and both are discarded.
+They are **tiling wallpaper, not spaces**: banding them would shear the
+continuous growth between the motifs — 32% of the Glade plate is exactly that —
+and put a horizontal seam through unbroken foliage wherever a boundary fell. That
+IS the "layering doesn't make sense" failure, manufactured deliberately. My eye
+said the sky islands had a gradient; the measurement said otherwise.
+
+Sky Gardens does have one real split available — sky behind islands — and it is
+not cleanly reachable: the flood fill finds 0.2% of that plate, and cloud versus
+pale stone defeats the colour rules. The honest version there is per-ISLAND cards
+(motif, not band), a different and much larger job.
+
+## The third flat plate — ONCE UPON A PAGE
 
 The library cut *ran*, cleanly: 91.0% coverage (up from 62.9% in dense mode),
 recompose 0.000%, four tidy bands. It was thrown away anyway.
@@ -107,24 +177,40 @@ depth coming from *relative* rates.
 the static HUD sits over the top rows. Two attempts confidently reported +0px for
 cards that were plainly moving. `_devCards` reports the computed offsets directly.
 
-## The ground-strip exception, and where it does NOT apply
+## The ground-strip exception — RETIRED by the re-cut
 
-A verge/shore/path gets a **real** rate (2.2×) and a loose clamp. The clamp
-exists to stop a *discrete object* migrating, and that failure needs a landmark
-to be visible on; a featureless full-width band has none. All you see is that it
-outruns the scenery, which is the cue that it is nearer.
+`strip:1` gave a verge/shore/path a **real** rate (2.2×) and a loose clamp. Its
+premise: the clamp exists to stop a *discrete object* migrating, and that failure
+needs a landmark to be visible against; a featureless full-width band has none.
 
-**The water is deliberately excluded.** Mirror Lake's reflections are painted in,
-and they *are* a landmark — let the water outrun the willows and the reflections
-stop lining up with the trees casting them.
+**No card carries it any more, and that follows from the ground-plane rule rather
+than contradicting the exception.** Grouping by ground plane puts the fences,
+rocks, lanterns and fountains INTO those bands — so they are no longer
+featureless. The Mirror Lake shore is now the ground three willows stand on:
+measured at 4887px of camera travel, `strip` put it **248px** from the trees
+rooted in it. Without it, **2px**.
+
+The water was always excluded for the same reason, one step earlier: Mirror
+Lake's reflections are painted in and they *are* a landmark.
 
 ## Wind and ripple belong to cards now
 
-A willow card shears about **its own base** — for a cut willow that is exactly
-where the trunk meets the shore — and is subdivided into 4 *within* the card, so
-sections of one crown drift out of step instead of the cutout leaning like a
-board. The water card ripples in rows. Mirrored tiles mirror their cards' x
-positions, or the cards detach from the plate they were cut from.
+A willow card shears about **its own base** and is subdivided into 4 *within* the
+card, so sections of one crown drift out of step instead of the cutout leaning
+like a board. The water card ripples in rows.
+
+**`pv` is not optional polish.** The shear is zero at `cy+ch`, which WAS the
+trunk line while cards were cropped to their content. Going full-frame (the fix
+for the mirrored-tile displacement) silently moved every pivot to the bottom of
+the PLATE, so a willow rooted at 0.64 of the frame took 34% of the full swing at
+its own trunk — the tree sliding along the shore it is planted in. `pack.py` now
+measures the bottom of each card's content and the game pivots there.
+
+Wind only ever goes on a card that is **entirely plant life**. The Rose Waltz
+colonnade is the case to remember: its garlands hang on marble arches, so they
+cannot be lifted onto a wind card without either swaying the marble or sliding
+the roses off the stone. They stay on the colonnade, unmoving; the hedge behind
+it is what sways.
 
 ## Retired on card stages
 
@@ -133,14 +219,38 @@ depth planes that did not exist, at rates far outside the spread that reads as
 parallax. Both return early where a real cut exists. Stages still flat keep them
 — half a depth cue beats none — and the two systems never run on the same stage.
 
+## The inpainted base can come back BLACK, and did
+
+Push-pull fills the holes the cards were lifted from. Grouping by ground plane
+makes cards cover more of the frame — Her Encore's cover **100%** of it — so
+there were no source pixels left to pull from and its base measured **100.000%
+near-black**. On screen: solid black holes in the sunset sky wherever a card had
+moved off its cut position, which is a far worse artifact than the smeared fill
+it was meant to avoid.
+
+The fill now falls back to a heavy blur of the **original** wherever the pyramid
+never reached a real pixel, and it tests the OUTPUT as well as the weight —
+a second class of pixel got alpha so small the divide amplified it into black
+(Golden Hour kept 1.375% under a weight-only test). All six bases: **0.0000%**.
+
 ## Cost
 
-42 assets across 8 stages, **888 KB**. `web/` 5.26 → 6.13 MB. Median frame
-time unchanged at 16.7ms.
+38 assets across 6 stages, **771 KB**. `web/` 6.3 MB. Median frame time unchanged.
+
+## Verification of the re-cut
+
+All nine stages walked in the backdrop viewer at ~5000px of camera travel:
+
+- per-card separation **monotonic far-to-near on every cut stage**, total spread
+  **37–48px** on a 768px plate — the lenticular "tiny spread" rule holds
+- willows **2px** from their shore; canopy, trunks and branches one card
+- stages 0, 5, 7 correctly take the flat path
+- **recompose 0.000%** on all six, zero page errors, `web/` refs exact, glyph
+  gate clean
 
 ---
 
-*Everything below is the flat-plate era. It still governs stages 0, 5, 6 and 7.*
+*Everything below is the flat-plate era. It still governs stages 0, 5 and 7.*
 
 ---
 

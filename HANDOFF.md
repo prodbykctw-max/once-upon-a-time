@@ -22,6 +22,42 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🎴 08-13 (cloud session) — THE COARSE/MEDIUM/FINE RE-CUT, and her idle
+Client: *"Let's do the coarse medium fine recut"* and *"it's like she's standing
+beside herself, splitting into a separate person to bend over and breathe."*
+
+**IDLE (shipped first, it was a live bug).** Two mistakes, the first forcing the
+second. The sheet is not a breath cycle — frames 0, 4 and 5 are the SAME upright
+pose, 1 is a 2px settle, 2 and 3 are a deep bend from the waist. Looping all six
+makes her bow over and over at any speed; the previous pass only slowed the bow.
+Then the cross-fade added to hide the slow steps drew BOTH poses at once (the
+base frame stays opaque, so the union of silhouettes is always visible) — that
+was the second person. She now breathes on 0<->1 at ~15/min with the deep bend
+demoted to one occasional beat, sized to the 7s the dance easter egg allows.
+
+**RE-CUT.** Six stages multiplane (1,2,3,4,6,8), three flat (0, 5, 7), 38 assets
+for 49. The medium tier is real — coarse alone reaches 55.7% on the meadow where
+medium reaches 85.9% — but **almost every defect on screen was layering or
+tooling, not cutting**:
+- blossom at d0.68 over its own trunks at 0.58; foretrees 0.36 of depth from
+  their hillside → **group by GROUND PLANE, not by object**
+- claim order and draw order were one list → one widened box swallowed all three
+  lake willows and dropped them
+- the assignment map lied, twice (overlapping masks stamped in order; then
+  indexed by card instead of region)
+- full-frame cards had silently moved every wind pivot to the bottom of the PLATE
+  → a willow swinging at its own trunk. Cards now carry a measured `pv`
+- `strip:1` put the Mirror Lake shore **248px** from the willows rooted in it.
+  Retired everywhere: ground-plane grouping puts objects INTO those bands, so
+  none is featureless any more. Now 2px
+- **Her Encore's base plate came back 100.000% black** — its cards cover the
+  whole frame so push-pull had nothing to pull from. Solid black holes in the
+  sky. Fill now falls back to a blur of the original
+
+Two plates proved flat by measurement (median motif area per band is level, and
+the Glade's top band is the LARGEST). Verified: separation monotonic on all six,
+spread 37-48px, recompose 0.000%, zero errors. Spec: `docs/LIVING_BACKDROPS.md`.
+
 ## 🔄 08-13 (cloud session) — ROYAL RUNNER CORNERS ACTUALLY TURN (`4cb33bf`)
 Client: *"when you have to swipe to turn left or right, the character and stage
 should actually turn."*
