@@ -1,9 +1,9 @@
 [
- {"name":"sky",       "depth":0.05, "box":[0.00,0.00,1.00,0.56], "holes":false, "isSky":true},
+ {"name":"sky",       "depth":0.05, "box":[0.00,0.00,1.00,0.54], "holes":false, "isSky":true},
  {"name":"mountains", "depth":0.20, "box":[0.00,0.42,1.00,0.60], "holes":false, "keep":"blue"},
- {"name":"castle",    "depth":0.38, "box":[0.00,0.08,1.00,0.64], "maxArea":0.70},
- {"name":"ramparts",  "depth":0.50, "box":[0.00,0.54,1.00,0.72], "holes":false, "maxArea":0.60},
- {"name":"grounds",   "depth":0.68, "box":[0.00,0.62,1.00,0.84], "maxArea":0.60},
- {"name":"river",     "depth":0.80, "box":[0.00,0.74,1.00,0.94], "holes":false, "maxArea":0.60},
- {"name":"foretrees", "depth":0.92, "box":[0.00,0.80,1.00,1.00], "maxArea":0.70}
+ {"name":"foretrees", "depth":0.92, "box":[0.00,0.78,1.00,1.00], "maxArea":0.70},
+ {"name":"river",     "depth":0.80, "box":[0.00,0.74,1.00,0.94], "holes":false, "maxArea":0.55},
+ {"name":"castle",    "depth":0.38, "box":[0.00,0.08,1.00,0.66], "maxArea":0.65},
+ {"name":"ramparts",  "depth":0.50, "box":[0.00,0.54,1.00,0.74], "holes":false, "maxArea":0.55},
+ {"name":"grounds",   "depth":0.68, "box":[0.00,0.62,1.00,0.86], "maxArea":0.55}
 ]

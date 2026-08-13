@@ -130,14 +130,36 @@ def main(src, tag, regions_json):
             # region runs first wins the pixel. The assignment map showed the
             # willow cards swallowing the entire mountain range. Naming the
             # material an item IS resolves it.
-            if 'keep' in r:
+            if 'keep' in r or 'reject' in r:
                 mc = rgb[m].astype(np.int32).mean(0)     # int32: NumPy 2 wraps int16
                 R, G, B = mc[0], mc[1], mc[2]
-                if r['keep'] == 'green' and not (G > B + 8 and G > R + 4):
+                grn = (G > B + 8 and G > R + 4)
+                blu = (B >= G - 2)
+                if r.get('keep') == 'green' and not grn:
                     continue
-                if r['keep'] == 'blue' and not (B >= G - 2):
+                if r.get('keep') == 'blue' and not blu:
+                    continue
+                # REJECT is the inverse, and the Rose Waltz needs it. Its
+                # colonnade cannot be selected BY a colour — the arches are
+                # marble and the garlands hanging on them are pink and green —
+                # but the dark hedge standing behind the columns can be excluded
+                # by one. Without this the colonnade box swallows the hedge, and
+                # keeping the hedge instead tears the garlands off the stone.
+                if r.get('reject') == 'green' and grn:
                     continue
             acc |= m; used += 1
+        # CLOSE: bridge a card's own thin structure. The Petal Mile is the case
+        # this exists for — SAM finds the blossom masses cleanly and misses the
+        # dark branch webbing between them, so the canopy card came out as
+        # floating clumps with the branches left in the base plate. The clumps
+        # then slide off their own tree, which is exactly the layering bug this
+        # re-cut is about. A close of a few px reconnects the crown to itself.
+        # Not a default: on a plate with real gaps it would weld neighbours
+        # together.
+        if r.get('close'):
+            k = int(r['close'])
+            acc = cv2.morphologyEx(acc.astype(np.uint8), cv2.MORPH_CLOSE,
+                                   np.ones((k, k), np.uint8)).astype(bool)
         if r.get('holes', True):
             acc = fill_holes(acc)
         # The sky is subtracted from every card EXCEPT the sky's own, which is
@@ -153,8 +175,33 @@ def main(src, tag, regions_json):
             print(f'  ! region {r["name"]}: only {np.count_nonzero(acc)}px from {used} masks — SKIPPED', flush=True)
             continue
         assign[acc & (assign < 0)] = ri
-        cards.append({'name': r['name'], 'depth': r['depth'], 'mask': acc, 'used': used})
+        # keep the REGION index: `assign` is indexed by it, and it stops matching
+        # the card index the moment any region is skipped
+        cards.append({'name': r['name'], 'depth': r['depth'], 'mask': acc,
+                      'used': used, 'ri': ri})
         print(f'  {r["name"]:14s} depth {r["depth"]:.2f}  {used:3d} masks  {100*acc.mean():5.2f}% of plate', flush=True)
+
+    # ── FILL: absorb what segmentation never found ──────────────────────────
+    # SAM finds the Petal Mile's blossom cleanly and does not find its TRUNKS at
+    # all — no mask covers them, so no region can claim them and they fall
+    # through to the base plate. The canopy then scrolls off its own trees, which
+    # is the layering bug this whole re-cut is about. `fill` gives a region the
+    # unclaimed pixels inside its own box, after every other region has taken
+    # what it wanted. Opt-in: on a plate with real background showing through, a
+    # catch-all would drag that background along with the object.
+    for ri, r in enumerate(regions):
+        if not r.get('fill'):
+            continue
+        c = next((c for c in cards if c['ri'] == ri), None)
+        if c is None:
+            continue
+        x0, y0, x1, y1 = [int(v * s2) for v, s2 in zip(r['box'], (W, H, W, H))]
+        box = np.zeros((H, W), bool); box[y0:y1, x0:x1] = True
+        extra = box & (assign < 0) & ~sky
+        if np.count_nonzero(extra):
+            c['mask'] |= extra
+            assign[extra] = ri
+            print(f'  {r["name"]:14s} fill +{100*extra.mean():.2f}% unclaimed', flush=True)
 
     # ── ASSIGNMENT MAP — look at this before wiring anything ──
     # Paint from `assign`, NOT by stamping each card's raw mask in turn. Region
@@ -167,7 +214,7 @@ def main(src, tag, regions_json):
     pal = [(255,90,90),(90,200,255),(255,210,80),(150,255,150),(220,140,255),(255,160,60),(120,255,220),(255,120,180)]
     amap = (rgb * 0.30).astype(np.uint8)
     for i, c in enumerate(cards):
-        amap[assign == i] = pal[i % len(pal)]
+        amap[assign == c['ri']] = pal[i % len(pal)]
     cv2.imwrite(f'{OUT}/{tag}_assign.png', cv2.cvtColor(amap, cv2.COLOR_RGB2BGR))
 
     # ── cards + inpainted base ──

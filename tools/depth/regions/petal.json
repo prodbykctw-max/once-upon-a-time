@@ -1,6 +1,5 @@
 [
- {"name":"distance", "depth":0.22, "box":[0.00,0.00,1.00,0.50], "holes":false, "keep":"green", "maxArea":0.50},
- {"name":"trees",    "depth":0.62, "box":[0.00,0.00,1.00,0.60], "maxArea":0.80},
- {"name":"verge",    "depth":0.80, "box":[0.00,0.44,1.00,0.68]},
- {"name":"path",     "depth":0.92, "box":[0.00,0.58,1.00,1.00], "holes":false}
+ {"name":"trees", "depth":0.74, "box":[0.00,0.00,1.00,0.62], "reject":"green", "maxArea":0.80, "close":15, "fill":true},
+ {"name":"verge", "depth":0.80, "box":[0.00,0.44,1.00,0.68], "maxArea":0.60},
+ {"name":"path",  "depth":0.92, "box":[0.00,0.58,1.00,1.00], "holes":false}
 ]

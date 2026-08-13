@@ -1,10 +1,10 @@
 [
  {"name":"rosehedge",  "depth":0.10, "box":[0.00,0.00,1.00,0.19], "holes":false},
  {"name":"upperwalk",  "depth":0.20, "box":[0.00,0.14,1.00,0.32], "holes":false},
- {"name":"fartrees",   "depth":0.32, "box":[0.00,0.26,1.00,0.46], "holes":false, "keep":"green", "maxArea":0.55},
- {"name":"backhedge",  "depth":0.44, "box":[0.00,0.36,1.00,0.72], "keep":"green", "maxArea":0.50},
- {"name":"colonnade",  "depth":0.62, "box":[0.00,0.30,1.00,0.80], "maxArea":0.75},
- {"name":"balustrade", "depth":0.76, "box":[0.00,0.62,1.00,0.86], "maxArea":0.60},
- {"name":"fountains",  "depth":0.84, "box":[0.00,0.56,1.00,0.90], "maxArea":0.40},
- {"name":"terrace",    "depth":0.92, "box":[0.00,0.84,1.00,1.00], "holes":false}
+ {"name":"fartrees",   "depth":0.32, "box":[0.00,0.24,1.00,0.44], "holes":false, "keep":"green", "maxArea":0.55},
+ {"name":"terrace",    "depth":0.92, "box":[0.00,0.84,1.00,1.00], "holes":false},
+ {"name":"fountains",  "depth":0.84, "box":[0.00,0.56,1.00,0.92], "maxArea":0.35},
+ {"name":"balustrade", "depth":0.76, "box":[0.00,0.62,1.00,0.88], "maxArea":0.55},
+ {"name":"colonnade",  "depth":0.62, "box":[0.00,0.28,1.00,0.82], "reject":"green", "maxArea":0.70},
+ {"name":"backhedge",  "depth":0.44, "box":[0.00,0.34,1.00,0.74], "keep":"green", "maxArea":0.55}
 ]

@@ -84,6 +84,12 @@ def main(tag, stage, write):
     row.append(' ]},')
     print('\n'.join(row))
 
+    # swap.py reads this to rebuild CARD_DATA for every stage at once
+    json.dump({'stage': int(stage), 'w': NW, 'h': NH, 'base': base_h,
+               'cards': [{'name': n, 'depth': d, 'h': h, 'cov': cov, 'pv': pv}
+                         for n, d, h, cov, _, pv in out]},
+              open(f'{CUT}/{tag}_pack.json', 'w'), indent=1)
+
     if write:
         for name, buf in files:
             open(os.path.join(WEB, name), 'wb').write(buf)
