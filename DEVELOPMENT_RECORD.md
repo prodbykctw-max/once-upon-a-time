@@ -459,7 +459,7 @@ pre-deploy gate to stop the glyph rule regressing a third time.
 |---|---|---|
 | **Rotate the Cloudflare API token** | OPEN | Client action |
 | **Rotate the AutoSprite API key** | OPEN | Client action — key was shared in chat for the projectile pass |
-| **AutoSprite key for cloud sessions** | OPEN (client) | Diagnosed 08-12: network + endpoint are fine, the key is the only missing link. `tools/autosprite.py` is the ready client; `export AUTOSPRITE_KEY=…` (env only, never a file) unblocks it. Key page: `https://www.autosprite.io/apikey` |
+| **AutoSprite key for cloud sessions** | OPEN (client) | Settled 08-13: the connector is now ENABLED in-session and its tools load — and `list_characters` still answers *"Unauthorized: provide an MCP API key"*. So it was never the connector and never the network; it is only ever the key. Either route works once one exists: the connector tools directly, or `tools/autosprite.py` with `export AUTOSPRITE_KEY=…` (env only, never a file). Key page: `https://www.autosprite.io/apikey` |
 | Landscape controls on device | RESOLVED 07-26 | Client's own screenshots confirm the cluster fits; pre-game screens fixed & scrollable |
 | Combat & economy tuning | OPEN | Play-test dials — par times, beacon range, Atlas price, Refrain speed, Belt range |
 | Stage-Select starting stats | OPEN (design) | Late stages begin at LV1 stats; option to grant stage-scaled stats on request |
@@ -468,6 +468,8 @@ pre-deploy gate to stop the glyph rule regressing a third time.
 | `dance` animation | RESOLVED | Now bound to the STAGE CLEAR victory emote |
 | Dress → tuxedo swap | OPEN | Story beat ~stage 3; needs a tuxedo sheet |
 | Actual song lyrics | OPEN | Client to supply; only short fragments used |
+| AutoSprite-animated blood | OPEN | The canvas droplets are an explicit stopgap; blocked on the key above, nothing else |
+| Wishing Glade / Sky Gardens depth | OPEN (design) | Both proved FLAT by measurement (median motif area per band is level) and left flat on purpose. If depth is wanted there it has to be per-MOTIF cards — one per toadstool cluster, one per floating island — not bands. Different and much larger job |
 | Phaser scaffold / Godot project | PARKED | Preserved migration/native targets |
 
 ---
@@ -778,7 +780,9 @@ backdrops re-rendered as separated depth layers out of Blender.
 The client supplied his own **Will Hill: Player One** techniques doc and asked
 for the parallax and SAM cutting to be lifted from it. What shipped:
 
-- **Multiplane on 8 of 9 stages** — `tools/depth` cuts each painting into an
+- **Multiplane on 8 of 9 stages** *(superseded by the ninth pass — it is SIX of
+  nine now; the Wishing Glade and the Sky Gardens were later proved flat by
+  measurement and left flat)* — `tools/depth` cuts each painting into an
   inpainted base plate plus full-frame cards, each drawn at
   `rate = BASE + (depth − 0.5) × SPREAD` (0.045 / 0.010, separation clamped to
   ±80px). **The library stays flat on purpose**: its bands are the building's
@@ -918,5 +922,5 @@ present. (`api.autosprite.io` does not exist — the API is served from `www`.)
 ---
 
 *Jandé — "Once Upon A Time"*
-*Complete development record · PRODBYKCTW · assembled July 25, updated August 10, 2026*
+*Complete development record · PRODBYKCTW · assembled July 25, updated August 13, 2026*
 *Consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment — and adds Era IV: The Living Bosses.*
