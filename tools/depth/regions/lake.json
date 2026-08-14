@@ -1,0 +1,10 @@
+[
+ {"name":"sky",      "depth":0.05, "box":[0.00,0.00,1.00,0.30], "holes":false, "isSky":true},
+ {"name":"mountains","depth":0.22, "box":[0.00,0.22,1.00,0.52], "holes":false, "keep":"blue"},
+ {"name":"shore",    "depth":0.86, "box":[0.00,0.57,1.00,0.665], "holes":false},
+ {"name":"willowL",  "depth":0.82, "box":[0.00,0.10,0.18,0.66], "keep":"green", "maxArea":0.60},
+ {"name":"willowC",  "depth":0.82, "box":[0.32,0.04,0.64,0.66], "keep":"green", "maxArea":0.60},
+ {"name":"willowR",  "depth":0.82, "box":[0.72,0.10,1.00,0.66], "keep":"green", "maxArea":0.60},
+ {"name":"midhills", "depth":0.42, "box":[0.00,0.30,1.00,0.68], "holes":false, "keep":"green", "maxArea":0.55},
+ {"name":"water",    "depth":0.94, "box":[0.00,0.63,1.00,1.00], "holes":false}
+]

@@ -22,6 +22,231 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🎴 08-13 (cloud session) — THE COARSE/MEDIUM/FINE RE-CUT, and her idle
+Client: *"Let's do the coarse medium fine recut"* and *"it's like she's standing
+beside herself, splitting into a separate person to bend over and breathe."*
+
+**IDLE (shipped first, it was a live bug).** Two mistakes, the first forcing the
+second. The sheet is not a breath cycle — frames 0, 4 and 5 are the SAME upright
+pose, 1 is a 2px settle, 2 and 3 are a deep bend from the waist. Looping all six
+makes her bow over and over at any speed; the previous pass only slowed the bow.
+Then the cross-fade added to hide the slow steps drew BOTH poses at once (the
+base frame stays opaque, so the union of silhouettes is always visible) — that
+was the second person. She now breathes on 0<->1 at ~15/min with the deep bend
+demoted to one occasional beat, sized to the 7s the dance easter egg allows.
+
+**RE-CUT.** Six stages multiplane (1,2,3,4,6,8), three flat (0, 5, 7), 38 assets
+for 49. The medium tier is real — coarse alone reaches 55.7% on the meadow where
+medium reaches 85.9% — but **almost every defect on screen was layering or
+tooling, not cutting**:
+- blossom at d0.68 over its own trunks at 0.58; foretrees 0.36 of depth from
+  their hillside → **group by GROUND PLANE, not by object**
+- claim order and draw order were one list → one widened box swallowed all three
+  lake willows and dropped them
+- the assignment map lied, twice (overlapping masks stamped in order; then
+  indexed by card instead of region)
+- full-frame cards had silently moved every wind pivot to the bottom of the PLATE
+  → a willow swinging at its own trunk. Cards now carry a measured `pv`
+- `strip:1` put the Mirror Lake shore **248px** from the willows rooted in it.
+  Retired everywhere: ground-plane grouping puts objects INTO those bands, so
+  none is featureless any more. Now 2px
+- **Her Encore's base plate came back 100.000% black** — its cards cover the
+  whole frame so push-pull had nothing to pull from. Solid black holes in the
+  sky. Fill now falls back to a blur of the original
+
+Two plates proved flat by measurement (median motif area per band is level, and
+the Glade's top band is the LARGEST). Verified: separation monotonic on all six,
+spread 37-48px, recompose 0.000%, zero errors. Spec: `docs/LIVING_BACKDROPS.md`.
+
+## 🔄 08-13 (cloud session) — ROYAL RUNNER CORNERS ACTUALLY TURN (`4cb33bf`)
+Client: *"when you have to swipe to turn left or right, the character and stage
+should actually turn."*
+
+**The old corner was geometrically the wrong effect, not a weak one.** It slid
+the whole frame 90px sideways. In the runner's projection (`sx = W/2 + wx*s`,
+`s = 300/(300+z)`) a camera yaw displaces every vertex by `300*theta` — the SAME
+pixel count at every depth — so the slide already WAS a yaw, and a yaw here is
+indistinguishable from a pan. Near and far move together; nothing rotates.
+
+**Now the PATH BENDS**: `wx += uBend*z*z` in the shared GLSL `PROJ` string, so
+terrain, grass, the prop avenue and the library's hall curve together. The ground
+at her feet sweeps one way, the path ahead swings the other, and the camera yaws
+into it. Obstacles and coins ride the bend. She banks — pivoting at her FEET, not
+her centre.
+
+- She stays INSIDE the camera yaw **on purpose**: the bend is zero at her depth,
+  and collision is lane-based — drawn outside it an obstacle passing mid-swing
+  sits ~0.6 of a lane off where it really is.
+- The terrain grew a skirt to +-7 so it still covers the frame once it swings.
+  The original 31 columns keep their exact x (hill height is per-vertex and
+  interpolated — re-spacing them moves the silhouette with nothing turning), and
+  the hill profile is clamped at its old maximum so the skirt does not rear up.
+- **`_devTurn(bend)`** is the new hook: exact per-depth shift, and it redraws at
+  that bend WITHOUT advancing the world, so a controlled pair can be captured.
+
+**The control is the finding.** A uniform 90px pan of the same frame measures
+-42px in all four depth bands at r=1.00. The turn measures -25 / -34 / -16 / +28
+— four different numbers, crossing sign with depth. A pan cannot do that.
+Frame cost unchanged (1.0-1.6ms). Spec: `docs/CORNER_TURN.md`.
+
+## 🔑 08-12 (cloud session) — AUTOSPRITE: it's the key, nothing else
+Client: *"diagnose that AutoSprite situation, you should just be able to go to
+the website."* He's right — and the website is not the problem either.
+
+Measured from this container, not guessed:
+
+| link | state |
+|---|---|
+| network policy | **OK** — `www.autosprite.io` 200 through the agent proxy |
+| MCP endpoint | **OK** — `POST /api/mcp` initializes (`autosprite-mcp`), `tools/list` returns all 30 tools **unauthenticated** |
+| credential | **MISSING** — `tools/call` → *"Unauthorized: provide an MCP API key from https://www.autosprite.io/apikey"* |
+| claude.ai connector | offline, and **irrelevant** — it authenticates by OAuth; the endpoint wants `Authorization: Bearer` |
+
+- `api.autosprite.io` **does not exist** (proxy 502 on CONNECT). The API is
+  served from `www` — see the signed URLs in `tools/boss_urls.json`.
+- The key never survives a container reset: it was only ever a shell env var,
+  never written to disk. That is deliberate — **keep it that way.**
+- **`tools/autosprite.py` is now committed** so no future session re-derives the
+  transport (this is the third time). JSON-RPC over HTTP, SSE-framed replies,
+  Bearer from `$AUTOSPRITE_KEY`.
+
+```bash
+export AUTOSPRITE_KEY=vspk_…          # env only — never a file, never a commit
+python3 tools/autosprite.py ping       # server info + "key in environment: yes/NO"
+python3 tools/autosprite.py tools
+python3 tools/autosprite.py call list_characters '{"limit":5}'
+```
+
+**Blocked on this:** the AutoSprite-animated blood the client asked for (the
+canvas droplets are an explicit stopgap). One `export` unblocks it.
+**Still open separately:** rotating the old key, which was shared in chat.
+
+## 🌲 08-10 (cloud session) — FOREGROUND PLANE (`43a124e`)
+Client: *"the candlesticks give it a different layer for it to move behind"* /
+*"I want the backgrounds to feel like spaces, not a flat picture."*
+- **Everything used to sit BEHIND her.** A stack of behind-planes is still
+  scenery. `drawForeground()` adds a near plane at ~1.7x the world's screen rate,
+  drawn AFTER the world transform so it OCCLUDES the hero — top fringe (willow
+  strands / blossom limbs / ivy / sunflower heads / library soffit) plus
+  occasional slim trunks sweeping past.
+- **⚠️ Three rules that came out of getting it wrong first:** (1) a trunk STOPS AT
+  THE GROUND — the first version ran 0..H and put a haze band through the lake and
+  the undercroft; (2) a near trunk is near-SILHOUETTE and tapered, never a tinted
+  parallel-sided gradient (that is a light shaft); (3) alpha stays at 0.62, NOT
+  opaque — the strip crosses the play area and a foe behind it must stay readable.
+- Fringe thins through the middle of the screen on purpose: that is where she
+  fights.
+- No new assets. Median frame time unchanged (16.7ms). Spec:
+  `docs/FOREGROUND_PLANE.md`.
+- **This is the ceiling for flat paintings.** Real spaces need Blender-separated
+  depth layers — next step, blocked only on laptop render time.
+
+## 🌻 08-10 (cloud session) — per-stage wind FREQUENCY (`9f25578`)
+Client: *"Shouldn't the sunflowers be blowing in the breeze too."*
+- **They already were** — 9px swing, base pinned at 0. Sampling left/mid/right
+  thirds showed why it looked static: 4/6/9, 8/8/10, -6/-4/-1 — **the whole field
+  slid ONE WAY together.** A uniform slide across near-identical flowers has no
+  landmark to be seen against. Willows read only because a trunk IS a landmark.
+- **The fix is FREQUENCY, not amplitude.** `wnd` gained a 4th element, `frq`.
+  Seams only show against SMOOTH pixels, so a band that is wall-to-wall texture
+  can carry a high frq: sunflowers 4.2, encore treeline 3.2, blossom 3.0 —
+  while **Mirror Lake and Sky Gardens stay at 1.0 because their bands contain
+  open sky.** After: 13/5/-2 and -2/0/6, i.e. clumps rocking in OPPOSITE
+  directions. Costs nothing; span count untouched.
+- **`LB_PAD` 11 -> 28, `LB_KMAX` 20.** A peak lean plus the span overlap wanted
+  ~17px of padding, so strong gusts sampled past the offscreen and left a pale
+  sliver down the left edge. If you raise any amplitude, check this first.
+
+## 🌬️ 08-10 (cloud session) — REAL WIND + no butterflies indoors
+> ✅ **DONE — `83f71df`.** Spec updated: `docs/LIVING_BACKDROPS.md`.
+- **Row warp was never wind.** It moves a whole horizontal band together, so every
+  tree at a height slides in lockstep — heat haze, not wind. Canopies are now
+  **vertical spans with a SHEAR transform**: zero at the pivot row (trunks), full
+  swing at the crown, driven by a travelling wave + a travelling GUST envelope.
+  Water keeps the row warp; that part was always right.
+- Pivots/amplitudes read off the art. **Mirror Lake's willows pivot exactly at the
+  waterline (0.645). The Rose Waltz colonnade and Her Encore's castle are stone
+  and are excluded.** Petal Mile gets the biggest swing (14px).
+- **⚠️ TWO NUMBERS YOU CANNOT TUNE INDEPENDENTLY.** (1) Seam: the lean step
+  between spans is `amp x dPhase x spanWidth`; raise the amplitude or the spatial
+  frequency and vertical lines appear in smooth sky. (2) Cost: a shear matrix
+  leaves canvas's fast blit path, so the SPAN COUNT is the whole cost —
+  measured 12 spans 16.7ms, 24 spans 16.7ms, 49 spans **20.0ms**. `LB_SPANS` is
+  therefore PINNED at 16 and the frequency is chosen to suit. Don't "improve"
+  this by adding spans.
+- **Butterflies/sparkles/birds are now OUTDOOR-ONLY** via `LIVEBG[ai].in`. They
+  were drawing inside the library. The library keeps its window shafts (now
+  stronger, 6 at 0.20) and dust motes — the parts the client called out as good.
+
+## 🌿 08-10 (cloud session) — LIVING BACKDROPS
+> ✅ **DONE — `95718dc`. Spec: `docs/LIVING_BACKDROPS.md`. RPG only, NO new art.**
+Client: *"Now it just looks like a picture. A beautiful picture but still a flat
+photo. Can we bring the exact image to life?"*
+- **Row warp** re-blits each painting as rows with a per-row x-offset: a water
+  ripple (Mirror Lake and Encore already have their reflections PAINTED IN, so
+  rippling them is free realism) and a canopy breeze that tapers to zero at the
+  trunks. Bands are fractions of the IMAGE, read off the art — **stone
+  colonnades and distant hills are excluded on purpose; they must not wobble.**
+- **Near band**: a thin slice of the painting's own base at 3.5x parallax,
+  crushed to a silhouette. Two planes at different speeds = depth. Crushed
+  deliberately — at full brightness it reads as the same tree twice.
+- **God rays** anchored to each painting's real light source; **life at three
+  depths** (petals/fireflies/pollen/embers/cloud/birds) — the difference in
+  SPEED is the depth cue.
+- **⚠️ Three traps for whoever touches this next:** (1) the row-batching loop's
+  FINAL FLUSH is mandatory — without it everything below the last offset change
+  is never drawn (two thirds of a canopy stage). (2) `_amb` must stay declared at
+  the TOP of `drawMansionBG`; it used to sit ~160 lines below this pass and `var`
+  hoisting made every animated term silently false. (3) Use `_lbTileSlice`, not
+  `_lbTile`, for band draws — clipping a full-height blit cost a 50ms frame.
+- **Perf measured, not assumed:** median frame time unchanged (16.7ms vsync) on
+  every stage, p95 +0.5ms, worst frame within noise of the old build.
+- All tuning lives in the `LIVEBG[]` table.
+
+## 🎬 08-10 (cloud session) — ground line raised AGAIN to 0.65
+> ✅ **DONE — `32b280f`. Client: "Higher."** Spec updated: `docs/GROUND_LINE_UNDERCROFT.md`.
+- **`GROUNDF` 0.72 → 0.65, `LH` 20 → 22.** Her head sits at 56%, ground at 65%.
+- **The Mario number, settled.** SMB1's ground is at 86.7% *of the NES frame* —
+  the figure everyone quotes, and the wrong one for a phone. Letterboxed 4:3 into
+  19.5:9, the ground lands at **66% of the physical screen**, head at 63%. 0.82
+  and 0.72 were both below Mario-on-a-phone; **0.65 is it.**
+- **Landscape had NEVER honoured `GROUNDF`.** The branch eased toward
+  `p.y - VH*0.55` and used `GROUNDF` only as a *ceiling*, so while she's grounded
+  the follow target won. Proof: 0.72 → 0.65 left `camY` at 87 in both. Now
+  **anchor first, follow second** — the follow term only pulls the camera UP when
+  she climbs. `camY` 87 → 123 = ground at exactly 0.650.
+- **⚠️ `LH` IS DERIVED FROM `GROUNDF`: `LH*T >= FLOOR_R*T / GROUNDF`.** Lowering
+  `GROUNDF` again **requires** raising `LH` or landscape silently pins to the
+  world's bottom edge (which is what it did at 18). Derivation is in the code.
+- **`CTRL_TOP` replaces the guessed `0.66`-of-the-band fudge.** `#mCtrl` sits on
+  `env(safe-area-inset-bottom)` — it cannot be derived from `H`, so it is now
+  MEASURED (on resize, and again on the start-of-run toggle where the pads
+  actually get `.on`). Consumed by the undercroft's content window and the lyric.
+
+## 🎬 08-09 (cloud session) — ground line raised + undercroft built
+> ✅ **DONE — spec: `docs/GROUND_LINE_UNDERCROFT.md` (`dabe9e2`). RPG only.**
+- **`GROUNDF=0.72`** replaces three independent hard-coded `0.82`s (both camera
+  branches + `drawMansionBG`'s `floorY`). They agreed by coincidence, not by
+  construction. **`floorY` now derives from `groundY`** — the earth band can
+  never tear away from the tiles again at any anchor.
+  **Never re-introduce a literal ground fraction; read `GROUNDF`.**
+- **`LH` 18 → 20.** At 18 the landscape camera clamped to the world's own bottom
+  edge at **0.744** and raising the anchor below that did *nothing* there
+  (measured: identical `camY` at 0.72 and 0.65). Both orientations now reach 0.72.
+- **`SLAB_R=2`** caps how many ground rows are *DRAWN*; collision is untouched.
+  Tiles are opaque, so without it the new rows buried the undercroft they were
+  added to expose.
+- **`drawUndercroft` / `drawUCLayer`** — shared substrate + one themed layer per
+  stage (library stacks · meadow roots · petal cobble · rose cistern · **Mirror
+  Lake seen from under the water** · glade mycelium · sunflower taproots · **Sky
+  Gardens: no ground at all, open sky** · palace foundations). Parallaxed 0.6-0.9×.
+  **It is play space, not decor** — pits drop her through it before the death plane.
+- **Sixth screen-vs-world instance found and deleted:** the "abyss below the
+  track" gradient compared WORLD units against screen `H` after `restore()` and
+  therefore never drew at all. Removed rather than repaired — one owner per band.
+- **`drawLyric` reseated** (was another fixed `H-92`, landed on her feet at 0.72).
+  **SIDE MODE ONLY** — it is shared with ROYAL RUNNER, which is left as it was.
+
 ## 🌙 07-26 EVENING (cloud session) — décor scale, jelly UI, illustrated record
 - **Runner décor scale fixed at the root** (fifth screen-vs-world instance): prop
   heights were a fixed 560px base vs the H-scaled hero — ~4x her height on a
@@ -151,7 +376,10 @@ so seam lines scroll across — the wall band's `Math.round` shared-edge snap
 (line 3563) was never applied to it.
 Second, separate bug: in landscape a fixed *world-space* camera margin below the floor
 becomes ~39% of a short viewport (vs ~15% in portrait), so a featureless
-ground slab eats the screen and hides the painted backdrops. Plus blank
+ground slab eats the screen and hides the painted backdrops.
+*(Superseded 08-09 `dabe9e2`: the below-floor band is no longer featureless — it
+is `drawUndercroft`, a per-stage cross-section — and the anchor is `GROUNDF`,
+not a literal. See the 08-09 entry at the top of this file.)* Plus blank
 untextured platforms, a tile column into the sky, a backdrop seam, and
 overlay/footer clipping on register / how-to / game-over.
 ✅ **#0 RESOLVED 07-26 (`24049d4`):** clamp removed, verified in code. *(was:* the `* _wz` half landed, but the leftover

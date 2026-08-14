@@ -1,0 +1,7 @@
+[
+ {"name":"sky",      "depth":0.05, "box":[0.00,0.00,1.00,0.34], "holes":false, "isSky":true},
+ {"name":"mountains","depth":0.20, "box":[0.00,0.17,1.00,0.42], "holes":false, "keep":"blue"},
+ {"name":"verge",    "depth":0.90, "box":[0.00,0.86,1.00,1.00], "holes":false},
+ {"name":"nearbank", "depth":0.78, "box":[0.00,0.55,1.00,0.95], "maxArea":0.60},
+ {"name":"farhills", "depth":0.40, "box":[0.00,0.28,1.00,0.62], "holes":false, "keep":"green", "maxArea":0.60}
+]

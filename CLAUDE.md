@@ -64,7 +64,15 @@ and **hard-aborts if anything sensitive is staged**.
   (`isSolid(leadC,grow)`) so they don't glide over gaps. Flyers are exempt — they fly.
 - **Bosses:** nine unique, one per stage (`BOSS_NAME`, `drawBoss`, `drawBossAura`);
   **The Groom Who Lied** is the stage-9 finale. Gate → sealed arena → defeat → STAGE CLEAR.
-- **Runner:** `updateT` / `drawT` + the GLWORLD engine and `GLWDATA`.
+- **RPG camera & ground:** `GROUNDF` / `SLAB_R` / `LH` (game-state block) drive both
+  camera branches in `update()`; `drawMansionBG` derives `floorY` from `groundY`.
+- **Under the floor:** `drawUndercroft` + `drawUCLayer` + the `UCROFT[]` palette
+  table — one themed cross-section per stage, drawn before the tiles.
+- **Living backdrops:** `LIVEBG[]` + `_lbTile` / `_lbTileSlice` / `_lbDisp` /
+  `drawBGLife`, all inside `drawMansionBG`'s painted-backdrop branch.
+- **In front of her:** `drawForeground` + `FORE[]` — the near plane, drawn after\n  the world transform in `draw()`.\n- **Runner:** `updateT` / `drawT` + the GLWORLD engine and `GLWDATA`.
+- **Runner corners:** `TURN_LEN/FAR/FOLLOW/FOCUS` + `bendPx` (next to `prjT`),
+  `t3.bend`, and `uBend` inside the shared GLSL `PROJ` string.
 - **Atlases:** `TEXDATA`→`TEX` — `walls, floors, decor, chaser, foes (136×152),
   items, boss (200×280, 9×9 idle+defeat), props`.
 - **Persistence:** `jande_maps`, `jande_clears`, `jande_shop`, `jande_settings`,
@@ -80,6 +88,13 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
 - The sprite faces **RIGHT**; left is a mirror.
 - Character/boss art comes from **AutoSprite**; environments from **Blender/Cycles**.
   Bakers/composers live in `tools/`.
+- **AutoSprite from a cloud session: use `tools/autosprite.py`, not the connector.**
+  The claude.ai connector does OAuth; AutoSprite's own MCP endpoint
+  (`POST https://www.autosprite.io/api/mcp`, JSON-RPC + SSE) wants
+  `Authorization: Bearer`. The endpoint is reachable and lists its tools without
+  auth — **the only thing that ever blocks a session is the key**, which lives in
+  `$AUTOSPRITE_KEY` and nowhere else (never a file, never a commit, gone after
+  every container reset). `python3 tools/autosprite.py ping` says whether it's set.
 
 ## Conventions / guardrails
 - Keep the artist's name accented everywhere: **Jandé / JANDÉ**.
@@ -101,6 +116,118 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   back — all-Storyboo read as "AI slop" to the client.
 - **Never assign `ZOOM` directly** — `setZoom()` is the only safe path (see the
   July 25 note below).
+- **The RPG ground line is `GROUNDF` (0.65) — never a literal.** It was a
+  hard-coded `0.82` in three independent places (both camera branches and
+  `drawMansionBG`'s `floorY`) that agreed only by coincidence. `floorY` now
+  derives from the scaled world floor; keep it derived. `SLAB_R` (2) caps how
+  many ground rows are **drawn** and is deliberately separate from collision
+  depth. **`LH` (22) is DERIVED from `GROUNDF`: `LH*T >= FLOOR_R*T / GROUNDF`** —
+  lower `GROUNDF` again and you MUST raise `LH` with it, or landscape silently
+  pins to the world's bottom edge and stops matching portrait. The landscape
+  camera anchors first and only follows her UP; it must never go back to easing
+  at `p.y - VH*0.55`, which made `GROUNDF` a no-op there. Spec:
+  `docs/GROUND_LINE_UNDERCROFT.md`.
+- **Character scale is `BASE` + `VIEW_W` in `resize()`, and BOTH must move.**
+  Portrait is WIDTH-bound, landscape is CAP-bound, so changing one constant only
+  zooms one orientation — that is how the hero ended up 6% of the screen upright
+  and 17% sideways. Now BASE 0.92 / VIEW_W 440 (hero 70px / 79px). **The limit is
+  READ-AHEAD:** 9.3 tiles ahead in portrait, which is the NES/Mario figure
+  (~9.6). Going bigger drops below it and costs reaction time.
+- **The framing reference is Mario ON A PHONE (~66% ground), not raw NES (~87%).**
+  The 4:3 frame is letterboxed into a tall screen and the bars absorb the bottom.
+  Quoting the NES number will send you back down to 0.82.
+- **`CTRL_TOP` is measured, never guessed.** `#mCtrl` sits on
+  `env(safe-area-inset-bottom)`, so where the touch pads start cannot be derived
+  from `H`. It is read on resize AND on the start-of-run toggle (the pads only
+  get `.on` there). Anything laying out against the bottom of the screen should
+  use it rather than inventing another fraction.
+- **There is a plane IN FRONT of the hero — `drawForeground` / `FORE[]`.** Drawn
+  after the world transform so it occludes her, at ~1.7x the world's screen rate.
+  Rules learned the hard way: a trunk **stops at the ground**; a near trunk is a
+  tapered near-**silhouette**, never a tinted parallel gradient; and its alpha
+  stays ~0.62 because the strip crosses the play area and a foe behind it must
+  stay readable. Keep the fringe thin through mid-screen — that is where she
+  fights. Spec: `docs/FOREGROUND_PLANE.md`.
+- **Canopy wind is per-COLUMN SHEAR, never row warp.** Row displacement moves a
+  whole horizontal band together and reads as heat haze; trees must pivot at their
+  trunks. Two coupled limits, both measured, both easy to break: the seam step
+  between spans is `amp x dPhase x spanWidth` (raise either and vertical lines
+  appear in smooth sky), and a shear matrix leaves canvas's fast blit path so the
+  **span count is the entire cost** — 24 spans is free, 49 costs 60fps.
+  **`LB_SPANS` is pinned at 16 on purpose; do not raise it.**
+- **Wind FREQUENCY is per stage (`wnd[3]`), and amplitude is not the knob you
+  think it is.** A field can swing 9px and still look frozen if every part of it
+  leans the same way — there is no landmark to see a uniform slide against. Raise
+  `frq` so neighbouring clumps rock in opposite directions. Ceiling on `frq` is
+  what the band CONTAINS: seams only show against smooth pixels, so texture-filled
+  bands take 3-4x while any band containing open sky must stay near 1.0.
+- **Butterflies, sparkles and birds are OUTDOOR-ONLY** (`LIVEBG[ai].in`). They were
+  drawing inside the library; the client called it out. Interiors get window
+  shafts and dust, nothing winged.
+- **Group cards by GROUND PLANE, not by object** (re-cut, 08-13). A thing and
+  the ground it stands on share a card unless it is genuinely nearer. The first
+  cut had the Petal Mile's blossom moving FASTER than its own trunks and the
+  Meadow's trees 0.36 of depth from their hillside — clean cuts, wrong layering,
+  which is most of what "the layering doesn't make sense" meant. Three times the
+  fix was MERGING two specced cards, never tuning the boundary. Corollaries:
+  claim order and draw order are different axes (list near planes early, emit by
+  depth); the number of usable planes is set by the PAINTING; and **`strip:1` is
+  retired** — ground-plane grouping puts objects into every ground band, so none
+  is featureless enough to qualify.
+- **A card's wind pivot is `pv`, measured, not the card's rect.** Cards are
+  full-frame, so the shear's zero point is the bottom of the PLATE unless `pv`
+  says otherwise — a willow rooted at 0.64 of the frame swings at its own trunk.
+- **Two plates are flat BY MEASUREMENT, like the library** — 5 Wishing Glade and
+  7 Sky Gardens. Median motif area per horizontal band is level (the Glade's top
+  band is the largest), so there is no depth in them to cut and banding them
+  would shear continuous foliage. Test before cutting a repeating plate.
+- **Stages 1-8 EXCEPT 0, 5 and 7 are MULTIPLANE — `CARD_DATA` + `drawCards`.** An inpainted
+  base plate plus cut cards, each on its own rate:
+  `rate = BASE + (depth-0.5)*SPREAD` with BASE 0.045, SPREAD 0.010, separation
+  clamped to +/-80px. **The spread must stay TINY** — wide spreads read as the set
+  falling over, with cards migrating a whole plate width across a level. Ground
+  strips (verge/shore/path) are the ONE exception: real rate, loose clamp,
+  because a featureless band has no landmark to notice movement on. **Water is
+  NOT a ground strip** where its reflections are painted in — they are a
+  landmark. Cards are cut by `tools/depth`; method and numbers are the client's,
+  from his Will Hill: Player One techniques doc. Spec: `docs/LIVING_BACKDROPS.md`.
+- **The LIBRARY (stage 0) stays FLAT on purpose.** Its cut ran fine (91% coverage,
+  lossless recompose) and was discarded: its bands are the building's three
+  FLOORS, not depth planes, so different rates shear the columns that run through
+  all three. It is also the plate that already reads as a space and the one the
+  client praised. Coverage is not the goal; usable cards are.
+- **The backdrops are LIVE, not stills — `LIVEBG[]` + `drawMansionBG`'s warp pass.**
+  Each painting is re-blitted as rows with a per-row x-offset (water ripple,
+  canopy breeze), plus a near band at 3.5x parallax, god rays and life at three
+  depths. Bands are fractions of the IMAGE, read off the art, so they survive any
+  `GROUNDF`/zoom/orientation. **Stone and distant hills are excluded on purpose —
+  they must not wobble.** Three traps: the row-batching **final flush is
+  mandatory** (without it everything below the last offset change is never
+  drawn); `_amb` must stay declared at the TOP of `drawMansionBG` (`var` hoisting
+  made every animated term silently false when it sat below); and band draws use
+  `_lbTileSlice`, never a clipped full-height `_lbTile`. Spec:
+  `docs/LIVING_BACKDROPS.md`.
+- **Below the floor is `drawUndercroft`'s, and only its.** One owner per band —
+  the dead "abyss" gradient existed because there were two. It is also real play
+  space (pits drop her through it), so anything added there must read at speed,
+  stay darker than the hero, and go still under `body.rm` (multiply animated
+  terms by `amb`).
+- **A camera yaw in the runner IS a pan — do not "simplify" the corner bend
+  back into `uShift`.** The runner projects with `sx = W/2 + wx*s`,
+  `s = 300/(300+z)`, so a yaw `th` displaces every vertex by
+  `th*(300+z)*s = 300*th` — the SAME pixel count at every depth. That is why the
+  old 90px corner slide could never read as a turn no matter how it was tuned. A
+  corner needs the **path to bend**: `wx += uBend*z*z`, which is zero at her feet
+  and grows with depth, so near ground sweeps one way and the path ahead swings
+  the other. It lives in the shared `PROJ` string so terrain, grass, props and the
+  hall curve together. She stays INSIDE the camera yaw because collision is
+  lane-based. Spec: `docs/CORNER_TURN.md`.
+- **Screen-vs-world is THE recurring bug of this project — seven instances so
+  far.** Décor baseline, runner hazards, backdrop seams, ground slab, wordmark,
+  the abyss gradient, the lyric line. Before pinning any quantity to `W`, `H`, or
+  a raw screen fraction, ask whether it should scale with the world instead; if
+  it must be a screen fraction, derive it from the world value rather than
+  restating the number. Portrait hides these — always check landscape.
 - **Jelly UI:** all UI motion lives in the JELLY UI CSS block, gated by
   `body.rm` (reduce-motion setting + OS preference via `applyMotionClass()`).
   New buttons/cards get the existing classes; never animate under `body.rm`.

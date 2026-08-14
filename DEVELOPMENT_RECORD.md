@@ -459,6 +459,7 @@ pre-deploy gate to stop the glyph rule regressing a third time.
 |---|---|---|
 | **Rotate the Cloudflare API token** | OPEN | Client action |
 | **Rotate the AutoSprite API key** | OPEN | Client action — key was shared in chat for the projectile pass |
+| **AutoSprite key for cloud sessions** | OPEN (client) | Settled 08-13: the connector is now ENABLED in-session and its tools load — and `list_characters` still answers *"Unauthorized: provide an MCP API key"*. So it was never the connector and never the network; it is only ever the key. Either route works once one exists: the connector tools directly, or `tools/autosprite.py` with `export AUTOSPRITE_KEY=…` (env only, never a file). Key page: `https://www.autosprite.io/apikey` |
 | Landscape controls on device | RESOLVED 07-26 | Client's own screenshots confirm the cluster fits; pre-game screens fixed & scrollable |
 | Combat & economy tuning | OPEN | Play-test dials — par times, beacon range, Atlas price, Refrain speed, Belt range |
 | Stage-Select starting stats | OPEN (design) | Late stages begin at LV1 stats; option to grant stage-scaled stats on request |
@@ -467,6 +468,8 @@ pre-deploy gate to stop the glyph rule regressing a third time.
 | `dance` animation | RESOLVED | Now bound to the STAGE CLEAR victory emote |
 | Dress → tuxedo swap | OPEN | Story beat ~stage 3; needs a tuxedo sheet |
 | Actual song lyrics | OPEN | Client to supply; only short fragments used |
+| AutoSprite-animated blood | OPEN | The canvas droplets are an explicit stopgap; blocked on the key above, nothing else |
+| Wishing Glade / Sky Gardens depth | OPEN (design) | Both proved FLAT by measurement (median motif area per band is level) and left flat on purpose. If depth is wanted there it has to be per-MOTIF cards — one per toadstool cluster, one per floating island — not bands. Different and much larger job |
 | Phaser scaffold / Godot project | PARKED | Preserved migration/native targets |
 
 ---
@@ -508,10 +511,416 @@ Jul 26       ERA V — landscape root-caused & fixed (decor/hazard/seams/slab), 
              AutoSprite projectiles generated FROM THE CLOUD, docs made current same-day
 
 Jul 25/26    THIS DOCUMENT — complete record assembled; live build confirmed deployed and functional
+
+Aug 9        ERA VI — CENTRE FRAME: RPG ground line raised 0.82 → 0.72 (GROUNDF, one constant
+             replacing three coincidentally-agreeing literals), LH 18 → 20, SLAB_R separating
+             drawn depth from collision depth, and the UNDERCROFT — a per-stage cross-section
+             beneath the play line (Mirror Lake from under the water; Sky Gardens with no
+             ground at all). Sixth screen-vs-world instance found and deleted.
+Aug 10       ERA VI cont. — REAL WIND: canopies re-done as per-column SHEAR spans pivoting at
+             the trunks with travelling gusts (row warp can never be wind); span count pinned
+             at 16 after measuring that 49 costs 60fps; butterflies/sparkles/birds gated to
+             outdoor stages only.
+Aug 10       ERA VI cont. — LIVING BACKDROPS: row-warp ripple + canopy breeze applied to the
+             existing paintings, a near band at 3.5x parallax for a real second depth plane,
+             god rays on each painting's real light source, and life at three depths. No new
+             art. Median frame time unchanged.
+Aug 10       ERA VI cont. — "Higher": GROUNDF → 0.65 (Mario-on-a-phone is 66%, not the
+             raw-NES 87% everyone quotes), LH → 22 DERIVED from GROUNDF, landscape camera
+             rewritten to anchor-first/follow-second because it had never honoured GROUNDF
+             at all, and CTRL_TOP measured instead of guessed.
 ```
 
 ---
 
+## ERA VI — CENTRE FRAME (August 9, 2026)
+
+**Client:** *"She's too far at the bottom, it's not like Mario — Mario is kind of
+like center screen. Can we adjust that, and let's discuss what's gonna be beneath,
+underneath all of that."*
+
+The two halves of that sentence are one problem. Raising the floor is exactly what
+exposes the space under it — 18% of the screen became 28% — so the content question
+had to be answered in the same change or the framing change would read as a bug.
+
+**Framing.** `GROUNDF = 0.72` now governs the ground surface, replacing a hard-coded
+`0.82` in **three independent places** (both camera branches and `drawMansionBG`'s
+`floorY`) that agreed by coincidence rather than by construction. `floorY` derives
+from the true scaled world floor now, so the painted earth band can never tear away
+from the tiles again. Her head moved from 69% of the screen to 63%; the ground from
+75% to 72%, landing on the Mario 1-1 / Hollow Knight reference.
+
+**The landscape discovery.** At `LH=18` the landscape camera clamped to the world's
+own bottom edge at **0.744** — raising the anchor below that did *nothing* there,
+proven by an identical `camY` at both 0.72 and 0.65. `LH` 18 → 20 gave the camera
+two more rows of world to look at, and both orientations now reach 0.72. Deeper pits
+came free.
+
+**`SLAB_R`.** Tiles are opaque, so the six new rows buried the very band they were
+added to expose. `SLAB_R=2` caps how many ground rows are *drawn* while leaving
+collision completely alone, and the deepest drawn row gets a cut face so the floor
+reads as seated on the cross-section rather than stopping in mid-air.
+
+**The undercroft.** `drawUndercroft` / `drawUCLayer`: a shared substrate plus one
+themed layer per stage, parallaxed at 0.6–0.9× so it recedes behind her. The
+library's lower stacks and lamp pools; meadow roots over a buried drystone wall; a
+petal-strewn cobble bed; the Rose Waltz cistern; **Mirror Lake seen from under the
+water** — shafts, caustics, swan shadows, bubbles; glade mycelium; sunflower
+taproots; palace foundations with a lit window. **Sky Gardens gets no ground at
+all** — open sky and cloud decks far below, because the vertigo is the stage. It is
+not decoration: pits drop her through this band before the death plane, so it is
+drawn to read at speed and stay darker than she is.
+
+**Sixth screen-vs-world instance.** The "abyss below the track" gradient compared
+`GS.LH*T - GS.camY` (world units) against screen `H` after `FX.restore()`. On a
+portrait phone that is 1167 vs 844 — the test never passed and the gradient never
+drew, in any build, ever. Deleted rather than repaired: `drawUndercroft` owns that
+band alone, and two owners of the same band is precisely how the décor baseline and
+the backdrop seams drifted apart. `drawLyric`'s fixed `H-92` was the seventh, caught
+the same day and fixed for side mode only — it is shared with Royal Runner, which
+was left exactly as it was.
+
+*Verified: all nine stages rendered in portrait and landscape with zero page errors;
+landscape confirmed reaching 0.72; death plane, boss anchor, reduce-motion, runner
+parity, glyph gate and the `web/` reference audit all re-run clean. Spec:
+`docs/GROUND_LINE_UNDERCROFT.md` · commit `dabe9e2`.*
+
+### Era VI, second pass — "Higher." (August 10)
+
+The client looked at 0.72 and asked for higher still. Settling the reference
+properly explained why. **SMB1's ground sits at 86.7% of the NES frame** — the
+number everyone quotes, and the wrong one for a phone. That 4:3 frame is
+letterboxed into a 19.5:9 screen, and the black bars absorb everything below, so
+the ground actually lands at **66% of the physical screen** and Mario's head at
+63%. By that measure 0.82 was nowhere near, and 0.72 was *still* below it.
+`GROUNDF` went to **0.65** — her head at 56%, ground at 65%.
+
+Raising it exposed something the first pass had claimed and got wrong:
+**landscape had never honoured `GROUNDF` at all.** That branch eased toward
+`p.y - VH*0.55` and used `GROUNDF` only as a *ceiling*, so while she stands on the
+floor the follow target always won and the ground sat wherever `0.55` put it. The
+constant did nothing; it had merely agreed near 0.72 by coincidence — the exact
+failure mode as the three coincidentally-agreeing `0.82`s that started all of
+this. Proof: dropping 0.72 → 0.65 left `camY` at 87 in both. Rewritten to **anchor
+first, follow second** — the resting frame *is* the anchor and the follow term
+only pulls the camera up when she climbs. `camY` 87 → 123, ground at exactly
+0.650, and a sampled jump arc confirms she holds at rest and stays at 23% of the
+view at the top of a climb instead of sliding off.
+
+`LH` 20 → **22**, and this time *derived* rather than chosen: the branch only runs
+while `VH ≤ LH*T`, so the worst case is `VH == LH*T`, which reduces to
+`LH*T ≥ FLOOR_R*T / GROUNDF` = 448/0.65 = 689 → `LH ≥ 21.5`. **Lowering `GROUNDF`
+again requires raising `LH` with it** or landscape silently pins to the world's
+bottom edge, which is precisely what it did at 18.
+
+Last, the undercroft's content window stopped being a guess. It had been "0.66 of
+the band" — another magic screen fraction, in a project whose signature bug is
+magic screen fractions. `#mCtrl` is positioned off `env(safe-area-inset-bottom)`
+and genuinely cannot be derived from `H`, so **`CTRL_TOP` is now measured**: on
+resize, and again on the start-of-run toggle where the pads actually receive their
+`.on` class. Both the undercroft and the lyric line read it, and the lyric finally
+fits its full line instead of disappearing under the DASH button.
+
+*Commit `32b280f`.*
+
+### Era VI, third pass — living backdrops (August 10)
+
+*"Now it just looks like a picture. A beautiful picture but still a flat photo.
+Can we bring the exact image to life?"*
+
+Two structural reasons it read flat. The whole painting scrolled at one speed, so
+sky, mountains and foreground grass all moved together — a photograph on a
+conveyor belt, with no parallax and therefore no depth. And nothing moved inside
+it: no wind, no water, no changing light.
+
+The answer was to animate **the paintings themselves**, with no new art at all.
+Each backdrop is now composited into a padded offscreen and blitted back as
+horizontal rows, each with its own x-offset — a **water ripple** where the art
+has water, and a **canopy breeze** that is strongest at the treetops and tapers
+to zero where the trunks meet the ground. Mirror Lake and Her Encore already had
+their reflections *painted in*, so rippling those rows was free realism: the
+mirror-flat lake finally moves. The bands are fractions of the image and were
+read off the actual art — Mirror Lake's waterline really is at 0.645, Golden
+Hour's sun really is at x=0.29 — so they hold at any ground line, zoom or
+orientation. Stone colonnades and distant hills are excluded deliberately.
+
+Depth came from two further layers. A **near band** takes a thin slice of the
+painting's own base and redraws it at 3.5× the parallax, crushed to a silhouette
+— two planes at different speeds is what actually creates depth, and the crushing
+is the point, because at full brightness the eye reads it as the same tree twice.
+And **life at three depths** — petals, fireflies, pollen, embers, cloud, birds —
+each tier with its own parallax rate, because the difference in *speed* is the
+cue. One layer of petals reads as stickers on glass; three reads as air.
+
+Three bugs surfaced in the building. The row-batching loop never flushed its
+final run, so on a canopy-only stage two thirds of the painting was never drawn
+at all — caught by rendering against the deployed build side by side rather than
+by reading the code. `_amb`, the reduce-motion flag, was declared ~160 lines
+below the new pass that read it; `var` hoists the binding but not the assignment,
+so it was `undefined` and every animated term silently evaluated false — a motion
+flag that fails closed, which is precisely the bug that ships as "it just didn't
+work on my phone." And the near band was drawing the full-height painting and
+clipping 86% of it away, worth a 50ms frame until it was given a source-slice
+blit of its own.
+
+Cost was measured over 300 frames rather than assumed: median frame time
+unchanged at the 16.7ms vsync on every stage, p95 up half a millisecond, worst
+frame within noise of the old build. Everything animated is multiplied by the
+reduce-motion factor, so that setting yields a still painting rather than a
+broken one.
+
+*Spec: `docs/LIVING_BACKDROPS.md` · commit `95718dc`.*
+
+### Era VI, fourth pass — real wind (August 10)
+
+The client's verdict on the first living-backdrop pass was precise and correct:
+*"On the Mirror Lake, the trees should be blowing in the wind. Those actual trees
+should be blowing… I need it to be animated… we're delivering a production grade
+game, I want the background to be production grade."*
+
+Row displacement, it turns out, can never be wind. It moves an entire horizontal
+band together, so every tree at a given height slides in lockstep — the eye reads
+that as heat haze or water, never as air moving through branches. Real wind bends
+each tree about its own trunk and arrives in gusts that roll along a treeline,
+leaving neighbours out of phase.
+
+Canopies are now drawn as vertical spans, each carrying a shear transform that is
+zero at the pivot row where the trunks meet the ground and full at the crown,
+driven by a travelling wave plus a slower travelling gust envelope — without the
+gust it is metronomic and reads as a mechanism. Pivots came off the art: Mirror
+Lake's willows pivot exactly at the waterline, the Rose Waltz's marble colonnade
+is excluded outright, and Her Encore's castle stands still while the trees below
+it blow. Water kept the row warp, which was always the right tool for it.
+
+The technique came with two constraints that had to be measured rather than
+guessed, and they pull against each other. Adjacent spans lean by different
+amounts, and that step shows as a vertical line wherever the art is smooth — the
+lake's sky exposed it at about 1.5px, cured by dropping the wave's spatial
+frequency until the step went sub-pixel, verified at 2x zoom. Meanwhile a shear
+matrix takes canvas off its fast axis-aligned blit path, so every span is a
+filtered textured quad and the span *count* is the entire cost: a probe found 12
+and 24 spans both holding a full 16.7ms frame while 49 cost 20ms, straight out of
+60fps. The count is therefore pinned at sixteen and the frequency chosen to suit
+— phase spread traded for frame rate, on purpose.
+
+The same pass removed the butterflies, sparkles and birds from indoors. They had
+been drawing on every stage including the library, which wants window light and
+dust and nothing else; the shafts the client singled out as good were strengthened
+instead.
+
+*Commit `83f71df`.*
+
+### Era VI, fifth pass — the sunflowers, and why amplitude was the wrong knob (August 10)
+
+*"Shouldn't the sunflowers be blowing in the breeze too… they could just be kind
+of moving back and forth."*
+
+Measurement first, and it contradicted the obvious reading: the sunflower heads
+were already swinging up to nine pixels with the field base pinned at zero. The
+shear was working. Sampling the left, middle and right thirds of the field
+separately explained the gap between the numbers and the eye — 4/6/9, then
+8/8/10, then −6/−4/−1. Every part of the field was moving the same direction by
+the same amount. A uniform slide across a field of near-identical flowers has no
+landmark to be read against, so it registers as nothing. The willows had read
+fine at the identical setting only because a large distinct trunk *is* a landmark.
+
+The fix was spatial frequency, not amplitude. The low frequency had been imposed
+on every stage by the seam rule, but a seam is only visible against smooth
+pixels; a band that is wall-to-wall texture swallows a two-pixel step whole. The
+sunflower band begins at 0.46 and contains no sky at all, so it now carries the
+highest frequency in the game, while Mirror Lake and the Sky Gardens — whose
+bands do contain open sky — stay at the base value. Afterwards the same
+measurement read 13/5/−2 and −2/0/6: neighbouring clumps rocking in opposite
+directions, which is what a breeze crossing a field actually looks like. It cost
+nothing, because the span count never changed.
+
+The same pass closed a pale sliver down the left edge that appeared on strong
+gusts: the offscreen's padding was smaller than a peak lean plus the span
+overlap, so the shear sampled past the edge into nothing.
+
+*Commit `9f25578`.*
+
+### Era VI, sixth pass — the plane in front (August 10)
+
+The client had already diagnosed this himself, in passing, while praising the
+library: *"It is the fact that I have those candlesticks there that kind of gives
+it a different layer for it to move behind, and that's nice."*
+
+Every plane in the game sat behind her — the painted backdrop, the near band, the
+undercroft — and a stack of behind-planes is still scenery. Parallax sells depth
+by also putting something in FRONT of the subject, moving faster than the world.
+The library read differently for exactly one reason: its candlesticks are world
+props she walks behind. Nothing else in the game had a near plane at all.
+
+`drawForeground` adds one: a per-stage near layer at roughly 1.7x the world's own
+screen rate, drawn after the world transform is restored so it genuinely occludes
+the hero. A top fringe — willow strands, cherry limbs in blossom, ivy, sunflower
+heads leaning over the edge, a library soffit with hung lamps — hanging deeper at
+the screen edges and thinning through the middle, which is both how a canopy
+frames a view and how the play area stays legible. And occasional slim trunks
+sweeping between camera and player.
+
+Three corrections came out of rendering it rather than reading it. The trunk
+first ran the full height of the screen as a soft gradient, putting a vertical
+haze band through the lake and the undercroft and reading as a fault rather than
+a tree; a trunk stops at the ground. Even bounded, a tinted gradient with
+parallel sides is a light shaft, so it was rebuilt as a tapered, leaning
+near-silhouette with a limb. And its alpha was held at 0.62 rather than opaque,
+because the strip crosses the play area and a foe or projectile behind it has to
+stay readable — depth is not worth a death.
+
+No new assets, frame time unchanged. This is also the ceiling of what flat
+paintings can give: genuine spaces, with real angles and cast shadows, need the
+backdrops re-rendered as separated depth layers out of Blender.
+
+*Commit `43a124e`.*
+
+### Era VI, seventh pass — depth cards, framing, gore (August 11–12)
+
+The client supplied his own **Will Hill: Player One** techniques doc and asked
+for the parallax and SAM cutting to be lifted from it. What shipped:
+
+- **Multiplane on 8 of 9 stages** *(superseded by the ninth pass — it is SIX of
+  nine now; the Wishing Glade and the Sky Gardens were later proved flat by
+  measurement and left flat)* — `tools/depth` cuts each painting into an
+  inpainted base plate plus full-frame cards, each drawn at
+  `rate = BASE + (depth − 0.5) × SPREAD` (0.045 / 0.010, separation clamped to
+  ±80px). **The library stays flat on purpose**: its bands are the building's
+  three floors, not depth planes. Spec: `docs/LIVING_BACKDROPS.md`.
+  *(`7246ac5` → `d7efd7e`.)*
+- **The "gaps in space" bug was the loader, not the cut.** `loadCards()` called
+  `done()` from `onerror`, so a failed image still marked the stage ready and the
+  smeared inpaint base drew in place of art. Now fail-loud, with a flat fallback.
+  Cards also went full-frame, which deletes the position bookkeeping that had
+  already caused one mirrored-tile displacement. *(`ff8befa`.)*
+- **Zoom across the board** — `BASE` 0.92 + `VIEW_W` 440 (hero 50→70px portrait,
+  67→79px landscape). Both constants had to move: portrait is width-bound,
+  landscape cap-bound. The limit is read-ahead, held at the NES figure.
+  *(`eb6be01`, `67223f4`.)*
+- **Her idle**: 67 breaths/min → 16, hunch cut from 33% of the loop to 11%,
+  measured by `tools/measure_idle.py`. *(`3fc0383`.)*
+- **Backdrop viewer** `?bg=1` — flip through all nine stages, no death. Touch pads
+  raised clear of the iOS home-indicator strip. *(`4618719`.)*
+- **Only plant life sways** — wind stripped from 9 of the 16 cards; ground, rock,
+  stone and hills are static. *(`84a5179`.)*
+- **Themed gore across all 26 characters** — the system already existed
+  (`BOSS_GORE`/`FOE_GORE`); three untinted bursts, a hardcoded pink for every
+  boss hit, and a missing creature-level map were defeating it. `CREATURE_GORE`
+  added; only five characters bleed red, all of them flesh. *(`4618719`,
+  `4e5bd29`.)*
+
+### Era VI, ninth pass — the coarse/medium/fine re-cut, and her idle (August 13)
+
+**Client:** *"Let's do the coarse medium fine recut"* and *"Jandé appears to be
+glitching with the breasts — it's like she's standing beside herself, splitting
+into a separate person to bend over and breathe."*
+
+**The idle** shipped first, being a live bug. Two mistakes, the first forcing the
+second. The sheet is not a breath cycle: measured per frame, 0, 4 and 5 are the
+SAME upright pose, 1 is a 2px settle, and 2 and 3 are a deep bend from the waist
+— a bow-and-recover with three rest frames on the end. Looping it makes her bow
+repeatedly at any speed, so the previous pass's slowdown only made each bow
+slower. The cross-fade added to stop the slow loop reading as a slideshow then
+drew both poses at once — the base frame stays opaque, so the union of the two
+silhouettes is always visible, and that was the second person. There is no alpha
+that fixes a cross-dissolve between two poses. She now breathes on 0<->1 at
+~15/min, with the deep bend demoted to one occasional beat sized to the 7s of
+idle the dance easter egg actually allows.
+
+**The re-cut.** Six stages multiplane (1, 2, 3, 4, 6, 8), three flat, 38 assets
+replacing 49. The third SAM tier earned its place — coarse alone reaches 55.7%
+on the meadow where medium reaches 85.9%, and coarse cannot resolve gradual
+rolling hills at all (Rose Waltz 51.3/81.3, Encore 21.1/82.5). But **almost every
+defect that showed on screen was layering or tooling, not cutting**, and the list
+is the value of the pass:
+
+- Blossom at depth 0.68 over its own trunks at 0.58; foreground trees 0.36 of
+  depth from their hillside. Hence the rule: **group by ground plane, not by
+  object.** Three times the fix was merging two specced cards rather than tuning
+  the boundary between them.
+- **Claim order and draw order were the same list.** Regions must be listed
+  most-specific-first, but that also drew the willow behind the hill; one widened
+  box then swallowed all three lake willows and dropped them from the cut.
+- **The assignment map lied, twice** — first stamping overlapping masks in order
+  (showing the last claimer, not the winner), then indexing by card where the
+  data is indexed by region. A diagnostic that lies is worse than none.
+- SAM finds blossom and misses branches; finds sunflower heads and misses stems.
+  Both left the plant's body in the base for its own foliage to scroll off. Two
+  new levers, `close` and `fill`.
+- Going full-frame had **silently moved every wind pivot to the bottom of the
+  plate**, so a willow rooted at 0.64 of the frame swung at its own trunk. Cards
+  carry a measured `pv` now.
+- **`strip:1` retired everywhere.** Ground-plane grouping puts fences, rocks and
+  fountains INTO the ground bands, so none is featureless. It had put the Mirror
+  Lake shore 248px from the willows rooted in it; now 2px.
+- **Her Encore's inpainted base came back 100.000% black** — its cards cover the
+  whole frame, so push-pull had no source pixels. Solid black holes in the sunset
+  sky wherever a card had moved. The fill falls back to a blur of the original.
+
+**Two plates proved flat by measurement**, joining the library: the Wishing Glade
+(median motif area per band 3177/2233/2351/2439 — level, with the TOP band
+largest) and the Sky Gardens (islands alone, bottom/top 0.83). Both cuts ran fine
+and were discarded. They are tiling wallpaper, not spaces; banding them shears
+the continuous growth between motifs. Coverage was never the goal.
+
+Verified across all nine stages at ~5000px of travel: separation monotonic
+far-to-near on every cut stage, total spread 37-48px on a 768px plate, recompose
+0.000%, zero page errors, `web/` references exact. Spec:
+`docs/LIVING_BACKDROPS.md`; method: `tools/depth/README.md` and
+`tools/depth/regions/README.md`.
+
+### Era VI, eighth pass — the runner's corners (August 13)
+
+**Client:** *"when you have to swipe to turn left or right, the character and
+stage should actually turn."*
+
+The old corner slid the whole frame 90px sideways over 22 frames. That was not a
+weak version of a turn — it was the wrong operation. In the runner's projection
+(`sx = W/2 + wx*s`, `s = 300/(300+z)`) a camera yaw `th` displaces every vertex
+by `th*(300+z)*s = 300*th`: **the same number of pixels at every depth**. The
+slide already WAS a yaw, and a yaw here is a pan. Near and far move together, and
+parallax is the only thing the eye reads a rotation from.
+
+What shipped is the pseudo-3D road curve — `wx += uBend*z*z`, added to the shared
+GLSL `PROJ` string so terrain, grass, the prop avenue and the library hall all
+bend together — with the camera yawing into it so the corner stays framed.
+Obstacles and coins are on the path and ride it round. The swing runs 30 frames
+on a front-loaded envelope, so a corner arrives and settles onto a new heading
+instead of wobbling out and back.
+
+Jande banks, pivoting at her **feet** (about the sprite centre her boots swing
+~30px and unstick from the floor), with a horizontal pinch standing in for
+shoulders coming round — the back-view sheet has no turned frames. She stays
+INSIDE the camera yaw, which reverses the first attempt: it is more correct
+cinematically to hold her still while the world turns, but the bend is zero at
+her depth so nothing is lost, and **collision is lane-based** — outside the yaw
+an obstacle passing her mid-swing sits ~0.6 of a lane from where it actually is.
+
+The ground plane grew a skirt to +-7 so it still covers the frame once it swings,
+with two rules learned on the way: the original 31 columns keep their exact x
+(hill height is per-vertex and interpolated, so re-spacing a wider mesh moves the
+terrain silhouette with nothing turning), and the hill profile is clamped at its
+old maximum or the new outer rows rear up as cliffs.
+
+**The control is the finding.** A uniform 90px pan of the same frame — the old
+corner — measures -42px in all four depth bands at r=1.00. The turn measures
+-25 / -34 / -16 / +28 across those bands: four different numbers, crossing sign
+with depth. A pan cannot do that. `_devTurn()` gives the exact per-depth figures
+and redraws without advancing the world; end-to-end, a swiped corner ran the bend
+0 -> 1 -> 0 over 30 frames and scored. Stages 0, 4 and 7 clean, frame cost
+unchanged. Spec: `docs/CORNER_TURN.md`. *(`4cb33bf`.)*
+
+**AutoSprite, diagnosed (Aug 12).** The blocker is *only* the credential. From
+this container `www.autosprite.io/api/mcp` initializes and lists all 30 tools
+unauthenticated; `tools/call` returns *"Unauthorized: provide an MCP API key."*
+The claude.ai connector is a separate path (OAuth) and stays offline, but it is
+not needed. `tools/autosprite.py` is the committed client — JSON-RPC over HTTP
+with SSE framing, `Authorization: Bearer $AUTOSPRITE_KEY`, key read from the
+environment only. `python3 tools/autosprite.py ping` reports whether the key is
+present. (`api.autosprite.io` does not exist — the API is served from `www`.)
+
+---
+
 *Jandé — "Once Upon A Time"*
-*Complete development record · PRODBYKCTW · assembled July 25, updated July 26, 2026*
+*Complete development record · PRODBYKCTW · assembled July 25, updated August 13, 2026*
 *Consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment — and adds Era IV: The Living Bosses.*

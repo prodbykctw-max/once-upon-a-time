@@ -361,7 +361,13 @@ body.mobile .hud-masks svg{width:26px;height:26px}
 body.mobile .tbtn{width:46px;height:46px;font-size:20px}  /* bigger tap targets */
 body.mobile #topBtns{top:8px;right:10px;gap:10px}
 /* clear the home indicator and the rounded corners on notched iPhones */
-body.mobile #mCtrl{bottom:calc(18px + env(safe-area-inset-bottom,0px));
+/* CLEAR THE HOME-INDICATOR GESTURE STRIP. Client: the pads sat close enough to
+   the bottom edge that iOS read presses near them as the system swipe-up /
+   app-switcher gesture. Measured: only 18px of screen below the pads in portrait
+   (10px in landscape) — Apple asks for ~34pt of clearance. Raised to 52px, which
+   is still 87px clear of the play floor (ground line 549, pads now start 636 on a
+   390x844 phone), so nothing touches the platform she runs on. */
+body.mobile #mCtrl{bottom:calc(52px + env(safe-area-inset-bottom,0px));
   padding-left:calc(16px + env(safe-area-inset-left,0px));
   padding-right:calc(16px + env(safe-area-inset-right,0px));
   align-items:flex-end}
@@ -374,7 +380,12 @@ body.mobile .bb-w{width:66vw}
 body.mobile #bossBar{bottom:150px}
 /* landscape phones: tuck controls into corners, lower */
 @media (orientation:landscape) and (max-height:560px){
-  body.mobile #mCtrl{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+  /* Landscape can't have both: the screen is 390 tall, the pad cluster is ~154,
+     and the ground line sits at 253 — the pads ALREADY start above it at 226.
+     So this is raised only enough to clear the gesture strip (10 -> 28px) rather
+     than the full 52; going further would push them further into the play area.
+     The real fix there is a shorter cluster, not more lift. */
+  body.mobile #mCtrl{bottom:calc(28px + env(safe-area-inset-bottom,0px))}
   /* size controls by viewport HEIGHT in landscape so the cluster stays short
      enough to fit above the home indicator / browser bar */
   body.mobile .mdiam{--ak:clamp(52px,15vh,72px)}
@@ -919,9 +930,29 @@ function applyTouchMode(){
   var mc=document.getElementById('mCtrl');
   if(mc)mc.classList.toggle('on',t&&MODE==='side'&&running);
 }
+// ── CTRL_TOP — where the touch pads start, in screen px ──────────────────────
+// The undercroft's usable window is floor line -> here; anything drawn below is
+// behind the D-pad and rendered for nobody. This was a guessed 0.66-of-the-band
+// fudge, which is the same class of mistake as every other magic screen
+// fraction in this project: MEASURE the thing instead. #mCtrl is positioned off
+// env(safe-area-inset-bottom), so it genuinely differs per device and per
+// orientation and cannot be derived from H. Re-measured on every resize; falls
+// back to the full height when the pads are hidden (desktop/keyboard play),
+// where the whole band really is visible.
+var CTRL_TOP=1e9;
+function measureCtrlTop(){
+  try{
+    var mc=document.getElementById('mCtrl');
+    if(mc&&mc.classList.contains('on')){
+      var b=mc.getBoundingClientRect();
+      CTRL_TOP=(b.height>0)?b.top:1e9;
+    }else CTRL_TOP=1e9;
+  }catch(_e){CTRL_TOP=1e9;}
+}
 function resize(){
   W=window.innerWidth;H=window.innerHeight;
   applyTouchMode();   // re-evaluate: the answer can change (rotate, external display)
+  measureCtrlTop();   // the undercroft's usable window depends on where the pads sit
   // phones: cap canvas density at 1.5× — full 2-3× costs more GPU than it's worth
   DPR=document.body.classList.contains('mobile')?Math.min(1.5,window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1);
   glC.width=W*DPR;glC.height=H*DPR;glC.style.width=W+'px';glC.style.height=H+'px';
@@ -932,8 +963,25 @@ function resize(){
   // of the view so more of the level ahead is visible on every device. Narrow
   // screens pull back further still (min of the axis fits), floored so it
   // never goes microscopic. Camera/bounds/culling read VW/VH world units.
+  // Client: "Can we zoom in on the characters a bit more? Jandé and the enemies
+  // definitely deserve to be seen clearly" — and then, across the board.
+  //
+  // THE TWO ORIENTATIONS ARE BOUND BY DIFFERENT TERMS, so both constants have to
+  // move or only one of them changes. Portrait is WIDTH-bound (the W/VIEW_W term
+  // wins on a narrow screen); landscape is CAP-bound (BASE wins). That asymmetry
+  // is also why she used to be 6.0% of the screen in portrait and 17.2% in
+  // landscape — the same character, nearly three times the size sideways.
+  //
+  //   portrait   ZOOM 0.585 -> 0.815   hero 50 -> 70px  (6.0% -> 8.3% of H)
+  //   landscape  ZOOM 0.780 -> 0.920   hero 67 -> 79px  (17.2% -> 20.3%)
+  //
+  // WHERE TO STOP is read-ahead, not taste. At these values she sees 9.3 tiles
+  // ahead of her in portrait. The NES showed 16 tiles with Mario at ~40% across,
+  // i.e. ~9.6 ahead — so this lands on the reference rather than under it. Going
+  // further (BASE 0.98 / VIEW_W 400) makes her 82px but drops read-ahead to 7.9
+  // tiles, which is below anything the genre does and costs reaction time.
   if(MODE==='side'){
-    var BASE=0.78, VIEW_W=520, VIEW_H=320;
+    var BASE=0.92, VIEW_W=440, VIEW_H=320;
     ZOOM=Math.min(BASE, W/VIEW_W*BASE, H/VIEW_H*BASE);
     ZOOM=Math.max(0.5,ZOOM);
   }else{ZOOM=1;}
@@ -946,6 +994,27 @@ function resize(){
 // ════════════════════════════════════════════════════════════
 var T=32, GRAV=0.52, MASKS=5;
 var PW=30, PH=86; // hero collision box (scaled to ~5'3.75")
+// ── GROUND LINE — ONE constant, three consumers ─────────────────────────────
+// Where the track's floor surface sits as a share of the viewport. Read by BOTH
+// camera branches (portrait anchor + landscape clamp) AND by drawMansionBG's
+// floorY, which must land on the same pixel or the painted earth band tears away
+// from the tiles. It was hard-coded as 0.82 in all three places; they agreed only
+// by luck. Client, 2026-08-09: "she's too far at the bottom, it's not like Mario,
+// Mario is kind of like center screen." 0.82 put her head at 69% of the screen
+// under 615px of empty sky. 0.72 landed on the Mario 1-1 / Hollow Knight
+// reference (~70-75%); client asked for HIGHER still, so 0.65 — her head at 56%,
+// genuinely centre-screen, with a third of the view given to the undercroft.
+var GROUNDF=0.65;
+// How many rows of the ground column are actually DRAWN. Collision is unchanged —
+// the tiles still exist in GS.solid and pit() still carves them — this is purely
+// what the player sees. Raising LH to 20 gave the camera room to reach GROUNDF,
+// but tiles are opaque, so without this the six new rows simply buried the
+// undercroft they were added to expose. Two rows reads as a solid shelf; below
+// it the cross-section takes over. Measured: on a 390x844 phone the touch cluster
+// starts at y=672 and the ground line lands at 608, so the band the player can
+// actually SEE is only ~64px — a 3-row slab (56px) left 8px of it. Two rows (37px)
+// keeps the shelf chunky and gives the cross-section room to exist.
+var SLAB_R=2;
 var GS={};
 function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
   setZoom(BASEZ);   // never inherit a cinematic zoom into a new/restarted stage
@@ -962,13 +1031,13 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
     camX:0,camY:0,tick:0,lyricT:0,titleT:210,won:false,finale:0,endT:0,trans:false,paused:false,mapOpen:false,blocking:false,blockHits:0,
     dmgT:0,shieldT:0,fxMax:{},levelUpT:0,
     solid:{},tiles:[],bkbl:[],enemies:[],notes:[],pwr:[],ptcl:[],boss:null,bossActive:false,
-    gateOpen:false,gateFlash:0,gateCol:88,arrowT:0,LW:1e9,LH:18,
+    gateOpen:false,gateFlash:0,gateCol:88,arrowT:0,LW:1e9,LH:22,
     speed:5.2,dist:0,nextTheme:(_fin?12:330),obs:[],genC:0,groundR:14,
     stats:{dj:0,sl:0},toasts:[],newAch:[],blendT:1,prevPc:null,prevAc:null,prevAi:0,
     magT:0,boostT:0,x2T:0,gemsLive:0,
     foes:[],pops:[],deathNotes:[],combo:0,comboT:0,
     t3:{lane:0,laneX:0,py:0,vy:0,slid:0,obs:[],coins:[],nextZ:900,howT:300,
-        chase:0,chX:0,turnFx:0,lastTurnD:0,revAsk:false,revT:0,revUsed:false,grabT:0},
+        chase:0,chX:0,turnFx:0,bend:0,lastTurnD:0,revAsk:false,revT:0,revUsed:false,grabT:0},
     p:{x:3*T,y:8*T,vx:0,vy:0,onGround:false,onWall:false,wallDir:0,faceL:false,
        anim:'run',animT:0,frame:0,
        atk:false,atkT:0,atkDir:'r',dead:false,deadT:0,inv:0,
@@ -994,7 +1063,11 @@ function groundCol(gs,c){for(var r=FLOOR_R;r<gs.LH;r++)setT(gs,c,r,'G');}
 function rnd01(n){var v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);}
 // Every foe goes through here so the stage knows how many it spawned — that's the
 // denominator in the clear tally's "FOES SILENCED 14/14".
-function addFoe(gs,o){gs.foesTotal=(gs.foesTotal||0)+1;gs.foes.push(o);}
+function addFoe(gs,o){
+  // The viewer is for LOOKING at the backdrop. Foes crossing it, and their
+  // death bursts, are exactly what gets in the way of judging the art.
+  if(typeof BGVIEW!=='undefined'&&BGVIEW)return;
+  gs.foesTotal=(gs.foesTotal||0)+1;gs.foes.push(o);}
 // Par times per stage (SECONDS), derived from the real constants rather than
 // guessed: stageEnd=330 columns x T=32 / 384px-per-second run speed = 27.5s of
 // pure travel, scaled by each stage's STAGE_RECIPE overhead (gaps, foes,
@@ -1028,7 +1101,28 @@ var BOSS_GORE=['26,20,34','120,170,60','255,150,205','200,20,55','110,200,255','
 // what they are made of, anything humanoid bleeds red.
 //        0 thorn goblin  1 raven      2 sprite      3 bramble knight 4 wisp        5 rose wraith
 var FOE_GORE=['118,168,54','58,52,72','226,150,255','96,150,52','150,235,255','196,26,64'];
-function goreOf(f){return (f&&FOE_GORE[f.tp])||FOE_GORE[0];}
+// The older GS.enemies set is drawn by CREATURE, not by archetype, so its bleed
+// has to key off the creature too — a golem and a fairy share the tp 'WARDEN'
+// but one is stone and one is light. Every one of these used to spray the
+// generic lavender default because the 'kill' bursts were called untinted.
+// Same rule throughout: a thing bleeds what it is MADE of; only flesh bleeds red.
+var CREATURE_GORE={
+  cupid:'255,182,205',        // rose-pink, it is a valentine
+  fairy:'186,255,236',        // pale light
+  imp:'150,64,180',           // violet ichor
+  wraith:'58,52,72',          // smoke, same as the raven
+  fallenangel:'255,236,190',  // gold-white feathers and light
+  sorcerer:'138,96,255',      // arcane violet
+  gargoyle:'128,128,138',     // STONE — grit, never blood
+  bear:'168,32,38',           // flesh
+  lion:'176,38,34',           // flesh
+  dragon:'255,138,52',        // ember
+  golem:'132,120,96'          // earth and stone
+};
+function goreOf(f){
+  if(f&&f.cr&&CREATURE_GORE[f.cr])return CREATURE_GORE[f.cr];
+  return (f&&FOE_GORE[f.tp])||FOE_GORE[0];
+}
 function buildBossArena(gs){
   var g=gs.genC, FL=FLOOR_R, ai=gs.ai, r, c;
   for(c=g;c<g+5;c++)groundCol(gs,c);                 // solid approach to the gate
@@ -1120,7 +1214,7 @@ function pruneTrack(gs){
 
 // ---------- 9 DISTINCT LEVEL LAYOUTS (legacy platformer, unused in runner mode) ----------
 function buildLevel(gs){
-  var LW=100,LH=18,FLOOR=14;gs.LW=LW;gs.LH=LH;gs.FLOOR=FLOOR;
+  var LW=100,LH=22,FLOOR=14;gs.LW=LW;gs.LH=LH;gs.FLOOR=FLOOR;  // LH kept in step with initGS
   for(var c=0;c<LW;c++){for(var r=FLOOR;r<LH;r++)setT(gs,c,r,'G');}
   for(c=0;c<LW;c++)setT(gs,c,0,'G');
   for(r=0;r<LH;r++){setT(gs,0,r,'G');setT(gs,LW-1,r,'G');}
@@ -1661,7 +1755,8 @@ function update(){
           if(p.downbeat&&!p.onGround){p.vy=-11.5;p.airJumps=1;}   // Downbeat pogo off the boss
           else{p.vx+=(p.faceL?1:-1)*3.0;}                     // blowback recoil
         }}
-      else if(_bov&&p.vy>3&&p.y+PH<bs.y+bs.H*0.55){hitB(bs);p.vy=-11.5;p.airJumps=1;ptcl(p.x+PW/2,bs.y+10,'kill');}
+      else if(_bov&&p.vy>3&&p.y+PH<bs.y+bs.H*0.55){hitB(bs);p.vy=-11.5;p.airJumps=1;
+        ptcl(p.x+PW/2,bs.y+10,'kill',(typeof BOSS_GORE!=='undefined'&&BOSS_GORE[bs.bi])||null);}
       if(!bs.alive){GS.bossActive=false;GS.bossDeadT=90;GS.bossDeadMax=90;}
     }
   }
@@ -1672,7 +1767,10 @@ function update(){
   var _pvy=p.vy,_pg=p.onGround;p.y+=p.vy;collideV(p,PW,PH);
   if(!_pg&&p.onGround){p.airJumps=1;if(_pvy>3){sfx('land');if(navigator.vibrate)navigator.vibrate(25);}}
   p.x=Math.max((GS.pruneC||0)*T+T,p.x); // pruned world behind — no walking into the void
-  if(p.y>GS.LH*T+150){p.dead=true;p.vy=-10;GS.masks=0;updateHUD();if(navigator.vibrate)navigator.vibrate([100,40,100]);return;}
+  if(p.y>GS.LH*T+150){
+    if(BGVIEW){ // viewer: a pit lifts her back onto the floor instead of ending the look
+      p.y=(FLOOR_R-3)*T; p.vy=0; return; }
+    p.dead=true;p.vy=-10;GS.masks=0;updateHUD();if(navigator.vibrate)navigator.vibrate([100,40,100]);return;}
   if(p.inv>0)p.inv--;
 
   // ── OBSTACLES (slide shrinks hitbox to bottom 46px) ──
@@ -1687,11 +1785,83 @@ function update(){
 
   // ── ANIMATION (idle + dance easter egg when she stands still) ──
   var newAnim=GS.levelClear?'dance':p.atkT>0?(p.belt?'belt':p.downbeat?'downstrike':'attack'):p.dashing?'dash':p.refraining?'refrain':!p.onGround?'jump':p.sliding?'dash':Math.abs(p.vx)>0.6?'run':(p.idleT>420?'dance':'idle');
-  if(newAnim!==p.anim){p.anim=newAnim;p.frame=0;p.animT=0;}
+  if(newAnim!==p.anim){p.anim=newAnim;p.frame=0;p.animT=0;p.idleI=0;p.idleBeat=false;p.idleN=0;}
   p.idleT=(p.onGround&&Math.abs(p.vx)<0.6&&p.atkT<=0)?p.idleT+1:0;
+  // ── IDLE BREATHING — measured, then timed to a real cadence ────────────────
+  // Client: "she's breathing too fast and she's bending like a hunch and over
+  // breathing... her idle needs less movement and less frequent."
+  //
+  // MEASURED off the sheet before changing anything (tools/measure_idle.py):
+  //  · It holds ONE clean out-and-back cycle — furthest-from-f0 is f2, mid
+  //    sequence, and the wrap step f5->f0 is the SMALLEST at 18.1 against a mean
+  //    step of 40.5. So this is NOT the multi-cycle trap; the art is fine.
+  //  · Cadence was 6 frames x 9 ticks = 54 ticks = 0.90s per breath =
+  //    67 BREATHS PER MINUTE. A human at rest is 12-16.
+  //  · Her head line travels 9px of 154 = 5.8% of her height. Quiet breathing
+  //    moves a shoulder line 1-2%. Frames 2 and 3 are the deep ones (head rows
+  //    11 and 9 against 2 at rest) — that is the hunch.
+  //  · Her feet stay planted (bottom row 150-151 on every frame), so the dip is a
+  //    COMPRESSION, not a bob. Which rules out the obvious fix: offsetting the
+  //    sprite upward would lift her feet and break the single ground-contact
+  //    number.
+  //
+  // So the frames are held for UNEVEN times instead of a flat rate: she rests at
+  // the top of the cycle and passes briefly through the deep poses, which is what
+  // quiet breathing actually looks like — a long still exhale, a quick inhale.
+  // 224 ticks total = 3.7s = 16 breaths/min, with the hunched pose on screen ~11%
+  // of the loop instead of 33%. No frames dropped; none of the art is discarded.
+  //
+  // ── CORRECTION, 2026-08-13. Client: "it's like she's standing beside herself,
+  // splitting into a separate person to bend over and breathe."
+  //
+  // Two mistakes, and the first is what forced the second.
+  //
+  // 1. SLOWING THE LOOP WAS NOT ENOUGH, because the sheet is not a breath cycle.
+  //    Re-measured per frame (alpha bbox of web/865c17b4dacb.png):
+  //      frame 0  head y=2   h=149  w=77   <- rest
+  //      frame 1  head y=4   h=147  w=77   <- a 2px settle: the actual breath
+  //      frame 2  head y=11  h=139  w=83   <- a DEEP bend from the waist
+  //      frame 3  head y=9   h=142  w=84   <- still bent
+  //      frame 4  head y=2   h=149  w=77   <- rest again
+  //      frame 5  head y=2   h=149  w=77   <- rest again
+  //    0, 4 and 5 are the SAME pose. This is a bow-and-recover with three rest
+  //    frames on the end, not a six-phase breath — so looping it at ANY speed
+  //    makes her bow over and over. Slowing it only made each bow slower.
+  //
+  // 2. CROSS-FADING DISCRETE POSES DRAWS BOTH OF THEM. The blend laid frame 2
+  //    (bent) over frame 1 (upright) at partial alpha, and because the base
+  //    frame stays fully opaque the UNION of the two silhouettes is always
+  //    visible. That is the second person. No alpha value fixes it: a
+  //    cross-dissolve between two poses is a double exposure, not an in-between.
+  //
+  // So: BREATHE on 0<->1 — a 2px settle, about 1px at her drawn size, which is
+  // the scale a quiet idle actually moves at — and demote the deep bend to an
+  // occasional BEAT, so the pose still gets used without her bowing on a loop.
+  var IDLE_BREATH=[[0,150],[1,96]];                      // 246 ticks = 4.1s = ~15/min
+  var IDLE_BEAT=[[1,9],[2,15],[3,20],[2,13],[1,9]];      // 66 ticks = 1.1s of lean
+  // ONE beat per idle stint, and that is not a guess: she flips to the dance
+  // easter egg at p.idleT>420, so standing still only ever yields 420 ticks =
+  // 7s of idle. At 246 ticks a breath that is 1.7 breaths — a counter of 4 would
+  // have meant the deep bend never played at all. At 1 it lands once, at ~4.1s,
+  // and the dance takes over before it could come round again.
+  var IDLE_BEAT_EVERY=1;
   var spd={idle:9,run:4,jump:7,dash:4,attack:2,dance:6,belt:3,downstrike:3,refrain:8}[p.anim]||6;
-  p.animT++;if(p.animT>=spd){p.animT=0;var nf=SPRITES[p.anim].frames;
-    if(p.anim==='jump'||p.anim==='attack'){p.frame=Math.min(p.frame+1,nf-1);}else p.frame=(p.frame+1)%nf;}
+  if(p.anim==='idle'){
+    var _sq=p.idleBeat?IDLE_BEAT:IDLE_BREATH;
+    if(!(p.idleI>=0)||p.idleI>=_sq.length)p.idleI=0;
+    p.frame=_sq[p.idleI][0];
+    p.animT++;
+    if(p.animT>=_sq[p.idleI][1]){
+      p.animT=0;p.idleI++;
+      if(p.idleI>=_sq.length){p.idleI=0;
+        if(p.idleBeat){p.idleBeat=false;p.idleN=0;}
+        else if((p.idleN=(p.idleN||0)+1)>=IDLE_BEAT_EVERY)p.idleBeat=true;}
+    }
+  }else{
+    p.animT++;
+    if(p.animT>=spd){p.animT=0;var nf=SPRITES[p.anim].frames;
+      if(p.anim==='jump'||p.anim==='attack'){p.frame=Math.min(p.frame+1,nf-1);}else p.frame=(p.frame+1)%nf;}
+  }
 
   // ── CAMERA: leads in the direction she faces ──
   var lead=p.faceL?0.62:0.38;
@@ -1705,17 +1875,41 @@ function update(){
     // band below the floor. Anchor the ground row near the lower screen (sky
     // fills above); this keeps the tile floor aligned with drawMansionBG's
     // groundY (which also references FLOOR_R*T - camY).
-    GS.camY+=((FLOOR_R*T-VH*0.82)-GS.camY)*0.14;
+    GS.camY+=((FLOOR_R*T-VH*GROUNDF)-GS.camY)*0.14;
   }else{
-    GS.camY+=(p.y-VH*0.55-GS.camY)*0.09;
+    // ANCHOR FIRST, FOLLOW SECOND. The old form eased toward `p.y - VH*0.55` and
+    // used GROUNDF only as a ceiling — so while she was standing on the floor the
+    // FOLLOW target won and the ground sat wherever 0.55 happened to put it.
+    // GROUNDF was never actually honoured in landscape; it just coincidentally
+    // agreed near 0.72. Proof: dropping GROUNDF 0.72 -> 0.65 left camY at 87 in
+    // both, i.e. the constant did nothing. Now the resting frame IS the anchor,
+    // and the follow term only ever pulls the camera UP, when she climbs toward
+    // the top of the view. Landscape matches portrait by construction.
+    var _anch=FLOOR_R*T-VH*GROUNDF;
+    var _tgt=Math.min(_anch,p.y-VH*0.18);   // she never rises above 18% of the view
+    GS.camY+=(_tgt-GS.camY)*0.09;
     // Cap how far BELOW the floor the camera may look, as a share of the viewport
     // rather than a fixed world margin. The old clamp (GS.LH*T-VH) let the camera
     // run to the bottom of the level: the same ~6-7 tiles of dead ground is 15% of
     // a tall portrait screen but ~39% of a short landscape one, which is why
     // landscape showed a giant featureless slab and buried the painted backdrop.
-    // Anchoring the ground surface at ~82% of the viewport matches the portrait
+    // Anchoring the ground surface at GROUNDF of the viewport matches the portrait
     // branch above, so the framing reads the same in both orientations.
-    var _cyMax=Math.max(0,Math.min(GS.LH*T-VH,FLOOR_R*T-VH*0.82));
+    //
+    // NOTE the second term of the min(): GS.LH*T-VH is the world's own bottom edge,
+    // and at LH=18 it capped landscape at 0.744 — raising GROUNDF below that did
+    // NOTHING in landscape (measured: identical camY at 0.72 and 0.65). LH now
+    // gives both orientations enough world below the floor to actually reach
+    // GROUNDF. Deeper pits are a welcome side effect.
+    //
+    // MINIMUM LH FOR A GIVEN GROUNDF: this branch only runs while VH <= LH*T, so
+    // the worst case is VH == LH*T. Substituting into
+    //   LH*T - VH >= FLOOR_R*T - VH*GROUNDF
+    // gives LH*T >= FLOOR_R*T / GROUNDF. At GROUNDF 0.65 that's 448/0.65 = 689,
+    // i.e. LH >= 21.5 -> 22. Lower GROUNDF again and LH MUST go up with it or
+    // landscape silently pins to the world's bottom edge and stops matching
+    // portrait, exactly as it did at 18.
+    var _cyMax=Math.max(0,Math.min(GS.LH*T-VH,_anch));
     GS.camY=Math.max(0,Math.min(GS.camY,_cyMax));
   }
 
@@ -1731,6 +1925,17 @@ function update(){
   for(var pwi=0;pwi<GS.pwr.length;pwi++){var pw=GS.pwr[pwi];if(pw.got)continue;pw.anim++;
     if(p.x<pw.x+26&&p.x+PW>pw.x-2&&p.y<pw.y+26&&p.y+PH>pw.y){pw.got=true;applyPowerup(pw.type);sfx('pw');ptcl(pw.x+12,pw.y+12,'gbk');if(pw.cache){GS.cacheGot=true;GS.toasts.push({txt:'CACHE CLAIMED',sub:'THE WANDERER REWARDS THE CURIOUS',t:170,max:170,ico:'crown'});}}}
 
+  // ── dying foes: hold them on screen for a beat so the kill is legible ──
+  for(var _dq=GS.foes.length-1;_dq>=0;_dq--){var _df=GS.foes[_dq];
+    if(!_df.dying)continue;
+    if(_df.dieT===0){                       // one outward burst, from the struck edge
+      var _dd=(GS.p.x+PW/2)<(_df.x+26)?1:-1;    // away from her: front or back, never over
+      gore(_df.x+26+_dd*24,_df.y+26,_dd,goreOf(_df),14);
+    }
+    _df.dieT++;
+    _df.y+=Math.min(4,_df.dieT*0.35);       // tips and drops
+    if(_df.dieT>26){GS.foes.splice(_dq,1);}
+  }
   var _po=0;for(var pi=0;pi<GS.ptcl.length;pi++){var pp=GS.ptcl[pi];pp.x+=pp.vx;pp.y+=pp.vy;pp.vy+=pp.g||0;pp.vx*=pp.dr||0.95;pp.life-=pp.d;if(pp.life>0)GS.ptcl[_po++]=pp;}GS.ptcl.length=_po;
 }
 
@@ -1781,7 +1986,7 @@ function updateT(){
     if(tt2.tp==='turn'&&!tt2.done&&tt2.z<320){turn=tt2;break;}}
   if(turn&&(TC.ml>0||TC.mr>0)){
     var sd=TC.ml>0?-1:1;TC.ml=TC.mr=0;
-    if(sd===turn.dir){turn.done=true;t3.turnFx=22*turn.dir;sfx('turn');
+    if(sd===turn.dir){turn.done=true;t3.turnFx=TURN_LEN*turn.dir;sfx('turn');
       GS.score+=Math.round(150*mult);GS.stats.tn=(GS.stats.tn||0)+1;misAdd('turns',1);
       if(navigator.vibrate)navigator.vibrate([15,15,45]);}
     else stumbleT(); // wrong way into the corner wall
@@ -1791,6 +1996,12 @@ function updateT(){
   }
   t3.laneX+=(t3.lane-t3.laneX)*0.28;
   if(t3.turnFx>0)t3.turnFx--;else if(t3.turnFx<0)t3.turnFx++;
+  // Asymmetric on purpose: the corner ARRIVES (pow < 1 front-loads the
+  // envelope) and the world then settles onto the new heading. A symmetric
+  // sine reads as a wobble out and back rather than a turn taken.
+  if(t3.turnFx){var _tu=1-Math.abs(t3.turnFx)/TURN_LEN;
+    t3.bend=Math.sin(Math.PI*Math.pow(_tu,0.72))*(t3.turnFx>0?1:-1);}
+  else t3.bend=0;
 
   // ── JUMP / SLIDE ──
   if(iU()&&!lJ)TC.jb=9;
@@ -1840,7 +2051,7 @@ function updateT(){
       continue;}
     if(o.tp==='turn'){
       if(!o.done&&o.z<-6){ // ran straight into the corner
-        if(GS.boostT>0){o.done=true;t3.turnFx=22*o.dir;misAdd('turns',1);} // boost auto-turns
+        if(GS.boostT>0){o.done=true;t3.turnFx=TURN_LEN*o.dir;misAdd('turns',1);} // boost auto-turns
         else{caughtT();return;}}
       continue;}
     if(o.tp==='pw'||o.tp==='gem'){
@@ -1890,6 +2101,25 @@ function updateT(){
 
 // perspective projection: scale factor for depth z (z=0 at player, grows into screen)
 function prjT(z){return 300/(300+z);}
+// ── CORNER TURNS ───────────────────────────────────────────────────────────
+// A corner used to be a 90px sideways SLIDE of the whole frame, and it read as
+// a pan because that is exactly what it was. In this projection
+// (sx = W/2 + wx*s, s = 300/(300+z)) a small camera yaw th displaces every
+// vertex by th*(300+z)*s = 300*th — the SAME number of pixels at every depth.
+// Near and far move together, so nothing rotates and no corner is read.
+// What a turn actually looks like is the PATH BENDING: a lateral world offset
+// that grows with depth, so the ground at her feet sweeps one way while the
+// path ahead swings the other. That is the pseudo-3D road curve, and the
+// screen offset it produces is TURN_FAR*W at the far plane, near zero at her
+// feet. The camera then yaws INTO it (TURN_FOLLOW) so the corner she is
+// heading for stays framed instead of sliding off the side.
+var TURN_LEN=30;        // frames the swing lasts (~0.5s at 60fps)
+var TURN_FAR=0.46;      // the far path sweeps this fraction of W at the peak
+var TURN_FOLLOW=0.55;   // how hard the camera yaws to follow the bend
+var TURN_FOCUS=700;     // the depth the camera keeps framed through the corner
+var _TB=0;              // bend coefficient — screen px = _TB * z*z * prjT(z)
+// z is clamped at 0: behind the camera z*z would flip the bend's sign.
+function bendPx(z){if(!_TB)return 0;var zb=z>0?z:0;return _TB*zb*zb*prjT(zb);}
 // draw one themed floor band with texture crossfade during theme shifts
 function floorBand(ai2,alpha,x,y,w,h){
   if(!TEX.floors){FX.globalAlpha=alpha;FX.fillStyle='rgba(40,26,18,1)';FX.fillRect(x,y,w,h);FX.globalAlpha=1;return;}
@@ -1983,7 +2213,7 @@ var GLWORLD=(function(){
   var gl,cv,Wp,Hp,vpY,gNear,corrW,ps;
   var progT,progS,progP,progH,meshT,meshH,skyBuf,dynBuf=null;
   var texGround=[],texProps=null,texBlob=null,texWall=null,texCeil=null,texGrass=null;
-  var propPool=[],curShift=0,propCycle=2816;
+  var propPool=[],curShift=0,curBend=0,propCycle=2816;
   var LOOK=[
     {fog:[0.93,0.80,0.56],skyTop:[0.70,0.50,0.28],sun:[0.5,0.33,0.0,0.0],tint:[0.86,0.72,0.52],hill:0,props:[12,13],hall:1},
     {fog:[0.98,0.85,0.70],skyTop:[0.44,0.62,0.94],sun:[0.30,0.30,1.0,0.85],tint:[1,1,1],hill:60,props:[0,1,11]},
@@ -2000,10 +2230,10 @@ var GLWORLD=(function(){
   function prog2(vs,fs){var p=gl.createProgram();gl.attachShader(p,sh2(gl.VERTEX_SHADER,vs));
     gl.attachShader(p,sh2(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);
     if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw gl.getProgramInfoLog(p);return p;}
-  var PROJ='float s=300.0/(300.0+z);float sx=uW*0.5+wx*s+uShift;float sy=uVpy+(uGnear-uVpy)*s-wy*s;gl_Position=vec4(sx/uW*2.0-1.0,1.0-sy/uH*2.0,z/1600.0*1.9-0.9,1.0);';
-  var VS_T='attribute vec2 aXZ;uniform float uW,uH,uVpy,uGnear,uCorrW,uWz,uHill,uShift;varying vec2 vUV;varying float vZ;varying float vHgt;'+
+  var PROJ='float zb=max(z,0.0);float s=300.0/(300.0+z);float sx=uW*0.5+(wx+uBend*zb*zb)*s+uShift;float sy=uVpy+(uGnear-uVpy)*s-wy*s;gl_Position=vec4(sx/uW*2.0-1.0,1.0-sy/uH*2.0,z/1600.0*1.9-0.9,1.0);';
+  var VS_T='attribute vec2 aXZ;uniform float uW,uH,uVpy,uGnear,uCorrW,uWz,uHill,uShift,uBend;varying vec2 vUV;varying float vZ;varying float vHgt;'+
     'float hill(vec2 p){return (sin(p.x*1.9+p.y*0.011)*0.55+sin(p.x*3.7+p.y*0.023+1.7)*0.30+sin(p.y*0.017+p.x)*0.35);}'+
-    'void main(){float zw=aXZ.y+uWz;float wx=aXZ.x*uCorrW;float edge=max(0.0,abs(aXZ.x)-0.85);'+
+    'void main(){float zw=aXZ.y+uWz;float wx=aXZ.x*uCorrW;float edge=min(max(0.0,abs(aXZ.x)-0.85),2.95);'+
     'float h=uHill*edge*(0.6+0.4*hill(vec2(aXZ.x,zw)))*(0.5+0.5*hill(vec2(aXZ.x*0.7+3.0,zw*0.7)));'+
     'float wy=h;float z=aXZ.y;vUV=vec2(aXZ.x*3.2,zw*0.045);vZ=z;vHgt=h;'+PROJ+'}';
   var FS_T='precision mediump float;uniform sampler2D uTex;uniform vec3 uFog;uniform vec3 uTint;uniform float uFogStart,uFogEnd;varying vec2 vUV;varying float vZ;varying float vHgt;'+
@@ -2012,11 +2242,11 @@ var GLWORLD=(function(){
     'void main(){vec2 wv=vUV+vec2(sin(vUV.y*1.3+vUV.x*0.9),cos(vUV.x*1.1+vUV.y*0.7))*0.14;vec2 uv=abs(fract(wv*0.5)*2.0-1.0);vec3 c=texture2D(uTex,uv).rgb*uTint;c*=(1.0-min(0.25,vHgt*0.002));'+
     'float f=smoothstep(uFogStart,uFogEnd,vZ);gl_FragColor=vec4(mix(c,uFog,f),1.0);}';
   var VS_S='attribute vec2 aP;varying vec2 vP;void main(){vP=aP;gl_Position=vec4(aP,0.9995,1.0);}';
-  var FS_S='precision mediump float;uniform vec3 uFog;uniform vec3 uSkyTop;uniform vec4 uSun;uniform float uHorizonY;uniform float uAspect;varying vec2 vP;'+
+  var FS_S='precision mediump float;uniform vec3 uFog;uniform vec3 uSkyTop;uniform vec4 uSun;uniform float uHorizonY;uniform float uAspect;uniform float uPan;varying vec2 vP;'+
     'void main(){float t=clamp((vP.y-uHorizonY)/(1.0-uHorizonY),0.0,1.0);vec3 c=mix(uFog,uSkyTop,pow(t,0.8));'+
-    'vec2 sp=vec2(uSun.x*2.0-1.0,1.0-uSun.y*2.0);float d=length(vec2((vP.x-sp.x)*uAspect,vP.y-sp.y));'+
+    'vec2 sp=vec2(uSun.x*2.0-1.0,1.0-uSun.y*2.0);float d=length(vec2((vP.x-uPan-sp.x)*uAspect,vP.y-sp.y));'+
     'c+=vec3(1.0,0.92,0.7)*uSun.z*0.35*exp(-d*d*18.0);c+=vec3(1.0,0.85,0.6)*uSun.w*0.12*exp(-d*3.0);gl_FragColor=vec4(c,1.0);}';
-  var VS_P='attribute vec4 aQ;attribute vec2 aUV;attribute vec3 aTint;uniform float uW,uH,uVpy,uGnear,uShift;varying vec2 vUV;varying float vZ;varying vec3 vTint;'+
+  var VS_P='attribute vec4 aQ;attribute vec2 aUV;attribute vec3 aTint;uniform float uW,uH,uVpy,uGnear,uShift,uBend;varying vec2 vUV;varying float vZ;varying vec3 vTint;'+
     'void main(){float wx=aQ.x;float wy=aQ.y;float z=aQ.z;vUV=aUV;vZ=z;vTint=aTint;'+PROJ+'}';
   var FS_P='precision mediump float;uniform sampler2D uTex;uniform vec3 uFog;uniform float uFogStart,uFogEnd;uniform float uAlpha;varying vec2 vUV;varying float vZ;varying vec3 vTint;'+
     'void main(){vec4 c=texture2D(uTex,vUV);if(c.a<0.35)discard;float f=smoothstep(uFogStart,uFogEnd,vZ);gl_FragColor=vec4(mix(c.rgb*vTint,uFog,f),c.a*uAlpha);}';
@@ -2024,7 +2254,7 @@ var GLWORLD=(function(){
   // bookcases standing on open terrain read as beams in a field, so stage 0
   // gets real wall + ceiling geometry in the same projection.
   var VS_H='attribute vec3 aP;attribute vec2 aUV;'+
-    'uniform float uW,uH,uVpy,uGnear,uShift,uWz,uWallX,uWallH,uUVz;'+
+    'uniform float uW,uH,uVpy,uGnear,uShift,uBend,uWz,uWallX,uWallH,uUVz;'+
     'varying vec2 vUV;varying float vZ;'+
     'void main(){float zw=aP.z+uWz;float wx=aP.x*uWallX;float wy=aP.y*uWallH;float z=aP.z;'+
     'vUV=vec2(zw*uUVz,aUV.y);vZ=z;'+PROJ+'}';
@@ -2094,11 +2324,22 @@ var GLWORLD=(function(){
   }
 
   function buildTerrain(){
-    var rows=72,cols=30,verts=[],idx=[],r,c2;
+    var rows=72,cols=30,pad=6,verts=[],idx=[],r,c2;
+    // The ORIGINAL 31 columns at exactly their old x, plus a skirt of `pad`
+    // columns each side out to +-7. Keeping the original vertices where they
+    // were is the point: hill height is evaluated per vertex and interpolated
+    // between them, so simply re-spacing a wider mesh would shift the terrain
+    // silhouette even with nothing turning. This way a straight frame is
+    // untouched and the skirt only fills what the swing uncovers.
+    var xs=[],c3;
+    for(c2=0;c2<pad;c2++)xs.push(-7.0+3.2*c2/pad);
+    for(c2=0;c2<=cols;c2++)xs.push(-3.8+7.6*c2/cols);
+    for(c2=1;c2<=pad;c2++)xs.push(3.8+3.2*c2/pad);
+    var nc=xs.length;
     for(r=0;r<=rows;r++){var t=r/rows,z=-60+1560*t*t*0.75+1560*t*0.25;
-      for(c2=0;c2<=cols;c2++)verts.push(-3.8+7.6*c2/cols,z);}
-    for(r=0;r<rows;r++)for(c2=0;c2<cols;c2++){
-      var a=r*(cols+1)+c2,b=a+1,c3=a+cols+1,d=c3+1;idx.push(a,b,c3,b,d,c3);}
+      for(c2=0;c2<nc;c2++)verts.push(xs[c2],z);}
+    for(r=0;r<rows;r++)for(c2=0;c2<nc-1;c2++){
+      var a=r*nc+c2,b=a+1;c3=a+nc;var d=c3+1;idx.push(a,b,c3,b,d,c3);}
     var vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);
     gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(verts),gl.STATIC_DRAW);
     var ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);
@@ -2172,6 +2413,7 @@ var GLWORLD=(function(){
     gl.uniform1f(gl.getUniformLocation(pr,'uVpy'),vpY);
     gl.uniform1f(gl.getUniformLocation(pr,'uGnear'),gNear);
     var u=gl.getUniformLocation(pr,'uShift');if(u)gl.uniform1f(u,curShift);
+    var b=gl.getUniformLocation(pr,'uBend');if(b)gl.uniform1f(b,curBend);
   }
   function drawDyn(pr,arr){
     if(!dynBuf)dynBuf=gl.createBuffer();
@@ -2335,8 +2577,8 @@ var GLWORLD=(function(){
     gl.bindTexture(gl.TEXTURE_2D,texGrass);gl.depthMask(true);
     drawDyn(progP,gq);gl.disable(gl.BLEND);
   }
-  function render(stage,wz,shift){
-    curShift=shift||0;
+  function render(stage,wz,shift,bend){
+    curShift=shift||0;curBend=bend||0;
     Wp=cv.width;Hp=cv.height;vpY=Hp*0.34;gNear=Hp*0.90;corrW=Wp*0.62;ps=Wp/960;
     var L=LOOK[stage];
     gl.viewport(0,0,Wp,Hp);
@@ -2348,6 +2590,7 @@ var GLWORLD=(function(){
     gl.uniform4fv(gl.getUniformLocation(progS,'uSun'),L.sun);
     gl.uniform1f(gl.getUniformLocation(progS,'uHorizonY'),1.0-(vpY/Hp)*2.0);
     gl.uniform1f(gl.getUniformLocation(progS,'uAspect'),Wp/Hp);
+    gl.uniform1f(gl.getUniformLocation(progS,'uPan'),curShift/Wp*2.0);
     gl.bindBuffer(gl.ARRAY_BUFFER,skyBuf);
     var aP=gl.getAttribLocation(progS,'aP');
     gl.enableVertexAttribArray(aP);gl.vertexAttribPointer(aP,2,gl.FLOAT,false,0,0);
@@ -2410,13 +2653,13 @@ var GLW=(function(){
     dbg:function(){return {booted:booted,failed:failed,texset:texset,pend:pend,lastStage:lastStage,
       imgs:imgs.filter(Boolean).length,props:!!propsImg,wall:!!wallImg,ceil:!!ceilImg,
       err:(typeof window!=='undefined'&&window._glError)||null};},
-    draw:function(stage,wz,shift){
+    draw:function(stage,wz,shift,bend){
     if(failed)return false;
     if(!booted){boot();return false;}
     if(!texset)return false;
     try{
       if(stage!==lastStage){GLWORLD.seedProps(stage);lastStage=stage;}
-      GLWORLD.render(stage,wz,shift);
+      GLWORLD.render(stage,wz,shift,bend);
     }catch(e){failed=true;return false;}
     return true;
   }};
@@ -2508,10 +2751,14 @@ function drawT(){
   var vpX=W/2,vpY=H*0.34,gNear=H*0.90,corrW=W*0.62,laneW=W*0.185;
   FX.clearRect(0,0,W,H);
   var wz=GS.dist*T*2.4; // world scroll (matches entity speed mv=eff*2.4)
-  var tfx=t3.turnFx||0,tShift=0;
-  if(tfx!==0){var tp2=Math.abs(tfx)/22;tShift=Math.sin(tp2*Math.PI)*(tfx>0?1:-1)*90;}
-  // outdoor stages: real GL world rendered into #glC beneath this canvas
-  var glwOK=isOut&&GLW.draw(ai,wz,tShift*DPR);
+  // ── CORNER: the path bends, the camera yaws to follow it ──
+  // _TB is fixed by ONE readable quantity — how far the far plane sweeps —
+  // rather than by a magic pixel count, so it holds at any screen width.
+  _TB=(t3.bend||0)*TURN_FAR*W/(1400*1400*prjT(1400));
+  var tShift=-TURN_FOLLOW*bendPx(TURN_FOCUS);
+  // outdoor stages: real GL world rendered into #glC beneath this canvas.
+  // GL works in device pixels, the 2D layer in CSS pixels — hence both *DPR.
+  var glwOK=isOut&&GLW.draw(ai,wz,tShift*DPR,_TB*DPR);
   // ── controlled loading backdrop ──
   // Outdoor stages are GL-only. Until the world's textures stream in (or if WebGL
   // is unavailable) paint the stage's OWN sky→fog palette, so a slow load reads
@@ -2525,7 +2772,7 @@ function drawT(){
     FX.fillStyle=_bg;FX.fillRect(0,0,W,H);
   }
   // ── WHIMSY: sunshine god-rays streaming from the vanishing point ──
-  whimsyRays(vpX,vpY);
+  whimsyRays(vpX+tShift,vpY);
   // ── corner-turn camera swing: whole world shears sideways ──
   FX.save();
   if(tShift)FX.translate(tShift,0);
@@ -2578,8 +2825,9 @@ function drawT(){
     // even, subtle runway tint across ALL three lanes (was biased to the
     // middle, which read as a different 'water' centre lane)
     FX.fillStyle='rgba(255,246,225,0.055)';
-    FX.beginPath();FX.moveTo(vpX-laneW*2.5*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
-    FX.lineTo(vpX+laneW*2.5*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
+    var _rb=bendPx(1400);
+    FX.beginPath();FX.moveTo(vpX+_rb-laneW*2.5*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
+    FX.lineTo(vpX+_rb+laneW*2.5*prjT(1400),vpY+(gNear-vpY)*prjT(1400));
     FX.lineTo(vpX+laneW*3.3,gNear+20);FX.lineTo(vpX-laneW*3.3,gNear+20);FX.closePath();FX.fill();
   }else if(isOut){
     // GL world still streaming: the clean loading backdrop is already painted
@@ -2788,7 +3036,7 @@ function drawT(){
   for(i=0;i<t3.coins.length;i++)ents.push(t3.coins[i]);
   ents.sort(function(a,b){return b.z-a.z;});
   for(i=0;i<ents.length;i++){var e=ents[i];if(e.z<-40||e.z>1450)continue;
-    var es=prjT(e.z),ey=vpY+(gNear-vpY)*es,ex=vpX+(e.lane||0)*laneW*es*2.6;
+    var es=prjT(e.z),ey=vpY+(gNear-vpY)*es,ex=vpX+bendPx(e.z)+(e.lane||0)*laneW*es*2.6;
     // CONTACT SHADOW — pins every object to the floor plane
     if(e.tp!=='turn'&&!e.hit){
       var shw=(e.tp==='low'||e.tp==='gate'||e.tp==='wall')?obW*es*1.0:24*es;
@@ -2997,7 +3245,14 @@ function drawT(){
   }
   FX.imageSmoothingEnabled=true;
   // ── HERO ──
-  var p=GS.p,hx=vpX+t3.laneX*laneW*2.6,hy=gNear-t3.py;
+  // She stays INSIDE the camera yaw. The corner is carried by the bend, which
+  // is zero at her depth — so nothing is lost by keeping her in register with
+  // the near ground, and a great deal is gained: collision is lane-based, and
+  // an obstacle passing her mid-swing would otherwise sit most of a lane off
+  // where it actually is. The turn she performs is the BANK, not a slide.
+  // The outward swing is deliberately small for the same reason.
+  var hbk=t3.bend||0;
+  var p=GS.p,hx=vpX+t3.laneX*laneW*2.6-hbk*laneW*0.16,hy=gNear-t3.py;
   // grounded shadow: stays on the floor, shrinks + fades as she rises — the jump-timing anchor
   var shA=Math.max(0.10,0.36-t3.py*0.0011),shW2=38*(1-Math.min(0.5,t3.py/340));
   FX.fillStyle='rgba(0,0,0,'+(shA*0.45)+')';FX.beginPath();FX.ellipse(hx,gNear+3,shW2*1.5,10,0,0,6.28);FX.fill();
@@ -3036,6 +3291,8 @@ function drawT(){
     if(!(IMG[bkNm]&&IMG[bkNm].complete&&IMG[bkNm].naturalWidth))bkNm=p.anim;
     var isBk=bkNm.slice(0,2)==='bk',spd2=SPRITES[bkNm];
     if(spd2&&IMG[bkNm]){var img=IMG[bkNm];
+      if(hbk){FX.save();FX.translate(hx,hy);FX.rotate(hbk*0.26);
+        FX.scale(1-Math.abs(hbk)*0.18,1);FX.translate(-hx,-hy);}
       var fr=bkFrame(bkNm,spd2);
       var fCols=spd2.cols||spd2.frames,fsx=(fr%fCols)*spd2.cw,fsy=Math.floor(fr/fCols)*spd2.ch;
       var dh=H*0.26*(t3.slid>0?0.72:1),sc2=dh/spd2.ch,dw=spd2.cw*sc2;
@@ -3062,9 +3319,10 @@ function drawT(){
       }
       FX.globalAlpha=1;
       FX.imageSmoothingEnabled=true;
+      if(hbk)FX.restore();
     }
   }
-  FX.restore(); // end turn-swing shear
+  FX.restore(); // end camera yaw
   // death bloom — she becomes music (screen space)
   stepNotes();drawNotes();
   // boost speedlines (screen space)
@@ -3128,14 +3386,14 @@ function updateEnemies(){
     if((e.vy||0)>0&&(isSolid(feL,feR)||isSolid(feRt,feR))){e.y=feR*T-50;e.vy=0;}
     e.x=Math.max(T,Math.min(e.x,(GS.LW-1)*T-44));
     // FALL DEATH counts as kill
-    if(e.y>GS.LH*T+60){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);ptcl(e.x+22,(GS.LH-1)*T,'kill');updateHUD();continue;}
+    if(e.y>GS.LH*T+60){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);ptcl(e.x+22,(GS.LH-1)*T,'kill',goreOf(e));updateHUD();continue;}
     for(var bi=e.bullets.length-1;bi>=0;bi--){var bl=e.bullets[bi];bl.x+=bl.vx;bl.y+=bl.vy;bl.life-=0.013;
       if(bl.life<=0){e.bullets.splice(bi,1);continue;}
       if(p.inv===0&&!p.dashing&&bl.x<p.x+PW&&bl.x+8>p.x&&bl.y<p.y+PH&&bl.y+8>p.y){hurtP(p);e.bullets.splice(bi,1);}}
     if(p.inv===0&&!p.dashing&&p.x<e.x+42&&p.x+PW>e.x+2&&p.y<e.y+48&&p.y+PH>e.y+2){
       var stomp=p.vy>2&&(p.y+PH)<(e.y+26);
       if(p.diving&&p.vy>4){hitE(e);hitE(e);p.vy=-9;p.diving=false;}
-      else if(stomp){hitE(e);p.vy=-11.5;ptcl(p.x+PW/2,e.y,'kill');}
+      else if(stomp){hitE(e);p.vy=-11.5;ptcl(p.x+PW/2,e.y,'kill',goreOf(e));}
       else hurtP(p);}
     if(e.atkCd>0)e.atkCd--;}
   if(!GS.gateOpen&&gateClear){GS.gateOpen=true;GS.gateFlash=45;
@@ -3196,11 +3454,22 @@ function nextBoss(b){
   var dur={CHASE:110,JUMP:70,SLAM:80,SHOOT:75,CHARGE:55,WAIT:50,RAGE:90,DRIFT:100};
   b.stateTimer=Math.floor((dur[b.state]||80)*(b.enraged?0.7:1));}
 
-function hitE(e){e.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);GS.score+=120;ptcl(e.x+22,e.y+24,'hit',goreOf(e));
-  if(e.hp<=0){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);ptcl(e.x+22,e.y+10,'kill',goreOf(e));updateHUD();}
+function hitE(e){e.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);GS.score+=120;
+  gore(e.x+22+((GS.p.x<e.x)?22:-22),e.y+24,(GS.p.x<e.x)?1:-1,goreOf(e),6);
+  if(e.hp<=0){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);
+    // OUTWARD from the struck side, not a 22-blob burst dropped on the body
+    gore(e.x+22+((GS.p.x<e.x)?26:-26),e.y+22,(GS.p.x<e.x)?1:-1,goreOf(e),14);updateHUD();}
   else{e.stg=true;e.stgT=20;e.vx*=-2;}}
-function hitB(b){if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd=16;GS.score+=550;
+function hitB(b){
+  // A VILLAIN BLEEDS WHAT IT IS MADE OF. BOSS_GORE already encodes that — ink for
+  // the Ink Warden, sap for the Thistle Ogre, petals for the Blossom Revenant,
+  // water for the Lake Wraith, spores, straw, storm-light — and real red only for
+  // the two humanoids. The directional-spray change hardcoded ONE pink for every
+  // boss, which put pink blood on a creature made of ink. Read the table.
   var _gore=(typeof BOSS_GORE!=='undefined'&&BOSS_GORE[b.bi])||null;
+  try{var _bd=(GS.p.x+PW/2)<(b.x+b.W/2)?1:-1;
+      gore(b.x+b.W/2+_bd*(b.W*0.35),b.y+b.H*0.45,_bd,_gore||'200,20,55',8);}catch(_e){}
+  if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd=16;GS.score+=550;
   ptcl(b.x+b.W/2,b.y+28,'bhit',_gore);   // hit spray in the villain's own colour
   if(b.state!=='RAGE'){b.state='WAIT';b.stateT=0;b.stateTimer=24;}
   if(b.hp<=0){b.alive=false;b.bullets=[];GS.score+=7000;
@@ -3210,7 +3479,7 @@ function hitB(b){if(b.hurtCd>0)return;b.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);b.hurtCd
     GS.bossKO=1;GS.hitstop=Math.max(GS.hitstop,6);   // a beat of impact, then the cinematic defeat
     document.getElementById('bossBar').classList.remove('on');document.getElementById('bbPh').classList.remove('show');}
   document.getElementById('bbF').style.width=(Math.max(0,b.hp)/b.mhp*100)+'%';updateHUD();}
-function hurtP(p){if(p.inv>0)return;
+function hurtP(p){if(p.inv>0||BGVIEW)return;   // viewer: nothing interrupts a look at the art
   if(GS.shieldT>0){ptcl(p.x+14,p.y+30,'dash');p.inv=30;return;}
   GS.dmgTaken=(GS.dmgTaken||0)+1;   // per-stage damage, for the clear tally
   if(GS.blocking){ptcl(p.x+(p.faceL?0:PW),p.y+30,'slash');GS.blockHits++;p.inv=45;p.vx=p.faceL?4:-4;if(GS.blockHits%2===0){GS.masks--;updateHUD();}}
@@ -3234,10 +3503,27 @@ function ptcl(x,y,tp,colO){var r=Math.random;
     sbk:{n:14,c:'155,68,255',r:4,vx:9,vy:-6,g:.22,dr:.93,d:.026},gbk:{n:16,c:'255,215,0',r:4,vx:9,vy:-7,g:.24,dr:.93,d:.024},
     spit:{n:6,c:'200,160,255',r:3,vx:4,vy:4,g:.05,dr:.97,d:.05},hit:{n:7,c:'255,45,138',r:3,vx:7,vy:-5,g:.2,dr:.93,d:.052},
     kill:{n:22,c:'200,160,255',r:5,vx:11,vy:-9,g:.25,dr:.92,d:.02},hurt:{n:10,c:'255,51,85',r:4,vx:9,vy:-6,g:.22,dr:.93,d:.04},
-    bhit:{n:16,c:'255,215,0',r:5,vx:12,vy:-9,g:.25,dr:.92,d:.024},bdie:{n:30,c:'255,45,138',r:7,vx:16,vy:-11,g:.28,dr:.91,d:.012},
-    bph:{n:30,c:'255,51,85',r:5,vx:13,vy:-9,g:.26,dr:.92,d:.016}};
+    bhit:{n:9,c:'255,215,0',r:3,vx:12,vy:-9,g:.25,dr:.92,d:.038},bdie:{n:18,c:'255,45,138',r:4,vx:16,vy:-11,g:.28,dr:.91,d:.020},
+    bph:{n:16,c:'255,51,85',r:3,vx:13,vy:-9,g:.26,dr:.92,d:.026}};
   var d=D[tp]||D.note;
   for(var i=0;i<d.n;i++)GS.ptcl.push({x:x,y:y,r:d.r*(0.5+r()*0.8),col:colO||d.c,vx:(r()-.5)*d.vx*2,vy:d.vy<0?d.vy*r():(r()-.5)*d.vy*2,g:d.g,dr:d.dr,life:1,d:d.d});}
+// DIRECTIONAL gore. Client: "where blood is covering the viewer's vision of the
+// monster and his death you need to remove that and just let it be coming out
+// from the front or the back."
+//
+// The old kill burst spawned 22 blobs AT THE BODY'S CENTRE with a symmetric
+// +/-11 spread, so half of them flew back across the corpse and blanketed it.
+// This emits from the struck EDGE and throws everything OUTWARD along dir, so
+// the body stays legible and the spray reads as coming out of it.
+function gore(x,y,dir,col,n){
+  var r=Math.random;
+  for(var i=0;i<n;i++){
+    var sp=3+r()*9;
+    GS.ptcl.push({gore:1,x:x+dir*(r()*6),y:y+(r()-0.5)*22,r:1.4+r()*2.0,col:col,
+      vx:dir*sp,                        // OUTWARD only — never back over the body
+      vy:-2-r()*5,g:0.26,dr:0.93,life:1,d:0.022});
+  }
+}
 
 // ════════════════════════════════════════════════════════════
 //  DRAW (FX canvas over the WebGL background)
@@ -3489,7 +3775,13 @@ function rpgXP(a){RPG.xp+=a;var up=false;
   else updateHUD();   // refresh the XP bar on every gain, not only on level-up
   try{localStorage.setItem('jande_rpg',JSON.stringify(RPG));}catch(x){}}
 function addPop(x,y,txt){GS.pops.push({x:x,y:y,txt:''+txt,t:52});}
-function killFoe(f){f.alive=false;GS.kills=(GS.kills||0)+1;sfx('kill');GS.hitstop=3;
+function killFoe(f){
+  // Client: "you can't really see them die too well." They were removed the
+  // instant hp hit zero — there was no death to watch, just a puff where the body
+  // had been. It now stays on screen for a beat, tipping and fading, so the kill
+  // reads. dieT counts up; the draw pass keeps rendering while it is set.
+  f.dying=1;f.dieT=0;f.alive=false;
+  GS.kills=(GS.kills||0)+1;sfx('kill');GS.hitstop=3;
   GS.combo++;GS.comboT=130;
   var cm=1+0.25*Math.min(GS.combo-1,8);
   var sc=Math.round((f.tp?160:120)*runMult()*cm);
@@ -3556,6 +3848,118 @@ function loadBGs(){for(var k in BG_DATA){(function(i){var im=new Image();im.onlo
 var SIDE_BG_DATA={0:'web/7026911858d1.webp',1:'web/1fa28057a711.webp',2:'web/44187ebf6a44.webp',3:'web/afcfb1d92476.webp',4:'web/da0a81c9b45f.webp',5:'web/9d4d20ccbac3.webp',6:'web/14ab4c11ab60.webp',7:'web/1ae0890e08c3.webp',8:'web/a4a908d52b36.webp'};
 var SIDE_BG_IMG={};
 function loadSideBG(){for(var k in SIDE_BG_DATA){(function(i){var im=new Image();im.onload=function(){SIDE_BG_IMG[i]=im;};im.src=SIDE_BG_DATA[i];})(k);}}
+// ══ MULTIPLANE CARDS ═══════════════════════════════════════════════════════
+// The backdrop stops being one flat image here. Each plate is cut (offline, by
+// tools/depth) into cards over an inpainted base, and the cards scroll at
+// slightly different rates. This is Disney's 1937 multiplane camera: artwork on
+// separate panes at different distances, moved at different speeds.
+//
+// THE MENTAL MODEL IS CARDBOARD CUTOUTS. Every card is a whole, clean piece;
+// move one and what shows behind it is the next piece, complete. Which is why
+// the cut had to be lossless (recompose 0.000%) before any of this was wired.
+//
+// A stage with no entry here keeps the flat path — the two systems never both
+// run on the same stage.
+var CARD_DATA={
+ 1:{w:768,h:384,base:'web/e2b04720e4fb.webp',cards:[
+   {n:'sky',         d:0.05,pv:0.367,s:'web/2c44655e80a0.webp'},
+   {n:'mountains',   d:0.20,pv:0.482,s:'web/6dbf67f51bb2.webp'},
+   {n:'farhills',    d:0.40,pv:0.615,s:'web/ddf300f9e48b.webp'},
+   {n:'nearbank',    d:0.78,pv:0.885,s:'web/b8a29ac0a89d.webp'},
+   {n:'verge',       d:0.90,s:'web/04dbb76f3a2c.webp'}
+ ]},
+ 2:{w:768,h:384,base:'web/8a8a9388050e.webp',cards:[
+   {n:'trees',       d:0.74,pv:0.635,amp:13,frq:3.0,wind:1,s:'web/6b934e4d7eca.webp'},
+   {n:'verge',       d:0.80,pv:0.716,s:'web/be0639cd5360.webp'},
+   {n:'path',        d:0.92,s:'web/b138b37af273.webp'}
+ ]},
+ 3:{w:768,h:384,base:'web/146f46b18719.webp',cards:[
+   {n:'rosehedge',   d:0.10,pv:0.224,s:'web/2342ae16ddb1.webp'},
+   {n:'upperwalk',   d:0.20,pv:0.362,s:'web/de489e63686f.webp'},
+   {n:'backhedge',   d:0.44,pv:0.682,wind:1,s:'web/9b2f61ca5d12.webp'},
+   {n:'colonnade',   d:0.62,pv:0.896,s:'web/a32aca9a5d0f.webp'},
+   {n:'foreground',  d:0.78,pv:0.917,s:'web/8e12c77a3d94.webp'},
+   {n:'terrace',     d:0.92,s:'web/94f31f8abc4a.webp'}
+ ]},
+ 4:{w:768,h:384,base:'web/097cc0a4ee93.webp',cards:[
+   {n:'sky',         d:0.05,pv:0.354,s:'web/dd08defaf948.webp'},
+   {n:'mountains',   d:0.22,pv:0.534,s:'web/c8f7607fc895.webp'},
+   {n:'midhills',    d:0.42,pv:0.594,s:'web/dcd941d26a50.webp'},
+   {n:'willowL',     d:0.82,pv:0.609,wind:1,s:'web/5e50211bc53d.webp'},
+   {n:'willowC',     d:0.82,pv:0.586,wind:1,s:'web/60c26cf928ab.webp'},
+   {n:'willowR',     d:0.82,pv:0.589,wind:1,s:'web/ad426dc9bafe.webp'},
+   {n:'shore',       d:0.86,pv:0.641,s:'web/9a3cbddad0d3.webp'},
+   {n:'water',       d:0.94,ripple:1,s:'web/eff33591c45f.webp'}
+ ]},
+ 6:{w:768,h:384,base:'web/5f41a915ba54.webp',cards:[
+   {n:'sky',         d:0.05,pv:0.341,s:'web/452e971fcb5f.webp'},
+   {n:'farhills',    d:0.26,pv:0.401,s:'web/44cc6443ac27.webp'},
+   {n:'farfield',    d:0.52,pv:0.643,wind:1,s:'web/a084357207d5.webp'},
+   {n:'nearfield',   d:0.70,pv:0.940,wind:1,s:'web/cd2b28960d95.webp'},
+   {n:'verge',       d:0.90,s:'web/2793f41dcd32.webp'}
+ ]},
+ 8:{w:768,h:384,base:'web/fa2329127b63.webp',cards:[
+   {n:'sky',         d:0.05,pv:0.604,s:'web/c7342379493a.webp'},
+   {n:'castle',      d:0.38,pv:0.750,s:'web/1720a6a6ad2f.webp'},
+   {n:'grounds',     d:0.68,pv:0.820,s:'web/0407235ad904.webp'},
+   {n:'river',       d:0.80,pv:0.820,ripple:1,s:'web/597dbfa668bd.webp'},
+   {n:'foretrees',   d:0.92,wind:1,s:'web/354d28abe785.webp'}
+ ]}
+};
+var CARD_IMG={},CARD_READY={};
+function loadCards(){
+  for(var k in CARD_DATA){(function(i){
+    var set=CARD_DATA[i],need=set.cards.length+1,got=0,failed=false;
+    // FAIL LOUD. The first version called done() from onerror too, so a single
+    // 404 still marked the stage READY — drawCards then skipped that card and
+    // drew the inpainted base in its place, which is a smeared push-pull fill
+    // where the art used to be. A missing card must drop the WHOLE stage back to
+    // the flat plate, which still looks like the painting, rather than silently
+    // showing the fill it was supposed to hide.
+    function done(){if(++got>=need&&!failed)CARD_READY[i]=true;}
+    function fail(src){failed=true;CARD_READY[i]=false;
+      try{console.warn('card asset failed, stage '+i+' falls back to flat:',src);}catch(_e){}}
+    var b=new Image();b.onload=function(){CARD_IMG[set.base]=b;done();};
+    b.onerror=function(){fail(set.base);};b.src=set.base;
+    for(var j=0;j<set.cards.length;j++){(function(c){
+      var im=new Image();im.onload=function(){CARD_IMG[c.s]=im;done();};
+      im.onerror=function(){fail(c.s);};im.src=c.s;
+    })(set.cards[j]);}
+  })(k);}
+}
+// ── THE RATE SPREAD IS THE WHOLE TRICK, AND IT MUST BE TINY ────────────────
+//   rate = BASE + (depth - 0.5) * SPREAD
+// A wide spread does NOT read as depth. It reads as the set falling over: cards
+// slide off each other, the empty plate shows through, and because each card
+// wraps on its own phase a fast card migrates a whole plate width across a
+// level — the tree that starts the stage on the left finishes it on the right.
+// That is not parallax.
+//
+// The target is the LENTICULAR effect: the shift is small enough that nothing
+// distorts, and depth comes from RELATIVE rates, not distance travelled.
+// CB_MAXSEP is the backstop that makes migration impossible even if someone
+// dials the spread up later — it clamps each card's separation FROM THE BASE,
+// which is the quantity that actually has to stay bounded.
+// Aligned to the Will Hill values he supplied from src/render/backdrop.js:
+// DEPTH_SPREAD 0.010, MAX_SEPARATION 90, STRIP_MAX_SEPARATION 400. The spread
+// already matched; the two clamps were mine (80 and 300) and are now his.
+var CB_BASE=0.045, CB_SPREAD=0.010, CB_MAXSEP=90, CB_STRIPMAX=400;
+function cardSep(cam,c){
+  if(c.strip){
+    // THE ONE EXCEPTION: a ground strip gets a REAL rate and a loose clamp.
+    // The clamp exists to stop a DISCRETE OBJECT migrating, and that failure
+    // needs a landmark to be visible on. A featureless full-width band has
+    // nothing in it to notice having moved; all you see is that it outruns the
+    // scenery, which is exactly the cue that it is nearer.
+    var so=-cam*(CB_BASE*2.2)+cam*CB_BASE;
+    return so<-CB_STRIPMAX?-CB_STRIPMAX:(so>CB_STRIPMAX?CB_STRIPMAX:so);
+  }
+  // NOT the water: this lake's reflections are painted in, and they are a
+  // landmark. Let the water outrun the willows and the reflections stop lining
+  // up with the trees casting them.
+  var rel=-cam*((c.d-0.5)*CB_SPREAD);
+  return rel<-CB_MAXSEP?-CB_MAXSEP:(rel>CB_MAXSEP?CB_MAXSEP:rel);
+}
 // Classic library book spine palette — muted, realistic, no neon
 var _BKPAL=['110,25,25','25,45,100','28,72,38','105,62,28','72,38,98','18,65,72','135,48,20','52,68,108','85,72,26','55,40,35','30,55,88','98,44,28','145,125,88','38,55,40'];
 var _bgW=null,_bgF=null,_bgV=null,_bgP=null;
@@ -3673,9 +4077,730 @@ function _hills(hz,po,col,amp,sp){var o=po%sp;if(o>0)o-=sp;FX.fillStyle=col;FX.b
   for(var x=o-sp;x<W+sp;x+=sp/2){FX.quadraticCurveTo(x+sp/4,hz-amp,x+sp/2,hz);}FX.lineTo(W+sp,hz);FX.closePath();FX.fill();}
 function _hedges(hz,po,col,h){var sp=64,o=po%sp;if(o>0)o-=sp;FX.fillStyle=col;
   for(var x=o-sp;x<W+sp;x+=sp){FX.beginPath();FX.arc(x,hz,h,Math.PI,0);FX.fill();FX.fillRect(x-h,hz-2,h*2,4);}}
+// ══ LIVING BACKDROP ════════════════════════════════════════════════════════
+// Client, 2026-08-10: "Now it just looks like a picture. A beautiful picture but
+// still a flat photo. Can we bring the exact image to life?"
+//
+// Two reasons it read flat. (1) ONE plane at ONE speed: sky, mountains, trees and
+// foreground grass all scrolled together at cam*0.045, which is a photo on a
+// conveyor belt. (2) Nothing moved INSIDE it — no wind, no water, no changing
+// light. So this animates the paintings themselves rather than covering them:
+//
+//  · ROW WARP. Each painting is re-blitted as horizontal rows with a per-row
+//    x-offset. A ripple in the water — Mirror Lake and Her Encore already have
+//    their reflections PAINTED IN, so rippling those rows is free realism — and
+//    a breeze through the canopy, strongest at the treetops and tapering to zero
+//    where the trunks meet the ground.
+//  · NEAR BAND. The painting's own lower slice, re-drawn darkened and run at 3.5x
+//    the parallax, so there is finally more than one depth plane. Darkened to a
+//    silhouette on purpose: it must read as nearer ground, not as a visible
+//    duplicate of a tree you can also see behind it.
+//  · GOD RAYS anchored to each painting's REAL light source (Golden Hour's sun is
+//    at x=0.29, the library's windows are up top), with motes drifting in them.
+//  · LIFE AT THREE DEPTHS, each tier with its own parallax rate. The difference
+//    in speed IS the depth cue — one layer of petals reads as stickers, three
+//    reads as air.
+//
+// Every animated term is multiplied by `amb` (0 under reduce-motion), so the
+// whole system goes to a still painting rather than disappearing.
+//
+// wat/swy/near are fractions of the IMAGE height, so they stay correct at any
+// GROUNDF, any zoom and any orientation — they were read off the actual art.
+var LIVEBG=[
+ // wnd:[topFrac, pivotFrac, amp, frq] — pivot is where the TRUNKS meet the ground
+ //   and must not move; amp is the crown's swing in px; frq multiplies the wind's
+ //   SPATIAL frequency (see _lbWindK for why it is per-stage). in:1 = interior.
+ // 0 ONCE UPON A PAGE — library INTERIOR. No wind indoors, no water, and no
+ //   butterflies or sparkles either (client: "I don't think it will be
+ //   butterflies inside the library"). It is all window light and dust.
+ {wat:null,          wnd:null,                   in:1, ray:[6,0.50,0.05,0.20,'255,232,168'], amb:'motes',     near:null,             bre:[0.05,'255,214,140']},
+ // 1 FIRST LIGHT MEADOW — horizon at 0.30. Wind takes the foreground trees and
+ //   hedgerow only; the distant hills must stay solid. Mid frq: the band has some
+ //   smooth grass in it.
+ {wat:null,          wnd:null            ,    in:0, ray:[3,0.62,0.10,0.08,'255,246,206'], amb:'pollen',    near:[0.87,1.00,0.34], bre:[0.03,'255,246,206']},
+ // 2 THE PETAL MILE — cherry canopy fills the top 0.60 and IS the stage. Dense
+ //   blossom hides seams, so it gets both the biggest swing and a high frq.
+ {wat:null,          wnd:[0.00,0.60,14.0,3.0],   in:0, ray:[3,0.45,0.05,0.09,'255,232,240'], amb:'petals',    near:[0.86,1.00,0.32], bre:[0.03,'255,226,238']},
+ // 3 THE ROSE WALTZ — the marble colonnade starts around 0.5 and must NOT move.
+ //   Only the greenery above it.
+ {wat:null,          wnd:[0.20,0.50,5.5,2.4],    in:0, ray:[4,0.50,0.04,0.10,'255,248,220'], amb:'petals',    near:[0.88,1.00,0.28], bre:[0.03,'255,248,220']},
+ // 4 THE MIRROR LAKE — client, by name: "those actual trees should be blowing in
+ //   the wind." Willows pivot at the shoreline (= the waterline, 0.645) and the
+ //   lake below ripples. frq stays LOW: this band contains open sky, which is
+ //   where span seams show. Water is the near plane, so no near band.
+ {wat:[0.645,1.00],  wnd:[0.04,0.645,11.0,1.0],  in:0, ray:[3,0.55,0.08,0.09,'226,246,255'], amb:'pollen',    near:null,             bre:[0.04,'214,240,255']},
+ // 5 THE WISHING GLADE — dusk. Dense fungal cover, so a high frq reads as each
+ //   cluster stirring on its own.
+ {wat:null,          wnd:null            ,    in:0, ray:null,                              amb:'fireflies', near:null,             bre:[0.10,'150,200,255']},
+ // 6 THE GOLDEN HOUR — client: "shouldn't the sunflowers be blowing in the breeze
+ //   too... they could just be kind of moving back and forth." They WERE moving —
+ //   measured 9px — but the whole field slid as ONE BOARD, and a uniform slide
+ //   across near-identical flowers has no landmark to read against, so it looked
+ //   static. The band is pure flower texture with no sky in it, so it can carry
+ //   the highest frq in the game: neighbouring clumps now rock in OPPOSITE
+ //   directions, which is what actually reads as a breeze through a field.
+ {wat:null,          wnd:[0.46,0.93,10.5,4.2],   in:0, ray:[5,0.29,0.12,0.15,'255,226,140'], amb:'pollen',    near:[0.86,1.00,0.34], bre:[0.05,'255,222,140']},
+ // 7 THE SKY GARDENS — band is mostly open sky between islands: frq must stay low.
+ {wat:null,          wnd:null            ,    in:0, ray:[3,0.50,0.05,0.07,'255,255,255'], amb:'cloud',     near:null,             bre:[0.03,'220,240,255']},
+ // 8 HER ENCORE — river 0.70-0.88 catches the sunset; the dark foreground trees
+ //   below it blow. Dense silhouette, so a high frq is free. The castle between
+ //   them is stone and stays put.
+ {wat:[0.70,0.88],   wnd:[0.88,1.00,6.0,3.2],    in:0, ray:[4,0.55,0.40,0.11,'255,190,120'], amb:'embers',    near:null,             bre:[0.07,'255,180,110']}
+];
+// Offscreen the painting is composited into before it is warped back out. It is
+// PADDED horizontally so a displaced row still has real pixels to sample — the
+// naive version reads past the edge and leaves a transparent notch down one side.
+// LB_PAD must exceed the largest lean PLUS the span overlap, or a strong gust
+// samples past the offscreen's left edge and leaves a pale transparent sliver
+// down the side of the screen. LB_KMAX keeps the clamp strictly inside it.
+var _lbC=null,_lbX=null,_lbW=0,_lbH=0,_lbD=1,LB_PAD=28,LB_KMAX=20;
+function _lbEnsure(w,h,d){
+  if(!_lbC){_lbC=document.createElement('canvas');_lbX=_lbC.getContext('2d');}
+  w=Math.max(1,Math.ceil(w));h=Math.max(1,Math.ceil(h));
+  if(_lbW!==w||_lbH!==h||_lbD!==d){
+    _lbW=w;_lbH=h;_lbD=d;_lbC.width=Math.ceil(w*d);_lbC.height=Math.ceil(h*d);
+  }
+  _lbX.setTransform(d,0,0,d,0,0);
+  _lbX.clearRect(0,0,w,h);
+  return _lbX;
+}
+// The mirror-tiling itself, factored out so the direct path and the offscreen
+// path cannot drift apart. Integer edge snap + stable world-space parity are
+// load-bearing: without them a 1px seam scrolls across, and tiles flip-flash.
+function _lbTile(ctx,xo,_bg,cam,bw,bh,by){
+  var bpar=cam*0.045,boff=(-bpar)%(bw*2);if(boff>0)boff-=bw*2;
+  for(var bx=boff;bx<W+bw;bx+=bw){
+    var bx0=Math.round(bx),bx1=Math.round(bx+bw),btw=bx1-bx0;
+    var bk=Math.round((bx+bpar)/bw);
+    if(bk&1){ctx.save();ctx.translate(bx0+xo+btw,0);ctx.scale(-1,1);ctx.translate(-(bx0+xo),0);ctx.drawImage(_bg,bx0+xo,by,btw,bh);ctx.restore();}
+    else ctx.drawImage(_bg,bx0+xo,by,btw,bh);
+  }
+}
+// Same tiling, but blitting only a horizontal SLICE of the source image. The
+// near band needs ~14% of the painting; drawing all of it and clipping the rest
+// away meant three full-size image draws per frame for a strip the height of a
+// hedge, and it showed up as a 50ms frame on the canopy stage.
+function _lbTileSlice(ctx,_bg,cam,bw,bh,by,f0,f1){
+  var sy=f0*_bg.height,sh=(f1-f0)*_bg.height,dy=by+f0*bh,dh=(f1-f0)*bh;
+  var bpar=cam*0.045,boff=(-bpar)%(bw*2);if(boff>0)boff-=bw*2;
+  for(var bx=boff;bx<W+bw;bx+=bw){
+    var bx0=Math.round(bx),bx1=Math.round(bx+bw),btw=bx1-bx0;
+    var bk=Math.round((bx+bpar)/bw);
+    if(bk&1){ctx.save();ctx.translate(bx0+btw,0);ctx.scale(-1,1);ctx.translate(-bx0,0);
+      ctx.drawImage(_bg,0,sy,_bg.width,sh,bx0,dy,btw,dh);ctx.restore();}
+    else ctx.drawImage(_bg,0,sy,_bg.width,sh,bx0,dy,btw,dh);
+  }
+}
+// Per-ROW horizontal displacement — water only. Amplitude grows toward the
+// bottom of the band because nearer water has bigger waves.
+function _lbDisp(y,lb,by,bh,tick,amb){
+  if(!lb.wat)return 0;
+  var t0=by+lb.wat[0]*bh,t1=by+lb.wat[1]*bh;
+  if(y<t0||y>t1)return 0;
+  var f=(y-t0)/Math.max(1,t1-t0);
+  var d=(1.6+f*9.0)*Math.sin(y*0.055-tick*0.045*amb+f*2.2)
+       +(0.8+f*3.2)*Math.sin(y*0.130+tick*0.031*amb);
+  return d<-LB_KMAX?-LB_KMAX:(d>LB_KMAX?LB_KMAX:d);
+}
+// ── WIND — per-COLUMN shear, which is the difference between shimmer and trees ──
+// Row displacement moves an entire horizontal band together, so every tree at a
+// given height slides in lockstep: that reads as heat haze or water, never as
+// wind. Real wind bends each tree about its own trunk and arrives in GUSTS that
+// roll along the treeline, leaving neighbours out of phase.
+//
+// So the canopy is drawn as vertical strips, each with a SHEAR transform whose
+// displacement is zero at the pivot row (where trunks meet the ground) and full
+// at the crown. One drawImage per strip — ~26 draws for the whole treeline —
+// because the shear does the per-pixel work on the GPU instead of us slicing in
+// two axes, which would be 1000+ draws.
+//
+//   x' = x + k * (pivotY - y)/bandH   →   transform(1, 0, -k/bandH, 1, k*pivotY/bandH, 0)
+//
+// k is a travelling wave plus a slower travelling GUST envelope. Without the
+// gust it is metronomic and reads as a mechanism; with it, wind visibly crosses
+// the screen and individual trees lag behind their neighbours.
+//
+// SPATIAL FREQUENCY IS A SEAM BUDGET, not just a look. Neighbours lean by
+// different amounts and the difference shows as a vertical line wherever the art
+// is smooth — sky is the worst case. The step at the crown is
+// amp x dPhase x stripWidth: 14px strips at x*0.0100 gave ~1.5px of jump, which
+// was plainly visible. 8px at x*0.0045 puts it near 0.4px — sub-pixel, gone —
+// while still spreading ~100 degrees of phase across the screen so the treeline
+// does not lean as one board.
+// frq IS PER STAGE, and the reason is what the art in the band looks like, not
+// taste. A seam between spans is only visible against SMOOTH pixels — open sky.
+// A band that is wall-to-wall texture (a sunflower field, a blossom canopy, a
+// dark treeline) hides a 2px step completely, so it can carry a high frequency
+// and its clumps rock in OPPOSITE directions. A band containing sky (Mirror
+// Lake, Sky Gardens) must stay near 1.0 or vertical lines appear.
+//
+// This matters more than amplitude. The sunflower field was already swinging 9px
+// and still looked static, because at frq 1.0 the entire field slid ONE WAY
+// together and a uniform slide across near-identical flowers has no landmark to
+// be seen against. Raising frq, not amp, is what makes a field read as breezy.
+function _lbWindK(x,amp,frq,tick,amb){
+  var t=tick*amb,f=frq||1;
+  var gust=0.30+0.70*Math.pow(0.5+0.5*Math.sin(t*0.0062+x*0.0007*f),2);
+  return amp*gust*(Math.sin(t*0.030+x*0.0013*f)+0.40*Math.sin(t*0.071+x*0.0032*f));
+}
+// An undisplaced stretch, in one draw. The call that covers the gap from the
+// last band down to the play floor is MANDATORY, not tidy-up: nothing below the
+// final band has any other owner, and omitting it leaves raw sky gradient there.
+function _lbPlain(y0,y1){
+  if(y1<=y0)return;
+  FX.drawImage(_lbC,LB_PAD*_lbD,y0*_lbD,W*_lbD,(y1-y0)*_lbD,0,y0,W,y1-y0);
+}
+// The water band: rows, batched wherever consecutive rows share an offset.
+function _lbRows(y0,y1,lb,by,bh,tick,amb){
+  var rh=document.body.classList.contains('mobile')?5:4;
+  var runY=y0,runD=_lbDisp(y0+rh*0.5,lb,by,bh,tick,amb),ly,dNow;
+  for(ly=y0+rh;ly<y1;ly+=rh){
+    dNow=_lbDisp(ly+rh*0.5,lb,by,bh,tick,amb);
+    if(Math.abs(dNow-runD)<0.35)continue;
+    FX.drawImage(_lbC,(LB_PAD-runD)*_lbD,runY*_lbD,W*_lbD,(ly-runY)*_lbD,0,runY,W,ly-runY);
+    runY=ly;runD=dNow;
+  }
+  if(runY<y1)FX.drawImage(_lbC,(LB_PAD-runD)*_lbD,runY*_lbD,W*_lbD,(y1-runY)*_lbD,0,runY,W,y1-runY);
+}
+// A sheared span. The shear matrix takes canvas OFF its fast axis-aligned blit
+// path — each of these is a filtered textured quad, so the COUNT is what costs,
+// not the pixels. Measured: 49 fixed 8px strips pushed the median frame from
+// 16.7ms to 20ms, i.e. straight out of 60fps.
+function _lbWindDraw(x0,x1,k,y0,y1,bandH,ov){
+  if(x1<=x0)return;
+  if(k>LB_KMAX)k=LB_KMAX;else if(k<-LB_KMAX)k=-LB_KMAX;
+  FX.save();
+  FX.transform(1,0,-k/bandH,1,k*y1/bandH,0);
+  var dx=x0-ov,dw=(x1-x0)+ov*2;
+  FX.drawImage(_lbC,(LB_PAD+dx)*_lbD,y0*_lbD,dw*_lbD,bandH*_lbD,dx,y0,dw,bandH);
+  FX.restore();
+}
+// FIXED SPAN BUDGET. Measured on the heaviest stage: 12 spans and 24 spans both
+// hold a full 16.7ms frame, while a variable count averaging ~30 cost 17.2 and
+// 49 cost 20. So the count is pinned rather than derived, and the wave's spatial
+// frequency is then chosen so the lean step between adjacent spans stays
+// sub-pixel at that width. Trading phase spread for frame rate, deliberately.
+var LB_SPANS=16;
+function _lbWind(y0,y1,amp,frq,tick,amb){
+  var bandH=y1-y0; if(bandH<2)return;
+  var cw=W/LB_SPANS,ov=3;               // 3px overlap so no span leaves a gap
+  for(var i=0;i<LB_SPANS;i++){
+    var x0=i*cw;
+    _lbWindDraw(x0,x0+cw,_lbWindK(x0+cw*0.5,amp,frq,tick,amb),y0,y1,bandH,ov);
+  }
+}
+// ── LIFE AT THREE DEPTHS ────────────────────────────────────────────────────
+// One layer of petals reads as stickers stuck to the glass. THREE layers moving
+// at different rates reads as air with depth in it, which is the whole point.
+// Each tier gets its own parallax multiplier, size, alpha and drift speed; the
+// far tier is small, pale and slow, the near tier is large, bright and fast.
+// Positions are deterministic per index (see _uh) — Math.random() would strobe.
+var LBTIER=[{p:0.10,s:0.45,a:0.34,v:0.30},{p:0.45,s:0.80,a:0.62,v:0.62},{p:1.30,s:1.45,a:0.92,v:1.15}];
+function drawBGLife(kind,cam,bandB,tick,amb){
+  if(!kind||bandB<8)return;
+  FX.save();FX.beginPath();FX.rect(0,0,W,bandB);FX.clip();
+  for(var t=0;t<3;t++){
+    var T2=LBTIER[t],n=(kind==='cloud')?4:(kind==='birds'?3:(t===2?7:11));
+    var px=-cam*0.045*(1+T2.p*7);       // relative to the far plane's own speed
+    for(var i=0;i<n;i++){
+      var id=t*37+i,r1=_uh(id),r2=_uh(id+91),r3=_uh(id+211);
+      var sp=W*0.42+r1*W*0.55;
+      var x,y,al=T2.a*(0.55+r2*0.45),sz;
+      if(kind==='petals'||kind==='leaves'){
+        // drift down and sideways, with a flutter that reverses — a falling petal
+        // does not travel in a straight line and the eye knows it
+        var fall=(tick*(0.55+r1*0.75)*T2.v*amb+r2*bandB*3)%(bandB+80);
+        y=fall-40;
+        x=_uw(px*0.8+i*sp+Math.sin(fall*0.02+r3*6)*34*T2.s,W+120)-60;
+        sz=(4.6+r3*3.4)*T2.s;
+        FX.fillStyle=(kind==='petals')?'rgba(255,196,222,'+al+')':'rgba(216,180,110,'+al+')';
+        FX.save();FX.translate(x,y);FX.rotate(fall*0.03+r1*6);
+        FX.beginPath();FX.ellipse(0,0,sz,sz*0.52,0,0,6.28);FX.fill();FX.restore();
+      }else if(kind==='fireflies'){
+        // hover rather than travel: a slow wander plus an out-of-phase blink
+        var wx=Math.sin(tick*0.012*T2.v*amb+r1*6.3)*46*T2.s;
+        var wy=Math.cos(tick*0.009*T2.v*amb+r2*6.3)*30*T2.s;
+        x=_uw(px+i*sp,W+120)-60+wx;
+        y=bandB*(0.18+r3*0.66)+wy;
+        var bl=0.35+0.65*Math.pow(0.5+0.5*Math.sin(tick*0.05*amb+r1*9),3);
+        sz=(2.0+r2*2.2)*T2.s;
+        var fg=FX.createRadialGradient(x,y,0,x,y,sz*4.5);
+        fg.addColorStop(0,'rgba(255,238,150,'+(al*bl)+')');fg.addColorStop(1,'rgba(255,238,150,0)');
+        FX.fillStyle=fg;FX.beginPath();FX.arc(x,y,sz*4.5,0,6.28);FX.fill();
+        FX.fillStyle='rgba(255,252,214,'+(al*bl)+')';FX.beginPath();FX.arc(x,y,sz,0,6.28);FX.fill();
+      }else if(kind==='motes'||kind==='pollen'){
+        // dust hanging in light: almost no lateral travel, a lazy vertical bob
+        x=_uw(px*0.7+i*sp+Math.sin(tick*0.006*T2.v*amb+r1*6)*26,W+120)-60;
+        y=bandB*(0.10+r3*0.78)+Math.sin(tick*0.010*T2.v*amb+r2*6)*20*T2.s;
+        sz=(1.1+r2*1.9)*T2.s;
+        FX.fillStyle=(kind==='motes')?'rgba(255,240,200,'+(al*0.75)+')':'rgba(255,250,214,'+(al*0.8)+')';
+        FX.beginPath();FX.arc(x,y,sz,0,6.28);FX.fill();
+      }else if(kind==='embers'){
+        var rise=(tick*(0.35+r1*0.5)*T2.v*amb+r2*bandB*3)%(bandB*0.7);
+        y=bandB*0.92-rise;
+        x=_uw(px+i*sp+Math.sin(rise*0.04+r3*6)*22,W+120)-60;
+        sz=(1.4+r2*1.8)*T2.s;
+        var eb=al*(1-rise/(bandB*0.7));
+        FX.fillStyle='rgba(255,168,96,'+eb+')';FX.beginPath();FX.arc(x,y,sz,0,6.28);FX.fill();
+      }else if(kind==='cloud'){
+        // the cloud sea the sky islands float in — wide, soft, barely moving
+        var cw2=W*(0.30+r1*0.40)*T2.s;
+        x=_uw(px*1.6+tick*0.06*T2.v*amb+i*sp*1.6,W+cw2*2.4)-cw2*1.2;
+        y=bandB*(0.16+r3*0.70);
+        FX.fillStyle='rgba(255,255,255,'+(al*0.30)+')';
+        FX.beginPath();FX.ellipse(x,y,cw2,cw2*0.16,0,0,6.28);FX.fill();
+      }
+    }
+    // a bird or two crossing the far distance — cheap, and the eye reads it
+    // instantly as "this is a world, not a wallpaper"
+    if(t===0&&(kind==='pollen'||kind==='cloud'||kind==='embers')){
+      for(var b2=0;b2<2;b2++){
+        var bt=(tick*0.42*amb+b2*900)%(W+300),bxx=bt-150;
+        var byy=bandB*(0.13+b2*0.07)+Math.sin(bt*0.012)*12;
+        var fl=Math.sin(tick*0.22*amb+b2*2)*4;
+        FX.strokeStyle='rgba(46,54,68,0.42)';FX.lineWidth=1.4;
+        FX.beginPath();FX.moveTo(bxx-6,byy+fl);FX.quadraticCurveTo(bxx-3,byy-2,bxx,byy);
+        FX.quadraticCurveTo(bxx+3,byy-2,bxx+6,byy+fl);FX.stroke();
+      }
+    }
+  }
+  FX.restore();
+}
+// ── the multiplane draw ─────────────────────────────────────────────────────
+// Base plate first, then every card back-to-front, each offset by its own tiny
+// separation. Mirror-tiling is preserved from the flat path (it is what hides
+// the repeat seam), and a mirrored tile mirrors its cards' x positions too —
+// otherwise the cards detach from the plate they were cut out of.
+function drawCards(ai,cam,bw,bh,by,bandB,tick,amb){
+  var set=CARD_DATA[ai],base=CARD_IMG[set.base];
+  if(!base)return;
+  var sc=bw/set.w;                                   // plate px -> screen px
+  var bpar=cam*CB_BASE,boff=(-bpar)%(bw*2);if(boff>0)boff-=bw*2;
+  FX.save();FX.beginPath();FX.rect(0,0,W,bandB);FX.clip();
+  for(var bx=boff;bx<W+bw;bx+=bw){
+    var bx0=Math.round(bx),bx1=Math.round(bx+bw),btw=bx1-bx0;
+    var mir=(Math.round((bx+bpar)/bw))&1;
+    FX.save();
+    if(mir){FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);}
+    FX.drawImage(base,bx0,by,btw,bh);
+    FX.restore();
+    for(var ci=0;ci<set.cards.length;ci++){
+      var c=set.cards[ci],im=CARD_IMG[c.s];if(!im)continue;
+      // FULL-FRAME cards: same rect as the base plate, so a card is ALWAYS in
+      // register with the hole it was lifted from. There is no per-card offset to
+      // get wrong — which is what the displacement bug was.
+      var cw=btw,ch=bh,cx=bx0+cardSep(cam,c),cy=by;
+      FX.save();
+      // MIRRORED TILES: apply the transform ONLY. The first version also flipped
+      // the card's x by hand — two mirrors cancel, so every card on every odd
+      // tile landed displaced from the hole it was cut out of, and the blurry
+      // inpainted base showed through beside it. That is the "gaps in space".
+      // Under this transform a sub-rect drawn at its NORMAL x already lands
+      // mirrored and in register with the mirrored base plate.
+      if(mir){FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);}
+      if(c.wind&&amb>0){
+        // amp/frq are per CARD now. They used to be hardcoded 9.0/1.6 for every
+        // wind card, so tuning the pink canopy meant tuning the willows too.
+        // Wind pivots at the BOTTOM OF THE MOVING MASS — where the trunk meets
+        // the ground. Shear is zero there and grows upward, so the trunk stays
+        // dead still and only the crown moves. Subdivided WITHIN the card, so
+        // sections of one crown drift out of step instead of the whole cutout
+        // leaning like a board.
+        //
+        // c.pv IS NOT OPTIONAL POLISH. When cards were cropped to their content,
+        // cy+ch WAS the trunk line and this read correctly. Going full-frame
+        // (which fixed the mirrored-tile displacement) silently moved every
+        // pivot to the bottom of the PLATE, so a willow rooted at 0.66 of the
+        // frame got 34% of the full swing at its own trunk — about 7px of the
+        // tree sliding along the shore it is planted in. pv is the measured
+        // bottom of the card's content, written by tools/depth/pack.py, and it
+        // puts the pivot back on the roots.
+        var piv=cy+ch*(c.pv||1),sub=4,sw2=cw/sub;
+        for(var q=0;q<sub;q++){
+          var k=_lbWindK(cx+q*sw2+sw2*0.5,c.amp||9.0,c.frq||1.6,tick,amb);
+          if(k>LB_KMAX)k=LB_KMAX;else if(k<-LB_KMAX)k=-LB_KMAX;
+          FX.save();FX.transform(1,0,-k/ch,1,k*piv/ch,0);
+          FX.drawImage(im,(q*sw2/cw)*im.width,0,im.width/sub,im.height,
+                          cx+q*sw2,cy,sw2+0.6,ch);
+          FX.restore();
+        }
+      }else if(c.ripple&&amb>0){
+        // The lake, in rows. Its reflections are painted in, so this is the same
+        // free realism as before — only now the water is its own card and the
+        // trees it reflects are theirs.
+        var rh2=document.body.classList.contains('mobile')?5:4;
+        for(var ry=0;ry<ch;ry+=rh2){
+          var f=ry/Math.max(1,ch);
+          var dx=(1.6+f*9.0)*Math.sin((cy+ry)*0.055-tick*0.045*amb+f*2.2)
+                +(0.8+f*3.2)*Math.sin((cy+ry)*0.130+tick*0.031*amb);
+          var sh2=Math.min(rh2,ch-ry);
+          FX.drawImage(im,0,(ry/ch)*im.height,im.width,(sh2/ch)*im.height,
+                          cx+dx,cy+ry,cw,sh2+0.6);
+        }
+      }else{
+        FX.drawImage(im,cx,cy,cw,ch);
+      }
+      FX.restore();
+    }
+  }
+  FX.restore();
+}
+// ══ FOREGROUND PLANE — the things that pass IN FRONT of her ════════════════
+// Client, on the library: "It is the fact that I have those candlesticks there
+// that kind of gives it a different layer for it to move behind, and that's
+// nice." That is the whole diagnosis. Every other plane in this game sits BEHIND
+// her, and a stack of behind-planes still reads as scenery. Parallax sells depth
+// by also putting something in FRONT of the camera subject, moving FASTER than
+// the world — that near plane is what makes a flat scene become a space you are
+// standing inside.
+//
+// Deliberately drawn AFTER the world transform is restored, so it occludes the
+// hero. Also deliberately confined to the TOP edge plus occasional slim
+// verticals: the middle of the screen is where she fights, and no amount of
+// depth is worth costing the player a read on an incoming foe.
+//
+// Parallax is ~1.7x the world's own screen rate (the world moves at cam*ZOOM),
+// because "nearer" is the entire point — if it moved with the ground it would
+// just be more scenery.
+var FORE=[
+  // k      = shape family        tint          alpha  trunk = slim verticals per screen
+  {k:'beam',   c:'30,18,9',   c2:'255,206,130', a:0.86, tr:0},   // 0 library — beams + hanging lamps, no trunks indoors
+  {k:'branch', c:'22,34,16',  c2:'96,140,64',   a:0.80, tr:1},   // 1 meadow
+  {k:'blossom',c:'40,22,30',  c2:'244,169,200', a:0.82, tr:1},   // 2 petal mile — cherry limb + blossom
+  {k:'branch', c:'24,36,22',  c2:'120,150,90',  a:0.74, tr:1},   // 3 rose waltz — vine over the colonnade
+  {k:'frond',  c:'20,38,26',  c2:'110,160,96',  a:0.84, tr:1},   // 4 mirror lake — willow strands
+  {k:'frond',  c:'26,20,44',  c2:'150,200,255', a:0.80, tr:1},   // 5 glade — vines, faint glow
+  {k:'bloom',  c:'46,32,10',  c2:'240,190,70',  a:0.82, tr:1},   // 6 golden hour — heads leaning in
+  {k:'frond',  c:'26,40,30',  c2:'150,190,140', a:0.66, tr:0},   // 7 sky gardens — ivy, no trunks in open air
+  {k:'branch', c:'26,16,20',  c2:'255,170,110', a:0.84, tr:1}    // 8 her encore
+];
+function drawForeground(ai,cam,tick,amb){
+  if(MODE!=='side')return;                       // RPG only — the runner is 3D
+  // RETIRED ON CARD STAGES. This whole plane was invented content standing in
+  // for depth the backdrop did not have, run at 1.7x — far outside the tiny
+  // spread that actually reads as parallax. Where a real multiplane cut exists,
+  // the cards ARE the near planes and this would be a second, contradictory
+  // depth system drawn on top of them. Stages still on the flat plate keep it
+  // until their cut lands.
+  if(CARD_READY[ai])return;
+  var f=FORE[ai]; if(!f)return;
+  var z=(typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1;
+  var px=-cam*z*1.7;                             // nearer than the world, so faster
+  var i,x,hang,sw,ex;
+  var sp=118,n=Math.ceil(W/sp)+3,per=n*sp;
+  FX.save();
+  // ── slim verticals: a trunk or column sweeping between camera and player.
+  //    The single strongest depth cue available, and the riskiest — kept narrow,
+  //    soft-edged and semi-transparent so it never hides an incoming foe.
+  if(f.tr){
+    // A trunk STOPS AT THE GROUND. The first version ran 0..H as a wide soft
+    // gradient, which put a vertical haze band straight through the lake and the
+    // undercroft and read as a rendering fault rather than a tree. It also needs
+    // a solid core with a tight falloff — a broad gradient is a light shaft, not
+    // a trunk.
+    // A NEAR trunk is almost a silhouette. The tinted-gradient version read as a
+    // translucent grey bar because it kept the stage's mid-tone and had straight
+    // parallel sides. Anything this close to the camera is far darker than the
+    // scene behind it and is never a rectangle: it tapers, it leans, it has limbs.
+    var gY=(FLOOR_R*T-(GS.camY||0))*z+26;
+    var tsp=W*2.3,tn=2,tper=tn*tsp;
+    for(i=0;i<tn;i++){
+      x=_uw(px*1.5+i*tsp,tper)-tsp*0.5;
+      if(x<-70||x>W+70)continue;
+      var wTop=9+_uh(i+5)*5,wBot=wTop*1.9,lean=(_uh(i+31)-0.5)*26;
+      // soft outer pass, then the solid core — cheap two-pass edge feathering
+      for(var pass=0;pass<2;pass++){
+        var grow=pass?0:5;
+        // 0.62, not opaque: this strip crosses the PLAY area, and a foe or a
+        // projectile behind it must still be readable. Depth is not worth a death.
+        FX.fillStyle='rgba(9,12,9,'+(pass?0.62:0.20)+')';
+        FX.beginPath();
+        FX.moveTo(x+lean-wTop-grow,-4);
+        FX.lineTo(x+lean+wTop+grow,-4);
+        FX.quadraticCurveTo(x+wTop+grow,gY*0.55,x+wBot+grow,gY);
+        FX.lineTo(x-wBot-grow,gY);
+        FX.quadraticCurveTo(x-wTop-grow,gY*0.55,x+lean-wTop-grow,-4);
+        FX.closePath();FX.fill();
+      }
+      FX.strokeStyle='rgba(9,12,9,0.62)';FX.lineWidth=7;   // one limb, so it reads as a tree
+      FX.beginPath();FX.moveTo(x+lean*0.6,gY*0.20);
+      FX.quadraticCurveTo(x+lean*0.6+34,gY*0.10,x+lean*0.6+58,gY*0.15);FX.stroke();
+    }
+  }
+  // ── top fringe. Hangs deeper at the screen edges and thins through the middle,
+  //    which is both how a real canopy frames a view and how we keep the play
+  //    area legible.
+  for(i=0;i<n;i++){
+    x=_uw(px+i*sp,per)-sp;
+    if(x<-sp||x>W+sp)continue;
+    var edge=0.42+0.58*Math.abs((x/W)*2-1);      // 1.0 at the edges, 0.42 mid-screen
+    // foreground plants take the wind harder than anything behind them
+    sw=amb?Math.sin(tick*0.026*amb+x*0.010)*7+Math.sin(tick*0.061*amb+x*0.021)*3:0;
+    hang=H*(0.055+0.115*edge);
+    ex=x+sw;
+    FX.globalAlpha=f.a;
+    if(f.k==='beam'){
+      // architectural: a solid soffit with lamps hung off it — no wind indoors
+      FX.fillStyle='rgba('+f.c+',1)';FX.fillRect(x-sp*0.5,0,sp*1.02,hang*0.42);
+      FX.fillRect(x-10,0,20,hang*(0.55+0.45*edge));
+      var ly=hang*(0.55+0.45*edge);
+      FX.beginPath();FX.ellipse(x,ly+7,13,9,0,0,6.28);FX.fill();
+      var lg=FX.createRadialGradient(x,ly+7,0,x,ly+7,30);
+      lg.addColorStop(0,'rgba('+f.c2+',0.30)');lg.addColorStop(1,'rgba('+f.c2+',0)');
+      FX.fillStyle=lg;FX.beginPath();FX.arc(x,ly+7,30,0,6.28);FX.fill();
+    }else if(f.k==='frond'){
+      // long trailing strands — willow, ivy, glade vine
+      FX.strokeStyle='rgba('+f.c+',1)';
+      for(var s2=0;s2<5;s2++){
+        var fx4=ex+(s2-2)*17,fl=hang*(0.55+_uh(i*7+s2)*0.85);
+        FX.lineWidth=2.6-s2*0.18;
+        FX.beginPath();FX.moveTo(fx4,-6);
+        FX.quadraticCurveTo(fx4+sw*1.6,fl*0.55,fx4+sw*2.6+(_uh(i+s2)-0.5)*16,fl);FX.stroke();
+        FX.fillStyle='rgba('+f.c2+',0.22)';
+        FX.beginPath();FX.ellipse(fx4+sw*2.6,fl,3.6,2.2,0,0,6.28);FX.fill();
+      }
+      FX.fillStyle='rgba('+f.c+',1)';
+      FX.beginPath();FX.ellipse(x,-4,sp*0.44,hang*0.30,0,0,6.28);FX.fill();
+    }else if(f.k==='bloom'){
+      // heads leaning in over the top edge
+      FX.strokeStyle='rgba('+f.c+',1)';FX.lineWidth=5;
+      FX.beginPath();FX.moveTo(x,-8);FX.quadraticCurveTo(x+sw,hang*0.6,ex,hang);FX.stroke();
+      FX.fillStyle='rgba('+f.c+',1)';
+      for(var pt=0;pt<9;pt++){var pa=pt/9*6.28;
+        FX.beginPath();FX.ellipse(ex+Math.cos(pa)*15,hang+Math.sin(pa)*15,7,4.5,pa,0,6.28);FX.fill();}
+      FX.fillStyle='rgba('+f.c2+',0.85)';FX.beginPath();FX.arc(ex,hang,10,0,6.28);FX.fill();
+      FX.fillStyle='rgba('+f.c+',1)';FX.beginPath();FX.arc(ex,hang,5,0,6.28);FX.fill();
+    }else{
+      // leafy limb, with blossom clusters on the petal mile
+      FX.strokeStyle='rgba('+f.c+',1)';FX.lineWidth=7;
+      FX.beginPath();FX.moveTo(x-sp*0.6,2);FX.quadraticCurveTo(x,hang*0.42,x+sp*0.6,4);FX.stroke();
+      for(var lf=0;lf<6;lf++){
+        var lx=x-sp*0.5+lf*sp*0.2,lyy=hang*(0.30+_uh(i*11+lf)*0.62)+sw*0.5;
+        FX.fillStyle='rgba('+f.c+',1)';
+        FX.beginPath();FX.ellipse(lx+sw*0.6,lyy,17,11,(_uh(i+lf)-0.5)*1.6,0,6.28);FX.fill();
+        if(f.k==='blossom'){FX.fillStyle='rgba('+f.c2+',0.55)';
+          FX.beginPath();FX.ellipse(lx+sw*0.6+5,lyy-4,9,6,0,0,6.28);FX.fill();}
+      }
+    }
+    FX.globalAlpha=1;
+  }
+  FX.restore();
+}
+// ══ UNDERCROFT — what lies beneath the play line ═══════════════════════════
+// Raising GROUNDF 0.82 -> 0.72 exposed ~28% of the screen below the floor (it
+// was 18%). What lived there was a flat translucent gradient: passable as a
+// shadow, a bug at a third of the screen. This is the cross-section that
+// replaces it — a shared substrate plus one themed layer per stage, parallaxed
+// at ~0.6-0.9x the ground so it RECEDES and never competes with her silhouette.
+// Not pure decoration: pits drop her through this band before the death plane at
+// LH*T+150, so it has to read at speed and stay darker than she is.
+var UCROFT=[
+  {k:'stacks' ,t:'#5a4028',m:'#3a2718',b:'#241708'}, // 0 ONCE UPON A PAGE  — the library's lower stacks
+  {k:'roots'  ,t:'#4b4426',m:'#33301c',b:'#1c1b0f'}, // 1 FIRST LIGHT MEADOW— topsoil, roots, a buried wall
+  {k:'cobble' ,t:'#4a3f42',m:'#332b30',b:'#1d181c'}, // 2 THE PETAL MILE    — cobble bed, settled petals
+  {k:'cistern',t:'#3d4238',m:'#27332f',b:'#141d1c'}, // 3 THE ROSE WALTZ    — the fountain's cistern
+  {k:'water'  ,t:'#2f6f86',m:'#1d4a63',b:'#0d2739'}, // 4 THE MIRROR LAKE   — under the surface
+  {k:'myc'    ,t:'#33344a',m:'#232336',b:'#131321'}, // 5 THE WISHING GLADE — glowing mycelium
+  {k:'taproot',t:'#5c4620',m:'#3f2f14',b:'#241a0a'}, // 6 THE GOLDEN HOUR   — sunflower taproots
+  {k:'void'   ,t:'',m:'',b:''},                      // 7 THE SKY GARDENS   — nothing. That's the point.
+  {k:'found'  ,t:'#463a44',m:'#2e2632',b:'#1a151f'}  // 8 HER ENCORE        — palace foundations, lit windows
+];
+// deterministic per-index jitter: scatter must be stable frame to frame or the
+// whole band shimmers. Math.random() here would strobe at 60fps.
+function _uh(i){var s=Math.sin(i*127.1)*43758.5453;return s-Math.floor(s);}
+// positive modulo — JS % keeps the sign, and the parallax offset is negative, so
+// a raw % sends every wrapped element off-screen left and it never comes back.
+function _uw(v,m){v=v%m;return v<0?v+m:v;}
+function drawUndercroft(ai,cam,floorY,tick,amb){
+  var y0=Math.max(0,floorY),bh=H-y0; if(bh<=1)return;
+  var u=UCROFT[ai]||UCROFT[1],px=-cam*0.6,i,x,n,per;
+  FX.save();FX.beginPath();FX.rect(0,y0,W,bh);FX.clip();
+  if(u.k==='void'){
+    // 7 SKY GARDENS — there is no ground under a floating marble path. The
+    // undercroft IS the drop: sky continuing down, clouds far below. The vertigo
+    // is the stage's whole idea, so this one gets emptiness on purpose.
+    var vg=FX.createLinearGradient(0,y0,0,H);
+    vg.addColorStop(0,'#9dc4e6');vg.addColorStop(0.45,'#84add8');vg.addColorStop(1,'#5f83b8');
+    FX.fillStyle=vg;FX.fillRect(0,y0,W,bh);
+    for(i=0;i<9;i++){                                                        // cloud decks receding into the drop
+      var cw=70+_uh(i)*120,cx=_uw(px*(0.22+_uh(i+40)*0.2)+i*210,W+420)-210,cy=y0+bh*(0.14+_uh(i+9)*0.62);
+      FX.fillStyle='rgba(255,255,255,'+(0.26+_uh(i+3)*0.30)+')';
+      FX.beginPath();FX.ellipse(cx,cy,cw,cw*0.22,0,0,6.28);FX.fill();
+      FX.fillStyle='rgba(120,150,190,'+(0.10+_uh(i+17)*0.10)+')';           // underside so they have volume
+      FX.beginPath();FX.ellipse(cx+cw*0.10,cy+cw*0.10,cw*0.82,cw*0.13,0,0,6.28);FX.fill();
+    }
+  }else{
+    var g=FX.createLinearGradient(0,y0,0,H);
+    g.addColorStop(0,u.t);g.addColorStop(0.45,u.m);g.addColorStop(1,u.b);
+    FX.fillStyle=g;FX.fillRect(0,y0,W,bh);
+    // strata — sagging bands so the cut reads as layered ground, not flat paint
+    for(i=1;i<=3;i++){
+      var sy=y0+bh*(0.20*i+0.06);
+      FX.strokeStyle='rgba(0,0,0,'+(0.16-i*0.03)+')';FX.lineWidth=Math.max(1,bh*0.012);
+      FX.beginPath();FX.moveTo(0,sy);
+      for(var sx=0;sx<=W;sx+=W/6)FX.lineTo(sx,sy+Math.sin((sx+px*0.5)*0.006+i)*bh*0.035);
+      FX.stroke();
+    }
+    // embedded grit, carried on the parallax so the band visibly scrolls
+    for(i=0;i<26;i++){
+      var qx=_uw(px*0.9+i*97,W+80)-40,qy=y0+bh*(0.14+_uh(i)*0.80),qr=1.2+_uh(i+70)*3.4;
+      FX.fillStyle='rgba(255,246,214,'+(0.05+_uh(i+11)*0.07)+')';
+      FX.beginPath();FX.ellipse(qx,qy,qr,qr*0.72,_uh(i+5)*3,0,6.28);FX.fill();
+    }
+    // Layers lay out against ch, not bh. The substrate gradient fills the whole
+    // band, but the touch cluster covers its lower part on a phone — detail placed
+    // below CTRL_TOP is drawn for nobody. ch is the measured part that's actually
+    // looked at, floored at 40% of the band so a device with very tall pads still
+    // gets a readable cross-section rather than a sliver.
+    drawUCLayer(u.k,px,y0,Math.max(bh*0.40,Math.min(bh,CTRL_TOP-y0)),bh,tick,amb);
+  }
+  // the cut itself — crisp line + sunlit lip, so the floor reads SOLID and
+  // planted on something instead of floating over a wash.
+  FX.fillStyle='rgba(0,0,0,0.28)';FX.fillRect(0,y0,W,3);
+  FX.fillStyle='rgba(255,246,214,0.10)';FX.fillRect(0,y0+3,W,4);
+  FX.restore();
+}
+// Per-stage layer. Every tiling loop uses n = ceil(W/sp)+2 with period n*sp so the
+// wrap lands on an exact multiple of the spacing — otherwise the last and first
+// element sit at the wrong distance and a seam scrolls across, the same way the
+// backdrop tiles used to. `amb` is 0 under reduce-motion: every animated term is
+// multiplied by it so the band goes still rather than disappearing.
+function drawUCLayer(k,px,y0,bh,fullh,tick,amb){
+  var i,x,n,per,sp;
+  if(k==='stacks'){
+    sp=118;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.85+i*sp,per)-sp;
+      var sh=bh*0.62,sy=y0+bh*0.16;
+      FX.fillStyle='rgba(0,0,0,0.44)';FX.fillRect(x,sy,sp*0.52,sh);          // shelf end, in shadow
+      FX.fillStyle='rgba(255,214,150,0.20)';FX.fillRect(x+sp*0.52,sy,4,sh);  // its lit edge
+      FX.fillStyle='rgba(255,214,150,0.09)';FX.fillRect(x-2,sy,2,sh);        // rim on the dark side
+      for(var b=0;b<4;b++){FX.fillStyle='rgba(0,0,0,0.26)';FX.fillRect(x,sy+sh*(0.22+b*0.20),sp*0.52,2);}
+    }
+    for(i=0;i<3;i++){                                                        // reading-lamp pools between them
+      var lx=_uw(px*0.85+i*380+180,W+300)-150,ly=y0+bh*0.42,lr=bh*0.70;
+      var lg=FX.createRadialGradient(lx,ly,0,lx,ly,lr);
+      lg.addColorStop(0,'rgba(255,217,138,0.40)');lg.addColorStop(1,'rgba(255,217,138,0)');
+      FX.fillStyle=lg;FX.beginPath();FX.arc(lx,ly,lr,0,6.28);FX.fill();
+    }
+  }else if(k==='roots'){
+    sp=64;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.9+i*sp,per)-sp;
+      var rl=bh*(0.22+_uh(i)*0.40);
+      FX.strokeStyle='rgba(210,190,140,0.16)';FX.lineWidth=1.6;
+      FX.beginPath();FX.moveTo(x,y0+2);
+      FX.quadraticCurveTo(x+(_uh(i+7)-0.5)*40,y0+rl*0.6,x+(_uh(i+3)-0.5)*54,y0+rl);FX.stroke();
+      FX.strokeStyle='rgba(210,190,140,0.10)';FX.lineWidth=0.9;
+      FX.beginPath();FX.moveTo(x,y0+rl*0.5);FX.lineTo(x+(_uh(i+21)-0.5)*44,y0+rl*0.9);FX.stroke();
+    }
+    sp=46;n=Math.ceil(W/sp)+2;per=n*sp;                                      // a buried drystone wall
+    for(i=0;i<n;i++){
+      x=_uw(px*0.62+i*sp,per)-sp;
+      var wy=y0+bh*0.56;
+      FX.fillStyle='rgba(150,148,128,0.13)';FX.fillRect(x,wy+(i%2)*11,40,10);
+      FX.fillStyle='rgba(150,148,128,0.09)';FX.fillRect(x+6,wy+11-(i%2)*11,40,10);
+    }
+  }else if(k==='cobble'){
+    sp=34;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(var r=0;r<3;r++)for(i=0;i<n;i++){
+      x=_uw(px*0.9+i*sp+r*17,per)-sp;
+      FX.fillStyle='rgba(210,206,214,'+(0.11-r*0.025)+')';
+      FX.beginPath();FX.ellipse(x+17,y0+bh*(0.10+r*0.15),15,8,0,0,6.28);FX.fill();
+    }
+    for(i=0;i<22;i++){                                                       // petals settled into the bed
+      var pxp=_uw(px*1.05+i*83,W+60)-30,pyp=y0+bh*(0.30+_uh(i)*0.62);
+      FX.fillStyle='rgba(244,169,200,'+(0.13+_uh(i+4)*0.14)+')';
+      FX.beginPath();FX.ellipse(pxp,pyp,4.4,2.4,_uh(i+2)*3,0,6.28);FX.fill();
+    }
+  }else if(k==='cistern'){
+    sp=150;n=Math.ceil(W/sp)+2;per=n*sp;
+    var ah=bh*0.50,ay=y0+bh*0.10;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.7+i*sp,per)-sp;
+      FX.strokeStyle='rgba(226,232,220,0.13)';FX.lineWidth=Math.max(2,bh*0.028);
+      FX.beginPath();FX.moveTo(x+18,ay+ah);FX.lineTo(x+18,ay+ah*0.45);
+      FX.quadraticCurveTo(x+75,ay-ah*0.16,x+132,ay+ah*0.45);FX.lineTo(x+132,ay+ah);FX.stroke();
+    }
+    var wy2=y0+bh*0.74;                                                      // the cistern's still water
+    var wg=FX.createLinearGradient(0,wy2,0,H);
+    wg.addColorStop(0,'rgba(150,205,190,0.20)');wg.addColorStop(1,'rgba(20,50,48,0.35)');
+    FX.fillStyle=wg;FX.fillRect(0,wy2,W,H-wy2);
+    FX.fillStyle='rgba(214,244,232,0.16)';
+    for(i=0;i<5;i++)FX.fillRect(_uw(px*0.9+i*160,W+120)-60,wy2+Math.sin(tick*0.03*amb+i)*1.5,70,1.4);
+  }else if(k==='water'){
+    // 4 MIRROR LAKE — the showpiece. Above the line she's running on glitter;
+    // below it you are looking UP through the water she's running on.
+    for(i=0;i<6;i++){                                                        // light shafts from the surface
+      var sx3=_uw(px*0.5+i*190,W+260)-130;
+      var lg2=FX.createLinearGradient(sx3,y0,sx3+bh*0.5,H);
+      lg2.addColorStop(0,'rgba(226,246,255,0.20)');lg2.addColorStop(1,'rgba(226,246,255,0)');
+      FX.fillStyle=lg2;FX.beginPath();
+      FX.moveTo(sx3-16,y0);FX.lineTo(sx3+16,y0);FX.lineTo(sx3+58,H);FX.lineTo(sx3+2,H);FX.closePath();FX.fill();
+    }
+    FX.strokeStyle='rgba(226,246,255,0.22)';FX.lineWidth=1.4;                // caustics under the cut
+    for(i=0;i<3;i++){FX.beginPath();
+      for(var cx2=0;cx2<=W;cx2+=14)FX.lineTo(cx2,y0+6+i*7+Math.sin((cx2+px+tick*1.4*amb)*0.03+i)*3);
+      FX.stroke();}
+    for(i=0;i<3;i++){                                                        // swans gliding above, seen from below
+      var wx=_uw(px*1.15+tick*0.35*amb+i*300,W+240)-120;
+      FX.fillStyle='rgba(8,26,40,0.20)';
+      FX.beginPath();FX.ellipse(wx,y0+bh*(0.16+i*0.06),26,7,0,0,6.28);FX.fill();
+    }
+    for(i=0;i<14;i++){                                                       // bubbles rising
+      var bx2=_uw(px*1.2+i*71,W+40)-20,byy=H-_uw(tick*(0.5+_uh(i)*0.7)*amb+i*53,fullh);
+      if(byy>y0){FX.strokeStyle='rgba(226,246,255,0.22)';FX.lineWidth=1;
+        FX.beginPath();FX.arc(bx2,byy,1.4+_uh(i+8)*2.2,0,6.28);FX.stroke();}
+    }
+  }else if(k==='myc'){
+    sp=58;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.95+i*sp,per)-sp;
+      FX.strokeStyle='rgba(159,224,176,0.16)';FX.lineWidth=1.2;
+      FX.beginPath();FX.moveTo(x,y0+4);
+      FX.bezierCurveTo(x+26,y0+bh*0.30,x-22,y0+bh*0.55,x+10,y0+bh*0.85);FX.stroke();
+    }
+    for(i=0;i<20;i++){                                                       // the glade's lights, underground
+      var dx=_uw(px*0.95+i*93,W+60)-30,dy=y0+bh*(0.12+_uh(i)*0.80);
+      var pl=0.5+0.5*Math.sin(tick*0.05*amb+i*1.7);
+      var gg=FX.createRadialGradient(dx,dy,0,dx,dy,9);
+      gg.addColorStop(0,'rgba(255,224,138,'+(0.28*pl+0.10)+')');gg.addColorStop(1,'rgba(255,224,138,0)');
+      FX.fillStyle=gg;FX.beginPath();FX.arc(dx,dy,9,0,6.28);FX.fill();
+    }
+  }else if(k==='taproot'){
+    sp=126;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.9+i*sp,per)-sp;
+      FX.strokeStyle='rgba(201,162,74,0.20)';FX.lineWidth=Math.max(3,bh*0.045);
+      FX.beginPath();FX.moveTo(x+63,y0);FX.quadraticCurveTo(x+52,y0+bh*0.5,x+70,y0+bh*0.92);FX.stroke();
+      FX.strokeStyle='rgba(201,162,74,0.12)';FX.lineWidth=1.4;
+      for(var f=1;f<4;f++){FX.beginPath();FX.moveTo(x+60,y0+bh*0.2*f);
+        FX.lineTo(x+60+(f%2?-1:1)*(26+f*8),y0+bh*(0.2*f+0.16));FX.stroke();}
+    }
+  }else{ // 'found' — 8 HER ENCORE
+    sp=128;n=Math.ceil(W/sp)+2;per=n*sp;
+    for(i=0;i<n;i++){
+      x=_uw(px*0.75+i*sp,per)-sp;
+      FX.fillStyle='rgba(228,214,228,0.10)';FX.fillRect(x+10,y0+bh*0.08,52,bh*0.80);  // foundation pier
+      FX.fillStyle='rgba(0,0,0,0.16)';FX.fillRect(x+62,y0+bh*0.08,8,bh*0.80);         // its shadow side
+      for(var c3=0;c3<4;c3++){FX.fillStyle='rgba(0,0,0,0.12)';FX.fillRect(x+10,y0+bh*(0.16+c3*0.18),52,2);}
+      var wr2=bh*0.34,wcx=x+96,wcy=y0+bh*0.46;                                        // a lit undercroft window
+      var wg2=FX.createRadialGradient(wcx,wcy,0,wcx,wcy,wr2);
+      wg2.addColorStop(0,'rgba(255,207,138,0.22)');wg2.addColorStop(1,'rgba(255,207,138,0)');
+      FX.fillStyle=wg2;FX.beginPath();FX.arc(wcx,wcy,wr2,0,6.28);FX.fill();
+      FX.fillStyle='rgba(255,214,150,0.20)';FX.fillRect(wcx-8,y0+bh*0.38,16,bh*0.16);
+    }
+  }
+}
 function drawMansionBG(st){
   var pc=hexS(st.pc),ac=hexS(st.ac),cam=GS.camX,ai=GS.ai,tick=GS.tick;
-  var floorY=H*0.82;
+  // DECLARED AT THE TOP, not next to the sparkle loop where it used to live. The
+  // living-backdrop pass below reads it ~160 lines earlier than that; `var`
+  // hoists the binding but NOT the assignment, so it was undefined there and
+  // every animated term silently evaluated to false. A reduce-motion flag that
+  // fails closed is exactly the kind of bug that ships looking like "it just
+  // didn't work on my phone".
+  var _amb=SET.reduceMotion?0:1;
   // The world is drawn scaled by ZOOM (see draw(): FX.scale(ZOOM,ZOOM)), so the
   // real floor lands at (FLOOR_R*T - camY) * ZOOM. This baseline used to omit the
   // * ZOOM (and hard-code 14), so it only agreed with the floor when ZOOM===1 —
@@ -3692,6 +4817,11 @@ function drawMansionBG(st){
   // not the stage floor"). The clamp was a sanity bound from when groundY was
   // UNSCALED; now that it tracks the world correctly it is actively harmful.
   var groundY=(FLOOR_R*T-(GS.camY||0))*_wz; // top of the track tiles — tracks the world floor exactly
+  // floorY WAS a third hard-coded H*0.82, independent of the camera. It only ever
+  // agreed with groundY because the camera happened to anchor the floor at the same
+  // 0.82 — i.e. by coincidence, not by construction. Derive it and the earth band
+  // can never tear away from the tiles again, at any GROUNDF, in any orientation.
+  var floorY=groundY;
   // ── base: fairytale daytime sky ──
   var _sk=SIDE_SKY[ai]||SIDE_SKY[0];
   var bgG=FX.createLinearGradient(0,0,0,H);
@@ -3728,23 +4858,103 @@ function drawMansionBG(st){
     // (the interior wall band below is skipped whenever a backdrop is loaded). Scaled
     // to cover the whole play height with its own ground seated at the play floor, and
     // mirror-tiled on a slow parallax so the distant world reads continuous.
-    var bh=Math.max(groundY+40,H*0.94),bw=bh*(_bg.width/_bg.height),by=groundY+30-bh;
     // SNAP TO INTEGER EDGES, like the wall band does. bw is a float and bx
     // accumulated floats, so adjacent tiles never shared an exact edge — leaving a
     // 1px seam that scrolled across the screen. Round each tile's left/right and
     // derive the width from the difference. Parity is keyed to a STABLE WORLD
     // index (not one relative to boff, which wraps) so tiles never flip-flash.
-    var bpar=cam*0.045;
-    var boff=(-bpar)%(bw*2);if(boff>0)boff-=bw*2;
-    for(var bx=boff;bx<W+bw;bx+=bw){
-      var bx0=Math.round(bx),bx1=Math.round(bx+bw),btw=bx1-bx0;
-      var bk=Math.round((bx+bpar)/bw);            // stable world-space tile index
-      if(bk&1){FX.save();FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);FX.drawImage(_bg,bx0,by,btw,bh);FX.restore();}
-      else FX.drawImage(_bg,bx0,by,btw,bh);
+    // (All of that now lives in _lbTile so the flat and warped paths share it.)
+    var bh=Math.max(groundY+40,H*0.94),bw=bh*(_bg.width/_bg.height),by=groundY+30-bh;
+    var lb=LIVEBG[ai]||{};
+    var bandB=Math.max(1,Math.ceil(groundY+30));     // the painting ends at the play floor
+    if(CARD_READY[ai]){                              // multiplane cut exists for this stage
+      drawCards(ai,cam,bw,bh,by,bandB,tick,_amb);
+    }else{
+    var warp=!!((lb.wat||lb.wnd)&&_amb>0);
+    if(!warp){
+      _lbTile(FX,0,_bg,cam,bw,bh,by);               // nothing to animate — draw it straight
+    }else{
+      // Composite once into the padded offscreen, then blit it back in BANDS:
+      // the wind band as sheared vertical strips, the water band as displaced
+      // rows, and everything else as single straight draws. Bands are sorted and
+      // the gaps between them are filled, so every pixel from 0 to the play floor
+      // has exactly one owner.
+      var lx=_lbEnsure(W+LB_PAD*2,bandB,DPR);
+      _lbTile(lx,LB_PAD,_bg,cam,bw,bh,by);
+      var segs=[];
+      if(lb.wnd)segs.push([Math.max(0,by+lb.wnd[0]*bh),Math.min(bandB,by+lb.wnd[1]*bh),'w',lb.wnd[2],lb.wnd[3]]);
+      if(lb.wat)segs.push([Math.max(0,by+lb.wat[0]*bh),Math.min(bandB,by+lb.wat[1]*bh),'r',0]);
+      segs.sort(function(a,b){return a[0]-b[0];});
+      var cy=0,si;
+      for(si=0;si<segs.length;si++){
+        var s0=Math.max(cy,segs[si][0]),s1=segs[si][1];
+        if(s1<=s0)continue;
+        _lbPlain(cy,s0);                                    // untouched gap above this band
+        if(segs[si][2]==='w')_lbWind(s0,s1,segs[si][3],segs[si][4],tick,_amb);
+        else _lbRows(s0,s1,lb,by,bh,tick,_amb);
+        cy=s1;
+      }
+      _lbPlain(cy,bandB);                                   // FINAL FLUSH — see _lbPlain
+    }
+    }
+    // ── NEAR BAND — RETIRED ON CARD STAGES. It was the painting's own lower
+    //    slice re-run at 3.5x and crushed to a silhouette: a stand-in for a
+    //    depth plane, built when there were no real ones. A 3.5x rate is exactly
+    //    the "set falling over" failure — the same tree at two speeds, hidden by
+    //    darkening it until you could not tell. Where a real cut exists the
+    //    cards replace it outright; stages still on the flat plate keep it until
+    //    theirs are cut, because half a depth cue beats none.
+    if(lb.near&&!CARD_READY[ai]){
+    //    This is what actually creates depth — two planes at different speeds.
+    //    It is deliberately crushed to a silhouette: at full brightness you read
+    //    it as the SAME tree twice, which is worse than no parallax at all.
+      // Scale it up slightly (nearer things are bigger) and seat the slice's
+      // BOTTOM on the play floor, then clip to exactly where that slice lands —
+      // clipping to the far plane's rows instead would smear it up the screen.
+      var nSc=1.10,nbh=bh*nSc,nbw=bw*nSc;
+      var nby=(groundY+34)-lb.near[1]*nbh;
+      var nT=nby+lb.near[0]*nbh,nB=nby+lb.near[1]*nbh;
+      var nCT=Math.max(0,nT),nCB=Math.min(bandB,nB);
+      if(nCB-nCT>2){
+        FX.save();
+        FX.beginPath();FX.rect(0,nCT,W,nCB-nCT);FX.clip();
+        FX.globalAlpha=lb.near[2];
+        _lbTileSlice(FX,_bg,cam*3.5,nbw,nbh,nby,lb.near[0],lb.near[1]);   // 3.5x the far plane's parallax
+        FX.globalAlpha=1;
+        var ng=FX.createLinearGradient(0,nT,0,nB);   // shadowed, heavier at its base
+        ng.addColorStop(0,'rgba(12,16,14,0.00)');ng.addColorStop(1,'rgba(8,12,10,0.44)');
+        FX.fillStyle=ng;FX.fillRect(0,nCT,W,nCB-nCT);
+        FX.restore();
+      }
+    }
+    // ── GOD RAYS, anchored to the light source the painting actually has ──
+    if(lb.ray&&_amb>0){
+      var rn=lb.ray[0],rxA=W*lb.ray[1],ryA=bandB*lb.ray[2],rAl=lb.ray[3],rC=lb.ray[4];
+      FX.save();FX.beginPath();FX.rect(0,0,W,bandB);FX.clip();
+      for(var ri=0;ri<rn;ri++){
+        var rph=tick*0.0035+ri*1.9;
+        var rSpread=(ri/(rn-1||1)-0.5)*2.1+Math.sin(rph)*0.16;
+        var rEndX=rxA+rSpread*W*0.85,rW=W*(0.045+0.03*(0.5+0.5*Math.sin(rph*1.7)));
+        var rg3=FX.createLinearGradient(rxA,ryA,rEndX,bandB);
+        rg3.addColorStop(0,'rgba('+rC+','+(rAl*(0.75+0.25*Math.sin(rph*2.3)))+')');
+        rg3.addColorStop(1,'rgba('+rC+',0)');
+        FX.fillStyle=rg3;FX.beginPath();
+        FX.moveTo(rxA-rW*0.30,ryA);FX.lineTo(rxA+rW*0.30,ryA);
+        FX.lineTo(rEndX+rW,bandB);FX.lineTo(rEndX-rW,bandB);FX.closePath();FX.fill();
+      }
+      FX.restore();
+    }
+    // ── BREATHING LIGHT: a slow global warm/cool drift so the light is never
+    //    frozen. On stage 5 it is the glade's glows pulsing; on 8, the palace
+    //    windows guttering. Tiny amplitude on purpose — it should be felt, not seen.
+    if(lb.bre&&_amb>0){
+      var brA=lb.bre[0]*(0.5+0.5*Math.sin(tick*0.008));
+      FX.fillStyle='rgba('+lb.bre[1]+','+brA+')';FX.fillRect(0,0,W,bandB);
     }
     var _bwash=FX.createLinearGradient(0,0,0,groundY+30);   // aerial depth so the fighters pop in front
     _bwash.addColorStop(0,'rgba(6,3,12,0.04)');_bwash.addColorStop(1,'rgba(6,3,12,0.17)');
     FX.fillStyle=_bwash;FX.fillRect(0,0,W,groundY+30);
+    drawBGLife(lb.amb,cam,bandB,tick,_amb);   // life at three depths, in front of the wash
   }else if(window._FARSCENE)drawFarScene(ai,cam,groundY,tick,ac);
   // ── BAKED 2.5D WALL BAND — only when there's NO painted backdrop (a loaded
   //    backdrop is the full unimpeded background; the wall would cover it). ──
@@ -3822,15 +5032,21 @@ function drawMansionBG(st){
       FX.fillStyle=gp%2?'rgba(255,150,180,0.9)':'rgba(255,205,120,0.9)';
       FX.beginPath();FX.arc(gxx,gyy,3.2,0,6.28);FX.fill();
       FX.fillStyle='rgba(255,255,255,0.6)';FX.beginPath();FX.arc(gxx-1,gyy-1,1.1,0,6.28);FX.fill();}}
-  // ── ambient magic: sparkles, drifting fairies, birds (reduce-motion trims them) ──
-  var _amb=SET.reduceMotion?0:1;
-  for(var sk2=0;sk2<(_amb?12:0);sk2++){
+  // ── ambient magic: sparkles, drifting fairies, birds ────────────────────────
+  // OUTDOOR ONLY. Client, 2026-08-10: "I don't think it will be butterflies
+  // inside the library." He is right — winged sprites and floating sparkles
+  // wrecked the one interior in the game, which wants window light and dust and
+  // nothing else. LIVEBG[ai].in marks the interior; the library's own dust motes
+  // and window shafts come from the living-backdrop pass instead.
+  // (reduce-motion also trims these)
+  var _out=!(LIVEBG[ai]&&LIVEBG[ai].in);
+  for(var sk2=0;sk2<((_amb&&_out)?12:0);sk2++){
     var tw=Math.sin(tick*0.11+sk2*2.1);if(tw<0.2)continue;
     var sxx=(sk2*211+((sk2%2)?-1:1)*tick*0.4)%W;if(sxx<0)sxx+=W;
     var syy=30+(sk2*97)%Math.round(H*0.55);
     FX.fillStyle='rgba(255,255,255,'+(0.55*tw)+')';
     FX.fillRect(sxx-3,syy-0.7,6,1.4);FX.fillRect(sxx-0.7,syy-3,1.4,6);}
-  for(var fy2=0;fy2<(_amb?3:0);fy2++){
+  for(var fy2=0;fy2<((_amb&&_out)?3:0);fy2++){
     var fxp=((fy2*380+tick*(0.7+fy2*0.2))%(W+120))-60;
     var fyp=H*(0.2+fy2*0.13)+Math.sin(tick*0.03+fy2*2)*26;
     FX.fillStyle='rgba(255,244,180,0.28)';FX.beginPath();FX.arc(fxp,fyp,8,0,6.28);FX.fill();
@@ -3841,7 +5057,7 @@ function drawMansionBG(st){
     FX.beginPath();FX.ellipse(fxp+3.5,fyp-2,2.2,wf2,0.5,0,6.28);FX.fill();
     FX.fillStyle='rgba(255,240,170,0.4)';
     for(var tr2=1;tr2<5;tr2++)FX.fillRect(fxp-tr2*7,fyp+Math.sin(tick*0.03+fy2*2-tr2*0.4)*6,2,2);}
-  for(var bd2=0;bd2<2;bd2++){
+  for(var bd2=0;bd2<(_out?2:0);bd2++){   // no birds indoors either
     var bxp=((bd2*640+tick*1.1)%(W+160))-80,byp=H*(0.06+bd2*0.05)+Math.sin(tick*0.02+bd2)*10;
     var wu=(Math.floor(tick/8)%2)?-2:2;
     FX.strokeStyle='rgba(90,110,140,0.7)';FX.lineWidth=1.6;
@@ -3851,11 +5067,7 @@ function drawMansionBG(st){
   //    earth so the floor reads solid and planted; INDOORS it's the polished
   //    parquet. A herringbone wood floor under a meadow was the giveaway.
   if(_bg){
-    var erG=FX.createLinearGradient(0,floorY,0,H);
-    erG.addColorStop(0,'rgba(46,58,30,0.22)');erG.addColorStop(0.45,'rgba(32,42,22,0.42)');erG.addColorStop(1,'rgba(16,22,12,0.62)');
-    FX.fillStyle=erG;FX.fillRect(0,floorY,W,H-floorY);
-    FX.fillStyle='rgba(0,0,0,0.20)';FX.fillRect(0,floorY,W,3);        // crisp ground line
-    FX.fillStyle='rgba(255,246,214,0.05)';FX.fillRect(0,floorY+3,W,5); // sunlit lip
+    drawUndercroft(ai,cam,floorY,tick,_amb);
   }else{
   // ── floor base gradient (polished wood / stone) ──
   var flG=FX.createLinearGradient(0,floorY,0,H);
@@ -3917,7 +5129,13 @@ function draw(){
   for(i=0;i<GS.pwr.length;i++)if(!GS.pwr[i].got)drawPwr(GS.pwr[i]);
   for(i=0;i<GS.obs.length;i++)if(!GS.obs[i].hit)drawObs(GS.obs[i],ac,pc);
   // RPG FOES (pixel sprites)
-  if(TEX.foes)for(i=0;i<GS.foes.length;i++){var fo2=GS.foes[i];if(!fo2.alive)continue;
+  if(TEX.foes)for(i=0;i<GS.foes.length;i++){var fo2=GS.foes[i];
+    if(!fo2.alive&&!fo2.dying)continue;
+    // A dying foe fades and tips over across its 26 ticks. It is drawn at full
+    // opacity for the first third so the body is unmistakably SEEN before it goes.
+    var _dAl=1,_dRot=0;
+    if(fo2.dying){var _dt=fo2.dieT/26;_dAl=_dt<0.34?1:1-(_dt-0.34)/0.66;_dRot=_dt*0.5*(fo2.face===-1?-1:1);}
+    if(_dAl<=0.02)continue;
     var ffr=Math.floor(fo2.anim/7)%6+fo2.tp*6;
     // Per-type size so the hand-painted detail actually reads (cells are 136x152;
     // drawing near-native keeps it crisp). Brutes tower, flyers are lighter — all
@@ -3925,14 +5143,14 @@ function draw(){
     var FSZ=[[112,124],[100,110],[100,110],[138,152],[88,96],[124,138]];
     var _fs=FSZ[fo2.tp]||[112,124], fW=_fs[0], fH=_fs[1];
     var fdx2=fo2.x-(fW-52)/2, fdy2=fo2.y-(fH-58);       // grow from the same feet + centre so they stay planted
+    FX.save();
+    if(_dAl<1)FX.globalAlpha=_dAl;
+    if(_dRot){FX.translate(fdx2+fW/2,fdy2+fH);FX.rotate(_dRot);FX.translate(-(fdx2+fW/2),-(fdy2+fH));}
     if(fo2.face===-1){ // mirror about the sprite's own centre
-      FX.save();
       FX.translate(fdx2+fW/2,0);FX.scale(-1,1);FX.translate(-(fdx2+fW/2),0);
-      FX.drawImage(TEX.foes,ffr*136,0,136,152,fdx2,fdy2,fW,fH);
-      FX.restore();
-    }else{
-      FX.drawImage(TEX.foes,ffr*136,0,136,152,fdx2,fdy2,fW,fH);
-    }}
+    }
+    FX.drawImage(TEX.foes,ffr*136,0,136,152,fdx2,fdy2,fW,fH);
+    FX.restore();}
   // STAGE BOSS
   if(GS.boss&&(GS.boss.alive||GS.bossDeadT>0))drawBoss(GS.boss,ac); // keep drawing through the defeat animation
   // WANDERER'S MAP: once the map is found, a ✦ beacon glows over the hidden cache
@@ -3942,7 +5160,24 @@ function draw(){
     FX.fillStyle='rgba(150,255,196,'+(0.6+0.35*Math.sin(GS.tick*0.15))+')';
     starMark(GS.cacheX+4,GS.cacheY-30+Math.sin(GS.tick*0.12)*6,9);}
   // particles
-  for(i=0;i<GS.ptcl.length;i++){var pp=GS.ptcl[i];FX.globalAlpha=Math.max(0,pp.life*pp.life);FX.fillStyle='rgba('+pp.col+',1)';FX.beginPath();FX.arc(pp.x,pp.y,pp.r,0,6.28);FX.fill();}
+  for(i=0;i<GS.ptcl.length;i++){var pp=GS.ptcl[i];
+    FX.globalAlpha=Math.max(0,pp.life*pp.life);
+    FX.fillStyle='rgba('+pp.col+',1)';
+    if(pp.gore){
+      // GORE READS AS BLOBS BECAUSE IT IS DRAWN AS CIRCLES. Client, on his own
+      // screenshot: "the quality of the blood, it just looks like blobs." A
+      // droplet in flight is not a disc — it is stretched along its own velocity
+      // and it is OPAQUE, not a soft translucent bokeh dot. So: small, elongated
+      // along travel, and alpha that stays solid until it dies rather than
+      // fading across the whole life.
+      var sp2=Math.sqrt(pp.vx*pp.vx+pp.vy*pp.vy)||1;
+      FX.globalAlpha=Math.max(0,Math.min(1,pp.life*2.2));
+      FX.save();FX.translate(pp.x,pp.y);FX.rotate(Math.atan2(pp.vy,pp.vx));
+      FX.beginPath();FX.ellipse(0,0,pp.r*(1+sp2*0.16),pp.r*0.52,0,0,6.28);FX.fill();
+      FX.restore();
+    }else{
+      FX.beginPath();FX.arc(pp.x,pp.y,pp.r,0,6.28);FX.fill();
+    }}
   FX.globalAlpha=1;
   // damage pops
   FX.font='bold 13px Storyboo,sans-serif';FX.textAlign='center';
@@ -3966,17 +5201,21 @@ function draw(){
       FX.fillRect(tx3-2,ty3-0.6,4,1.2);FX.fillRect(tx3-0.6,ty3-2,1.2,4);}}
   if(!p.noteGone){if(p.inv>0&&GS.shieldT<=0&&!(GS.bossDeadT>0||GS.levelClear))FX.globalAlpha=0.55+0.3*Math.sin(GS.tick*0.7);drawHero(p);FX.globalAlpha=1;}
   FX.restore();
-  if(GS.bossMood>0.01)drawGroomShadowFg();  // vignette closes on top — she + the boss stay readable
+  drawForeground(GS.ai,GS.camX,GS.tick,SET.reduceMotion?0:1);   // the plane IN FRONT of her
+  if(GS.bossMood>0.01)drawGroomShadowFg();  // vignette closes on top — she & the boss stay readable
   // combo meter
   if(GS.combo>1&&GS.comboT>0){
     FX.font='900 22px Storyboo,sans-serif';FX.textAlign='center';
     FX.fillStyle='rgba(255,90,150,'+Math.min(1,GS.comboT/40)+')';
     FX.fillText('COMBO ×'+GS.combo,W/2,H*0.20);}
-  // abyss below the track (tall screens / pits)
-  var gy2=GS.LH*T-GS.camY;
-  if(gy2<H){var ab2=FX.createLinearGradient(0,gy2,0,Math.min(H,gy2+140));
-    ab2.addColorStop(0,'rgba(96,66,88,0.35)');ab2.addColorStop(1,'rgba(44,28,46,0.85)');
-    FX.fillStyle=ab2;FX.fillRect(0,gy2,W,H-gy2);}
+  // The old "abyss below the track" gradient lived here and was DEAD CODE: its
+  // gy2 was GS.LH*T-GS.camY, i.e. WORLD units compared against screen H after
+  // FX.restore() — the same world-quantity-as-screen-quantity bug that produced
+  // the floating decor, the landscape hazards and the backdrop seams. On a
+  // portrait phone gy2 came out 1167 vs H=844, so the test never passed and
+  // nothing drew. drawUndercroft now owns every pixel below the floor line, in
+  // one place, correctly scaled — so the broken duplicate is gone rather than
+  // repaired (two owners of the same band is how they drifted apart to begin with).
   drawLyric(ac);drawPowerHUD(ac);drawDist(ac);drawToasts();
   // (start-of-run instruction banner removed at request — the how-to page
   //  before play covers controls)
@@ -4036,6 +5275,7 @@ function drawTile(t,ac,pc){var x=t.c*T,y=t.r*T,s=T;
     FX.fillStyle='rgba(200,150,255,'+(pl*0.5)+')';FX.beginPath();FX.arc(x+s/2,y+s/2,4,0,6.28);FX.fill();
     FX.strokeStyle='rgba(180,120,255,'+(pl*0.4)+')';FX.lineWidth=1;FX.beginPath();FX.moveTo(x+s/2,y+4);FX.lineTo(x+s/2,y+s-4);FX.moveTo(x+4,y+s/2);FX.lineTo(x+s-4,y+s/2);FX.stroke();return;}
   if(t.t!=='G'&&t.t!=='P')return;
+  if(t.t==='G'&&t.r>=FLOOR_R+SLAB_R)return;   // see SLAB_R — undercroft shows through below
   var isTop=!isSolid(t.c,t.r-1),isL=!isSolid(t.c-1,t.r),isR=!isSolid(t.c+1,t.r),isBtm=!isSolid(t.c,t.r+1);
   var fH=13; // 2.5D front-face depth in px
   // ── BODY ──────────────────────────────────────────────────
@@ -4096,7 +5336,18 @@ function drawTile(t,ac,pc){var x=t.c*T,y=t.r*T,s=T;
   if(isTop&&isL){var sf=FX.createLinearGradient(x-5,y,x,y);sf.addColorStop(0,'rgba(0,0,0,0.54)');sf.addColorStop(1,'rgba('+pc+',0.28)');FX.fillStyle=sf;FX.fillRect(x-5,y+2,5,s-2+(isBtm?fH:0));}
   if(isTop&&isR){var sf2=FX.createLinearGradient(x+s,y,x+s+5,y);sf2.addColorStop(0,'rgba('+pc+',0.32)');sf2.addColorStop(1,'rgba(0,0,0,0.60)');FX.fillStyle=sf2;FX.fillRect(x+s,y+2,5,s-2+(isBtm?fH:0));}
   // ── INNER DEPTH SHADOW ────────────────────────────────────
-  FX.fillStyle='rgba(0,0,0,0.30)';FX.fillRect(x,y+s-2,s,2);FX.fillRect(x+s-2,y,2,s);}
+  FX.fillStyle='rgba(0,0,0,0.30)';FX.fillRect(x,y+s-2,s,2);FX.fillRect(x+s-2,y,2,s);
+  // ── CUT FACE ──────────────────────────────────────────────
+  // The deepest DRAWN ground row is where the slab meets the undercroft. isBtm is
+  // false here (there IS solid below, it's just culled), so the platform front-face
+  // branch never fires and the column would otherwise stop dead in mid-air. This
+  // darkens into the cross-section so the floor reads as seated on it.
+  if(t.t==='G'&&t.r===FLOOR_R+SLAB_R-1){
+    var cg=FX.createLinearGradient(x,y+s-11,x,y+s+4);
+    cg.addColorStop(0,'rgba(0,0,0,0)');cg.addColorStop(1,'rgba(0,0,0,0.66)');
+    FX.fillStyle=cg;FX.fillRect(x,y+s-11,s,11);
+    FX.fillStyle='rgba(0,0,0,0.50)';FX.fillRect(x,y+s,s,3);
+  }}
 function drawBkbl(b,ac){var x=b.c*T,y=b.r*T,s=T,isG=b.t==='G';FX.fillStyle=isG?'#2A1A00':'#1A0040';FX.fillRect(x,y,s,s);FX.fillStyle=isG?'#FFD700':'#C8A0FF';FX.fillRect(x+4,y+4,s-8,s-8);FX.fillStyle='rgba(255,255,255,0.17)';FX.fillRect(x+4,y+4,s-8,3);var pl=Math.sin(GS.tick*.08+b.c*.5)*.1+.08;FX.fillStyle='rgba('+(isG?'255,215,0':'200,160,255')+','+pl+')';FX.fillRect(x-2,y-2,s+4,s+4);}
 function drawNote(sh,ac){var x=sh.x,y=sh.y+Math.sin(sh.anim*.07)*4.5,p2=Math.sin(sh.anim*.1)*.5+.5;
   if(spinFrame(SPIN.note,x+4,y+2,40,sh.anim))return;   // animated 64-bit collectible
@@ -4744,6 +5995,11 @@ function drawHero(p){
   if(p.faceL){FX.translate(dx+drawW,0);FX.scale(-1,1);FX.translate(-dx,0);}
   FX.imageSmoothingEnabled=true;
   FX.drawImage(img, fr*cw, 0, cw-4, ch, dx, dy, drawW, drawH);
+  // NO CROSS-FADE HERE, deliberately. Blending the next idle frame over this one
+  // does not make an in-between pose — the base frame stays opaque, so the union
+  // of both silhouettes shows and she reads as two overlapping people. See the
+  // idle-sequence note in update(): the smooth cadence comes from WHICH frames
+  // are used and for how long, never from dissolving between them.
   FX.restore();FX.globalAlpha=1;
   // scream rings when firing wave
   if(p.screamT>0){var srt=18-p.screamT;FX.strokeStyle='rgba(200,160,255,'+(p.screamT/18*0.8)+')';FX.lineWidth=2;var mx=p.x+(p.faceL?2:PW-2),my=p.y+PH*0.2;for(var sr=0;sr<3;sr++){var rr=srt*2+sr*8;FX.beginPath();FX.arc(mx,my,rr,p.faceL?2.4:-0.7,p.faceL?3.9:0.7);FX.stroke();}}
@@ -4820,7 +6076,31 @@ function drawMap(ac){var st=STAGES[GS.ai];FX.fillStyle='rgba(8,0,18,0.92)';FX.fi
   FX.fillStyle=GS.gateOpen?'rgba(100,255,150,1)':'rgba(180,80,255,1)';_sq(lxc+400,FX.fillStyle);FX.fillText(GS.gateOpen?'GATE OPEN':'GATE LOCKED',lxc+410,ly);}
 function drawLyric(ac){var t2=GS.lyricT%900,al=t2<50?t2/50*.3:t2>840?(1-(t2-840)/60)*.3:.3;if(al<.01)return;
   var lines=['"Once upon a time..."','"The song was a promise. The promise was a lie."','"Her voice is the only ring she needs."','"She turned heartbreak into a headline."','"JANDÉ – Once Upon A Time"'];
-  var li=Math.floor(GS.ai*1.9+(GS.lyricT/900))%lines.length;FX.globalAlpha=al;FX.fillStyle='rgba(255,245,220,0.88)';FX.font='300 italic 15px Storyboo, Georgia, serif';FX.textAlign='center';FX.fillText(lines[li],W/2,H-92);FX.globalAlpha=1;}
+  var li=Math.floor(GS.ai*1.9+(GS.lyricT/900))%lines.length;FX.globalAlpha=al;
+  // H-92 was ANOTHER fixed screen offset — with the ground line at 0.82 it sat on
+  // bare wash, but at 0.72 it landed straight across the tile band and the hero's
+  // feet. Seat it inside the undercroft instead: centred in the band below the
+  // floor, still clear of the touch controls, so it reads as an engraved caption
+  // in the earth rather than a stray label floating over the play area.
+  // SIDE MODE ONLY. drawLyric is shared with ROYAL RUNNER, which has no world
+  // floor and no camY — deriving the position there would move a caption the
+  // client never asked to move. The runner keeps H-92 exactly as it was.
+  var _ly=H-92,_lw=W*0.92;
+  if(MODE==='side'){
+    // Sit it in the gap between the bottom of the ground slab and the top of the
+    // touch cluster — not at the band's midpoint, which is behind the D-pad.
+    // CTRL_TOP is measured, so this follows the pads across devices and
+    // orientations instead of guessing at a screen fraction. maxWidth condenses
+    // the long lines so they stop running under the action buttons.
+    var _fy=(FLOOR_R*T-(GS.camY||0))*((typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1);
+    var _lb=Math.min(H-92,CTRL_TOP-14);
+    _ly=Math.max(_fy+SLAB_R*T*((typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1)+16,
+                 Math.min(_lb,_fy+(H-_fy)*0.30));
+    _lw=W*0.66;
+  }
+  FX.fillStyle='rgba(0,0,0,0.45)';FX.font='300 italic 15px Storyboo, Georgia, serif';FX.textAlign='center';
+  FX.fillText(lines[li],W/2,_ly+1,_lw);
+  FX.fillStyle='rgba(255,245,220,0.88)';FX.fillText(lines[li],W/2,_ly,_lw);FX.globalAlpha=1;}
 
 // ---------- HUD DOM ----------
 function updateHUD(){
@@ -5196,6 +6476,22 @@ function loop(ts){if(!running)return;
 if(location.hash.indexOf('dev')<0){window._devStep=window._devState=function(){return 'add #dev to the URL to enable dev hooks';};}else{window._devStep=function(n){for(var i=0;i<(n||1);i++){try{update();}catch(e){}}try{draw();musTick();}catch(e){}return 'stepped '+(n||1);};
 window._glDbg=function(){try{return GLW.dbg();}catch(e){return 'err: '+e.message;}};
 window._devMut=function(f){try{return f(GS,TC);}catch(e){return 'err: '+e.message;}};
+// exact per-card parallax readout — image correlation cannot separate cards that
+// overlap on screen, nor tell them from the static HUD drawn on top of them.
+window._devCards=function(){var st=CARD_DATA[GS.ai];if(!st)return null;var o={cam:Math.round(GS.camX),base:-GS.camX*CB_BASE};
+  for(var i=0;i<st.cards.length;i++){var c=st.cards[i];o[c.n]=+( -GS.camX*CB_BASE+cardSep(GS.camX,c) ).toFixed(1);}return o;};
+// exact per-depth corner readout. A turn is depth-dependent BY DEFINITION —
+// that is the whole difference between it and the pan it replaced — and a
+// fogged far band has too little contrast to prove that by correlation alone.
+// Passing a bend also REDRAWS at that bend without advancing the world, so two
+// frames can be compared with the turn as the only difference between them.
+window._devTurn=function(b){var t3=GS.t3;
+  if(b!=null){t3.bend=b;try{draw();}catch(e){}}
+  var pan=-TURN_FOLLOW*bendPx(TURN_FOCUS);
+  var o={bend:+(t3.bend||0).toFixed(3),len:TURN_LEN,pan:+pan.toFixed(1)};
+  var zs=[0,60,242,500,993,1400];
+  for(var i=0;i<zs.length;i++)o['z'+zs[i]]=+(bendPx(zs[i])+pan).toFixed(1);
+  return o;};
 window._devState=function(){var t=GS.t3||{},p=GS.p||{};return {mode:MODE,ai:GS.ai,finale:GS.finale,won:GS.won,
   glwOK:(typeof glwOK!=='undefined')?glwOK:null,gl:(function(){try{return GLW.dbg();}catch(e){return null;}})(),
   zoom:ZOOM,VW:Math.round(VW),VH:Math.round(VH),camX:Math.round(GS.camX||0),
@@ -5203,6 +6499,47 @@ window._devState=function(){var t=GS.t3||{},p=GS.p||{};return {mode:MODE,ai:GS.a
   laneX:t.laneX,lane:t.lane,py:t.py,slid:t.slid,anim:p.anim,dead:p.dead,noteGone:p.noteGone,inv:p.inv,
   obs:(t.obs||[]).map(function(o){return o.tp+'@'+Math.round(o.z)+'L'+o.lane;}).slice(0,12)};};
 window._devWallet=function(g){var w=wallet();if(g!=null)w.gems=g;setWallet(w);if(window.GS&&GS.p)GS.gemsLive=w.gems;return w.gems;};}
+// ── the backdrop viewer, see the ?bg=1 note at the boot call ────────────────
+var BGVIEW=false;
+function bgGo(ai){
+  BGVIEW=true;
+  ai=((ai%9)+9)%9;                      // wrap both ways, so NEXT past 8 lands on 0
+  MODE='side'; START_STAGE=ai;
+  try{localStorage.setItem('jande_bgview_stage',ai);}catch(e){}
+  var lab=document.getElementById('bgvName');
+  if(lab)lab.textContent=(ai+1)+' / 9  ·  '+STAGES[ai].n;
+  if(!running){ startGame(); }
+  else { GS={}; CHECKPOINT=ai; CHECKPOINT_X=0; RUN_CONTINUES=0; initGS(ai); setZoom(BASEZ); updateHUD(); }
+}
+function bgViewer(){
+  var st=0; try{st=+(localStorage.getItem('jande_bgview_stage')||0)||0;}catch(e){}
+  var m=null; try{m=location.search.match(/stage=(\d)/);}catch(e){}
+  if(m)st=Math.min(8,+m[1]);
+  var bar=document.createElement('div');
+  bar.id='bgvBar';
+  bar.style.cssText='position:fixed;left:0;right:0;top:0;z-index:9999;display:flex;gap:6px;'+
+    'align-items:center;justify-content:center;padding:6px 8px;'+
+    'background:rgba(12,8,18,0.82);font-family:var(--body),system-ui,sans-serif;'+
+    'font-size:12px;color:#ffe9c2;pointer-events:auto';
+  function btn(txt,fn){
+    var b=document.createElement('button');
+    b.textContent=txt;
+    b.style.cssText='font:inherit;font-weight:700;padding:7px 12px;border-radius:8px;border:0;'+
+      'background:#7a4ea8;color:#fff;cursor:pointer;touch-action:manipulation';
+    b.onclick=function(e){e.preventDefault();e.stopPropagation();fn();};
+    return b;
+  }
+  var nm=document.createElement('span'); nm.id='bgvName';
+  nm.style.cssText='flex:1;text-align:center;letter-spacing:.02em';
+  bar.appendChild(btn('PREV',function(){bgGo(GS.ai-1);}));
+  bar.appendChild(nm);
+  bar.appendChild(btn('RESET',function(){bgGo(GS.ai);}));
+  bar.appendChild(btn('NEXT',function(){bgGo(GS.ai+1);}));
+  document.body.appendChild(bar);
+  // the pads sit below this bar, so the undercroft's usable window changes
+  try{measureCtrlTop();}catch(e){}
+  bgGo(st);
+}
 function startGame(){
   // WIPE BOTH CANVASES FIRST. #fxC is cleared to transparent every frame, so
   // whatever is still sitting on #glC underneath shows through — entering a run,
@@ -5219,6 +6556,7 @@ function startGame(){
   document.body.classList.toggle('mobile',isTouch);
   // ACTION RPG gets the pad + attack; Temple View stays swipe-only
   document.getElementById('mCtrl').classList.toggle('on',isTouch&&MODE==='side');
+  measureCtrlTop();   // the pads only get .on here, so resize()'s reading was stale
   if(isTouch&&!window._rpgCtrl){window._rpgCtrl=true;
     // Held movement pads. Tracked by pointer id rather than a single "active"
     // flag so a thumb can SLIDE from ◀ to ▶ without lifting (a knob handled
@@ -5401,6 +6739,23 @@ function wire(){applyMotionClass();
   initTitleBG();
   loadBGs();     // photoreal backdrops (no-op until BG_DATA is filled)
   loadSideBG();  // painted per-stage side backdrops
+  loadCards();   // and their multiplane cut, where one exists
+  // ══ BACKDROP VIEWER — ?bg=1 ═══════════════════════════════════════════════
+  // Client: "create a version of the game real quick that I could just use to
+  // look at the backgrounds and move through them... hit next for the next
+  // background next stage... without having to worry about death... skip through
+  // each stage real quick."
+  //
+  // Deliberately a URL FLAG on the shipped build rather than a separate page, so
+  // what he reviews is byte-for-byte the game that ships — a separate harness can
+  // drift from it, and then the review is of something nobody plays. Normal
+  // players cannot reach it: nothing links here and the whole thing is gated on
+  // the query string.
+  //
+  // It boots straight past title/login/mode/how-to into the stage, makes her
+  // unkillable, silences the foes so nothing interrupts a look at the art, and
+  // puts PREV/NEXT + a RESET on screen.
+  try{ if(/[?&]bg=1/.test(location.search)) setTimeout(bgViewer,60); }catch(_bv){}
   loadTex();     // pixel-art world pack
   loadSprites(); // preload sprites in background
 }

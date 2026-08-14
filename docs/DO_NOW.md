@@ -11,6 +11,13 @@ already root-caused — no investigation needed.
 ## 1. ✅ DONE (`24049d4`) — décor detaches from the floor on jump
 > **Fixed & deployed.** Verified in code: `var groundY=(FLOOR_R*T-(GS.camY||0))*_wz;`
 > — the clamp is gone and the baseline tracks the world floor exactly.
+>
+> **Superseded 08-09 (`dabe9e2`):** the historical report below describes
+> `floorY = H*0.82` as a fixed screen row that can't move with the camera. **That
+> is no longer true** — `floorY` now *derives* from `groundY`, and the ground
+> fraction itself is the single `GROUNDF` constant (0.72, was 0.82 in three
+> independent places). The two can no longer disagree at all. See
+> `docs/GROUND_LINE_UNDERCROFT.md`.
 
 <details><summary>original report</summary>
 
