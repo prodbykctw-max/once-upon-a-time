@@ -22,6 +22,33 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🎨 08-13 (cloud session) — COLOUR GRADE (`docs/COLOUR_GRADE.md`)
+Client: *"too bright, a sense of white exposure, too fuzzy, too pastel — the
+colours aren't rich like pixel art colour is rich."*
+
+**Measured before touching anything, and it is a milky black floor.** Nothing in
+the RPG plates is darker than luma 58/255; the Petal Mile's darkest 1% is 81.
+Pixel art reads rich because it runs to a true black and holds chroma against it.
+The runner was worse: Sky Gardens rendered at luma mean 225 with **84.6% of the
+frame above luma 200** and saturation 0.183.
+
+Three fixes, one per measured cause:
+1. **Global grade** brightness .93 / contrast 1.20 / saturate 1.34 over the whole
+   frame, so backdrops, sprites, foes, particles and the GL world move together.
+   No art file touched; the HUD is DOM and stays outside it.
+2. **Runner fog** — four stages faded everything to luma .93-.96. Capped at .74,
+   chroma widened, hue preserved. Borrow a stage's skyTop ONLY where its fog has
+   no hue of its own, or Golden Hour's warm haze goes grey.
+3. **Ground exposure** — only Sky Gardens needed it (texture 214 vs everyone
+   else's 71-150); its tint alone was pulled into line.
+
+**Where the grade lives is a PERF decision:** filtering #fxC is free (39.9 vs
+39.9ms), filtering #glC cost ~10ms under software GL — so the runner is graded
+IN-SHADER with the same numbers. Keep `--grade` and `GRADE` in step.
+
+Result: rpg meadow sat .316→.573, black point 39→18; runner Sky Gardens
+>200 84.6%→14.5%, luma 225→169. All nine stages compile, zero errors.
+
 ## 🎴 08-13 (cloud session) — THE COARSE/MEDIUM/FINE RE-CUT, and her idle
 Client: *"Let's do the coarse medium fine recut"* and *"it's like she's standing
 beside herself, splitting into a separate person to bend over and breathe."*

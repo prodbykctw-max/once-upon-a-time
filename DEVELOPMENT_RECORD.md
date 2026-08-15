@@ -809,6 +809,44 @@ for the parallax and SAM cutting to be lifted from it. What shipped:
   added; only five characters bleed red, all of them flesh. *(`4618719`,
   `4e5bd29`.)*
 
+### Era VI, tenth pass — the colour grade (August 13)
+
+**Client:** *"The lighting of the game is too bright — a sense of white exposure,
+like it's too fuzzy. And it's too pastel, the colours aren't rich like pixel art
+colour is rich. I want that colour depth. Certain colours gotta be strong."*
+
+Measured before changing anything, and the complaint resolves to one number:
+**nothing in the RPG plates is darker than luma 58/255, and the Petal Mile's
+darkest 1% sits at 81.** Pixel art reads rich because its palette runs to a true
+black and holds high chroma against it; these paintings never leave the upper two
+thirds of the range, so there is no depth for a colour to have. Four of six also
+measured 0.23-0.41 saturation. The runner was worse — Sky Gardens rendered at
+luma mean 225 with **84.6% of the frame above luma 200** at saturation 0.183,
+which is the white exposure literally rather than impressionistically.
+
+Three fixes, one per cause. A **global grade** (brightness 0.93, contrast 1.20,
+saturate 1.34) over the whole frame, so backdrops, her sheets, foes, particles
+and the GL world all move together — no art file touched, and the HUD stays
+outside it so the brand colours hold. The **runner's fog**, which was the
+white-out: four stages faded distance to luma 0.93-0.96, now capped at 0.74 with
+chroma widened and hue preserved, borrowing a stage's own skyTop only where its
+fog had no hue of its own (doing it unconditionally turned Golden Hour's warm
+haze grey, because its skyTop is blue). And **ground exposure**, where only Sky
+Gardens actually needed correcting — 214 against everyone else's 71-150.
+
+**Where the grade lives was decided by measurement, not taste.** Filtering the 2D
+canvas costs nothing (39.9ms against 39.9ms, pure noise); filtering the GL canvas
+added ~10ms under software rasterisation. So the runner is graded in its four
+fragment shaders instead — a few ALU ops, no compositor pass — with the same
+numbers in the same order, landing within noise of the CSS result (0.409 against
+0.408 saturation). The two must be kept in step or the hero stops matching the
+world she is standing in.
+
+Result: RPG meadow saturation 0.316 → 0.573 with its black point at 18 instead of
+39; runner Sky Gardens down from 84.6% blown pixels to 14.5%. No clipping
+introduced, all nine runner stages compile, zero page errors. Spec:
+`docs/COLOUR_GRADE.md`.
+
 ### Era VI, ninth pass — the coarse/medium/fine re-cut, and her idle (August 13)
 
 **Client:** *"Let's do the coarse medium fine recut"* and *"Jandé appears to be

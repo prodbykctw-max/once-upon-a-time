@@ -228,6 +228,23 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   a raw screen fraction, ask whether it should scale with the world instead; if
   it must be a screen fraction, derive it from the world value rather than
   restating the number. Portrait hides these — always check landscape.
+- **The whole frame is COLOUR GRADED, and the two halves must stay in step.**
+  `--grade` (CSS, `#fxC`) and `GRADE` (GLSL, the four fragment shaders) carry the
+  SAME numbers in the same order — brightness 0.93, contrast 1.20, saturate 1.34.
+  Change one without the other and the hero stops matching the world she stands
+  in. It is split that way for a measured reason: filtering the 2D canvas is free
+  (39.9ms vs 39.9ms) but filtering the GL canvas cost ~10ms, and per-fragment ALU
+  cannot. The HUD is DOM and deliberately outside the grade. **No art file is
+  graded** — her original sheets stay untouched. Client: *"too bright, white
+  exposure, too pastel — colours aren't rich like pixel art colour is rich."* The
+  cause was measured: nothing in the plates is darker than luma 58/255. Spec:
+  `docs/COLOUR_GRADE.md`.
+- **Runner fog is haze, not paper.** `LOOK[].fog` had four stages fading the
+  world to luma 0.93-0.96 (Sky Gardens 0.96, 85% of the frame above luma 200).
+  Capped at 0.74 with chroma widened. When borrowing a stage's `skyTop` to give a
+  neutral fog some hue, do it ONLY where the fog has none of its own — Golden
+  Hour's haze is warm and its skyTop is blue, and blending unconditionally turned
+  the one thing that made it golden into grey.
 - **Jelly UI:** all UI motion lives in the JELLY UI CSS block, gated by
   `body.rm` (reduce-motion setting + OS preference via `applyMotionClass()`).
   New buttons/cards get the existing classes; never animate under `body.rm`.
