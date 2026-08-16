@@ -22,6 +22,19 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🐦 08-13 (cloud session) — no birds in the library ceiling
+Client: *"I see birds in the ceiling of the library."*
+
+The RPG has suppressed fairies/sparkles/birds on interiors since he first raised
+it; its draw block literally says *"no birds indoors either"*. **`drawT` never got
+the same gate** — it called all three unconditionally, and the runner's stage 0 is
+its only interior. `whimsyBirds` places its flock near the vanishing point, which
+in an enclosed hall IS the ceiling, so they were inside the room.
+
+Gated on `LIVEBG[ai].in`, the same marker the RPG uses, so the modes cannot drift
+apart again. Exactly one of nine stages is an interior — no outdoor stage loses
+anything. Window shafts and dust motes are drawn separately and stay.
+
 ## 🎨 08-13 (cloud session) — COLOUR GRADE (`docs/COLOUR_GRADE.md`)
 Client: *"too bright, a sense of white exposure, too fuzzy, too pastel — the
 colours aren't rich like pixel art colour is rich."*

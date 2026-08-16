@@ -161,9 +161,13 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   `frq` so neighbouring clumps rock in opposite directions. Ceiling on `frq` is
   what the band CONTAINS: seams only show against smooth pixels, so texture-filled
   bands take 3-4x while any band containing open sky must stay near 1.0.
-- **Butterflies, sparkles and birds are OUTDOOR-ONLY** (`LIVEBG[ai].in`). They were
-  drawing inside the library; the client called it out. Interiors get window
-  shafts and dust, nothing winged.
+- **Butterflies, sparkles and birds are OUTDOOR-ONLY** (`LIVEBG[ai].in`), **in
+  BOTH modes.** Interiors get window shafts and dust, nothing winged. The RPG was
+  gated when the client first called it out; **`drawT` was not**, and the runner's
+  stage 0 is an enclosed hall — `whimsyBirds` puts its flock near the vanishing
+  point, which in that room is the coffered ceiling, so the library had birds
+  crossing it (client, 08-13). Both modes now read the same marker; gate any new
+  ambience effect there too.
 - **Group cards by GROUND PLANE, not by object** (re-cut, 08-13). A thing and
   the ground it stands on share a card unless it is genuinely nearer. The first
   cut had the Petal Mile's blossom moving FASTER than its own trunks and the
