@@ -809,6 +809,45 @@ for the parallax and SAM cutting to be lifted from it. What shipped:
   added; only five characters bleed red, all of them flesh. *(`4618719`,
   `4e5bd29`.)*
 
+### Era VI, twelfth pass — the ambience audit (August 13)
+
+**Client, after the library birds:** *"Perform audit anyway."*
+
+Every ambience effect in the game, checked against both draw paths. Two findings.
+
+**Reduce motion had never reached Royal Runner, and that is now fixed.** The RPG
+has gated its entire ambience layer on the setting since it shipped — `_amb`
+suppresses its rays, motes, sparkles, fairies and birds. `drawT` contained zero
+references to it. With the setting ON the runner kept animating god rays, dust
+motes, fairies, sparkles, birds, and everything moving in the GL world: prop
+sway, falling blossom, water shimmer and grass, all driven by one shared wind
+clock, which now stops. Gameplay feedback stays moving on purpose — speedlines,
+the chase vignette and the gate/wall telegraphs signal danger and readability
+rather than decorate. This is the same one-mode-only failure as the birds, and it
+was found by hunting that pattern rather than by accident.
+
+The fix had the project's own classic bug in its first version: `_rm` was used by
+the GL call ~20 lines above its declaration, and `var` hoists the declaration
+without the value — precisely how `_amb` in `drawMansionBG` once evaluated false
+for every animated term. It is now declared at the top of `drawT` with a note
+saying why it stays there.
+
+**One item left open for a client call: the flower garland swag.**
+`drawMansionBG` draws a green vine with pink and gold flowers across the top of
+the frame, in screen space, **unconditionally on all nine RPG stages** — the
+library included. It is the only ambience element in the game that is not
+stage-themed, and it mostly sits behind the HUD with the ends visible. Confirmed
+present on both an interior and an outdoor stage. Not changed: it predates this
+work, and removing a deliberate decorative frame is an art decision.
+
+Everything else verified correct: the per-stage ambience kinds (the library's is
+`motes`, and `drawBGLife`'s bird branch only fires for pollen, cloud and embers);
+the RPG's `_out` gate; the foreground plane (`FORE[0]` is beams and hanging
+lamps, and it returns early where a real cut exists); the chandelier pools (dead
+behind `!_bg` while every stage has a painted plate); the décor props
+(stage-themed through `decorCell`); the undercroft; and the runner's window
+shafts and dust motes, which belong indoors.
+
 ### Era VI, eleventh pass — the library's birds (August 13)
 
 **Client:** *"I see birds in the ceiling of the library."*

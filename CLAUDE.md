@@ -249,6 +249,18 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   neutral fog some hue, do it ONLY where the fog has none of its own — Golden
   Hour's haze is warm and its skyTop is blue, and blending unconditionally turned
   the one thing that made it golden into grey.
+- **AMBIENCE PARITY: every ambience rule applies to BOTH modes.** Twice now a
+  rule was enforced in `draw`/`drawMansionBG` and silently skipped in
+  `drawT`/GLWORLD — the outdoor-only gate (birds in the library ceiling) and
+  **reduce motion**, which the RPG has always honoured via `_amb` while `drawT`
+  contained zero references to it, so the runner animated rays, motes, fairies,
+  birds and the whole GL wind clock with the setting ON. Both fixed 08-13.
+  Before shipping any ambience change, grep the OTHER mode for the same guard.
+  Gameplay feedback (speedlines, chase vignette, gate/wall telegraphs) is
+  deliberately exempt — it signals danger, it is not decoration. The audit's one
+  open item is the **flower garland swag** (`drawMansionBG`, screen space, top of
+  frame): drawn unconditionally on all nine RPG stages including the library, and
+  the only ambience element that is not stage-themed. Left as-is pending a call.
 - **Jelly UI:** all UI motion lives in the JELLY UI CSS block, gated by
   `body.rm` (reduce-motion setting + OS preference via `applyMotionClass()`).
   New buttons/cards get the existing classes; never animate under `body.rm`.
