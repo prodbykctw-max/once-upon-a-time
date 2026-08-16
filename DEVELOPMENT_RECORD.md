@@ -809,6 +809,28 @@ for the parallax and SAM cutting to be lifted from it. What shipped:
   added; only five characters bleed red, all of them flesh. *(`4618719`,
   `4e5bd29`.)*
 
+### Era VI, eleventh pass — the library's birds (August 13)
+
+**Client:** *"I see birds in the ceiling of the library."*
+
+The outdoor-only rule for fairies, sparkles and birds was written after he first
+raised it, and the RPG has enforced it ever since — its draw block is annotated
+"no birds indoors either". **The runner was never gated.** `drawT` called all
+three unconditionally, and Royal Runner's stage 0 is its one interior: an
+enclosed hall with bookcase walls and a coffered ceiling. `whimsyBirds` places
+its flock high near the vanishing point, which in that room is the ceiling — so
+the birds were not merely visible near the library, they were flying inside it.
+
+Fixed on `LIVEBG[ai].in`, the same marker the RPG reads, so the two modes cannot
+drift apart again. Exactly one of the nine stages is an interior, so no outdoor
+stage loses anything, and the window shafts and dust motes that do belong indoors
+are drawn separately and untouched.
+
+Worth recording as a pattern rather than a one-off: this is the second time a
+rule was applied to one mode and not the other (the first was the boss-music
+`danger` flag, wired to the runner's chaser and not to RPG bosses). **A rule that
+names a behaviour has to be checked in both `update`/`draw` and `updateT`/`drawT`.**
+
 ### Era VI, tenth pass — the colour grade (August 13)
 
 **Client:** *"The lighting of the game is too bright — a sense of white exposure,

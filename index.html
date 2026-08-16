@@ -3375,8 +3375,16 @@ function drawT(){
     FX.fillStyle='rgba(120,240,255,'+nmA+')';FX.fillText('CLOSE! +25',vpX,H*0.56-(26-t3.nmT)*1.2);}
   // (revive is now handled on the unified game-over overlay: CONTINUE vs RESTART)
   // (no in-run instruction banner — the how-to page before play covers it)
-// ── WHIMSY foreground: fairies, sparkles, birds ──
-  whimsyFairies();whimsySparkles();whimsyBirds(vpX,vpY,gNear);
+// ── WHIMSY foreground: fairies, sparkles, birds — OUTDOOR ONLY ──
+  // The RPG has had this gate since the client called it out ("I don't think it
+  // will be butterflies inside the library"). ROYAL RUNNER NEVER GOT IT, and
+  // stage 0 is its only interior — LOOK[0].hall is an enclosed room with
+  // bookcase walls and a coffered ceiling. whimsyBirds places its flock high
+  // near the vanishing point, which in that room IS the ceiling, so the library
+  // had birds crossing it. Same marker the RPG uses, so the two modes cannot
+  // drift apart again. Interiors keep their window shafts and dust motes, which
+  // are drawn separately above — nothing winged.
+  if(!(LIVEBG[ai]&&LIVEBG[ai].in)){whimsyFairies();whimsySparkles();whimsyBirds(vpX,vpY,gNear);}
   stageBanner();
   drawEnding();
   syncPauseMenu();if(GS.paused)drawPause();
