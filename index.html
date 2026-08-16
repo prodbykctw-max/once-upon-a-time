@@ -2236,7 +2236,7 @@ var GLWORLD=(function(){
   var gl,cv,Wp,Hp,vpY,gNear,corrW,ps;
   var progT,progS,progP,progH,meshT,meshH,skyBuf,dynBuf=null;
   var texGround=[],texProps=null,texBlob=null,texWall=null,texCeil=null,texGrass=null;
-  var propPool=[],curShift=0,curBend=0,propCycle=2816;
+  var propPool=[],curShift=0,curBend=0,curAmb=1,propCycle=2816;
   var LOOK=[
     {fog:[0.88,0.73,0.44],skyTop:[0.70,0.50,0.28],sun:[0.5,0.33,0.0,0.0],tint:[0.86,0.72,0.52],hill:0,props:[12,13],hall:1},
     {fog:[0.86,0.72,0.55],skyTop:[0.44,0.62,0.94],sun:[0.30,0.30,1.0,0.85],tint:[1.0,1.0,1.0],hill:60,props:[0,1,11]},
@@ -2473,7 +2473,12 @@ var GLWORLD=(function(){
   function drawProps(stage,wz){
     var pk=LOOK[stage].props;if(!pk.length||!texProps)return;
     var L=LOOK[stage],i,p;
-    drawProps._wt=(drawProps._wt||0)+1;var _wt=drawProps._wt;   // wind/water clock
+    // THE WIND CLOCK STOPS UNDER REDUCE MOTION. One counter drives every moving
+    // thing in the GL world — prop sway, falling blossom, water shimmer, and the
+    // grass (drawGrass reads this same value) — so freezing it here stills all of
+    // them at once without touching a shader. The RPG's ambience has honoured
+    // the setting all along; the runner's never did.
+    drawProps._wt=(drawProps._wt||0)+(curAmb?1:0);var _wt=drawProps._wt;
     for(i=0;i<propPool.length;i++){p=propPool[i];while(p.zw<wz-80)p.zw+=propCycle;}
     var quads=[],shadows=[];
     for(i=0;i<propPool.length;i++){
@@ -2608,8 +2613,8 @@ var GLWORLD=(function(){
     gl.bindTexture(gl.TEXTURE_2D,texGrass);gl.depthMask(true);
     drawDyn(progP,gq);gl.disable(gl.BLEND);
   }
-  function render(stage,wz,shift,bend){
-    curShift=shift||0;curBend=bend||0;
+  function render(stage,wz,shift,bend,amb){
+    curShift=shift||0;curBend=bend||0;curAmb=(amb===undefined?1:amb);
     Wp=cv.width;Hp=cv.height;vpY=Hp*0.34;gNear=Hp*0.90;corrW=Wp*0.62;ps=Wp/960;
     var L=LOOK[stage];
     gl.viewport(0,0,Wp,Hp);
@@ -2684,13 +2689,13 @@ var GLW=(function(){
     dbg:function(){return {booted:booted,failed:failed,texset:texset,pend:pend,lastStage:lastStage,
       imgs:imgs.filter(Boolean).length,props:!!propsImg,wall:!!wallImg,ceil:!!ceilImg,
       err:(typeof window!=='undefined'&&window._glError)||null};},
-    draw:function(stage,wz,shift,bend){
+    draw:function(stage,wz,shift,bend,amb){
     if(failed)return false;
     if(!booted){boot();return false;}
     if(!texset)return false;
     try{
       if(stage!==lastStage){GLWORLD.seedProps(stage);lastStage=stage;}
-      GLWORLD.render(stage,wz,shift,bend);
+      GLWORLD.render(stage,wz,shift,bend,amb);
     }catch(e){failed=true;return false;}
     return true;
   }};
@@ -2780,6 +2785,18 @@ function drawT(){
   var st=blendedStage(),ac=hexS(st.ac),pc=hexS(st.pc),t3=GS.t3,ai=GS.ai;
   var isOut=STAGES[ai].out===1; // outdoor world: open sky, no walls/ceiling
   var vpX=W/2,vpY=H*0.34,gNear=H*0.90,corrW=W*0.62,laneW=W*0.185;
+  // REDUCE MOTION reaches the runner too. The RPG has honoured the setting for
+  // its whole ambience layer (`_amb` gates its rays, motes, sparkles, fairies
+  // and birds); drawT never checked it at all, so all of those kept animating in
+  // Royal Runner with the setting ON. Same one-mode-only failure as the indoor
+  // gate, found in the same audit. Gameplay feedback — boost speedlines, the
+  // chase vignette — deliberately stays: it signals danger.
+  //
+  // DECLARED HERE, AT THE TOP, and it has to stay here: the GL world reads it
+  // ~20 lines below and `var` hoists the declaration without the value. That is
+  // exactly how `_amb` in drawMansionBG once silently evaluated false for every
+  // animated term in the RPG.
+  var _rm=SET.reduceMotion?0:1;
   FX.clearRect(0,0,W,H);
   var wz=GS.dist*T*2.4; // world scroll (matches entity speed mv=eff*2.4)
   // ── CORNER: the path bends, the camera yaws to follow it ──
@@ -2789,7 +2806,7 @@ function drawT(){
   var tShift=-TURN_FOLLOW*bendPx(TURN_FOCUS);
   // outdoor stages: real GL world rendered into #glC beneath this canvas.
   // GL works in device pixels, the 2D layer in CSS pixels — hence both *DPR.
-  var glwOK=isOut&&GLW.draw(ai,wz,tShift*DPR,_TB*DPR);
+  var glwOK=isOut&&GLW.draw(ai,wz,tShift*DPR,_TB*DPR,_rm);
   // ── controlled loading backdrop ──
   // Outdoor stages are GL-only. Until the world's textures stream in (or if WebGL
   // is unavailable) paint the stage's OWN sky→fog palette, so a slow load reads
@@ -2803,7 +2820,7 @@ function drawT(){
     FX.fillStyle=_bg;FX.fillRect(0,0,W,H);
   }
   // ── WHIMSY: sunshine god-rays streaming from the vanishing point ──
-  whimsyRays(vpX+tShift,vpY);
+  if(_rm)whimsyRays(vpX+tShift,vpY);
   // ── corner-turn camera swing: whole world shears sideways ──
   FX.save();
   if(tShift)FX.translate(tShift,0);
@@ -2841,7 +2858,7 @@ function drawT(){
   FX.beginPath();FX.moveTo(vpX-H*0.04,vpY);FX.lineTo(vpX-W*0.18,gNear);FX.lineTo(vpX+W*0.18,gNear);FX.lineTo(vpX+H*0.04,vpY);FX.closePath();FX.fill();
   }
   // dust motes with depth and glow
-  for(var m2=0;m2<18;m2++){
+  for(var m2=0;m2<(_rm?18:0);m2++){
     var mz2=(m2*191+GS.tick*0.3)%1200,msz=prjT(mz2);
     var mx2=vpX+(((m2*137+GS.tick*0.15)%W)-W/2)*msz*1.6;
     var my2=vpY+(gNear-vpY)*msz*0.6+(m2*53)%Math.round(H*0.3);
@@ -3384,7 +3401,7 @@ function drawT(){
   // had birds crossing it. Same marker the RPG uses, so the two modes cannot
   // drift apart again. Interiors keep their window shafts and dust motes, which
   // are drawn separately above — nothing winged.
-  if(!(LIVEBG[ai]&&LIVEBG[ai].in)){whimsyFairies();whimsySparkles();whimsyBirds(vpX,vpY,gNear);}
+  if(_rm&&!(LIVEBG[ai]&&LIVEBG[ai].in)){whimsyFairies();whimsySparkles();whimsyBirds(vpX,vpY,gNear);}
   stageBanner();
   drawEnding();
   syncPauseMenu();if(GS.paused)drawPause();

@@ -22,6 +22,34 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## 🔎 08-13 (cloud session) — AMBIENCE AUDIT (both modes, every effect)
+Client, after the library birds: *"Perform audit anyway."*
+
+**Finding 1 — REDUCE MOTION NEVER REACHED THE RUNNER. FIXED.** The RPG has gated
+its whole ambience layer on the setting all along (`_amb`); `drawT` had ZERO
+references to it. With the setting ON, Royal Runner still animated god rays, dust
+motes, fairies, sparkles, birds, and every moving thing in the GL world (prop
+sway, falling blossom, water shimmer, grass — one shared wind clock, now frozen).
+Same one-mode-only failure as the birds, found by hunting the pattern.
+`_rm` must stay declared at the TOP of `drawT`: the GL world reads it ~20 lines
+below and `var` hoists the declaration without the value — the first version of
+the fix had exactly the `_amb` bug.
+
+**Finding 2 — FLOWER GARLAND SWAG, unresolved, needs a call.** `drawMansionBG`
+draws a green vine with pink/gold flowers across the top of the frame in SCREEN
+space, **unconditionally on all nine RPG stages** — library included, and it is
+the only ambience element that is not stage-themed. Mostly sits behind the HUD,
+visible at the edges. Verified present on stage 0 and stage 4. Not changed: it
+predates this work and removing a deliberate decorative frame is an art call.
+
+**Everything else checked and correct:** per-stage ambience kinds (library gets
+`motes`, and `drawBGLife`'s bird branch only fires for pollen/cloud/embers, never
+motes); the RPG's sparkles/fairies/birds `_out` gate; the foreground plane
+(`FORE[0]` is beams and lamps, interior-appropriate, and it returns early on card
+stages); chandelier pools (`!_bg`, dead while every stage has a painted plate);
+décor props (stage-themed via `decorCell`); the undercroft (themed per stage);
+runner window shafts and dust motes (correct indoors).
+
 ## 🐦 08-13 (cloud session) — no birds in the library ceiling
 Client: *"I see birds in the ceiling of the library."*
 
