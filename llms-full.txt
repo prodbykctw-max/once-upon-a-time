@@ -1,0 +1,42 @@
+# JANDÉ — Once Upon A Time — full reference
+
+Last updated: 2026-09-13
+Canonical URL: https://prodbykctw-max.github.io/once-upon-a-time/
+
+## TL;DR
+
+Once Upon A Time is a free 8-bit side-scrolling browser game made for singer Jandé's song 'Once Upon A Time.' Help Jandé run, jump, slide and fight her way to the spotlight while The Groom Who Lied chases her through the enchanted halls. Nine stages with bosses and hidden caches; play on phone or desktop, no registration required.
+
+Developer: PRODBYKCTW LLC (Melvin D. Brown III, @prodbyKCTW) / RARƎ AGENCY. Genre: Platformer / runner / beat 'em up. Platform: Web browser (mobile and desktop), installable PWA. Price: free.
+
+## What it is
+A promotional pixel-art game for the artist Jandé and her single "Once Upon A Time." The Groom Who Lied is chasing her — the player runs, leaps and slides through enchanted halls in two modes: side-scroll combat dash and behind-the-back corridor run. Nine stages, each with a boss and a hidden cache. Beat a boss to start fresh runs from that stage. Players can enter the Kingdom to be first to receive Jandé's release news, or play without registering.
+
+## How to play
+- Move — arrow keys or the on-screen pad · Jump over obstacles · Slide under gates · Dash through foes with SHIFT
+- Move left and right between lanes in corridor runs
+- On touch: swipe to move, jump and slide
+- Collect coins to earn power-ups
+
+## Tech
+Vanilla JavaScript + HTML5 canvas, installable as a PWA, hosted on GitHub Pages.
+
+## Frequently asked questions
+
+Q: What is Once Upon A Time?
+A: A free 8-bit browser game made for Jandé's song 'Once Upon A Time.' Run, jump, slide and fight through nine stages while The Groom Who Lied chases her.
+
+Q: Do I need to register?
+A: No. You can play without registering; entering the Kingdom is optional and gets you Jandé's release news first.
+
+Q: Who made it?
+A: PRODBYKCTW / RARƎ AGENCY (Melvin D. Brown III, @prodbyKCTW), an Atlanta-area developer building promotional games for artists.
+
+Q: What are the controls?
+A: Arrows or the on-screen pad to move, jump over obstacles, slide under gates, SHIFT to dash; on touch, swipe to move, jump and slide.
+
+## Links
+
+- Play: https://prodbykctw-max.github.io/once-upon-a-time/
+- Developer GitHub: https://github.com/prodbykctw-max
+- Developer Instagram: https://www.instagram.com/prodbykctw/

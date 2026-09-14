@@ -1,0 +1,19 @@
+# JANDÉ — Once Upon A Time
+
+> Once Upon A Time is a free 8-bit side-scrolling browser game made for singer Jandé's song 'Once Upon A Time.' Help Jandé run, jump, slide and fight her way to the spotlight while The Groom Who Lied chases her through the enchanted halls. Nine stages with bosses and hidden caches; play on phone or desktop, no registration required.
+
+- Genre: Platformer / runner / beat 'em up
+- Platform: Web browser (mobile and desktop), installable PWA
+- Made for: Jandé
+- Developer: PRODBYKCTW LLC (Melvin D. Brown III, @prodbyKCTW) / RARƎ AGENCY
+- Price: free
+
+## Pages
+
+- [Play](https://prodbykctw-max.github.io/once-upon-a-time/): the game
+- [llms-full.txt](https://prodbykctw-max.github.io/once-upon-a-time/llms-full.txt): full description, controls, FAQ
+
+## Optional
+
+- [Developer on GitHub](https://github.com/prodbykctw-max)
+- [Developer on Instagram](https://www.instagram.com/prodbykctw/)
