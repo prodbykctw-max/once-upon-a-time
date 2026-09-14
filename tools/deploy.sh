@@ -24,11 +24,17 @@ fi
 # nothing enforced it. Refuse to deploy a build that ships symbol/emoji chars.
 python3 tools/glyph_gate.py || { echo "Deploy blocked by glyph gate."; exit 1; }
 
+# FRÉDÉRIC EDITION: a showcase build published alongside the game at /fred/.
+# GENERATED from index.html every deploy, so it can never drift from what ships
+# to everyone. The public index.html carries none of it — that was the point.
+python3 tools/build_fred.py || { echo "Deploy blocked: fred build failed."; exit 1; }
+
 touch .nojekyll
 
 git checkout --orphan _deploy_tmp
 git reset -q
 git add index.html web .nojekyll apple-touch-icon.png icon-192.png icon-512.png manifest.webmanifest
+git add -f fred/index.html          # generated, and .gitignored on the dev branch
 git reset -q -- web/_manifest.txt 2>/dev/null || true   # debug file, not served
 
 # hard guard: abort if anything sensitive slipped into the staging set

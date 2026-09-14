@@ -37,3 +37,7 @@ image-*.png
 # wrangler local state (deploy cache) — never commit
 .wrangler/
 cloudflare/.wrangler/
+
+# FRÉDÉRIC EDITION — generated from index.html by tools/build_fred.py at
+# deploy time. One source of truth; never edit or commit the output.
+fred/
