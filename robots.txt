@@ -1,0 +1,22 @@
+# JANDÉ — Once Upon A Time — https://prodbykctw-max.github.io/once-upon-a-time/
+# Search engines and AI assistants are welcome to index this site. See /llms.txt.
+
+User-agent: *
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+Sitemap: https://prodbykctw-max.github.io/once-upon-a-time/sitemap.xml
