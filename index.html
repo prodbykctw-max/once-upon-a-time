@@ -81,47 +81,6 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 @keyframes sP{0%,100%{height:38px;opacity:.4}50%{height:74px;opacity:.9}}
 .tw-tag{font-family:var(--body);font-weight:400;font-style:italic;font-size:clamp(13px,2.1vw,17px);color:rgba(240,200,105,.85);margin-top:12px;letter-spacing:.3px}
 .tw-press{font-size:clamp(13px,2.2vw,17px);margin-top:36px;pointer-events:auto;padding:15px 46px}
-/* ── FRÉDÉRIC EDITION sale sticker ──────────────────────────────────────────
-   A retail starburst slapped across the corner of the title screen. The burst
-   is DRAWN (an SVG polygon of 44 alternating radii, with a slight per-spike
-   jitter so it reads hand-cut rather than machined) — never a Unicode star,
-   per the no-stock-glyphs rule. Body face, not Storyboo: the wordmark is this
-   screen's one display heading and a sticker is a badge, not a second one.
-   Only present when the build is the Frédéric edition; the public title screen
-   is untouched. */
-#edSticker{position:absolute;top:9.5%;left:50%;width:clamp(230px,74vw,330px);aspect-ratio:320/164;
-  margin-left:min(-115px,-37vw);z-index:6;pointer-events:none;transform:rotate(-4deg)}
-#edSticker svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-/* The lettering is SVG text in the SAME 0-200 viewBox as the burst, so it
-   scales with the sticker at any size. It was CSS percentages first, which
-   size against the INHERITED FONT, not the box — the words came out ~9px. */
-#edSticker text{font-family:var(--body),system-ui,sans-serif}
-#edSticker text{fill:#4A2410}
-#edSticker .ed-1{font-weight:900;font-size:34px}
-#edSticker .ed-2{font-weight:800;font-size:21px}
-#edSticker .ed-3{font-weight:700;font-size:11px;opacity:.72}
-/* GLOWING, and flashing on a slow beat. The halo is a drop-shadow pair (tight
-   gold + wide amber) so it reads as the scroll being lit rather than outlined. */
-@keyframes edGlow{
-  0%,62%,100%{filter:drop-shadow(0 5px 12px rgba(0,0,0,.55)) drop-shadow(0 0 9px rgba(255,206,96,.55)) drop-shadow(0 0 26px rgba(255,180,60,.30));transform:rotate(-4deg) scale(1)}
-  72%        {filter:drop-shadow(0 5px 12px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(255,232,150,.95)) drop-shadow(0 0 48px rgba(255,196,74,.72));transform:rotate(-3.2deg) scale(1.035)}
-  84%        {filter:drop-shadow(0 5px 12px rgba(0,0,0,.55)) drop-shadow(0 0 10px rgba(255,214,110,.6))  drop-shadow(0 0 30px rgba(255,180,60,.38));transform:rotate(-4deg) scale(1.008)}
-}
-#edSticker{animation:edGlow 3.6s ease-in-out infinite;
-  filter:drop-shadow(0 5px 12px rgba(0,0,0,.55)) drop-shadow(0 0 9px rgba(255,206,96,.55))}
-/* in-run chip: sits under the chapter track, clear of the HUD panel and well
-   above CTRL_TOP, so it never lands on the touch pads */
-#edHud{position:absolute;top:58px;left:50%;transform:translateX(-50%);z-index:7;
-  display:flex;align-items:center;gap:8px;padding:5px 6px 5px 11px;border-radius:999px;
-  background:rgba(18,6,26,.82);border:1px solid rgba(255,216,74,.55);pointer-events:auto}
-#edHud .ed-lab{font-family:var(--body),system-ui,sans-serif;font-weight:800;font-size:9.5px;
-  letter-spacing:.14em;color:#FFD84A;white-space:nowrap}
-#edHud .ed-next{font-family:var(--body),system-ui,sans-serif;font-weight:800;font-size:9.5px;
-  letter-spacing:.1em;color:#2A0E33;background:#FFD84A;border:0;border-radius:999px;
-  padding:6px 12px;cursor:pointer;touch-action:manipulation}
-@media (orientation:landscape) and (max-height:560px){#edHud{top:44px}}
-body.rm #edSticker{animation:none}
-@media (orientation:landscape) and (max-height:560px){#edSticker{width:clamp(190px,34vw,260px);margin-left:min(-95px,-17vw);top:5%}}
 .tw-press:hover{background:rgba(255,215,0,.15)}
 @keyframes bl{0%,100%{opacity:1}50%{opacity:.5}}
 #loginScreen{background:radial-gradient(ellipse at 50% -5%,#180038,#04000C 65%)}
@@ -560,36 +519,6 @@ body.mobile .joy-knob{width:64px;height:64px}
     <div class="tw-o">Once Upon A Time</div>
     <div class="tw-press btn-tav" id="tPress">— BEGIN —</div>
   </div>
-  <div id="edSticker" style="display:none" aria-hidden="true">
-    <svg viewBox="0 0 320 164" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <linearGradient id="edPar" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#FBEFCF"/><stop offset=".45" stop-color="#F3E0B0"/>
-          <stop offset="1" stop-color="#E4C98C"/>
-        </linearGradient>
-        <linearGradient id="edRoll" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#F4E2B4"/><stop offset=".5" stop-color="#DCBB7C"/>
-          <stop offset="1" stop-color="#B98F4E"/>
-        </linearGradient>
-      </defs>
-      <!-- the sheet. Top and bottom edges sag slightly between the rolls so it
-           reads as hanging vellum rather than a rectangle. -->
-      <path d="M26 30 Q160 22 294 30 L294 134 Q160 142 26 134 Z"
-            fill="url(#edPar)" stroke="#9C7434" stroke-width="1.6"/>
-      <!-- the two rolled ends -->
-      <rect x="8"   y="18" width="30" height="128" rx="15" fill="url(#edRoll)" stroke="#8A6428" stroke-width="1.8"/>
-      <rect x="282" y="18" width="30" height="128" rx="15" fill="url(#edRoll)" stroke="#8A6428" stroke-width="1.8"/>
-      <rect x="19"  y="26" width="7" height="112" rx="3.5" fill="#A87F3C" opacity=".55"/>
-      <rect x="294" y="26" width="7" height="112" rx="3.5" fill="#A87F3C" opacity=".55"/>
-      <!-- lettering. textLength pins every line to a width that FITS, so it holds
-           on whatever font his phone falls back to instead of overflowing. -->
-      <text class="ed-1" x="160" y="76"  text-anchor="middle" textLength="196" lengthAdjust="spacingAndGlyphs">FRÉDÉRIC</text>
-      <rect x="72" y="84" width="176" height="2.2" rx="1.1" fill="#5A3310" opacity=".45"/>
-      <rect x="72" y="89" width="176" height="1.2" rx=".6"  fill="#5A3310" opacity=".3"/>
-      <text class="ed-2" x="160" y="110" text-anchor="middle" textLength="150" lengthAdjust="spacingAndGlyphs">EDITION</text>
-      <text class="ed-3" x="160" y="127" text-anchor="middle" textLength="150" lengthAdjust="spacingAndGlyphs">ALL STAGES — BOTH MODES</text>
-    </svg>
-  </div>
   <a class="site-footer" href="https://instagram.com/prodbykctw" target="_blank" rel="noopener noreferrer">PRODBYKCTW</a>
 </div>
 <div id="loginScreen" class="screen">
@@ -755,18 +684,6 @@ body.mobile .joy-knob{width:64px;height:64px}
 </div></div>
 
 <script>
-// ══ FRÉDÉRIC EDITION — a showcase build, ?ed=fred ═══════════════════════════
-// A link to hand someone so they can walk the whole game without dying: both
-// modes, every stage, nothing that can end the run. Not a difficulty setting
-// and not a cheat the public build can reach — it is opt-in by URL only, so
-// the shipped game is byte-identical for everyone else.
-//
-// DECLARED HERE, at the very top of the script, on purpose. `var` hoists the
-// declaration without the value, and the guards below read it from inside
-// update() — this project has already shipped that bug twice (`_amb`, `_rm`).
-// Assigning it before anything else runs removes the question entirely.
-var FRED=false;
-try{FRED=/[?&]ed=fred\b/i.test(location.search);}catch(_fe){}
 // baked pixel-art world pack (walls/floors per stage, chaser, item icons)
 var TEXDATA={
 proj:"web/e80b77732c0e.webp",
@@ -1832,7 +1749,7 @@ function update(){
       if(p.vy>3&&p.y+PH<fo.y+28){killFoe(fo);p.vy=-10.5;p.airJumps=1;}       // stomp
       else if(p.atkT>0){killFoe(fo);strikeImpact(p);}                        // strike → blowback / pogo
       else if(p.dashing)killFoe(fo);                                        // dash through
-      else if(p.inv===0&&GS.shieldT<=0&&!FRED){GS.masks--;p.inv=75;p.vy=-6;p.vx=fdx>0?-7:7;updateHUD();
+      else if(p.inv===0&&GS.shieldT<=0){GS.masks--;p.inv=75;p.vy=-6;p.vx=fdx>0?-7:7;updateHUD();
         sfx('hurt');ptcl(p.x+PW/2,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);
         if(GS.masks<=0){p.dead=true;p.vy=-10;return;}}
     }}
@@ -1874,7 +1791,7 @@ function update(){
   if(!_pg&&p.onGround){p.airJumps=1;if(_pvy>3){sfx('land');if(navigator.vibrate)navigator.vibrate(25);}}
   p.x=Math.max((GS.pruneC||0)*T+T,p.x); // pruned world behind — no walking into the void
   if(p.y>GS.LH*T+150){
-    if(BGVIEW||FRED){ // viewer/showcase: a pit lifts her back out instead of ending it
+    if(BGVIEW){ // viewer: a pit lifts her back onto the floor instead of ending the look
       p.y=(FLOOR_R-3)*T; p.vy=0; return; }
     p.dead=true;p.vy=-10;GS.masks=0;updateHUD();if(navigator.vibrate)navigator.vibrate([100,40,100]);return;}
   if(p.inv>0)p.inv--;
@@ -1885,7 +1802,7 @@ function update(){
     if(p.x<o.x+o.w&&p.x+PW>o.x&&hbT<o.y+o.h&&hbT+hbH>o.y){
       o.hit=true;
       if(GS.shieldT>0||p.dashing){ptcl(o.x+o.w/2,o.y+o.h*0.7,'dash');}
-      else if(p.inv===0&&!FRED){GS.masks--;p.inv=75;p.vy=-6;sfx('hurt');ptcl(p.x+PW/2,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);updateHUD();
+      else if(p.inv===0){GS.masks--;p.inv=75;p.vy=-6;sfx('hurt');ptcl(p.x+PW/2,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);updateHUD();
         if(GS.masks<=0){p.dead=true;p.vy=-10;return;}}
     }}
 
@@ -3618,7 +3535,7 @@ function hitB(b){
     GS.bossKO=1;GS.hitstop=Math.max(GS.hitstop,6);   // a beat of impact, then the cinematic defeat
     document.getElementById('bossBar').classList.remove('on');document.getElementById('bbPh').classList.remove('show');}
   document.getElementById('bbF').style.width=(Math.max(0,b.hp)/b.mhp*100)+'%';updateHUD();}
-function hurtP(p){if(p.inv>0||BGVIEW||FRED)return;   // viewer/showcase: nothing lands
+function hurtP(p){if(p.inv>0||BGVIEW)return;   // viewer: nothing interrupts a look at the art
   if(GS.shieldT>0){ptcl(p.x+14,p.y+30,'dash');p.inv=30;return;}
   GS.dmgTaken=(GS.dmgTaken||0)+1;   // per-stage damage, for the clear tally
   if(GS.blocking){ptcl(p.x+(p.faceL?0:PW),p.y+30,'slash');GS.blockHits++;p.inv=45;p.vx=p.faceL?4:-4;if(GS.blockHits%2===0){GS.masks--;updateHUD();}}
@@ -3853,11 +3770,7 @@ function mapsOwned(){try{return JSON.parse(localStorage.getItem('jande_maps')||'
 function markMapOwned(ai){var m=mapsOwned();m[ai]=1;try{localStorage.setItem('jande_maps',JSON.stringify(m));}catch(x){}}
 // ── BEATEN STAGES: each stage you clear its boss on is remembered, so you can
 //    start a fresh run from any stage you've already conquered (stage select). ──
-function clearsOwned(){
-  // The showcase build unlocks every stage WITHOUT writing to storage, so a
-  // normal run on the same device keeps its real progress.
-  if(FRED)return {0:1,1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1};
-  try{return JSON.parse(localStorage.getItem('jande_clears')||'{}');}catch(x){return{};}}
+function clearsOwned(){try{return JSON.parse(localStorage.getItem('jande_clears')||'{}');}catch(x){return{};}}
 function markClear(ai){var m=clearsOwned();m[ai]=1;try{localStorage.setItem('jande_clears',JSON.stringify(m));}catch(x){}}
 var START_STAGE=0;   // which stage a fresh ACTION RPG run begins on (stage select)
 // ── DAILY STREAK ──
@@ -3899,14 +3812,12 @@ function runMult(){return misMult()*(GS.x2T>0?2:1);}
 // ── TEMPLE RUN chase rules: stumble once → the Groom's Shadow closes in;
 //    stumble again while he's close (or run out of hearts) → caught ──
 function stumbleT(){var t3=GS.t3,p=GS.p;
-  if(FRED)return;   // showcase: clip the obstacle, keep running
   if(GS.shieldT>0||GS.boostT>0||p.inv>0)return;
   if(t3.chase>90){caughtT();return;}
   t3.chase=480;GS.masks--;p.inv=60;GS.hitstop=4;updateHUD();sfx('hurt');
   if(navigator.vibrate)navigator.vibrate([80,30,80]);
   if(GS.masks<=0)caughtT();}
-function caughtT(){var p=GS.p;if(FRED)return;   // showcase: the Groom never gets her
-  sfx('death');p.dead=true;p.deadT=0;GS.t3.grabT=44;GS.masks=Math.min(GS.masks,0);updateHUD();
+function caughtT(){var p=GS.p;sfx('death');p.dead=true;p.deadT=0;GS.t3.grabT=44;GS.masks=Math.min(GS.masks,0);updateHUD();
   if(navigator.vibrate)navigator.vibrate([120,50,160]);}
 
 // ── ACTION RPG (side mode): persistent level, combo kills, damage pops ──
@@ -6685,18 +6596,6 @@ function bgViewer(){
   try{measureCtrlTop();}catch(e){}
   bgGo(st);
 }
-// Hop to the next stage from inside a run. The two modes advance completely
-// differently — the RPG rebuilds a level, the runner just shifts theme — so
-// this dispatches rather than pretending there is one mechanism. Wraps at the
-// last stage so he can keep cycling without touching the URL.
-function fredNext(){
-  try{
-    if(MODE==='temple'){ themeShift(); return; }
-    if(GS.ai>=STAGES.length-1){ setZoom(BASEZ); initGS(0); CHECKPOINT=0; CHECKPOINT_X=0;
-      updateHUD(); showLevelCard(0,function(){}); return; }
-    nextStage();
-  }catch(_fn){}
-}
 function startGame(){
   // WIPE BOTH CANVASES FIRST. #fxC is cleared to transparent every frame, so
   // whatever is still sitting on #glC underneath shows through — entering a run,
@@ -6913,20 +6812,6 @@ function wire(){applyMotionClass();
   // unkillable, silences the foes so nothing interrupts a look at the art, and
   // puts PREV/NEXT + a RESET on screen.
   try{ if(/[?&]bg=1/.test(location.search)) setTimeout(bgViewer,60); }catch(_bv){}
-
-  // ══ FRÉDÉRIC EDITION wiring ═══════════════════════════════════════════════
-  // Reveals the title sticker and adds the in-run chip. Everything here is
-  // inert unless the URL asked for it, so the public build is unchanged.
-  try{ if(FRED){
-    var _st=document.getElementById('edSticker'); if(_st)_st.style.display='';
-    var bar=document.createElement('div'); bar.id='edHud';
-    var lab=document.createElement('span'); lab.className='ed-lab';
-    lab.textContent='FRÉDÉRIC EDITION'; bar.appendChild(lab);
-    var nb=document.createElement('button'); nb.className='ed-next';
-    nb.textContent='NEXT STAGE'; bar.appendChild(nb);
-    nb.onclick=function(e){e.preventDefault();e.stopPropagation();fredNext();};
-    document.getElementById('gameWrap').appendChild(bar);
-  } }catch(_fw){}
   loadTex();     // pixel-art world pack
   loadSprites(); // preload sprites in background
 }
