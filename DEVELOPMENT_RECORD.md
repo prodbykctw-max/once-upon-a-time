@@ -470,7 +470,7 @@ pre-deploy gate to stop the glyph rule regressing a third time.
 | Actual song lyrics | OPEN | Client to supply; only short fragments used |
 | AutoSprite-animated blood | OPEN | The canvas droplets are an explicit stopgap; blocked on the key above, nothing else |
 | Wishing Glade / Sky Gardens depth | OPEN (design) | Both proved FLAT by measurement (median motif area per band is level) and left flat on purpose. If depth is wanted there it has to be per-MOTIF cards — one per toadstool cluster, one per floating island — not bands. Different and much larger job. **Re-tested 09-15 with the depth+SAM cutter: neither is rescued.** Four approaches on Sky Gardens all split the islands at six bands; only ~15 per-island cards would hold, roughly the asset cost of all six carded stages combined. Glade leaves 33% of the frame unowned by any mask, Golden Hour 48%, and unowned pixels fall back to raw depth — the gradient that shreds objects. Recommendation stands: leave both flat |
-| Foreground plane in combat | OPEN (play-test) | New 09-15. `drawForeground`'s slim verticals (`tr:1`) now cross the play area on stages 1, 2, 3, 4, 6 and 8 for the first time, the plane having been off on carded stages. Alpha 0.62 is the existing guard and the rule is *depth is not worth a death*, but it is untested there. Petal Mile's fringe is heaviest (`a:0.82`, dark blossom on a pale sky). If it reads busy, dial `FORE[].a` / trunk density on the carded stages only |
+| Foreground plane on carded stages | CLOSED 09-15 — do not retry | Switching `drawForeground` on for stages 1, 2, 3, 4, 6, 8 was tried and **reverted the same day**: its slim verticals are dark near-silhouettes at ~35x the plate rate and read as black bars sweeping the frame (near-black coverage of the backdrop band 0.35-1.09% -> 3.17-8.01%). Client: *"as I move, big black gaps."* `tr:1` on a stage is a combat-readability decision, not a depth decision |
 | Depth-map cutter | RESOLVED 09-15 | `tools/depth/` ships as a VERIFICATION tool, not a replacement cutter. Cuts all eight plates at recompose 0.000%, ordering agrees with the hand cut on every stage — but it splits the Petal Mile canopy across four cards and merges Mirror Lake's three willows. Client confirmed the hand cut stays |
 | Phaser scaffold / Godot project | PARKED | Preserved migration/native targets |
 
@@ -1051,47 +1051,47 @@ distance. Rescaling would *compress* the spread. It ships as a **verification
 tool**; it would have caught the blossom-over-its-own-trunks bug in one pass.
 Client confirmed the hand cut stays. *(`5bf8284`.)*
 
-**Then: the cut was good and you could not feel it.** Client: *"I want that to go
-ahead and be made more visual, more apparent on the move and motion, to create
-the feel of depth."* Measured on Mirror Lake, every card moved between **0.036
-and 0.053 screen px per world px** — the entire stack within ±19% of the plate's
-own rate, a **1.22× near-to-far ratio.** That is one slab at slightly different
-speeds, which is why a good cut still read flat.
+**Then: an attempt to make the cut read harder in motion — shipped, rejected,
+reverted the same day.** Client: *"I like hand cut… I want that to go ahead and be
+made more visual, more apparent on the move and motion."* Measured on Mirror Lake,
+every card moved between **0.036 and 0.053 screen px per world px** — the entire
+stack within ±19% of the plate's own rate, a **1.22× near-to-far ratio.** Three
+changes went in: layer-pass draw order, `CB_SPREAD` 0.010 → 0.019 (derived from
+`CB_MAXSEP` 90, which had never fired once), and the foreground plane re-enabled
+on the six carded stages.
 
-Three changes, in the order they had to happen:
+The client's verdict, on the build:
 
-1. **Draw order — layer passes, not tile passes.** `drawCards` interleaved base
-   and cards per tile, so tile N+1's *base* was drawn after tile N's *cards* and
-   painted over any card shifted right of its own tile: a `csep`-wide strip of
-   bare inpaint down every plate seam, on exactly the far cards (`d<0.5` is the
-   sign that shifts right). Latent only because separation topped out at 40px and
-   a seam crosses the screen about once a level. It scales with the spread.
-2. **`CB_SPREAD` 0.010 → 0.019, and the clamp picks the number.** `CB_MAXSEP` is
-   90 and **never fired once in the life of the feature** — at 0.010 the farthest
-   card separates 46.7px by a level's end (camX ~10,378). 0.019 puts it at 88.7px
-   so the clamp finally governs, as `MAX_SEPARATION` was written to. Boxed in
-   from both sides, both measured: raise the clamp with it and the art comes
-   apart (at 0.030/200 the willow slides off its bank and the inpaint shows);
-   keep the clamp and raise the spread and the card pins at 90 partway through,
-   after which it moves at *exactly* the plate rate and the parallax is dead for
-   the rest of the stage (0.024 freezes the last 20%, 0.030 the last 36%).
-   **0.019 is the only value that survives a whole level.** Ratio → 1.46×.
-3. **The foreground plane, un-retired on the six carded stages** — and the
-   biggest of the three. It had been switched off with *"the cards ARE the near
-   planes."* The measurement above says they are not: nothing in that set is near.
-   `drawForeground` runs at ~1.56 px per world px, **about 35× the plate rate**,
-   and is the only near plane in the scene. The carded stages were precisely the
-   six that had given theirs up.
+> *"as I move, big black gaps… you didn't test that."*
+> *"the cutout sections of the background, as I move, they're moving so much and
+> it's just empty space behind them."*
 
-Verified: `node --check` on both script blocks, `web/` reference audit (93 refs,
-0 missing, 0 orphans), and all nine stages driven through with zero page errors.
-Adds `_devSpread(spread,maxsep)` behind the `#dev` gate, because the spread can
-only be judged at the END of a level where separation is largest. *(`bdefd8c`.)*
+**Both symptoms confirmed by measurement after the fact — which is the wrong
+order, and is the real finding of the day.**
 
-**Open thread (new):** the foreground's slim verticals now cross the play area on
-stages 1, 2, 3, 4, 6 and 8 for the first time. Alpha 0.62 is the existing guard
-and the rule is *depth is not worth a death*, but it has never been play-tested
-on those stages. Petal Mile's fringe is heaviest.
+* **The black gaps were the foreground plane.** `FORE[]`'s slim verticals are
+  dark near-silhouettes moving at ~35× the plate rate. On stages that had never
+  carried them they read as black bars sweeping the frame. Near-black coverage of
+  the backdrop band went **0.35–1.09% → 3.17–8.01%** across the six.
+* **The drifting cutouts were the spread.** A card sliding off its own hole shows
+  the inpainted fill, and doubling the spread doubled how much of it you see.
+  The arithmetic for 0.019 was correct and irrelevant: **an unreached limit is
+  not evidence of headroom.** `CB_MAXSEP` was never the ceiling — what the eye
+  tolerates is, and it sits well below the clamp.
+* **It was validated as stills and one straight walk in portrait.** Landscape was
+  never driven, and `CLAUDE.md` states in as many words that portrait hides
+  exactly this class of defect.
+
+Reverted in full — `index.html` byte-identical to `5bf8284`, re-measured back to
+baseline (0.36–1.09%). Client: *"movement is supposed to be in game.. only revert
+your work"* — **the multiplane card system is untouched and stays as shipped.**
+The layer-pass draw-order fix is a genuine isolated bug fix (tile N+1's base
+paints over tile N's cards at every plate seam) that changes nothing visible at
+spread 0.010, available on its own if ever wanted. *(`bdefd8c` → reverted.)*
+
+**The rule this leaves behind:** `tr:1` on a stage is a combat-readability
+decision, not a depth decision — never switch that plane on for a stage without
+driving it and measuring dark coverage in **both** orientations.
 
 ---
 

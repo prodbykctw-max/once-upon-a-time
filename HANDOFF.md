@@ -22,36 +22,39 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
-## ✅ 09-15 (cloud session) — PARALLAX MADE VISIBLE (`bdefd8c`)
-Client: *"I like hand cut… I want that to go ahead and be made more visual, more
-apparent on the move and motion, to create the feel of depth."*
+## ❌ 09-15 (cloud session) — PARALLAX PUSH: SHIPPED, REJECTED, REVERTED
+`bdefd8c` -> reverted. **Do not re-attempt from the same reasoning.**
 
-The cut was good and carrying almost no motion. **Measured on Mirror Lake: every
-card moved between 0.036 and 0.053 screen px per world px — the whole stack
-within ±19% of the plate's own rate, a 1.22× near-to-far ratio.** One slab at
-slightly different speeds. Three changes, in the order they had to happen:
+Client asked for the cut to read harder in motion. Measured cause looked solid:
+every card on stage 4 moves 0.036..0.053 screen px per world px — the whole stack
+within ±19% of the plate's rate, a 1.22x near-to-far ratio. Three changes went in
+(layer-pass draw order, `CB_SPREAD` 0.010 -> 0.019, foreground plane re-enabled
+on the six carded stages). Client on the result:
 
-1. **Draw order — layer passes, not tile passes.** Base and cards were
-   interleaved per tile, so tile N+1's base landed on top of tile N's cards and
-   ate a `csep`-wide strip of every far card at each plate seam. Latent (topped
-   out at 40px, one seam per level) but it scales with the spread, so it went
-   first.
-2. **`CB_SPREAD` 0.010 → 0.019.** `CB_MAXSEP` is 90 and **never fired once** —
-   0.010 tops out at 46.7px at a level's end. 0.019 is boxed in from both sides:
-   raise the clamp with it and the art tears; keep the clamp and the card pins
-   early and the parallax dies for the rest of the stage. Ratio → 1.46×.
-3. **Foreground plane un-retired on the six carded stages** — the biggest cue of
-   the three, at ~35× the plate rate. See `docs/FOREGROUND_PLANE.md`.
+> *"as I move, big black gaps… you didn't test that."*
+> *"the cutout sections of the background, as I move, they're moving so much and
+> it's just empty space behind them."*
 
-Verified: `node --check` both blocks, `web/` audit (93 refs, 0 missing, 0
-orphans), all nine stages driven with zero page errors. Specs updated:
-`LIVING_BACKDROPS.md`, `FOREGROUND_PLANE.md`, `CLAUDE.md`.
+**Both symptoms confirmed by measurement after the fact**, which is the wrong
+order and the actual lesson here:
 
-**OPEN — needs play-testing, not a decision.** The foreground's slim verticals
-(`tr:1`) now cross the play area on stages 1, 2, 3, 4, 6 and 8 for the first
-time. Alpha 0.62 is the existing guard and the spec's rule is *depth is not worth
-a death*. Petal Mile's fringe is the heaviest. If combat reads busy, dial
-`FORE[].a` / trunk density **on the carded stages only**.
+* **Black bars = the foreground plane.** `FORE[]`'s slim verticals are dark
+  near-silhouettes at ~35x the plate rate. Near-black coverage of the backdrop
+  band went 0.35-1.09% -> **3.17-8.01%** across the six stages. `tr:1` on a stage
+  is a COMBAT-READABILITY decision, not a depth decision.
+* **Drifting cutouts = the spread.** A card sliding off its own hole shows the
+  inpainted fill; doubling the spread doubled how much fill you see. `CB_MAXSEP`
+  90 genuinely never fires at 0.010 — and **an unreached limit is not evidence of
+  headroom.** The real ceiling is what the eye tolerates, well below the clamp.
+* **It was validated as stills and one straight walk in portrait.** Landscape was
+  never checked; CLAUDE.md says in as many words that portrait hides these.
+
+Reverted in full; `index.html` is byte-identical to `5bf8284` and re-measured
+back to baseline (0.36-1.09%). Client: *"movement is supposed to be in game.. only
+revert your work"* — **the multiplane card system stays exactly as it was.**
+The layer-pass draw-order fix is a real, isolated bug fix that changes nothing
+visible at spread 0.010, if it is ever wanted on its own.
+Specs carry the failure: `LIVING_BACKDROPS.md`, `FOREGROUND_PLANE.md`, `CLAUDE.md`.
 
 ## 📋 09-15 — DEPTH-MAP CUTTER: VERIFICATION TOOL, NOT A REPLACEMENT (`5bf8284`)
 `tools/depth/` (Depth Anything V2 + SAM, banding OBJECT depth so a band edge
@@ -88,8 +91,9 @@ predates this work and removing a deliberate decorative frame is an art call.
 **Everything else checked and correct:** per-stage ambience kinds (library gets
 `motes`, and `drawBGLife`'s bird branch only fires for pollen/cloud/embers, never
 motes); the RPG's sparkles/fairies/birds `_out` gate; the foreground plane
-(`FORE[0]` is beams and lamps, interior-appropriate; **it returned early on card
-stages — reversed 09-15, see below, it now runs on all nine**); chandelier pools (`!_bg`, dead while every stage has a painted plate);
+(`FORE[0]` is beams and lamps, interior-appropriate, and it returns early on card
+stages — un-retiring that was tried on 09-15 and REVERTED, see above); chandelier
+pools (`!_bg`, dead while every stage has a painted plate);
 décor props (stage-themed via `decorCell`); the undercroft (themed per stage);
 runner window shafts and dust motes (correct indoors).
 

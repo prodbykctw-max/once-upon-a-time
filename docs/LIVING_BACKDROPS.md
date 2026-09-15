@@ -149,7 +149,7 @@ rates are untouched.
 ## The rate spread
 
 ```
-rate = BASE + (depth − 0.5) × SPREAD        BASE 0.045, SPREAD 0.019
+rate = BASE + (depth − 0.5) × SPREAD        BASE 0.045, SPREAD 0.010
 separation from the base plate clamped to ±90px (CB_MAXSEP)
 ```
 
@@ -159,44 +159,40 @@ wraps on its own phase a fast card migrates a whole plate width across a level.
 The target is the **lenticular** effect: small enough that nothing distorts, with
 depth coming from *relative* rates.
 
-### SPREAD 0.010 → 0.019 (2026-09-15) — the clamp picks the number
+### ❌ SPREAD 0.010 → 0.019 (2026-09-15) — TRIED, REVERTED
 
-`CB_MAXSEP` is 90 and **it never fired once in the life of the feature.** A level
-runs to `stageEnd` 330 columns = 10,560 world px, camX ends near 10,378, and at
-spread 0.010 the farthest card separates **46.7px** — barely half the ceiling the
-reference implementation ships. The tiny-spread rule was never the thing limiting
-this; the spread simply sat far below its own clamp.
+**Do not re-derive this. It has been tried and the client rejected the result.**
 
-0.019 is the spread at which a card reaches **88.7px** at the end of a level, so
-`MAX_SEPARATION` becomes the governing limit exactly as it was written to be. It
-is boxed in from both sides, both measured:
+The argument was arithmetic and it checked out: `CB_MAXSEP` is 90 and **never
+fires once** at spread 0.010, which tops out at 46.7px by a level's end (camX
+~10,378). 0.019 puts a card at 88.7px so the clamp finally governs, and it is
+genuinely boxed in from both sides — raise the clamp with it and the willow
+slides off its bank; keep the clamp and raise the spread and the card pins early
+and the parallax freezes for the rest of the stage.
 
-| spread | clamp | what happens |
-|---|---|---|
-| 0.010 | 90 | clamp never fires; near/far ratio **1.22×** |
-| **0.019** | **90** | clamp reached exactly at level end; ratio **1.46×** |
-| 0.024 | 90 | clamp hit at 80% — parallax **frozen** for the last 20% |
-| 0.030 | 90 | clamp hit at 64% — frozen for the last 36% |
-| 0.030 | 200 | no freeze, but **the art comes apart**: the willow slides off its bank and the inpainted base shows through |
+All of that is true and **none of it was the constraint.** Client, on the build:
+*"the cutout sections of the background, as I move, they're moving so much and
+it's just empty space behind them."* A card sliding off its own hole shows the
+inpainted fill, and doubling the spread doubled how much fill you see. The
+separation the eye tolerates is **well below** the clamp, so the clamp was never
+the ceiling — it was just a number nothing had reached.
 
-Raise the clamp to go higher and the plate tears; keep the clamp and raise the
-spread and the card pins at 90 partway through, after which it moves at *exactly*
-the plate rate and the depth cue dies for the rest of the stage. **0.019 is the
-only value that stays alive for a whole level and holds the painting together.**
+**The general lesson: an unreached limit is not evidence of headroom.** Before
+moving a constant because its guard rail never fires, find out what the guard
+rail was standing in for. Here it stood in for *how far a cutout can drift before
+you can see there is nothing behind it* — a judgement about the art, not a number
+in the code.
 
-Do not read "the spread must be tiny" as "0.010 is sacred". The failure that rule
-names is a card **migrating**, and at these plate widths (~1400 screen px) that
-needs separation in the hundreds. 90px is 6% of a plate.
+### Draw order: layer passes, not tile passes — reverted with it
 
-### Draw order: layer passes, not tile passes
-
-Fixed in the same commit, and it had to go first. `drawCards` interleaved base and
-cards per tile, so tile N+1's **base** was drawn after tile N's **cards** and
-painted over any card shifted right of its own tile — a `csep`-wide strip of bare
-inpaint down every plate seam, on exactly the far cards (`d<0.5` is the sign that
-shifts right). Invisible only because separation topped out at 40px and a seam
-crosses the screen about once a level. It scales with the spread. Now: one pass
-for the base, then one pass per card layer, each tiled across the screen.
+`drawCards` is back to drawing base-then-cards **per tile**. The bug that change
+fixed is real and still present: tile N+1's base is drawn after tile N's cards
+and paints over any card shifted right of its own tile, eating a `csep`-wide
+strip of every far card (`d<0.5` is the sign that shifts right) at each plate
+seam. At the shipped 0.010 spread separation tops out at 40px and a plate seam
+crosses the screen about once a level, so it is latent. **It is a genuine,
+isolated fix if it is ever wanted on its own** — at the current spread it changes
+nothing visible.
 
 **Measured on Mirror Lake**, camX 47 → 10047, via the exact `_devCards` hook:
 

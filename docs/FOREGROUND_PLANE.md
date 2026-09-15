@@ -55,7 +55,32 @@ All three were invisible in the code and obvious the moment it rendered.
    area, so a foe or projectile behind it must stay readable. Depth is not worth
    a death.
 
-## Retired on card stages, then un-retired (2026-09-15)
+## ❌ Retired on card stages; un-retiring it was TRIED and REVERTED (2026-09-15)
+
+**Outcome first, so nobody repeats it:** switching this plane back on for the six
+carded stages shipped a **worse** bug than the one it fixed, and was reverted the
+same day. Client: *"as I move, big black gaps… you didn't test that."* He was
+right — it was checked as stills and one straight walk in portrait, never driven.
+
+**What it actually looks like in motion.** `FORE[]`'s slim verticals (`tr:1`) are
+dark near-silhouettes by design, and they move at ~35× the plate rate. On a stage
+that has never had them they do not read as trunks passing the camera; they read
+as **big black bars sweeping across the frame.** Measured after the fact, over 26
+camera positions per stage, as the fraction of the backdrop band below luma 24:
+
+| | stages 1, 2, 3, 4, 6, 8 |
+|---|---|
+| before | 0.35 – 1.09% |
+| with the plane on | **3.17 – 8.01%** |
+
+**The rule this leaves behind: `tr:1` on a stage is a combat-readability
+decision, not a depth decision.** Never switch this plane on for a stage without
+driving that stage and measuring dark coverage — in **both** orientations.
+
+The reasoning below was not wrong about the cards. It was wrong that being right
+about the cards was sufficient.
+
+### The original retirement, and the measurement that questioned it
 
 **This doc described a plane that was switched off on six of the nine stages, and
 did not say so.** When the multiplane cut landed, `drawForeground` gained an
@@ -65,22 +90,17 @@ planes and this would be a second, contradictory depth system."* Stages 1, 2, 3,
 
 **The premise was wrong, and measuring the cards is what shows it.** The whole
 card set on Mirror Lake spans **0.036 to 0.053** screen px per world px: every
-card within ±19% of the plate's own rate, a **1.46× near-to-far ratio even after
-the spread was raised to its ceiling**. That is one slab moving at slightly
+card within ±19% of the plate's own rate, a **1.22× near-to-far ratio** at the
+shipped spread of 0.010. That is one slab moving at slightly
 different speeds. There is no near plane anywhere in it.
 
 `drawForeground` runs at `cam*ZOOM*1.7` ≈ **1.56 px per world px — about 35× the
 plate rate.** It cannot be a second, contradictory depth system, because at that
 distance there was never a first one. It is the only near plane in the scene, and
-the carded stages were precisely the six that had given theirs up. Re-enabled on
-all nine; it is the largest of the three depth changes in that commit.
-
-**Watch item.** The fringe now renders on six more stages, and `tr:1` puts slim
-verticals across the play area on 1, 2, 3, 4, 6 and 8. Point 3 above (alpha 0.62,
-depth is not worth a death) is the guard, and it is unchanged — but it has never
-been play-tested on these stages. Petal Mile's fringe is the heaviest (dark
-blossom at `a:0.82` against a pale sky). If combat reads busy, dial `FORE[].a`
-and trunk density on the carded stages, not the whole table.
+the carded stages were precisely the six that had given theirs up. **That analysis still stands** — the cards really are not near planes. It simply
+was not the whole question, and the answer to "is there a near plane here?" turned
+out not to settle "should this one be switched on?". The plane stays OFF on
+stages 1, 2, 3, 4, 6 and 8.
 
 ## Scope and cost
 

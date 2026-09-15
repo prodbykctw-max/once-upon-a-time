@@ -3999,23 +3999,7 @@ function loadCards(){
 // Aligned to the Will Hill values he supplied from src/render/backdrop.js:
 // DEPTH_SPREAD 0.010, MAX_SEPARATION 90, STRIP_MAX_SEPARATION 400. The spread
 // already matched; the two clamps were mine (80 and 300) and are now his.
-//
-// SPREAD RAISED 0.010 -> 0.019, AND THE CLAMP IS WHAT SAYS SO. Measured on
-// stage 4: a level runs to stageEnd 330 columns = 10,560 world px, camX ends at
-// ~10,378, and at spread 0.010 the farthest card only ever separates 46.7px
-// from the plate. CB_MAXSEP is 90. The clamp NEVER FIRED — it was dead code for
-// the whole life of the feature, which means the reference's own ceiling was
-// never being approached, let alone exceeded. 0.019 is the spread at which a
-// card reaches 88.7px at the end of a level: the clamp becomes the governing
-// limit, exactly as MAX_SEPARATION was written to be. This is not a departure
-// from his numbers, it is the first time both of them are doing their job.
-// Near/far rate ratio goes 1.22x -> 1.46x.
-//
-// Do not read "the spread must be tiny" as "0.010 is sacred". The failure it
-// names is a card MIGRATING — at these plate widths (~1400 screen px) that
-// needs a separation in the hundreds. 90 is 6% of a plate. The tiny-spread rule
-// and this change are the same rule; the old number just sat far below it.
-var CB_BASE=0.045, CB_SPREAD=0.019, CB_MAXSEP=90, CB_STRIPMAX=400;
+var CB_BASE=0.045, CB_SPREAD=0.010, CB_MAXSEP=90, CB_STRIPMAX=400;
 function cardSep(cam,c){
   if(c.strip){
     // THE ONE EXCEPTION: a ground strip gets a REAL rate and a loose clamp.
@@ -4449,34 +4433,19 @@ function drawCards(ai,cam,bw,bh,by,bandB,tick,amb){
   var sc=bw/set.w;                                   // plate px -> screen px
   var bpar=cam*CB_BASE,boff=(-bpar)%(bw*2);if(boff>0)boff-=bw*2;
   FX.save();FX.beginPath();FX.rect(0,0,W,bandB);FX.clip();
-  var bx,bx0,bx1,btw,mir,ci,c,im,csep;
-  // ── BASE PASS: the inpainted plate, tiled and mirror-flipped ─────────────
-  for(bx=boff;bx<W+bw;bx+=bw){
-    bx0=Math.round(bx);bx1=Math.round(bx+bw);btw=bx1-bx0;
-    mir=(Math.round((bx+bpar)/bw))&1;
+  for(var bx=boff;bx<W+bw;bx+=bw){
+    var bx0=Math.round(bx),bx1=Math.round(bx+bw),btw=bx1-bx0;
+    var mir=(Math.round((bx+bpar)/bw))&1;
     FX.save();
     if(mir){FX.translate(bx0+btw,0);FX.scale(-1,1);FX.translate(-bx0,0);}
     FX.drawImage(base,bx0,by,btw,bh);
     FX.restore();
-  }
-  // ── CARD PASSES: one LAYER at a time, tiled across the screen ────────────
-  // NOT one tile at a time, which is how this started. Interleaved per tile,
-  // tile N+1's BASE is drawn after tile N's CARDS, so any card shifted right
-  // of its own tile was painted over by the next base — a csep-wide strip of
-  // bare inpaint down every plate seam, on exactly the far cards (d<0.5 is the
-  // sign that shifts right). It stayed invisible only because csep topped out
-  // at 40px and a seam crosses the screen about once a level. It scales with
-  // the spread, so it had to go before the spread went up.
-  for(ci=0;ci<set.cards.length;ci++){
-    c=set.cards[ci];im=CARD_IMG[c.s];if(!im)continue;
-    csep=cardSep(cam,c);                       // per CARD, not per tile
-    for(bx=boff;bx<W+bw;bx+=bw){
-      bx0=Math.round(bx);bx1=Math.round(bx+bw);btw=bx1-bx0;
-      mir=(Math.round((bx+bpar)/bw))&1;
+    for(var ci=0;ci<set.cards.length;ci++){
+      var c=set.cards[ci],im=CARD_IMG[c.s];if(!im)continue;
       // FULL-FRAME cards: same rect as the base plate, so a card is ALWAYS in
       // register with the hole it was lifted from. There is no per-card offset to
       // get wrong — which is what the displacement bug was.
-      var cw=btw,ch=bh,cx=bx0+csep,cy=by;
+      var cw=btw,ch=bh,cx=bx0+cardSep(cam,c),cy=by;
       FX.save();
       // MIRRORED TILES: apply the transform ONLY. The first version also flipped
       // the card's x by hand — two mirrors cancel, so every card on every odd
@@ -4563,16 +4532,13 @@ var FORE=[
 ];
 function drawForeground(ai,cam,tick,amb){
   if(MODE!=='side')return;                       // RPG only — the runner is 3D
-  // UN-RETIRED ON CARD STAGES, because the premise was wrong and measuring it
-  // says so. It was switched off with "the cards ARE the near planes". They are
-  // not. The whole card set on stage 4 spans 0.036 to 0.053 screen px per world
-  // px — every card within +/-19% of the plate's own rate, a 1.46x near-to-far
-  // ratio even after the spread was raised to its ceiling. That is one slab at
-  // slightly different speeds; there is no near plane anywhere in it. This runs
-  // at cam*ZOOM*1.7 = ~1.56 px per world px, about 35x the plate. It cannot be
-  // "a second, contradictory depth system" because there was never a first one
-  // at this distance — it is the only near plane in the scene, and the card
-  // stages are exactly the ones that gave theirs up.
+  // RETIRED ON CARD STAGES. This whole plane was invented content standing in
+  // for depth the backdrop did not have, run at 1.7x — far outside the tiny
+  // spread that actually reads as parallax. Where a real multiplane cut exists,
+  // the cards ARE the near planes and this would be a second, contradictory
+  // depth system drawn on top of them. Stages still on the flat plate keep it
+  // until their cut lands.
+  if(CARD_READY[ai])return;
   var f=FORE[ai]; if(!f)return;
   var z=(typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1;
   var px=-cam*z*1.7;                             // nearer than the world, so faster
@@ -6568,12 +6534,6 @@ window._glDbg=function(){try{return GLW.dbg();}catch(e){return 'err: '+e.message
 window._devMut=function(f){try{return f(GS,TC);}catch(e){return 'err: '+e.message;}};
 // exact per-card parallax readout — image correlation cannot separate cards that
 // overlap on screen, nor tell them from the static HUD drawn on top of them.
-// Sweep the parallax constants without rebuilding. The spread is the one number
-// in the backdrop that can only be judged by looking at it at the END of a
-// level, where separation is largest — so it needs to be settable at runtime the
-// same way _devTurn makes a corner comparable frame to frame.
-window._devSpread=function(s,m){if(s!=null)CB_SPREAD=s;if(m!=null)CB_MAXSEP=m;
-  return {spread:CB_SPREAD,maxsep:CB_MAXSEP,base:CB_BASE};};
 window._devCards=function(){var st=CARD_DATA[GS.ai];if(!st)return null;var o={cam:Math.round(GS.camX),base:-GS.camX*CB_BASE};
   for(var i=0;i<st.cards.length;i++){var c=st.cards[i];o[c.n]=+( -GS.camX*CB_BASE+cardSep(GS.camX,c) ).toFixed(1);}return o;};
 // exact per-depth corner readout. A turn is depth-dependent BY DEFINITION —
