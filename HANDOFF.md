@@ -22,6 +22,46 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## ⛔ 09-15 — MULTIPLANE CARDS SWITCHED OFF (`CARDS_ON=false`)
+Client, playing the live Frédéric edition: *"every time I move it looks like the
+background is separating from itself… it wasn't like that at first."*
+
+**He is describing the mechanism, not a defect in the cut.** A card is a cutout
+scrolled at its own rate over an INPAINTED fill of the hole it came from, so any
+separation at all is the painting coming apart from itself with a push-pull smear
+behind it. The spread only sets how FAST — never whether. *"It wasn't like that at
+first"* is literally true: the plates shipped flat and the cut came later.
+
+**Attribution, checked before acting, because he believed it was this session's
+spread change:** it was not. `origin/gh-pages` was deployed **09-14**, is
+**byte-identical** to the branch at `5bf8284` (i.e. before any of this session's
+work), and its `CB_SPREAD` reads `0.010`. The parallax push never deployed; what
+he is playing is the August multiplane cut.
+
+All nine stages now draw the FLAT painted plate. **`CARDS_ON=false` is a switch,
+not a deletion** — `CARD_DATA`, `drawCards`, `cardSep`, the 38 cut assets and
+`tools/depth` all stay.
+
+**The trap this had to dodge:** `drawForeground` gated on `if(CARD_READY[ai])
+return;`. Emptying `CARD_READY` would have silently switched the near plane ON for
+stages 1,2,3,4,6,8 — the exact change the client rejected hours earlier as *"big
+black gaps"*. Replaced with an explicit `FG_STAGES=[0,5,7]`. **Never derive which
+stages get that plane from the backdrop's state.**
+
+**Verified by PLAYING it** (real held-key input, not camera teleports — the
+previous round was rejected partly because of that), six stages, both orientations:
+
+| check | result |
+|---|---|
+| card assets fetched | **0 / 38** per stage (live control fetches 38/38) |
+| she actually runs | 2,600–6,500 world px per stage |
+| backdrop still moves | 71–92% of pixels change while running |
+| dark coverage vs live | portrait 2.0–3.3% both; landscape 5.18 vs 5.36, 3.10 vs 3.36 — **unchanged** |
+
+Movement is preserved on purpose — client: *"movement is supposed to be in game."*
+The plate still scrolls at `cam*CB_BASE` and the `LIVEBG` warp, god rays, near
+band and ambience are untouched. Specs: `LIVING_BACKDROPS.md` (header), `CLAUDE.md`.
+
 ## ❌ 09-15 (cloud session) — PARALLAX PUSH: SHIPPED, REJECTED, REVERTED
 `bdefd8c` -> reverted. **Do not re-attempt from the same reasoning.**
 

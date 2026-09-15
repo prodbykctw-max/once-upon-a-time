@@ -472,6 +472,7 @@ pre-deploy gate to stop the glyph rule regressing a third time.
 | Wishing Glade / Sky Gardens depth | OPEN (design) | Both proved FLAT by measurement (median motif area per band is level) and left flat on purpose. If depth is wanted there it has to be per-MOTIF cards — one per toadstool cluster, one per floating island — not bands. Different and much larger job. **Re-tested 09-15 with the depth+SAM cutter: neither is rescued.** Four approaches on Sky Gardens all split the islands at six bands; only ~15 per-island cards would hold, roughly the asset cost of all six carded stages combined. Glade leaves 33% of the frame unowned by any mask, Golden Hour 48%, and unowned pixels fall back to raw depth — the gradient that shreds objects. Recommendation stands: leave both flat |
 | Foreground plane on carded stages | CLOSED 09-15 — do not retry | Switching `drawForeground` on for stages 1, 2, 3, 4, 6, 8 was tried and **reverted the same day**: its slim verticals are dark near-silhouettes at ~35x the plate rate and read as black bars sweeping the frame (near-black coverage of the backdrop band 0.35-1.09% -> 3.17-8.01%). Client: *"as I move, big black gaps."* `tr:1` on a stage is a combat-readability decision, not a depth decision |
 | Depth-map cutter | RESOLVED 09-15 | `tools/depth/` ships as a VERIFICATION tool, not a replacement cutter. Cuts all eight plates at recompose 0.000%, ordering agrees with the hand cut on every stage — but it splits the Petal Mile canopy across four cards and merges Mirror Lake's three willows. Client confirmed the hand cut stays |
+| **Multiplane cards** | **OFF 09-15 (client call)** | `CARDS_ON=false`; all nine stages draw the flat plate. Client: *"every time I move it looks like the background is separating from itself… it wasn't like that at first."* That is the mechanism, not a defect — a card scrolls over an inpainted fill of its own hole, so any separation shows a smear. Switch, not deletion: CARD_DATA, drawCards, the 38 cut assets and tools/depth all stay. Backdrop movement preserved (`cam*CB_BASE` + LIVEBG warp). If it is ever wanted back, the honest version is **separated depth layers rendered out of Blender** — real planes with nothing to inpaint behind them — not a cut out of a finished flat painting |
 | Phaser scaffold / Godot project | PARKED | Preserved migration/native targets |
 
 ---
@@ -1088,6 +1089,43 @@ your work"* — **the multiplane card system is untouched and stays as shipped.*
 The layer-pass draw-order fix is a genuine isolated bug fix (tile N+1's base
 paints over tile N's cards at every plate seam) that changes nothing visible at
 spread 0.010, available on its own if ever wanted. *(`bdefd8c` → reverted.)*
+
+**Finally: the cards came off altogether.** Playing the live Frédéric edition,
+the client said *"every time I move it looks like the background is separating
+from itself… it wasn't like that at first,"* and believed the spread change was
+the cause. **It was not, and that was checked before anything was touched:**
+`origin/gh-pages` was deployed 09-14, is byte-identical to the branch at
+`5bf8284` — before any of this session's work — and its `CB_SPREAD` reads 0.010.
+The parallax push never reached the site. What he was playing was the August
+multiplane cut.
+
+**And he was describing the mechanism, not a defect in it.** A card is a cutout
+scrolled at its own rate over an *inpainted fill of the hole it came from*, so
+any separation at all is the painting coming apart from itself with a push-pull
+smear behind it. The rate spread only sets how fast that happens — never whether.
+Which is the retrospective verdict on the whole 0.010-vs-0.019 exercise: it was
+the wrong argument, because both values separate the plate and the objection was
+to separation as such. *"It wasn't like that at first"* is literally correct —
+the plates shipped flat and the cut was added on top of them later.
+
+`CARDS_ON=false`; all nine stages draw the flat painted plate. It is a switch,
+not a deletion — `CARD_DATA`, `drawCards`, `cardSep`, the 38 cut assets and
+`tools/depth` all remain. **The backdrop still moves** (`cam*CB_BASE`, plus the
+`LIVEBG` warp, god rays, near band and ambience), because the client's other
+instruction was *"movement is supposed to be in game."*
+
+**One trap had to be dodged:** `drawForeground` gated on `if(CARD_READY[ai])
+return;`, so emptying `CARD_READY` would have silently switched the near plane ON
+for stages 1, 2, 3, 4, 6, 8 — the exact change rejected hours earlier as *"big
+black gaps."* Replaced with an explicit `FG_STAGES=[0,5,7]`. Which stages get
+that plane must never be derived from the backdrop's state.
+
+**Verified by playing it** — real held-key input rather than camera teleports,
+six stages, both orientations: 0 of 38 card assets fetched per stage (the live
+control fetches 38/38); she covers 2,600–6,500 world px; 71–92% of backdrop
+pixels change while running, so the movement is intact; and dark coverage is
+unchanged against the live build (portrait 2.0–3.3% both ways, landscape 5.18 vs
+5.36 and 3.10 vs 3.36).
 
 **The rule this leaves behind:** `tr:1` on a stage is a combat-readability
 decision, not a depth decision — never switch that plane on for a stage without

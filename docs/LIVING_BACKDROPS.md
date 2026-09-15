@@ -1,4 +1,32 @@
-# LIVING BACKDROPS — ✅ SHIPPED · MULTIPLANE on 6 of 9 stages
+# LIVING BACKDROPS — ⛔ MULTIPLANE IS **OFF** (09-15) · plates draw FLAT
+
+> **`CARDS_ON=false`. Everything in this document about cards, rates, spreads and
+> cutting describes a system that is RETAINED IN THE CODE BUT NOT LIVE.** Read it
+> as the record of how it was built and why it was switched off, not as a
+> description of what ships.
+>
+> Client, playing the live build (09-15): *"every time I move it looks like the
+> background is separating from itself… it wasn't like that at first."*
+>
+> **He is describing the mechanism, not a defect in the cut.** A card is a cutout
+> lifted off the plate and scrolled at its own rate over an INPAINTED fill of the
+> hole it came from. Any separation at all is the painting coming apart from
+> itself, with a push-pull smear behind it. The rate spread only sets how FAST
+> that happens — never whether it happens. Which is why the 0.010 → 0.019
+> experiment below was the wrong argument to be having: both values separate the
+> plate, and the objection was to separation as such.
+>
+> *"It wasn't like that at first"* is literally correct. The plates shipped FLAT;
+> the cut was added on top of them afterwards.
+>
+> **The backdrop still moves.** Flat does not mean static: the plate scrolls at
+> `cam*CB_BASE`, and the `LIVEBG` warp (water ripple, canopy shear), god rays,
+> the 3.5x near band and all ambience are untouched. Client: *"movement is
+> supposed to be in game."*
+>
+> Nothing was deleted — `CARD_DATA`, `drawCards`, `cardSep`, the 38 cut assets
+> and `tools/depth` all remain. Flip `CARDS_ON` to restore it.
+
 
 > **Three plates are deliberately NOT carded** — 0 the library, 5 the Wishing
 > Glade, 7 the Sky Gardens. Each is a decision with a measurement behind it, not

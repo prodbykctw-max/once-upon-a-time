@@ -141,9 +141,13 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   from `H`. It is read on resize AND on the start-of-run toggle (the pads only
   get `.on` there). Anything laying out against the bottom of the screen should
   use it rather than inventing another fraction.
-- **There is a plane IN FRONT of the hero — `drawForeground` / `FORE[]`. It is
-  OFF on the six carded stages, and an attempt to switch it back on was REVERTED
-  (09-15).** Drawn after the world transform so it occludes her, at ~1.7x the
+- **There is a plane IN FRONT of the hero — `drawForeground` / `FORE[]`, and
+  which stages get it is an EXPLICIT LIST: `FG_STAGES=[0,5,7]`.** It used to read
+  `if(CARD_READY[ai])return;` — off wherever a cut existed. That coupling is a
+  trap: setting `CARDS_ON=false` empties `CARD_READY`, which would have silently
+  switched this plane ON for stages 1,2,3,4,6,8. **Never derive this from the
+  backdrop's state.** An attempt to enable it on those six was REVERTED (09-15).
+  Drawn after the world transform so it occludes her, at ~1.7x the
   world's screen rate. The re-enable reasoning was that the cards are not really
   near planes (measured: the whole set spans 0.036..0.053 px per world px, a
   1.22x ratio) — true, and **it shipped a worse bug than the one it fixed.**
@@ -196,7 +200,22 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   7 Sky Gardens. Median motif area per horizontal band is level (the Glade's top
   band is the largest), so there is no depth in them to cut and banding them
   would shear continuous foliage. Test before cutting a repeating plate.
-- **Stages 1-8 EXCEPT 0, 5 and 7 are MULTIPLANE — `CARD_DATA` + `drawCards`.** An inpainted
+- **THE MULTIPLANE CARDS ARE OFF — `CARDS_ON=false` (09-15, client call).** All
+  nine stages draw the FLAT painted plate. Client, playing the live build:
+  *"every time I move it looks like the background is separating from itself…
+  it wasn't like that at first."* He is describing the mechanism, not a bug: a
+  card is a cutout scrolled at its own rate over an INPAINTED fill of the hole it
+  came from, so **any** separation is the painting coming apart from itself and
+  showing a push-pull smear behind it. The spread changes how fast that happens,
+  never whether it happens — which is why arguing about 0.010 vs 0.019 was the
+  wrong argument. "It wasn't like that at first" is literally true: the plates
+  shipped flat and the cut was added on top later. **The backdrop still MOVES**
+  (`cam*CB_BASE`) and still breathes (`LIVEBG` warp, god rays, near band,
+  ambience) — client: *"movement is supposed to be in game."* Nothing is
+  deleted: `CARD_DATA`, `drawCards`, the 38 cut assets and `tools/depth` all
+  stay; flip `CARDS_ON` to bring it back. The rate model below is retained for
+  that reason and is **not live**.
+- ~~Stages 1-8 EXCEPT 0, 5 and 7 are MULTIPLANE — `CARD_DATA` + `drawCards`.~~ An inpainted
   base plate plus cut cards, each on its own rate:
   `rate = BASE + (depth-0.5)*SPREAD` with BASE 0.045, SPREAD 0.010, separation
   clamped to +/-90px (`CB_MAXSEP`). **The spread must stay TINY** — wide spreads

@@ -3963,7 +3963,29 @@ var CARD_DATA={
  ]}
 };
 var CARD_IMG={},CARD_READY={};
+// ── MULTIPLANE CARDS ARE OFF ───────────────────────────────────────────────
+// Client, playing the Frédéric edition (09-15): *"every time I move it looks
+// like the background is separating from itself… it wasn't like that at first."*
+// He is describing the mechanism exactly. A card is a cutout lifted off the
+// plate and scrolled at its own rate over an INPAINTED fill of the hole it came
+// from. Any separation at all is the painting coming apart from itself, and the
+// fill behind it is a push-pull smear with nothing real in it. The rate spread
+// changes how FAST that happens, never whether it happens — which is why the
+// 0.010 -> 0.019 experiment was the wrong argument to be having.
+//
+// "It wasn't like that at first" is correct: the plates shipped FLAT, and the
+// cut was added on top of them later.
+//
+// Turning this off returns all nine stages to the flat painted plate, which
+// still scrolls (cam*CB_BASE) and still breathes — `LIVEBG` ripple/canopy warp,
+// god rays, the near band, ambience — so the backdrop keeps its movement. It
+// just stops being a stack of separate pieces.
+//
+// Nothing is deleted: CARD_DATA, drawCards, the cut assets and tools/depth all
+// stay. Flip this to true to bring the whole system back.
+var CARDS_ON=false;
 function loadCards(){
+  if(!CARDS_ON)return;                    // CARD_READY stays empty -> flat path
   for(var k in CARD_DATA){(function(i){
     var set=CARD_DATA[i],need=set.cards.length+1,got=0,failed=false;
     // FAIL LOUD. The first version called done() from onerror too, so a single
@@ -4518,6 +4540,9 @@ function drawCards(ai,cam,bw,bh,by,bandB,tick,amb){
 // Parallax is ~1.7x the world's own screen rate (the world moves at cam*ZOOM),
 // because "nearer" is the entire point — if it moved with the ground it would
 // just be more scenery.
+// Stages that get the near plane. 0 library, 5 glade, 7 sky gardens — the three
+// that were never carded, so this is exactly the behaviour that is live today.
+var FG_STAGES=[0,5,7];
 var FORE=[
   // k      = shape family        tint          alpha  trunk = slim verticals per screen
   {k:'beam',   c:'30,18,9',   c2:'255,206,130', a:0.86, tr:0},   // 0 library — beams + hanging lamps, no trunks indoors
@@ -4532,13 +4557,19 @@ var FORE=[
 ];
 function drawForeground(ai,cam,tick,amb){
   if(MODE!=='side')return;                       // RPG only — the runner is 3D
-  // RETIRED ON CARD STAGES. This whole plane was invented content standing in
-  // for depth the backdrop did not have, run at 1.7x — far outside the tiny
-  // spread that actually reads as parallax. Where a real multiplane cut exists,
-  // the cards ARE the near planes and this would be a second, contradictory
-  // depth system drawn on top of them. Stages still on the flat plate keep it
-  // until their cut lands.
-  if(CARD_READY[ai])return;
+  // WHICH STAGES GET A NEAR PLANE IS AN EXPLICIT LIST, NOT A SIDE EFFECT.
+  // This used to read `if(CARD_READY[ai])return;` — the plane was off wherever
+  // a multiplane cut existed. That coupling is a trap: switching the cards off
+  // (CARDS_ON) empties CARD_READY, which would have silently switched this
+  // plane ON for stages 1,2,3,4,6,8. That exact change was tried on 09-15 and
+  // the client saw it immediately — *"as I move, big black gaps"* — because
+  // FORE[]'s slim verticals are dark near-silhouettes moving at ~35x the plate
+  // rate. Measured: near-black coverage of the backdrop band 0.35-1.09% ->
+  // 3.17-8.01% across those six. So the list is written down instead of
+  // derived, and it holds today's shipped behaviour no matter what the
+  // backdrop does. Adding a stage here is a COMBAT-READABILITY decision: drive
+  // it and measure dark coverage, in BOTH orientations, before you do.
+  if(FG_STAGES.indexOf(ai)<0)return;
   var f=FORE[ai]; if(!f)return;
   var z=(typeof ZOOM==='number'&&ZOOM>0)?ZOOM:1;
   var px=-cam*z*1.7;                             // nearer than the world, so faster
