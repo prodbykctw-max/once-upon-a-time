@@ -63,6 +63,34 @@ def sam_masks(rgb, dense=False):
     return m
 
 
+def natural_breaks(v, k, iters=60):
+    """Band edges BETWEEN depth clusters, not through them.
+
+    Equal-area quantiles were the first cut and they are wrong here: they place
+    a boundary every 1/k of the AREA regardless of where the objects actually
+    sit. Measured on the Sky Gardens plate the islands are genuinely separable —
+    between-island depth spread 0.121 against a within-island range of 0.069, a
+    ratio of 0.57 — so the depth values were never the problem. Quantile edges
+    were simply landing mid-cluster and slicing islands that the object masks had
+    correctly kept whole.
+
+    1-D k-means (Lloyd, quantile-initialised), cutting at the midpoints between
+    consecutive centres. Subsampled — the result is stable well below full
+    resolution and this runs on every plate.
+    """
+    f = v.ravel()
+    s = f if f.size <= 200000 else np.random.default_rng(0).choice(f, 200000, replace=False)
+    c = np.quantile(s, np.linspace(0.5 / k, 1 - 0.5 / k, k))
+    for _ in range(iters):
+        idx = np.abs(s[:, None] - c[None, :]).argmin(1)
+        new = np.sort(np.array([s[idx == j].mean() if (idx == j).any() else c[j]
+                                for j in range(k)]))
+        if np.allclose(new, c, atol=1e-5):
+            c = new; break
+        c = new
+    return np.array([-1e-6] + [(c[i] + c[i + 1]) / 2 for i in range(len(c) - 1)] + [1 + 1e-6])
+
+
 def main(tag, K, DENSE=False):
     os.makedirs(CUT, exist_ok=True)
     bgr = cv2.imread(os.path.join(REPO, 'web', PLATES[tag] + '.webp'), cv2.IMREAD_COLOR)
@@ -96,12 +124,8 @@ def main(tag, K, DENSE=False):
     unowned = float((owner < 0).mean())
     print('  unowned by any mask: %.1f%% (falls back to raw depth)' % (100 * unowned), flush=True)
 
-    qs = np.quantile(objd, np.linspace(0, 1, K + 1))
-    qs[0], qs[-1] = -1e-6, 1 + 1e-6
-    edges = [qs[0]]
-    for q in qs[1:]:
-        if q > edges[-1] + 1e-4:
-            edges.append(q)
+    edges = natural_breaks(objd, K)
+    print('  band edges: %s' % np.round(edges[1:-1], 3), flush=True)
 
     layers = []
     for i in range(len(edges) - 1):
