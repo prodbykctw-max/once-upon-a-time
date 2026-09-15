@@ -23,6 +23,34 @@ Kept from the earlier cutters because they were right: the push-pull inpainted
 base, the recompose check, and the assignment map you look at BEFORE wiring
 anything.
 
+VERDICT AFTER RUNNING ALL EIGHT (2026-09-15). Every plate cut with recompose
+0.000% and no black base, and the cuts are geometrically good. It is still NOT
+what should ship, and the reason is that the hand cut encodes BEHAVIOUR that a
+depth cut cannot see:
+
+  * THE PETAL MILE CANOPY comes back split across four cards. That plate's whole
+    point is one canopy card shearing about its trunk line; split it and the
+    blossom tears at the seams. The hand cut deliberately merged canopy, trunks
+    and branches into ONE card to fix exactly this.
+  * MIRROR LAKE loses its three separately-swaying willows — depth correctly
+    says they are at the same distance (0.357 / 0.353 / 0.341) and merges them,
+    which is right geometrically and wrong for the game, because each willow
+    needs its own wind phase.
+  * THE GLADE AND SKY GARDENS are not rescued. Four approaches on Sky Gardens
+    all split islands at six bands; only per-island cards (~15 for one stage)
+    would hold, at roughly the asset cost of all six carded stages combined.
+
+What the depth map IS worth, measured inside each shipped card's real alpha
+mask: it VALIDATES the shipped cut. Ordering agrees on every stage. The numeric
+gaps (16 of 32 cards differ by >0.15) are a SCALE choice, not an error — the
+hand values deliberately spread cards across the full 0.05..0.95 range to widen
+the parallax, while the model reports true relative distance, where the willows
+and their shore really are nearly co-planar. Rescaling to raw model depth would
+COMPRESS the spread and weaken the effect.
+
+So this ships as a verification tool, not a replacement cutter. It would have
+caught the blossom-over-its-own-trunks bug in one pass.
+
 Usage:  python3 hybridcut.py <tag> [--layers N]
 """
 import io, os, sys, json, time
