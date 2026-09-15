@@ -22,6 +22,49 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## ✅ 09-15 (cloud session) — PARALLAX MADE VISIBLE (`bdefd8c`)
+Client: *"I like hand cut… I want that to go ahead and be made more visual, more
+apparent on the move and motion, to create the feel of depth."*
+
+The cut was good and carrying almost no motion. **Measured on Mirror Lake: every
+card moved between 0.036 and 0.053 screen px per world px — the whole stack
+within ±19% of the plate's own rate, a 1.22× near-to-far ratio.** One slab at
+slightly different speeds. Three changes, in the order they had to happen:
+
+1. **Draw order — layer passes, not tile passes.** Base and cards were
+   interleaved per tile, so tile N+1's base landed on top of tile N's cards and
+   ate a `csep`-wide strip of every far card at each plate seam. Latent (topped
+   out at 40px, one seam per level) but it scales with the spread, so it went
+   first.
+2. **`CB_SPREAD` 0.010 → 0.019.** `CB_MAXSEP` is 90 and **never fired once** —
+   0.010 tops out at 46.7px at a level's end. 0.019 is boxed in from both sides:
+   raise the clamp with it and the art tears; keep the clamp and the card pins
+   early and the parallax dies for the rest of the stage. Ratio → 1.46×.
+3. **Foreground plane un-retired on the six carded stages** — the biggest cue of
+   the three, at ~35× the plate rate. See `docs/FOREGROUND_PLANE.md`.
+
+Verified: `node --check` both blocks, `web/` audit (93 refs, 0 missing, 0
+orphans), all nine stages driven with zero page errors. Specs updated:
+`LIVING_BACKDROPS.md`, `FOREGROUND_PLANE.md`, `CLAUDE.md`.
+
+**OPEN — needs play-testing, not a decision.** The foreground's slim verticals
+(`tr:1`) now cross the play area on stages 1, 2, 3, 4, 6 and 8 for the first
+time. Alpha 0.62 is the existing guard and the spec's rule is *depth is not worth
+a death*. Petal Mile's fringe is the heaviest. If combat reads busy, dial
+`FORE[].a` / trunk density **on the carded stages only**.
+
+## 📋 09-15 — DEPTH-MAP CUTTER: VERIFICATION TOOL, NOT A REPLACEMENT (`5bf8284`)
+`tools/depth/` (Depth Anything V2 + SAM, banding OBJECT depth so a band edge
+cannot split an object) cuts all eight non-library plates at recompose 0.000%
+with no black base — and **must not replace the hand cut.** It splits the Petal
+Mile canopy across four cards (that plate needs ONE canopy card shearing about
+its trunk line) and merges Mirror Lake's three willows (right geometrically at
+0.357/0.353/0.341, wrong for the game — each needs its own wind phase). Glade and
+Sky Gardens are not rescued. What it IS worth: measured inside each shipped
+card's real alpha mask, **ordering agrees on every stage** — it validates the cut,
+and would have caught the blossom-over-its-own-trunks bug in one pass. Client
+confirmed: keep the hand cut. Verdict recorded in `hybridcut.py`'s docstring.
+
 ## 🔎 08-13 (cloud session) — AMBIENCE AUDIT (both modes, every effect)
 Client, after the library birds: *"Perform audit anyway."*
 
@@ -45,8 +88,8 @@ predates this work and removing a deliberate decorative frame is an art call.
 **Everything else checked and correct:** per-stage ambience kinds (library gets
 `motes`, and `drawBGLife`'s bird branch only fires for pollen/cloud/embers, never
 motes); the RPG's sparkles/fairies/birds `_out` gate; the foreground plane
-(`FORE[0]` is beams and lamps, interior-appropriate, and it returns early on card
-stages); chandelier pools (`!_bg`, dead while every stage has a painted plate);
+(`FORE[0]` is beams and lamps, interior-appropriate; **it returned early on card
+stages — reversed 09-15, see below, it now runs on all nine**); chandelier pools (`!_bg`, dead while every stage has a painted plate);
 décor props (stage-themed via `decorCell`); the undercroft (themed per stage);
 runner window shafts and dust motes (correct indoors).
 

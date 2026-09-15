@@ -141,8 +141,15 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   from `H`. It is read on resize AND on the start-of-run toggle (the pads only
   get `.on` there). Anything laying out against the bottom of the screen should
   use it rather than inventing another fraction.
-- **There is a plane IN FRONT of the hero — `drawForeground` / `FORE[]`.** Drawn
-  after the world transform so it occludes her, at ~1.7x the world's screen rate.
+- **There is a plane IN FRONT of the hero — `drawForeground` / `FORE[]`, on ALL
+  NINE stages.** Drawn after the world transform so it occludes her, at ~1.7x the
+  world's screen rate (~1.56 px per world px, about **35x the backdrop plate**).
+  It was switched off on the six carded stages with "the cards ARE the near
+  planes"; they are not — the whole card set spans 0.036..0.053 px per world px,
+  a 1.46x ratio with nothing near in it, so there was no second depth system to
+  contradict. Re-enabled 09-15 and it is the BIGGEST of the depth cues. Untested
+  in combat on those six: if it reads busy, dial `FORE[].a` / trunk density on
+  the carded stages only.
   Rules learned the hard way: a trunk **stops at the ground**; a near trunk is a
   tapered near-**silhouette**, never a tinted parallel gradient; and its alpha
   stays ~0.62 because the strip crosses the play area and a foe behind it must
@@ -187,9 +194,22 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   would shear continuous foliage. Test before cutting a repeating plate.
 - **Stages 1-8 EXCEPT 0, 5 and 7 are MULTIPLANE — `CARD_DATA` + `drawCards`.** An inpainted
   base plate plus cut cards, each on its own rate:
-  `rate = BASE + (depth-0.5)*SPREAD` with BASE 0.045, SPREAD 0.010, separation
-  clamped to +/-80px. **The spread must stay TINY** — wide spreads read as the set
-  falling over, with cards migrating a whole plate width across a level. Ground
+  `rate = BASE + (depth-0.5)*SPREAD` with BASE 0.045, **SPREAD 0.019**, separation
+  clamped to +/-90px (`CB_MAXSEP`). **The spread must stay TINY** — wide spreads
+  read as the set falling over, with cards migrating a whole plate width across a
+  level. **But "tiny" is not "0.010": that value never once reached its own
+  clamp.** Measured, a level ends at camX ~10,378 and 0.010 separates the farthest
+  card by only 46.7px against a ceiling of 90. **0.019 is derived, and boxed in
+  from both sides** — raise `CB_MAXSEP` with it and the art tears (at 0.030/200
+  the willow slides off its bank and the inpaint shows); keep the clamp and raise
+  the spread and the card pins at 90 partway through, after which it moves at
+  exactly the plate rate and the parallax is DEAD for the rest of the stage
+  (0.024 freezes the last 20%, 0.030 the last 36%). 0.019 is the only value that
+  stays alive a whole level. Near/far ratio 1.22x -> 1.46x. Sweep it at runtime
+  with `_devSpread(spread,maxsep)` — it can only be judged at the END of a level.
+  **`drawCards` draws in LAYER passes, never tile passes**: interleaved, tile
+  N+1's base lands on top of tile N's cards and eats a `csep`-wide strip of every
+  far card at each plate seam. Ground
   strips (verge/shore/path) are the ONE exception: real rate, loose clamp,
   because a featureless band has no landmark to notice movement on. **Water is
   NOT a ground strip** where its reflections are painted in — they are a
