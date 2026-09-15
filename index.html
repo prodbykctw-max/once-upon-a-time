@@ -1599,6 +1599,14 @@ function update(){
   if(MODE==='temple')return updateT();
   GS.tick++;GS.lyricT++;
   var p=GS.p;
+  // ── RENDER-INTERPOLATION SNAPSHOT (see loop() / _lerpIn) ──────────────────
+  // The pose BEFORE this step. draw() renders between this and the post-step
+  // pose, so motion is a continuous function of wall-clock time instead of a
+  // staircase locked to 60Hz. Taken here, after every early return, so a paused
+  // or hitstopped frame never records a phantom step.
+  GS._ix=p.x;GS._iy=p.y;GS._icx=GS.camX;GS._icy=GS.camY;
+  if(GS.foes)for(var _fi=0;_fi<GS.foes.length;_fi++){var _fe=GS.foes[_fi];_fe._ix=_fe.x;_fe._iy=_fe.y;}
+  if(GS.boss){GS.boss._ix=GS.boss.x;GS.boss._iy=GS.boss.y;}
   if(GS.shieldT>0){GS.shieldT--;p.inv=Math.max(p.inv,2);}
   if(GS.levelUpT>0)GS.levelUpT--;
   if(p.dead){
@@ -6547,6 +6555,57 @@ function showModeSel(){
 // fixed-timestep: physics always advance at 60Hz regardless of render FPS,
 // so slow phones don't turn jumps into slow-motion mush
 var _lT=0,_acc=0;
+// ── RENDER INTERPOLATION ───────────────────────────────────────────────────
+// Client: *"it does seem a bit jerky and dry… not naturally smooth."*
+//
+// The fixed timestep above is right and stays. What was missing is that draw()
+// rendered the RAW post-step pose, so on screen everything moved in 60Hz
+// staircases no matter what the display was doing. On a 120Hz phone that means
+// every position is shown for TWO frames — by construction, not by accident —
+// and any frame the device runs long shows a double-length jump.
+//
+// Measured before the change, portrait, real held-key running at a true 60Hz:
+// 6.6% of displayed frames moved her ZERO px and 7.5% moved her DOUBLE. Only
+// 86% were a clean step.
+//
+// Fix: physics still advance in whole 16.6ms steps; the DRAW places everything
+// between the last two steps by `_alpha`, the fraction of a step already
+// banked. Motion becomes a continuous function of wall-clock time and the
+// staircase disappears at any refresh rate.
+//
+// It renders up to one step in the past. That is the standard trade and it is
+// 16ms — far below the input latency the pads already carry.
+//
+// Interpolated: the camera, Jandé, the foes and the boss. NOT particles (they
+// are short-lived and chaotic — no staircase to see) and NOT the runner, which
+// is a separate renderer.
+var _alpha=0,_lerpSave=null;
+var LERP_SNAP=64;                 // a move bigger than this is a teleport, not motion
+function _lrp(a,b,t){return Math.abs(b-a)>LERP_SNAP?b:a+(b-a)*t;}
+function _lerpIn(){
+  if(MODE!=='side'||!GS||!GS.p||GS._ix===undefined)return;
+  var p=GS.p,s={px:p.x,py:p.y,cx:GS.camX,cy:GS.camY,f:[]};
+  p.x=_lrp(GS._ix,p.x,_alpha); p.y=_lrp(GS._iy,p.y,_alpha);
+  GS.camX=_lrp(GS._icx,GS.camX,_alpha); GS.camY=_lrp(GS._icy,GS.camY,_alpha);
+  if(GS.foes)for(var i=0;i<GS.foes.length;i++){var e=GS.foes[i];
+    if(e._ix===undefined){s.f.push(null);continue;}
+    s.f.push([e.x,e.y]); e.x=_lrp(e._ix,e.x,_alpha); e.y=_lrp(e._iy,e.y,_alpha);}
+  if(GS.boss&&GS.boss._ix!==undefined){s.b=[GS.boss.x,GS.boss.y];
+    GS.boss.x=_lrp(GS.boss._ix,GS.boss.x,_alpha); GS.boss.y=_lrp(GS.boss._iy,GS.boss.y,_alpha);}
+  // The pose actually handed to draw(), kept so smoothness can be MEASURED.
+  // Sampling GS.p.x proves nothing here — that is the physics pose, and it is
+  // supposed to stay a 60Hz staircase.
+  GS._drawX=p.x;GS._drawY=p.y;GS._drawA=_alpha;
+  _lerpSave=s;
+}
+// Restore the EXACT pre-draw numbers, never a recomputed lerp back — physics
+// must not inherit a rounding error from a rendering convenience.
+function _lerpOut(){
+  var s=_lerpSave; if(!s)return; _lerpSave=null;
+  GS.p.x=s.px;GS.p.y=s.py;GS.camX=s.cx;GS.camY=s.cy;
+  if(GS.foes)for(var i=0;i<GS.foes.length&&i<s.f.length;i++){var v=s.f[i];if(v){GS.foes[i].x=v[0];GS.foes[i].y=v[1];}}
+  if(s.b&&GS.boss){GS.boss.x=s.b[0];GS.boss.y=s.b[1];}
+}
 function loop(ts){if(!running)return;
   if(typeof ts!=='number'){_lT=0;_acc=0;requestAnimationFrame(loop);return;} // first call has no timestamp
   if(!_lT)_lT=ts;
@@ -6555,7 +6614,11 @@ function loop(ts){if(!running)return;
     var steps=0;
     while(_acc>=16.6&&steps<3){update();_acc-=16.6;steps++;}
     if(_acc>=16.6)_acc=0; // device can't keep up — drop backlog, never spiral
-    draw();musTick();
+    _alpha=_acc/16.6;                       // fraction of a step already banked
+    if(_alpha<0)_alpha=0;else if(_alpha>1)_alpha=1;
+    _lerpIn();                              // pose everything BETWEEN steps
+    try{draw();}finally{_lerpOut();}        // physics state restored exactly
+    musTick();
   }catch(e){console.error('loop:',e);}
   requestAnimationFrame(loop);}
 // Dev hook: the preview pane suspends rAF while backgrounded, so headless

@@ -303,6 +303,31 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
 - **Jelly UI:** all UI motion lives in the JELLY UI CSS block, gated by
   `body.rm` (reduce-motion setting + OS preference via `applyMotionClass()`).
   New buttons/cards get the existing classes; never animate under `body.rm`.
+- **The loop is FIXED-TIMESTEP + RENDER-INTERPOLATED, and the two halves are
+  separate on purpose.** Physics advance in whole 16.6ms steps (keep that — it is
+  what stops slow phones turning jumps into slow motion). `draw()` then places
+  the camera, Jandé, the foes and the boss BETWEEN the last two steps by
+  `_alpha = _acc/16.6`. Without it everything moved in 60Hz staircases whatever
+  the display was doing — on a 120Hz phone every position shows for two frames BY
+  CONSTRUCTION, and a long frame banks two steps and jumps double. Measured at a
+  true 60Hz before the fix: only 86% of drawn frames were a clean step, 6.6%
+  frozen, 7.5% doubled; after, frozen frames fall 22.9% -> 6.6% on a display not
+  locked to the step. Three rules: `update()` snapshots the pre-step pose AFTER
+  every early return (or a paused/hitstop frame records a phantom step);
+  **`_lerpOut` restores the exact saved numbers, never a recomputed lerp** —
+  physics must not inherit a rounding error from a rendering convenience, and it
+  runs in a `finally`; and `LERP_SNAP` (64) makes a teleport snap instead of
+  smearing. **To check smoothness read `GS._drawX/_drawY/_drawA`, NOT `GS.p.x`** —
+  the physics pose is supposed to stay a staircase. Spec:
+  `docs/MOTION_SMOOTHING.md`.
+- **Animation `spd` is game-frames-PER-animation-frame, so smaller is faster**
+  (attack 2 = 30fps, run/dash 4 = 15fps, jump 7 = 8.6fps, idle 9). **The jump's
+  chunkiness is an ART limit, not a rate to tune:** airtime is 44 frames and the
+  sheet has 6, held 7 each, so the poses already map onto the arc — playing them
+  faster finishes early and holds the landing pose in mid-air. More frames need
+  AutoSprite. And **check the stride before "fixing" a run cadence**: hers covers
+  203 world px per 32-frame cycle against `PH` 86 = 2.36 body-heights, which is
+  correct, so there is no foot-slide to chase.
 - **Mobile first:** fixed-timestep loop, DPR cap, touch-action lockouts stay.
   Touch controls must keep working in portrait AND landscape.
 - Never commit API keys; never commit photos of Jandé (real person, public repo).

@@ -473,6 +473,8 @@ pre-deploy gate to stop the glyph rule regressing a third time.
 | Foreground plane on carded stages | CLOSED 09-15 — do not retry | Switching `drawForeground` on for stages 1, 2, 3, 4, 6, 8 was tried and **reverted the same day**: its slim verticals are dark near-silhouettes at ~35x the plate rate and read as black bars sweeping the frame (near-black coverage of the backdrop band 0.35-1.09% -> 3.17-8.01%). Client: *"as I move, big black gaps."* `tr:1` on a stage is a combat-readability decision, not a depth decision |
 | Depth-map cutter | RESOLVED 09-15 | `tools/depth/` ships as a VERIFICATION tool, not a replacement cutter. Cuts all eight plates at recompose 0.000%, ordering agrees with the hand cut on every stage — but it splits the Petal Mile canopy across four cards and merges Mirror Lake's three willows. Client confirmed the hand cut stays |
 | **Multiplane cards** | **OFF 09-15 (client call)** | `CARDS_ON=false`; all nine stages draw the flat plate. Client: *"every time I move it looks like the background is separating from itself… it wasn't like that at first."* That is the mechanism, not a defect — a card scrolls over an inpainted fill of its own hole, so any separation shows a smear. Switch, not deletion: CARD_DATA, drawCards, the 38 cut assets and tools/depth all stay. Backdrop movement preserved (`cam*CB_BASE` + LIVEBG warp). If it is ever wanted back, the honest version is **separated depth layers rendered out of Blender** — real planes with nothing to inpaint behind them — not a cut out of a finished flat painting |
+| Jump animation smoothness | OPEN (art) | The jump animates at 8.6fps — 6 drawn frames held 7 game-frames each across 44 frames of airtime. The poses already map correctly onto the arc, so this is NOT a rate to tune (faster finishes early and holds the landing pose mid-air). Needs more drawn frames: an AutoSprite pass, blocked on `$AUTOSPRITE_KEY` |
+| Acceleration curve / "dry" feel | OPEN (design) | `p.vx += (tgt-p.vx)*0.5` reaches 94% of top speed in 4 frames and the residual glide is killed outright; the code says this was deliberately tightened from 0.3 (*"snap to speed, snap to stop"*). Loosening reads as more natural and less responsive. A feel trade for the client, not a defect — not changed |
 | Phaser scaffold / Godot project | PARKED | Preserved migration/native targets |
 
 ---
@@ -1126,6 +1128,36 @@ control fetches 38/38); she covers 2,600–6,500 world px; 71–92% of backdrop
 pixels change while running, so the movement is intact; and dark coverage is
 unchanged against the live build (portrait 2.0–3.3% both ways, landscape 5.18 vs
 5.36 and 3.10 vs 3.36).
+
+**And the motion was smoothed** — the last thing asked for that day. Client:
+*"it does seem a bit jerky and dry… I'm mainly only talking about the character
+movement being jerky."* Four candidates were measured before anything changed:
+draw-position rounding (none exists — both `drawHero` and the world transform are
+sub-pixel), run cadence against ground speed (203 world px per 32-frame stride
+cycle against `PH` 86 = 2.36 body-heights, correct, left alone), the jump
+animation rate, and the loop itself.
+
+**The loop was it.** `loop()` advanced physics in whole 16.6ms steps and then
+drew the raw post-step pose, so everything moved in 60Hz staircases whatever the
+display was doing — on a 120Hz phone every position shows for two frames by
+construction, and any long frame banks two steps and jumps double. Measured at a
+true 60Hz on a real held-key run: only **86% of displayed frames were a clean
+step, 6.6% froze, 7.5% doubled** — roughly eight hitches a second.
+
+The fixed timestep is correct and stays; what changed is that `draw()` now poses
+the camera, Jandé, the foes and the boss BETWEEN the last two steps by
+`_alpha = _acc/16.6`. **Frozen frames fall from 22.9% to 6.6%** on a display not
+locked to the step, and it is correctly a no-op at exactly 60Hz. **Physics proven
+unaffected** — the real risk with this technique — with distance per physics tick
+identical before and after (2.4256/2.4256/2.4381 both). `_lerpOut` restores the
+exact saved numbers in a `finally`, never a recomputed lerp. Spec:
+`docs/MOTION_SMOOTHING.md`.
+
+Two things it deliberately does not fix, both recorded as open threads: the jump
+animates at **8.6fps** because the sheet has six frames spread correctly across
+44 frames of airtime (an art limit, not a rate to tune), and the snappy
+acceleration curve that may be what "dry" is pointing at, which is a feel trade
+for the client rather than a defect.
 
 **The rule this leaves behind:** `tr:1` on a stage is a combat-readability
 decision, not a depth decision — never switch that plane on for a stage without

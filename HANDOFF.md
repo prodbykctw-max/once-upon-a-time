@@ -22,6 +22,43 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## ✅ 09-15 — MOTION SMOOTHING: render interpolation (`docs/MOTION_SMOOTHING.md`)
+Client: *"it does seem a bit jerky and dry… I'm mainly only talking about the
+character movement being jerky."*
+
+**Four candidates measured before touching anything**, because "jerky" has
+several causes and they need different fixes:
+
+* draw-position rounding — **none exists**, `drawHero` and the world transform
+  are both sub-pixel. Not it.
+* run cadence vs ground speed — stride covers 203 world px per 32-frame cycle
+  against `PH` 86 = **2.36 body-heights**, correct for a run. **Left alone.**
+* jump animation rate — real, but **art-limited** (see below).
+* **fixed timestep with no render interpolation — the cause.**
+
+`loop()` drew the RAW post-step pose, so everything moved in 60Hz staircases
+regardless of the display. Measured at a true 60Hz: only **86% of drawn frames
+were a clean step, 6.6% frozen, 7.5% doubled** — about eight hitches a second.
+On a 120Hz phone every position shows for two frames by construction.
+
+Physics still step at 16.6ms; `draw()` now poses camera, Jandé, foes and boss
+BETWEEN steps by `_alpha=_acc/16.6`. **Frozen frames 22.9% -> 6.6%** on a display
+not locked to the step; correctly a no-op at exactly 60Hz.
+
+**Physics proven unaffected** (the real risk here): same input, distance per
+physics tick 2.4256/2.4256/2.4381 before AND after. All nine stages drive clean,
+jumps land, zero page errors.
+
+**NOT fixed, and it is art not code: the jump animates at 8.6fps.** Airtime is 44
+frames, the sheet has 6 held 7 each, so the poses already map onto the arc —
+playing them faster finishes early and holds the landing pose mid-air. More
+frames need an AutoSprite pass, blocked on `$AUTOSPRITE_KEY`.
+
+**OPEN, a feel call not a defect:** "dry" may also mean the acceleration curve,
+deliberately snappy at `vx += (tgt-vx)*0.5` with the residual glide killed
+outright. The code says it was tightened from 0.3 on purpose. Loosening reads as
+more natural and less responsive — client's call. Not changed.
+
 ## ⛔ 09-15 — MULTIPLANE CARDS SWITCHED OFF (`CARDS_ON=false`)
 Client, playing the live Frédéric edition: *"every time I move it looks like the
 background is separating from itself… it wasn't like that at first."*
