@@ -15,6 +15,34 @@
 > THE BOUTIQUE in portrait). Item 3 is the 47-site glyph sweep. Everything is
 > already root-caused with line numbers — no investigation needed.
 
+> ## 🛑 ACTIVE 09-16 — CLIENT NOTES IN, NO WORK UNTIL THE WALKTHROUGH
+> **`docs/CLIENT_NOTES_FREDERIC.md`.** Frédéric De Jesus (BASILICA) sent full
+> notes on the whole game. He asked explicitly: *"Before any additional work or
+> changes are made, I'd like for us to connect and walk through these notes
+> together."* Client confirmed: *"we're not making any changes until then."*
+> Expected to start **after Sunday / next week**.
+>
+> **DO NOT IMPLEMENT ANY OF IT YET.** The doc triages every item and, more
+> usefully, checks the four claims that could be checked:
+> * *"Stage 8 and onward has no music"* — **does not reproduce.** Measured on the
+>   Frédéric edition, 12–18 oscillators per 4s of play on every stage including
+>   8. But `STAGE_KEYS` is `[0,3,5,7,2,8,10,5,7]`, so **stages 8 and 9 reuse the
+>   keys of 3 and 4** and there are no per-stage compositions at all — he may be
+>   reporting sameness, not silence. Different jobs.
+> * *"Checkpoints"* — **already exist**, as a gem-priced continue capped at 5
+>   (`CHECKPOINT`/`CHECKPOINT_X`/`MAX_CONTINUES`). Likely wants to be free, not
+>   built.
+> * *"What are the words at bottom"* — `drawLyric`, five placeholder taglines on
+>   a 15s rotation. Not the song. Real lyrics still owed by the client.
+> * *"Widen line of sight"* — **conflicts with his own earlier zoom directive.**
+>   Read-ahead is 9.3 tiles against the ~9.6 NES reference; widening shrinks the
+>   hero that `BASE 0.92 / VIEW_W 440` exists to enlarge. Needs a decision.
+>
+> Two items are much bigger than they read: **story cuts need a cutscene
+> framework that does not exist**, and the **Game II real-world Atlanta redesign
+> is a phase of its own**, not a task. Several art items (idle dance, Game II
+> outfit, Purple Guy, more jump frames) are blocked only on `$AUTOSPRITE_KEY`.
+
 > ✅ **DONE 07-26 — boss music: `docs/BOSS_MUSIC.md`.** Client wants darker,
 > dynamic score during RPG boss fights. The mechanism already exists in
 > `musTick` but its `danger` flag is wired ONLY to the runner's chaser, so RPG
