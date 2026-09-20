@@ -73,6 +73,11 @@ thread awaiting the client since July. His "Determine copy" note is the same ask
 
 This is the one item that contradicts something already delivered on request.
 
+> **Reference note (09-20):** the client sent an Unstrung Machine clip as a
+> look reference. Measured, its character sits at a comparable fraction of
+> the frame to Jandé — so that reference does **not** back this item.
+> `docs/ART_REFERENCES.md`.
+
 Read-ahead is currently **9.3 tiles** in portrait. The reference figure is
 NES/Mario at **~9.6**, so the game sits essentially on it. Widening the view
 means zooming out, which makes Jandé smaller — and the character scale is at

@@ -43,6 +43,18 @@
 > is a phase of its own**, not a task. Several art items (idle dance, Game II
 > outfit, Purple Guy, more jump frames) are blocked only on `$AUTOSPRITE_KEY`.
 
+> ## 🎨 09-20 — ART REFERENCES: `docs/ART_REFERENCES.md`
+> Client sent an **Unstrung Machine** reel as a look reference. Measured
+> against our meadow, three assumptions were wrong: we sit at the SAME black
+> floor (p5 43 vs 42), we have MORE aerial perspective (1.80x falloff vs
+> their 1.15x), and their look is LOW chroma (sat 52 vs our 126) — matching
+> it would reverse the client's own "colours aren't rich" directive.
+> **The one transferable thing is the FOREGROUND PLANE**, and the reference
+> explains the 09-15 revert: theirs is shaped foliage on the frame EDGES,
+> ours was abstract dark bars through the MIDDLE of the play area.
+> Also: Instagram share links are login-walled — the **oEmbed endpoint**
+> (`/api/v1/oembed/?url=…`) returns caption + a 640px frame with no auth.
+>
 > ✅ **DONE 07-26 — boss music: `docs/BOSS_MUSIC.md`.** Client wants darker,
 > dynamic score during RPG boss fights. The mechanism already exists in
 > `musTick` but its `danger` flag is wired ONLY to the runner's chaser, so RPG
