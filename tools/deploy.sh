@@ -33,7 +33,7 @@ touch .nojekyll
 
 git checkout --orphan _deploy_tmp
 git reset -q
-git add index.html web .nojekyll apple-touch-icon.png icon-192.png icon-512.png manifest.webmanifest
+git add index.html web .nojekyll apple-touch-icon.png icon-192.png icon-512.png manifest.webmanifest llms.txt llms-full.txt sitemap.xml robots.txt
 git add -f fred/index.html          # generated, and .gitignored on the dev branch
 git reset -q -- web/_manifest.txt 2>/dev/null || true   # debug file, not served
 
