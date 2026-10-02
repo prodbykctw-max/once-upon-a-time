@@ -141,26 +141,74 @@ normal maps (one texture × tint × fog), no baked AO or bounce, no shadows, no
 LODs, no physics engine. And the current terrain is **7.6 units wide** — a
 running strip, not a city block — so it needs a new builder regardless.
 
-### The two real paths
+### ✅ DECIDED: three.js with real materials, matching the drive level
 
-| | **A — extend GLWORLD** | **B — three.js scene module** |
-|---|---|---|
-| what | add an OSM-footprint mesh builder beside `buildHall`/`buildTerrain`; same shader family, same buffers | Game II becomes a lazy-loaded three.js scene, as Corner Store Dash does |
-| look | flat-shaded textured massing, fog and tint — stylised, not photoreal | baked AO and bounce, PBR, real materials |
-| cost | moderate; no new dependencies | a rewrite of the runner's renderer |
-| architecture | **keeps the single self-contained `index.html`** | adds a lazy-loaded module and a dependency |
-| asset pipeline | Blender bakes → textures, which this repo already does | glTF + meshopt + KTX2, which it does not |
+**Client, 10-02:** *"I need real materials. I need it all to be 3D, really dope,
+just like the driving portion of the Corner Store game."*
 
-**Corner Store Dash already answered the architecture objection for Path B**: its
-drive level is *"a lazy-loaded scene module in the main game"* — one game, with
-the heavy 3D scene pulled in only when that level starts. Game I could stay
-exactly as it is on Canvas2D/GLWORLD while Game II loads a three.js city.
+**Path B.** Game II becomes a lazy-loaded three.js scene built the way that
+drive level is built — real materials, baked lighting, glTF geometry. Extending
+GLWORLD is off the table; it cannot do PBR or baked AO, and that is the brief.
 
-**Either way, steps 1–3 of their pipeline transfer unchanged** — Overpass extract
-→ `build_world.mjs` → `world.json` → Blender blockout. That part is engine-
-agnostic by design: *"one source of truth for both the Blender build and the game
-engine."* The decision is only what consumes `world.json` at runtime, and it is
-the single biggest technical call in this redesign.
+**The objection I was going to raise is already answered in his own codebase.**
+Jandé's game is mobile-first, and three.js plus a baked city on a phone is a
+fair worry — except the drive level is *explicitly* **"mobile-first: the game is
+played on phones"** and ships hard budgets to prove it:
+
+| budget | limit |
+|---|---|
+| frame | **60 fps on a mid-range phone: ≤ 150 draw calls, ≤ 500k visible tris** |
+| total download, compressed | ≤ 8 MB |
+| first playable chunk | ≤ 3 MB, prefetched during the title/intro |
+| textures | KTX2 (Basis), shared trim-sheet atlases, ≤ 2048² |
+| geometry | glTF + meshopt, merged per city tile, **LOD past ~150 m** |
+
+Phones get a reduced crowd, grass capped at 16k cards, and 6.5 m lanes. **So
+"really dope 3D" on a phone is not a hope here — it is a solved problem with
+numbers, in a repo the client owns.** Carry those budgets over verbatim.
+
+### Most of the drive module transfers, because it is the same game
+
+Their own description of the drive is **"Temple Run with cars"**, running in
+route space with lane changes. Jandé's runner is Temple Run with a person in the
+same route space. That is not an analogy — it is the same shape, so the split is
+unusually clean:
+
+| reuse largely as-is | replace |
+|---|---|
+| `city.js` 15K — city from `world.json` | `runner.js` 56K — **car physics** |
+| `roads.js` 27K — surfaces, markings, curbs, crosswalks | most of `drive.js` 42K — car camera and loop |
+| `landscape.js` 25K · `crowd.js` 19K — pedestrians | |
+| `sky.js` · `weather.js` · `look.js` · `fx.js` · `birds.js` · `signals.js` · `tram.js` | |
+| `autopilot.js` 13K — scripted QA runs | |
+| `vendor/` ~1 MB — three.js, GLTFLoader, meshopt, SkeletonUtils | |
+
+**The world half comes over; the vehicle half becomes a person.** The crowd
+system is worth calling out separately — procedural pedestrians on both
+sidewalks is most of what will make it read as *Atlanta* rather than as a model
+of Atlanta.
+
+*(The DRIVE doc names Rapier in the engine line, but no Rapier appears in the
+shipped drive JS or `package.json` — confirm whether physics is actually custom
+before adding a dependency nobody is using.)*
+
+### ⚠ What this costs architecturally — state it plainly
+
+**Jandé's game currently has no build step.** `CLAUDE.md`: *"ONE self-contained
+file… No framework, no bundler, no build step, no server."* Path B ends that for
+Game II:
+
+* **A build step arrives** — glTF + meshopt + KTX2 means `optimize_assets.mjs`
+  and friends, plus a `package.json`. Corner Store Dash already has this.
+* **`index.html` stops being the whole game.** Game II becomes a dynamically
+  `import()`ed module with its own assets, the way the drive is *"a lazy-loaded
+  scene module in the main game."*
+* **Game I is untouched by this**, and that is the saving grace: it stays on
+  Canvas2D + GLWORLD with zero added startup cost, exactly as the drive adds
+  nothing to the store level's.
+
+This is a real change to the project's stated architecture, and it should be an
+explicit decision rather than something that arrives with the first glTF.
 
 ### Two practices to copy, not just the code
 

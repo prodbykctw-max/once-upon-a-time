@@ -95,7 +95,26 @@
 >   replace it, then `revert_chaser_purple.py` put the primitive back to get
 >   the purple over a black tailcoat. **The revert was a colour decision that
 >   cost the craft.** Brief: AutoSprite quality AND purple/top hat/cape, both.
-> * **GLWORLD IS A REAL 3D ENGINE — checked, not assumed.** Royal Runner is
+> * **DECIDED 10-02: Game II goes three.js with REAL MATERIALS**, built like the
+>   Corner Store drive level. Client: *"I need real materials, all 3D really dope,
+>   just like the driving portion."* Extending GLWORLD is off the table — it has
+>   no PBR and no baked AO, which is the brief. **Mobile is not the risk it looks
+>   like:** that drive level is explicitly mobile-first with hard budgets —
+>   **60 fps on a mid-range phone, <=150 draw calls, <=500k visible tris**, <=8 MB
+>   compressed total, <=3 MB first chunk, KTX2 <=2048², glTF+meshopt, LOD past
+>   150 m. Carry those over verbatim.
+> * **Most of the drive module transfers**, because it is the same game shape —
+>   theirs is *"Temple Run with cars"* in route space, ours is Temple Run with a
+>   person in route space. Reuse `city.js`, `roads.js`, `landscape.js`, `crowd.js`
+>   (procedural pedestrians — most of what will make it read as Atlanta), `sky`,
+>   `weather`, `look`, `fx`, `birds`, `signals`, `tram`, `autopilot`, `vendor/`.
+>   Replace only `runner.js` (car physics) and most of `drive.js` (car camera).
+> * **ARCHITECTURAL COST, decide it deliberately:** this ends *"no framework, no
+>   bundler, no build step"* for Game II. A build step arrives (glTF/meshopt/KTX2
+>   + package.json) and `index.html` stops being the whole game — Game II becomes
+>   a dynamically `import()`ed module. **Game I is untouched** and keeps zero
+>   added startup cost, exactly as the drive adds none to their store level.
+> * **GLWORLD IS A REAL 3D ENGINE — checked, not assumed** (kept for the record): Royal Runner is
 >   already behind-the-back 3D. `glworld_engine.js` builds genuine vertex/index
 >   buffers and `drawElements(TRIANGLES)` on textured, fogged meshes (`buildHall`
 >   = corridor walls + ceiling 64 rows deep; `buildTerrain` = 72x30 ground grid).
