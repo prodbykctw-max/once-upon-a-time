@@ -1,0 +1,98 @@
+{
+  "home": {
+    "label": "Home",
+    "resolved": false,
+    "fictional": true,
+    "ambiguous": false,
+    "note": "Fictional house on a representative DeKalb residential street — never her real address."
+  },
+  "wade": {
+    "label": "Wade Walker Park",
+    "resolved": true,
+    "osm": "way/34775500",
+    "name": "Wade Walker County Park",
+    "display": "Wade Walker County Park, 5585, Stone Mountain, DeKalb County, Georgia, 30088, United States",
+    "lat": 33.78272,
+    "lon": -84.1670999,
+    "bbox": {
+      "minlat": 33.7773244,
+      "maxlat": 33.7880759,
+      "minlon": -84.1732407,
+      "maxlon": -84.1611099
+    },
+    "kind": "leisure/park"
+  },
+  "stonemtn": {
+    "label": "Stone Mountain Park",
+    "resolved": true,
+    "osm": "relation/1447405",
+    "name": "Stone Mountain Park",
+    "display": "Stone Mountain Park, Stone Mountain, DeKalb County, Georgia, 30087, United States",
+    "lat": 33.8069694,
+    "lon": -84.1423193,
+    "bbox": {
+      "minlat": 33.7903453,
+      "maxlat": 33.8236199,
+      "minlon": -84.1653066,
+      "maxlon": -84.1183844
+    },
+    "kind": "leisure/park"
+  },
+  "dsa": {
+    "label": "DeKalb School of the Arts",
+    "resolved": true,
+    "osm": "way/1412872982",
+    "name": "DeKalb School of the Arts",
+    "display": "DeKalb School of the Arts, 1192, Clarendon Avenue, Decatur, DeKalb County, Georgia, 30002, United States",
+    "lat": 33.7594989,
+    "lon": -84.2677158,
+    "bbox": {
+      "minlat": 33.7580681,
+      "maxlat": 33.7608745,
+      "minlon": -84.2688123,
+      "maxlon": -84.2665904
+    },
+    "kind": "amenity/school"
+  },
+  "track": {
+    "label": "Track & Field",
+    "resolved": false,
+    "fictional": false,
+    "ambiguous": true,
+    "note": "Which track? Needs the client to name it — likely a school or park track."
+  },
+  "mbs": {
+    "label": "Mercedes-Benz Stadium",
+    "resolved": true,
+    "osm": "way/536744534",
+    "name": "Mercedes-Benz Stadium",
+    "display": "Mercedes-Benz Stadium, 1414, Andrew Young International Boulevard, Atlanta, Fulton County, Georgia, 30313, United States",
+    "lat": 33.7554123,
+    "lon": -84.4008493,
+    "bbox": {
+      "minlat": 33.7542597,
+      "maxlat": 33.7565711,
+      "minlon": -84.4024758,
+      "maxlon": -84.3992266
+    },
+    "kind": "leisure/stadium"
+  },
+  "apache": {
+    "label": "Old Apache Kafe",
+    "resolved": false,
+    "note": "no Nominatim match"
+  },
+  "church": {
+    "label": "Church",
+    "resolved": false,
+    "fictional": false,
+    "ambiguous": true,
+    "note": "Which church? Needs the client. Treat as sensitive if it is hers — same question as Home."
+  },
+  "_meta": {
+    "attribution": "Data © OpenStreetMap contributors, ODbL 1.0 — https://osm.org/copyright",
+    "geocoder": "Nominatim",
+    "generated": "2026-10-02",
+    "note": "A 9th location is still outstanding (client: \"we will have a 9th soon\")."
+  }
+}

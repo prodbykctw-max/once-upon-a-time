@@ -45,3 +45,6 @@ fred/
 # Python bytecode — created when tools/depth modules import each other
 __pycache__/
 *.pyc
+
+# Atlanta world build — raw OSM extracts (large, re-fetchable, not ours to vendor)
+tools/atlanta/cache/
