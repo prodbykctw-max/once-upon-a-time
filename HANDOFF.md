@@ -95,7 +95,19 @@
 >   replace it, then `revert_chaser_purple.py` put the primitive back to get
 >   the purple over a black tailcoat. **The revert was a colour decision that
 >   cost the craft.** Brief: AutoSprite quality AND purple/top hat/cape, both.
-> * **Borrow Corner Store Dash's world technique — the FRONT HALF.** That repo
+> * **GLWORLD IS A REAL 3D ENGINE — checked, not assumed.** Royal Runner is
+>   already behind-the-back 3D. `glworld_engine.js` builds genuine vertex/index
+>   buffers and `drawElements(TRIANGLES)` on textured, fogged meshes (`buildHall`
+>   = corridor walls + ceiling 64 rows deep; `buildTerrain` = 72x30 ground grid).
+>   **Extruding OSM footprints is the same shape of code `buildHall` already is.**
+>   What it lacks vs three.js: no glTF import, no PBR, no baked AO, no shadows,
+>   no LODs, no physics; and the terrain is 7.6 units wide — a strip, not a block.
+>   **Two paths:** (A) add an OSM mesh builder to GLWORLD — moderate, no new deps,
+>   keeps the single-file architecture, stylised look; (B) Game II becomes a
+>   lazy-loaded three.js scene, which is what Corner Store Dash itself does
+>   (*"a lazy-loaded scene module in the main game"*) — full fidelity, but a
+>   renderer rewrite plus a dependency. **Biggest technical call in the redesign.**
+> * **Borrow Corner Store Dash's world technique — steps 1-3 transfer EITHER WAY.** That repo
 >   builds real Atlanta from **OpenStreetMap** (not Google): Overpass extract ->
 >   `build_world.mjs` -> `world.json` in local metres -> Blender blockout. It
 >   runs in **route space (s along, d across)**, which IS Royal Runner's lane
