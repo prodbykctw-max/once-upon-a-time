@@ -65,6 +65,34 @@
 >   designs — "reskin, don't copy" is binding.
 > * **The colour grade is global and this splits it**: `--grade` and `GRADE`
 >   must go per-mode, still locked to each other within a mode.
+> * **THE OBSTACLES ARE COURTSHIP GESTURES** (client, 10-02): jump a man on one
+>   knee offering a ring, slide under a bouquet held out at arm's height, dodge
+>   a man with arms open for a hug. **This solves the readability problem by
+>   construction** — a proposal is low, an offering mid, an embrace full-body,
+>   so the gestures land on the three cell shapes on their own. And the verb
+>   becomes the story: she hurdles proposals and ducks bouquets. The ring and
+>   flowers carry the accent colour, so three purple men still read apart at
+>   speed. One cost: "they react by turning" needs extra frames — obstacles are
+>   a SINGLE static cell today, so that is an engine change, not just art.
+> * **The chaser is a primitive blob and the history says why.** Client:
+>   *"he's just a blob, we never improved on him."* True — sphere head, slab
+>   shoulders, cone body, 4 near-identical frames. An AutoSprite figure DID
+>   replace it, then `revert_chaser_purple.py` put the primitive back to get
+>   the purple over a black tailcoat. **The revert was a colour decision that
+>   cost the craft.** Brief: AutoSprite quality AND purple/top hat/cape, both.
+> * **Borrow Corner Store Dash's world technique — the FRONT HALF.** That repo
+>   builds real Atlanta from **OpenStreetMap** (not Google): Overpass extract ->
+>   `build_world.mjs` -> `world.json` in local metres -> Blender blockout. It
+>   runs in **route space (s along, d across)**, which IS Royal Runner's lane
+>   model. Steps 5-6 do NOT transfer (three.js + Rapier + glTF vs GLWORLD), but
+>   **the bake half already exists here** (`bake_world.py`, `outdoor_worlds.py`,
+>   `obstacles3d.py`, `ground_tiles.py`). Copy two practices too: never build
+>   over landmarks (their script prints every lot it clears), and **OSM is ODbL
+>   so the attribution must ship in-game**.
+> * **HOME IS FICTIONAL.** Client: not her real house. The pipeline pulls real
+>   footprints by default, so this is easy to get wrong and impossible to undo
+>   once public. Precedent exists: their hero storefront row is a fictional
+>   building on a real street. Same question for "Church" if it is hers.
 > * **NOTHING IS REPLACED — additive second asset set.** Client is repurposing
 >   the princess aesthetic for another game and keeping every asset.
 >   **`compose_obstacles_all.py` DELETES the old atlas file** by its own

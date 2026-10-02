@@ -64,6 +64,106 @@ behind the world switch (preferred — it is how `CARD_DATA` stays referenced
 while `CARDS_ON` is false), or teach the audit about an intentionally-retained
 set. Decide before the first new atlas lands, not after the audit starts failing.
 
+## Borrowing the Corner Store Dash world technique — YES, the front half
+
+**Client, 10-02:** *"Look at the EBT Presents Corner Store Dash repo. I used a
+technique to create the world based off Atlanta using actual overhead map overlay
+technology — see if you could borrow that."*
+
+Read it: `prodbykctw-max/EBT-PRESENTS-CORNER-STORE-DASH`, `docs/DRIVE.md` and
+`drive/tools/`. **It is real, it is fully scripted, and it is a strong fit —
+but only the first half of it.**
+
+### What it actually is
+
+**OpenStreetMap, not Google Maps.** A 1.1 km drive through real downtown
+Atlanta — Luckie St → Auburn Ave — routed on OSM data with one-ways respected,
+street widths measured from OSM's mapped sidewalks every 10 m, real tram track
+and MARTA platforms. Seven scripted steps, nothing hand-tweaked:
+
+| # | step | tool |
+|---|---|---|
+| 1 | Overpass (OSM) extract | → `drive/osm/*.json` (git-ignored raw data) |
+| 2 | **OSM + sampled elevation → `world.json` in local metres** | `build_world.mjs` |
+| 3 | Blender blockout from `world.json`; hero buildings, procedural facades, prop scatter | `bl.py`, `blender_blockout.py` |
+| 4 | Bake AO + bounce in Cycles (sun stays real-time) | |
+| 5 | LODs, per-tile merge, glTF via gltf-transform | `optimize_assets.mjs` |
+| 6 | Engine: **three.js (WebGPU/WebGL2) + Rapier** | |
+| 7 | Scripted browser QA + screenshots | `tests/qa.mjs` |
+
+Elevation comes from **Open-Meteo (Copernicus DEM)** — free HTTP, no key.
+
+### Why it fits Royal Runner unusually well
+
+**The coordinate model is already the same.** Corner Store Dash runs everything
+in *route space* — `s` = metres along the route, `d` = metres across it — so
+lanes, obstacles and collisions line up with what's painted on the road. That is
+**exactly** Royal Runner's model: distance travelled plus a lane offset. The
+route polyline that `build_world.mjs` emits is, with no conceptual translation,
+the thing Royal Runner already runs along.
+
+### Where it stops — steps 5 and 6 do NOT transfer
+
+Corner Store Dash renders with **three.js + Rapier, consuming glTF with meshopt
+and KTX2**. Royal Runner is the hand-written **GLWORLD** engine: a simple
+projection (`sx = W/2 + wx*s`, `s = 300/(300+z)`) over flat textures, with no
+glTF loader, no physics engine, no LODs and no PBR. The baked city cannot be
+dropped in. The choice is:
+
+* **(a)** use the OSM data to drive **baked art** for GLWORLD's existing texture
+  slots — grounds, props, obstacle atlases — and keep the engine, or
+* **(b)** port Royal Runner to three.js, which is a rewrite.
+
+**(a) is the realistic path, and the back half of it already exists in THIS
+repo.** `tools/bake_world.py` already bakes the Royal Runner world pack, and
+`tools/blender/` already holds `outdoor_worlds.py`, `obstacles3d.py`,
+`ground_tiles.py`, `ground_pbr.py` and `outdoor_props.py`. So the join is:
+
+> **Corner Store Dash steps 1–3 → Jandé's existing bake tools → GLWORLD's
+> existing texture slots.** Borrow the OSM front end; the Blender back end is
+> already written here.
+
+Step 2 is the piece genuinely worth lifting as-is: `build_world.mjs` turns an
+OSM extract plus an elevation grid into one `world.json` of roads, widths,
+building footprints and heights, and a route polyline, in local metres — *"one
+source of truth for both the Blender build and the game engine."*
+
+### Two practices to copy, not just the code
+
+**Never build over landmarks.** The storefront row in Corner Store Dash is
+fictional and sits on an ordinary commercial lot; the SCLC headquarters, Prince
+Hall Masonic Building, Ebenezer Baptist and the King Center are all left exactly
+as they are, and `blender_hero_row.py` **prints every OSM lot it clears** so the
+list can be checked after any placement change. Carry that discipline over.
+
+**OSM attribution is a licence condition, not a courtesy.** `build_world.mjs`
+carries `'Map data © OpenStreetMap contributors (ODbL); elevation Copernicus DEM
+via Open-Meteo'`. OSM is ODbL — if Jandé's runner ships on OSM-derived geometry,
+**that attribution has to appear in the game too.** Easy to forget, and this is
+paid commercial work on a public URL.
+
+### ⚠ HOME IS FICTIONAL — the client raised this and he is right
+
+**Client, 10-02:** *"Except for her home — it's gonna be a home-ish type of
+environment, but we're not gonna use our real house, because we don't want her
+actual personal information given out like that."*
+
+**Correct, and the pipeline makes it easy to get wrong**, because it pulls real
+footprints from real coordinates by default. A real residential address in a
+public promotional game is doxxing, and it cannot be taken back once deployed.
+
+The precedent is already in Corner Store Dash: the hero row is a **fictional
+building placed on a real street**. Do the same — a representative Atlanta
+residential block, a house that is invented. Everything about it should read as
+hers without being locatable.
+
+Worth a quick pass over the rest of the list for the same reason: the public
+venues are the point and should be recognisable, but **"Church"** deserves the
+same question as Home if it is her actual congregation. Separately,
+**Mercedes-Benz Stadium** is a trademarked name — depicting the building is
+ordinary, putting the branding on screen in a commercial promo is a question for
+the client, not a blocker.
+
 ## Tone — and the one architectural consequence of it
 
 **Client, 10-02:** *"All of this is gonna be heavy. Atlanta all in your face.
@@ -134,6 +234,46 @@ They already map exactly onto his "ducking, hopping over and dodging":
 | `obgate` | **slide under** | 256×192 | table, marble arch, lighting truss | arms braced wide overhead — she goes under |
 | `obwall` | **dodge sideways** | 256×224 | bookcase, colonnade, proscenium | standing square, filling the lane |
 
+### ✅ THE COURTSHIP-GESTURE SET (client, 10-02) — this is the answer
+
+**Client:** *"To jump over could be somebody on their knee trying to offer a ring
+in marriage. To go under could be somebody holding out a bouquet for her. Side
+swipe left or right for one guy, and they react by turning that way, trying to
+give her their bouquet or get a hug."*
+
+**Take this.** It is better than a generic trio of bullies for two reasons, and
+the first one is structural rather than a matter of taste.
+
+**1. It solves the readability problem below, by construction.** The three
+gestures naturally occupy three different heights, which is exactly what the
+three cell shapes need:
+
+| gesture | natural silhouette | required action | cell |
+|---|---|---|---|
+| down on one knee, ring out | **low and wide, no standing head** | jump | `oblow` 256×96 |
+| bouquet held out at arm's height | **a horizontal arm with clear space beneath** | slide under | `obgate` 256×192 |
+| stood up, arms open for a hug | **solid, square, fills the lane** | dodge sideways | `obwall` 256×224 |
+
+A proposal is low, an offering is mid, an embrace is full-body. The gesture set
+and the gameplay verbs line up on their own — nothing has to be forced.
+
+**2. The gameplay verb becomes the story.** The song is *the promise was a lie.*
+She spends the entire run **hurdling proposals, ducking bouquets, and sidestepping
+men who want to hold her.** Every obstacle is a romantic gesture she refuses.
+That is the strongest idea in this redesign and it costs nothing to adopt.
+
+**It also fixes the secondary risk for free.** Three purple men could still read
+alike at speed even with different silhouettes — but the **props carry the
+accent colour**. A gold ring and a bright bouquet against the purple are the
+tell, readable before the figure is.
+
+**One real cost to price: the reaction.** *"They react by turning that way"*
+needs more than one drawing. Today each obstacle is a **single static cell** per
+stage — `FX.drawImage(TEX.obwall, ai*256, 0, 256, 224, …)`. A turn-to-follow
+needs extra frames per obstacle (wider atlas or a second row) plus logic in
+`drawT` to pick the frame from how close she is and which side she passed. Not a
+blocker, and worth it — but it is an engine change, not just art.
+
 ### ⚠ THE REAL DESIGN RISK: SILHOUETTE READABILITY
 
 This is the thing most likely to bite after the art is paid for.
@@ -179,6 +319,34 @@ Two caveats: `compose_obstacles_all.py` carries a hard-coded Windows path
 in a cloud session; and stages 4 and 7 use border-only keying because their
 bodies are near-white — irrelevant once the cells hold people instead of marble
 and cloud, so that special case can go.
+
+## The Groom's Shadow — "he's just a blob", and the history says why
+
+**Client, 10-02:** *"The purple groom guy, he kind of is — he's just a blob. We
+never improved on him in the first place."*
+
+**Confirmed by looking at the shipped art.** Four frames at 176×224, and he is a
+Blender primitive assembly: sphere head, flat slab shoulders, cylinder arms, cone
+body, two pink dots for eyes, no hands. The four frames are nearly identical, so
+there is barely an animation either.
+
+**And the git history explains it — this is the useful part.** The pipeline shows
+three states in order:
+
+1. the original **Blender primitive** purple groom — top hat, pink eyes, cape;
+2. `embed_chaser.py`: *"Replaces the Blender primitive chaser. Source is an
+   AutoSprite spritesheet"* — a proper character model went in;
+3. `revert_chaser_purple.py`: *"Restore the ORIGINAL purple Groom's Shadow… 
+   replacing the AutoSprite black-tailcoat villain."*
+
+**The revert was a COLOUR decision that cost the craft.** The AutoSprite figure
+was better built but came back in a black tailcoat; going back to purple meant
+going back to the primitive blob. Nobody chose the blob — they chose the purple,
+and the blob came with it.
+
+**So the brief is not "redesign him", it is "stop making that trade":** an
+AutoSprite-quality figure that is *also* purple, top hat, pink eyes, cape. Both
+at once. That was always available; it just was not asked for.
 
 ## The purple is already ours — we do not need to borrow it
 
