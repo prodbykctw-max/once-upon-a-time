@@ -9,7 +9,49 @@ Blender build and the game engine.*
 ```bash
 node tools/atlanta/resolve_locations.mjs      # names -> OSM ids + coords
 node tools/atlanta/build_world.mjs mbs 350    # one location -> world/mbs.json
+blender --background --python tools/atlanta/blender_blockout.py -- mbs
+python3 tools/atlanta/test_blockout.py       # geometry tests, no Blender needed
 ```
+
+## The blockout
+
+`blender_blockout.py` turns `world/<key>.json` into a massing model and saves
+`blender/<key>_blockout.blend`. Idempotent — it rebuilds from an empty file
+every run.
+
+**Three things carried from the source project because they are hard-won:**
+one object per building (later passes need per-building facades and LODs, and
+the draw-call budget is met by merging per tile at *export*, not here); roads
+merged per highway class into a single mesh, which is where draw calls are
+actually saved; and **the winding fix** — rings are forced counter-clockwise
+before extruding, or the solidified normals point inward and every building
+renders inside-out, which looks exactly like a lighting bug and is not one.
+
+**Three changed on purpose:** no hard-coded laptop path (the repo is derived
+from the script's own location, with a `JANDE_ROOT` override); the ground is a
+**flat plate** and named `ground_FLAT_no_elevation_data`, because our extractor
+does not fetch an elevation grid yet and Atlanta is not flat — Stone Mountain
+least of all; and the route is a **`ROUTE_CANDIDATE`** drawn along the longest
+way in the extract, not an authored one, so nobody mistakes it for a decision.
+
+**Guessing happens in one place, visibly.** The extractor emits `h: null` rather
+than inventing a height. The blockout fills it from a per-kind table, flags the
+object `height_estimated`, prefixes the name `EST_`, and gives it an **orange**
+material — so a glance at the viewport separates what is surveyed from what is a
+guess. The same goes for road widths: `lanes` is used when OSM gives it, and the
+report says how many ways fell back to a class width.
+
+**It reports against the budget rather than leaving it to export.** Triangle
+count is printed every run, with a warning past 500k.
+
+### Testing it without Blender
+
+Blender is not installed in the cloud container, and the bugs in a blockout
+script are not Blender bugs — they are geometry bugs. `test_blockout.py` stubs
+`bpy`/`bmesh`, runs the real script against a world built of deliberately awkward
+shapes (a clockwise ring closed by a repeated vertex, a building with no height,
+a degenerate two-point ring, a way with no lane count), and asserts on the
+geometry it produced. **10 checks, all passing.**
 
 ## What was measured, so nobody re-learns it
 
