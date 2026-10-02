@@ -43,6 +43,39 @@
 > is a phase of its own**, not a task. Several art items (idle dance, Game II
 > outfit, Purple Guy, more jump frames) are blocked only on `$AUTOSPRITE_KEY`.
 
+> ## 🏙 10-02 — GAME II GOES TO ATLANTA: `docs/GAME_II_ATLANTA.md`
+> Client: *"the whimsical world of this fairytale game is not right for the
+> project"*; the runner is re-set in real Atlanta locations and the three
+> obstacles become **men she is dodging** — *"Atlanta all in your face."*
+> **Brief only, nothing built.** Key points, all verified against the code:
+> * The three obstacle types already map onto Frédéric's "hopping over,
+>   ducking and dodging": `oblow` (jump, 256x96), `obgate` (slide under,
+>   256x192), `obwall` (dodge lane, 256x224) — 9 cells each, **27 in total**.
+> * **8 locations given, 9 stage slots exist.** `LOOK[]`, `GLWDATA.grounds[]`
+>   and all three atlases are hard-wired to nine. Needs a decision first.
+> * **The readability risk is the real one:** today the three are different
+>   KINDS of object so they telegraph the action instantly. Make them all men
+>   and they all become person-shaped. Black-silhouette test before rendering.
+> * **The pipeline already exists** — `compose_prince_as.py` (AutoSprite ->
+>   border flood-fill white-key) and `compose_obstacles_all.py` (swap cells,
+>   re-sha1, repoint). Only the art is new.
+> * **Purple is already ours:** the chaser is the Groom's Shadow and was
+>   deliberately reverted TO purple (`revert_chaser_purple.py`). The three men
+>   read as lesser shades of him. Take the Gross Sisters ARCHETYPE, not the
+>   designs — "reskin, don't copy" is binding.
+> * **The colour grade is global and this splits it**: `--grade` and `GRADE`
+>   must go per-mode, still locked to each other within a mode.
+> * **NOTHING IS REPLACED — additive second asset set.** Client is repurposing
+>   the princess aesthetic for another game and keeping every asset.
+>   **`compose_obstacles_all.py` DELETES the old atlas file** by its own
+>   docstring — it must be made additive before it is ever run again, and
+>   every other `embed_*`/`compose_*` swap script audited the same way.
+>   Pattern to follow is `CARDS_ON`: keep both sets, switch between them.
+> * **Still blocked on `$AUTOSPRITE_KEY`** — re-verified 10-02 two ways; the
+>   connector loads and `get_account` still returns Unauthorized.
+> Steps that need NO key and cost nothing: pick the 9th stage, silhouette
+> test, `LOOK[]` retune.
+>
 > ## 🎨 09-20 — ART REFERENCES: `docs/ART_REFERENCES.md`
 > Client sent an **Unstrung Machine** reel as a look reference. Measured
 > against our meadow, three assumptions were wrong: we sit at the SAME black
