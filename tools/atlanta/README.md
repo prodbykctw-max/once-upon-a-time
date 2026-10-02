@@ -130,3 +130,43 @@ that; the extractor does not guess.
 | Church | **needs the client** — and is sensitive if it is hers |
 | Old Apache Kafe | **not in OSM** under any spelling tried. The client's own "Old" is the clue: the venue has closed, so it has to be built from reference rather than map data |
 | 9th location | still to come |
+
+## It works — and the User-Agent was the whole problem
+
+`overpass.openstreetmap.fr` answers in **~1.5 s**. The earlier wall of
+429/503/504s had two causes and neither was the query:
+
+1. **Node's `fetch` sends a bare User-Agent and Overpass instances refuse it.**
+   The identical query got HTTP 200 under `curl` and **403** under `fetch`. It
+   reads as "this mirror is blocking us" and is nothing of the kind. Every
+   request now sends a real UA, the same courtesy Nominatim's policy asks for.
+2. The other mirrors genuinely are saturated. `.fr` is first in the list now.
+
+Four locations extracted, in seconds each:
+
+| location | buildings | surveyed height | ways | km |
+|---|---|---|---|---|
+| Mercedes-Benz Stadium | 43 | **7** | 473 | 29.9 |
+| DeKalb School of the Arts | 50 | **1** | 129 | 13.2 |
+| Wade Walker Park | 54 | **0** | 71 | 11.2 |
+| Stone Mountain Park | 3 | **0** | 20 | 9.1 |
+
+Blockout triangle counts are **tiny** — 2.4k at Wade Walker, 2.0k at Stone
+Mountain — against a 500k budget. Massing is not where the budget goes; facades,
+props and the crowd are.
+
+## What the previews show that the numbers do not
+
+`python3 tools/atlanta/preview.py` draws each extract top-down. Three things
+only visible by looking:
+
+* **Height data is almost absent** — 8 surveyed heights across 150 buildings.
+  Nearly every building will be an estimate, which means **the facade pass
+  carries the realism**, not the massing.
+* **Stone Mountain at 450 m from the park centroid is nearly empty** — the
+  centroid of a 3.7 km park lands on the mountain, where little is mapped. That
+  location needs a specific spot chosen (the lawn, the walk-up trail, the
+  plaza), not the centre.
+* **DeKalb School of the Arts has a running track**, clearly visible in the
+  plan. "Track & Field" is one of the two locations still waiting on the client
+  — the DSA track may well be it, which would answer the question for free.

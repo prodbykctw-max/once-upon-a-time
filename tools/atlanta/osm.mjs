@@ -18,13 +18,27 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const CACHE = path.join(HERE, 'cache');
 fs.mkdirSync(CACHE, { recursive: true });
 
+// MEASURED FROM THIS CONTAINER, in the order that actually works:
+//   overpass.openstreetmap.fr   0.96s  <- fast and reliable; the one to use
+//   overpass.kumi.systems       65s, then 429/504 under any real load
+//   overpass.private.coffee     same queuing, then 429
+//   overpass-api.de             relay closes the tunnel ~8s in, every time
+//   overpass.osm.ch             answers, but returns 0 elements for Atlanta
+//                               (regional instance — not a global database)
 const MIRRORS = [
-  'https://overpass.kumi.systems/api/interpreter',   // works here; slow but reliable
+  'https://overpass.openstreetmap.fr/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
-  'https://overpass-api.de/api/interpreter',          // resets from this container
+  'https://overpass-api.de/api/interpreter',
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// SEND A REAL USER-AGENT. The same query that curl got a 200 for came back 403
+// from Node's fetch, because fetch sends a bare UA and Overpass instances reject
+// anonymous clients. It reads as "this mirror is blocking us" and is nothing of
+// the kind. Nominatim's policy asks for the same thing.
+const UA = 'jande-once-upon-a-time/1.0 (game world build; contact prodbykctw@gmail.com)';
 
 /** Run an Overpass QL query, with on-disk caching keyed by `name`. */
 export async function overpass(name, query, { timeoutMs = 180000, force = false } = {}) {
@@ -42,6 +56,7 @@ export async function overpass(name, query, { timeoutMs = 180000, force = false 
         const res = await fetch(url, {
           method: 'POST',
           body: new URLSearchParams({ data: query }),
+          headers: { 'User-Agent': UA, Accept: 'application/json' },
           signal: ac.signal,
         });
         clearTimeout(t);
@@ -58,6 +73,7 @@ export async function overpass(name, query, { timeoutMs = 180000, force = false 
         // 429/503 are load, not refusal: Overpass clears in tens of seconds.
         // 406 is a QUERY SYNTAX ERROR — retrying it is pointless, so bail early.
         if (/HTTP 406/.test(e.message)) { console.log('    (406 = malformed Overpass QL — fix the query, not the retry)'); break; }
+        if (/HTTP 403/.test(e.message)) { console.log('    (403 = the mirror refused this client, not this query)'); break; }
         const wait = /HTTP (429|503|504)/.test(e.message) ? 30000 : 4000;
         if (attempt < 3) await sleep(wait);
       }
