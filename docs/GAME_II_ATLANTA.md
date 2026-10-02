@@ -1,5 +1,12 @@
 # GAME II — ATLANTA REDESIGN BRIEF
 
+> **CHARACTER DESIGN IS NOT THIS PHASE.** The three men, the chaser and **Jandé
+> herself** are all unresolved — she is being redesigned for an urban Atlanta and
+> is **not staying in the wedding gown**. For now: **silhouettes as placeholders,
+> and the Groom's Shadow stays as he is.** Nothing in this brief should be read
+> as settling a character, and the existing cast is **not** the quality bar for
+> Game II — see "Character design is a later phase" below.
+>
 > **STATUS: BRIEF ONLY, NOTHING BUILT.** Direction captured 2026-10-02. Frédéric
 > has asked to walk through his notes before implementation begins
 > (`docs/CLIENT_NOTES_FREDERIC.md`); this records what the redesign actually
@@ -361,6 +368,95 @@ That makes the three obstacles **lesser shades of the thing chasing her** —
 same family, lower rank. The Shadow is the one she cannot outrun; these are the
 ones she hops, ducks and sidesteps. That is a stronger idea than the reference
 and it is the project's own.
+
+### The Gross Sisters, researched (10-02)
+
+**Client:** *"Research the Gross Sisters from The Proud Family, their aesthetic.
+They're just normal. They look normal in their world except they're purple."*
+
+**One correction first, before art gets drawn: they are BLUE, not purple.**
+Nubia, Olei and Gina are the only blue-skinned characters in the show, and the
+in-universe reason is deliberately mundane — their skin is ashy and they cannot
+afford lotion. Not a fantasy device, not a monster.
+
+**And that mundanity is the whole point — the client's read is exactly right.**
+They wear black overalls, white t-shirts and sneakers. Nothing about the design
+says "antagonist". Their menace is entirely performance and context; the art
+treats them as ordinary kids with one colour shifted.
+
+**They are told apart by BODY and HAIR, not by costume** — which is the second
+thing worth stealing, because it is the readability requirement again:
+
+| | build | hair |
+|---|---|---|
+| Nubia | lanky, tallest in the original | cornrows |
+| Olei | short and bulky, braces | messy bun (locs with shaved sides in the 2022 revival) |
+| Gina | shortest | afro with a headband |
+
+Three silhouettes distinguished by **height and mass**, wearing effectively the
+same outfit. That is precisely what our three obstacle men need, and it stacks
+with the courtship gestures rather than competing with them:
+
+| gesture | action | build this *suggests* (not decided) |
+|---|---|---|
+| on one knee, ring out | jump | **bulky** — a low wide mass reads as a hurdle |
+| bouquet held out at arm's height | slide under | **lanky** — the long reach IS the arch |
+| arms open for a hug | dodge | **broad** — fills the lane shoulder to shoulder |
+
+**These are silhouette notes, not character designs.** Nothing here settles who
+these men are — that is a later phase. What this says is only that the three
+shapes need to differ by height and mass, which the shadow placeholders will
+prove or disprove before anyone designs anybody.
+
+**Keep ours purple, not blue.** Purple is already this project's own — the
+Groom's Shadow — so the three men read as lesser shades of the thing chasing
+her, and it avoids reproducing the Gross Sisters' actual colour. Better design
+and cleaner provenance in one decision.
+
+Sources: [Disney Wiki](https://disney.fandom.com/wiki/The_Gross_Sisters) ·
+[The Proud Family Wiki](https://theproudfamily.fandom.com/wiki/Gross_Sisters) ·
+[TV Tropes](https://tvtropes.org/pmwiki/pmwiki.php/Characters/TheProudFamilyOthers)
+
+### ⚠ CHARACTER DESIGN IS A LATER PHASE — AND THE OLD CAST IS NOT THE BAR
+
+**Client, 10-02:** *"We have not gotten to the character design yet. We're not
+keeping her in the dress — she's not gonna be in a wedding dress. This is gonna
+change to an urban environment first and foremost, track and field and
+everything. We're just gonna use shadows and leave the purple guy… there is no
+reason to compare characters that don't exist to a character that will not be
+used any longer."*
+
+**Correct, and this supersedes an earlier version of this section** that set the
+bar by comparing proposed obstacle men against the gown Jandé and the Bramble
+Knight. That comparison was meaningless: **Jandé-in-the-wedding-gown is not the
+Game II character.** She is being redesigned for an urban Atlanta — track and
+field, real places — so measuring new characters against a hero who is being
+replaced tells you nothing.
+
+**What is actually true right now:**
+
+* **The whole cast of Game II is unresolved** — the three men, the chaser, and
+  **Jandé herself**. None of them exist yet.
+* **Quality parity is still a real requirement**, but it cannot be assessed yet,
+  because the thing everything must match — the new Jandé — has not been
+  designed. It is a constraint on the design phase, not a measurement to take
+  now.
+* The client has also noted the gown would not be right for every stage even in
+  Game I. Treat her costume as **per-context**, not one sheet for the whole game.
+
+### The placeholder plan: shadows — and it does double duty
+
+**Use silhouettes for the three men and leave the Groom's Shadow as he is.**
+That is the client's call and it is the right sequencing: block out the level
+with shapes, settle the design later.
+
+**It also happens to be the readability test this brief already asked for.** The
+recommendation below is to check the three men as flat black shapes before any
+detail is rendered, because if the silhouettes do not read apart at speed the
+redesign fails however good the characters look. **Shadow placeholders ARE that
+test.** Build the level with them, play it, and the question of whether a kneel,
+a reach and a block read differently at speed gets answered for free — before a
+single character is designed, and before any of it costs anything.
 
 ### On the Gross Sisters reference
 

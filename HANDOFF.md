@@ -74,6 +74,21 @@
 >   flowers carry the accent colour, so three purple men still read apart at
 >   speed. One cost: "they react by turning" needs extra frames — obstacles are
 >   a SINGLE static cell today, so that is an engine change, not just art.
+> * **Gross Sisters researched: they are BLUE, not purple**, and the in-show
+>   reason is mundane (ashy skin, no lotion) — no monster styling at all, just
+>   overalls, white tees and sneakers. The client's read is right: *they look
+>   normal except for the colour*. They are told apart by **build and hair**
+>   (lanky/cornrows, short+bulky/bun, shortest/afro), not costume — which is the
+>   readability requirement again, and it stacks onto the gestures: bulky kneels
+>   (jump), lanky offers the bouquet (the long reach IS the arch), broad blocks
+>   the lane (dodge). **Keep OURS purple, not blue** — purple is already this
+>   project's own via the Groom's Shadow, so the men read as lesser shades of
+>   him, and it avoids reproducing the actual Gross Sisters' colour.
+> * **QUALITY PARITY has a bar already in the game.** Client: the men must match
+>   Jandé's quality. Rendered at matching scale, the **RPG foes already do** —
+>   AutoSprite output (Bramble Knight) holds up beside a rigged, hair-simmed
+>   Jandé. **Only the chaser misses it.** So the target is "match the Bramble
+>   Knight tier", a known quantity, not an experiment.
 > * **The chaser is a primitive blob and the history says why.** Client:
 >   *"he's just a blob, we never improved on him."* True — sphere head, slab
 >   shoulders, cone body, 4 near-identical frames. An AutoSprite figure DID
@@ -93,6 +108,21 @@
 >   footprints by default, so this is easy to get wrong and impossible to undo
 >   once public. Precedent exists: their hero storefront row is a fictional
 >   building on a real street. Same question for "Church" if it is hers.
+> * **CHARACTER DESIGN IS A LATER PHASE.** The three men, the chaser AND Jandé
+>   herself are all unresolved — she is **not staying in the wedding gown**; the
+>   game moves to urban Atlanta, track and field. **For now: silhouettes as
+>   placeholders, Groom's Shadow left as he is.** Do NOT set a quality bar by
+>   comparing to the current cast — the gown Jandé is being replaced, so she is
+>   not the bar. Parity is still required, but it can only be measured once the
+>   new Jandé exists. Bonus: shadow placeholders ARE the silhouette-readability
+>   test this brief asks for, so blocking the level out answers it for free.
+> * **Gross Sisters researched: they are BLUE, not purple**, and the in-show
+>   reason is mundane (ashy skin, no lotion) — no monster styling at all, just
+>   overalls, white tees and sneakers. The client's read is right: *they look
+>   normal except for the colour*. They are told apart by **build and hair**,
+>   not costume — the readability requirement again. **Keep OURS purple, not
+>   blue**: purple is already this project's own via the Groom's Shadow, and it
+>   avoids reproducing their actual colour.
 > * **NOTHING IS REPLACED — additive second asset set.** Client is repurposing
 >   the princess aesthetic for another game and keeping every asset.
 >   **`compose_obstacles_all.py` DELETES the old atlas file** by its own
