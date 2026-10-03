@@ -339,13 +339,39 @@ matters of detail:
 Also down from 16 facets to **12**: at sixteen the panels get small enough to
 read as a cylinder again.
 
+### Fourth pass — what four reference angles changed
+
+Client: *"look at multiple photos, multiple angles."* Right, and working from a
+single photograph had produced three wrong readings that one more view
+corrected immediately:
+
+* **It is LOW AND WIDE, roughly 1:4 against its footprint.** OSM's `height=93`
+  is to the **top of the highest point**, not the main mass — used as the body
+  height it builds a tower. The body is now 0.74 of that, with only the peaks
+  reaching 93.
+* **The crown is a SAWTOOTH, not a rim.** The top alternates hard between peaks
+  and valleys. A gently varying rim just reads as a wobbly drum.
+* **The plan is a STAR, not a polygon.** Each white blade has a crease running
+  down it, and a crease down a blade means the plan zigzags in and out. 24
+  facets with a weak jitter reads as a cylinder; 24 with a strong alternation
+  (±4.5%) reads as folded metal. That single change is what finally gave the
+  shell its folded quality.
+* The chevron also had to go **extreme** — white planes sweeping from the crown
+  almost to the ground between tall glass wedges, rather than a band with a
+  wobble.
+
+The crown's sawtooth runs on a longer wavelength than the fold (a peak every
+four facets), so each peak spans two folded blades, and the glass and crown
+profiles are deliberately out of phase.
+
+**15 draw calls and 5,558 triangles for the entire location.**
+
 ### Honest state
 
-Recognisably the same building family now — folded white planes over dark
-angular glass, jagged roofline, open aperture — and at runner speed it would
-pass. Still not a photographic match: the real shell has sharper, more varied
-folds, the glass face is taller relative to the mass, and the entry canopies and
-ground-level detail are absent.
+It reads as the building. Folded white blades alternating with dark glass
+wedges, sawtooth crown, open aperture, low wide stance — a viewer who knows
+Atlanta would name it. Still absent: entry canopies and ground-level detail,
+the halo board, and the logo (deliberately — see below).
 
 **The logo is deliberately absent.** The three-pointed star is a trademark.
 Depicting the building is ordinary; reproducing the mark as an asset in a

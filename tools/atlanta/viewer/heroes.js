@@ -80,7 +80,7 @@ function bandGeometry(ringA, hA, ringB, hB, uvScale = 0.05) {
  * `off` metres out along each facet's own normal so they sit proud of the
  * glass and catch the sun separately from it.
  */
-function latticeGeometry(ringA, hA, ringB, hB, { rows = 3, w = 0.9, off = 0.8 } = {}) {
+function latticeGeometry(ringA, hA, ringB, hB, { rows = 3, w = 0.9, off = 0.8, minH = 0 } = {}) {
   const HA = (i) => (Array.isArray(hA) ? hA[i % hA.length] : hA);
   const HB = (i) => (Array.isArray(hB) ? hB[i % hB.length] : hB);
   const POS = [], NOR = [], UV = [], IDX = [];
@@ -121,6 +121,10 @@ function latticeGeometry(ringA, hA, ringB, hB, { rows = 3, w = 0.9, off = 0.8 } 
       base += 4;
     };
 
+    // Skip facets that carry almost no glass. With an extreme chevron, half the
+    // facets are solid white panel — bracing them would draw a triangle across
+    // a blank wall.
+    if (Math.abs(HB(i) - HA(i)) < minH) continue;
     // the fold line at every facet edge — these are the verticals
     strut(a0, b0);
     for (let rI = 0; rI <= rows; rI++) {
@@ -183,7 +187,12 @@ function resample(ring, n) {
  * picture this building, and it is the one feature an extrusion can never have.
  */
 export function mercedesBenzStadium(b, THREE_, mats) {
-  const H = b.h != null ? b.h : 93;
+  // OSM's height=93 is to the TOP OF THE HIGHEST POINT, not the main mass. Used
+  // as the body height it makes a tower; across four reference angles the
+  // building is strikingly LOW AND WIDE — roughly 1:4 against its footprint.
+  // So 93 is the peak, and the body sits well below it.
+  const PEAK = b.h != null ? b.h : 93;
+  const H = PEAK * 0.74;
   let ring = b.pts.slice();
   if (ring.length >= 2 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) {
     ring = ring.slice(0, -1);
@@ -191,7 +200,12 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   // TWELVE facets, not sixteen. The real shell is a handful of LARGE folded
   // planes; at sixteen they get small enough to read as a cylinder again, which
   // is exactly the drum this is meant to escape.
-  const F = 12;
+  // TWENTY-FOUR, with a strongly alternating radius. Twelve smooth facets gave
+  // flat white blades; the real panels are FOLDED, with a crease running down
+  // each one. A crease down a blade means the PLAN zigzags in and out — the
+  // building is a star, not a polygon. More facets plus a weak jitter reads as
+  // a cylinder; more facets plus a strong one reads as folded metal.
+  const F = 24;
   ring = resample(ring, F);
   const c = centroidOf(ring);
 
@@ -199,8 +213,16 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   // the photograph rises and falls, one corner juts up well above the rest, and
   // the plan is not a circle. A fixed per-facet profile breaks the symmetry in
   // a repeatable way — no randomness, so the model is the same every load.
-  const RJIT = [1.00, 0.97, 1.03, 0.99, 1.05, 0.96, 1.01, 0.98, 1.04, 0.97, 1.02, 0.99];
-  const TOPJ = [1.00, 0.93, 1.07, 0.97, 1.18, 0.95, 1.02, 0.91, 1.12, 0.96, 1.05, 0.94];
+  const RJIT = [];
+  for (let i = 0; i < F; i++) RJIT.push(i % 2 === 0 ? 1.045 : 0.955);
+  // A JAGGED CROWN, not a rim. In every reference the top alternates hard
+  // between peaks and valleys — that sawtooth silhouette is as recognisable as
+  // the glass. A gently varying rim just reads as a wobbly drum.
+  // The crown's sawtooth runs on a longer wavelength than the fold — a peak
+  // every four facets, so each peak spans two folded blades.
+  const PEAKS = [1.34, 1.30, 0.92, 0.90];
+  const TOPJ = [];
+  for (let i = 0; i < F; i++) TOPJ.push(PEAKS[i % PEAKS.length]);
   const r = (k) => scaleRing(ring, c, k).map(([x, y], i) => {
     const s2 = RJIT[i % F];
     return [c[0] + (x - c[0]) * s2, c[1] + (y - c[1]) * s2];
@@ -210,24 +232,40 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   // comes DOWN in points between the glass panels, and that zigzag is the
   // building's signature line after the roof. Alternating the boundary height
   // per facet is what produces it.
+  // THE CHEVRON IS EXTREME, not gentle. The 0.74/0.44 alternation was still
+  // basically a band with a wobble. In the photograph the white planes sweep
+  // from the roof ALL THE WAY DOWN to the ground between tall glass panels —
+  // some facets are almost entirely glass, their neighbours almost entirely
+  // white. That near-total alternation is the shape of the building.
+  // Above the concourse the white blades come to POINTS low down and the glass
+  // pushes up in wedges between them.
+  // Glass wedges push up where the crown dips, white blades come down where it
+  // peaks — the two profiles are deliberately out of phase.
+  const GSEQ = [0.30, 0.33, 0.95, 0.92];
   const GTOP = [];
-  for (let i = 0; i < F; i++) GTOP.push(H * (i % 2 === 0 ? 0.74 : 0.44));
+  for (let i = 0; i < F; i++) GTOP.push(H * GSEQ[i % GSEQ.length]);
 
   const parts = [];
-  parts.push(['skirt', bandGeometry(r(1.00), 0, r(1.05), H * 0.08)]);
+  // A dark glazed CONCOURSE BAND runs the whole way round at ground level in
+  // every reference photo, and it is what sets the building down rather than
+  // leaving it floating.
+  const parts2 = [];
+  parts.push(['skirt', bandGeometry(r(1.00), 0, r(1.04), H * 0.06)]);
+  parts.push(['glass', bandGeometry(r(1.04), H * 0.06, r(1.05), H * 0.24)]);
   // The glass leans out at the base and in at the top — that lean is what makes
   // it catch sky instead of ground.
-  parts.push(['glass', bandGeometry(r(1.05), H * 0.08, r(0.99), GTOP)]);
+  parts.push(['glass', bandGeometry(r(1.05), H * 0.24, r(0.99), GTOP)]);
 
   // ── BIG triangles. The first lattice used three rows and produced a fine
   // mesh; in the photograph there are only five or six triangles across the
   // whole face, each spanning nearly the full height of the glass. ONE row, and
   // heavy members, because these are primary structure and not window mullions.
-  parts.push(['mullion', latticeGeometry(r(1.05), H * 0.08, r(0.99), GTOP,
-                                         { rows: 1, w: 2.2, off: 1.1 })]);
+  parts.push(['mullion', latticeGeometry(r(1.05), H * 0.24, r(0.99), GTOP,
+                                         { rows: 1, w: 2.4, off: 1.2, minH: H * 0.3 })]);
 
   // shell: from the chevron up to a jagged rim
   const RIM = TOPJ.map((t) => H * 0.97 * t);
+  void parts2;
   parts.push(['shell', bandGeometry(r(0.99), GTOP, r(0.78), RIM)]);
 
   // ── roof: an ANNULUS WITH A REAL HOLE ──────────────────────────────────
