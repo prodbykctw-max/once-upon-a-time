@@ -170,3 +170,52 @@ only visible by looking:
 * **DeKalb School of the Arts has a running track**, clearly visible in the
   plan. "Track & Field" is one of the two locations still waiting on the client
   — the DSA track may well be it, which would answer the question for free.
+
+## The three.js viewer — the real geometry, standing up
+
+```bash
+python3 -m http.server 8000
+# open /tools/atlanta/viewer/index.html?loc=mbs
+# drag orbit · scroll zoom · R runner eye · O overview · , . move along the route
+```
+
+`viewer/city.js` is **the first piece of the Game II renderer**, not a throwaway.
+It reads the same `world.json` the Blender blockout reads — which is the whole
+point of the format — and extrudes it with `MeshStandardMaterial`, a sun, a sky
+and real shadows.
+
+**It merges by material, not by object.** The blockout keeps one object per
+building because facades and LODs need that; the runtime does the opposite,
+because 50 buildings would be 50 draw calls before a single prop exists.
+
+| location | draw calls | triangles | route |
+|---|---|---|---|
+| Mercedes-Benz Stadium | 6 | 5,739 | 759 m |
+| DeKalb School of the Arts | 6 | 2,607 | 2,484 m |
+| Wade Walker Park | 6 | 2,432 | 1,089 m |
+| Stone Mountain Park | 6 | 1,968 | 1,967 m |
+
+Against budgets of **150 draw calls and 500k triangles**. Massing costs
+essentially nothing; the budget is there for facades, props and the crowd.
+
+### Two things the runner camera caught that the overview hid
+
+Both were invisible from above and obvious at eye level. **Judge surfaces and
+light from the camera the game is played on.**
+
+* **Ground and road were nearly the same luma** (0x23231f vs 0x2b2b30). From
+  above, fine. At eye level, half the frame was an undifferentiated black sea.
+  Asphalt now reads dark *against* a lighter ground.
+* **Shadows went pure black.** A hemisphere light at 1.05 with a 2.6 sun left
+  the sun's shadow with nothing filling it. Outdoors the sky *is* the fill, so
+  the hemisphere now carries the intensity and the sun came down to match.
+
+### What this preview does and does not prove
+
+**Proves:** the pipeline runs end to end — real OSM → `world.json` → three.js
+with real materials — the scale is right, and the budget has enormous headroom.
+
+**Does not prove anything about how it will look.** This is massing. No
+textures, no props, no trees, no kerbs, no crowd. It is bare because it *is*
+bare, and 142 of 150 buildings carry a guessed height, so **the facade pass is
+where the realism actually arrives.**

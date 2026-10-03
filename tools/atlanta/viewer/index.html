@@ -1,0 +1,146 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Atlanta world preview</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0d10;overflow:hidden;
+    font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#dfe3ea}
+  canvas{display:block}
+  #hud{position:fixed;left:12px;top:12px;padding:10px 13px;border-radius:9px;
+    background:rgba(10,12,16,.78);backdrop-filter:blur(6px);pointer-events:none;
+    box-shadow:0 1px 0 rgba(255,255,255,.06) inset}
+  #hud b{font-size:14px;letter-spacing:.01em}
+  #hud .m{color:#8e96a6;font-size:11.5px;margin-top:3px}
+  #hud .warn{color:#e5a05a}
+  #keys{position:fixed;left:12px;bottom:12px;color:#6f7686;font-size:11.5px}
+  #pick{position:fixed;right:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;max-width:46vw;justify-content:flex-end}
+  #pick a{padding:5px 10px;border-radius:999px;background:rgba(22,26,33,.85);color:#c6ccd8;
+    text-decoration:none;font-size:11.5px;border:1px solid rgba(255,255,255,.07)}
+  #pick a.on{background:#2f6ae0;color:#fff;border-color:transparent}
+  #att{position:fixed;right:12px;bottom:12px;color:#5b6271;font-size:10.5px}
+</style>
+<div id="hud"><b id="t">loading…</b><div class="m" id="m"></div></div>
+<div id="pick"></div>
+<div id="keys">drag orbit · scroll zoom · <b>R</b> runner eye · <b>O</b> overview · <b>,</b>/<b>.</b> move along route</div>
+<div id="att"></div>
+
+<script type="module">
+import * as THREE from './vendor/three.module.min.js';
+import { buildCity, lightRig } from './city.js';
+
+const KEYS = ['mbs', 'dsa', 'wade', 'stonemtn'];
+const key = new URLSearchParams(location.search).get('loc') || 'mbs';
+
+const pick = document.getElementById('pick');
+for (const k of KEYS) {
+  const a = document.createElement('a');
+  a.href = '?loc=' + k; a.textContent = k; if (k === key) a.className = 'on';
+  pick.appendChild(a);
+}
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8fb4d8);
+const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.5, 6000);
+
+const world = await (await fetch(`../world/${key}.json`)).json();
+const R = world.location.radius_m;
+scene.fog = new THREE.Fog(0x8fb4d8, R * 0.9, R * 3.4);
+const { group, stats, route, routeLength } = buildCity(world);
+scene.add(group);
+lightRig(scene, R);
+
+document.getElementById('t').textContent = world.location.label;
+document.getElementById('m').innerHTML =
+  `${world.location.osm} · ${R} m radius<br>` +
+  `${stats.draws} draw calls · ${Math.round(stats.tris).toLocaleString()} triangles` +
+  (stats.draws <= 150 ? '' : ' <span class="warn">(over 150)</span>') + '<br>' +
+  `${stats.surveyed} surveyed height · <span class="warn">${stats.estimated} estimated</span>`;
+document.getElementById('att').textContent = world.attribution;
+
+// ── cameras ─────────────────────────────────────────────────────────────────
+let mode = 'overview', t = 0.12, yaw = 0.6, pitch = 0.62, dist = R * 1.5;
+
+function routePoint(u) {
+  const p = route.pts;
+  const segs = [];
+  let total = 0;
+  for (let i = 1; i < p.length; i++) {
+    const d = Math.hypot(p[i][0] - p[i-1][0], p[i][1] - p[i-1][1]);
+    segs.push(d); total += d;
+  }
+  let want = u * total, i = 0;
+  while (i < segs.length && want > segs[i]) { want -= segs[i]; i++; }
+  i = Math.min(i, segs.length - 1);
+  const f = segs[i] ? want / segs[i] : 0;
+  const a = p[i], b = p[i + 1] || p[i];
+  return {
+    x: a[0] + (b[0] - a[0]) * f, z: -(a[1] + (b[1] - a[1]) * f),
+    hx: b[0] - a[0], hz: -(b[1] - a[1]),
+  };
+}
+
+function place() {
+  if (mode === 'runner' && route) {
+    // Behind-the-back, at a runner's eye height — the framing the game will
+    // actually use, which is the only view that says whether the scale is right.
+    // Eye height, not drone height. 3.1 m looking at 1.6 m pitched the camera
+    // DOWN and filled the frame with tarmac; a runner's eye is ~1.7 m and looks
+    // level or slightly up, which is what puts the city in frame.
+    const p = routePoint(t), look = routePoint(Math.min(t + 0.06, 1));
+    const L = Math.hypot(p.hx, p.hz) || 1;
+    camera.position.set(p.x - (p.hx / L) * 6, 1.75, p.z - (p.hz / L) * 6);
+    camera.lookAt(look.x, 2.6, look.z);
+  } else {
+    camera.position.set(
+      Math.cos(yaw) * Math.cos(pitch) * dist,
+      Math.sin(pitch) * dist,
+      Math.sin(yaw) * Math.cos(pitch) * dist);
+    camera.lookAt(0, 0, 0);
+  }
+}
+place();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+let drag = null;
+renderer.domElement.addEventListener('pointerdown', (e) => (drag = [e.clientX, e.clientY]));
+addEventListener('pointerup', () => (drag = null));
+addEventListener('pointermove', (e) => {
+  if (!drag || mode === 'runner') return;
+  yaw -= (e.clientX - drag[0]) * 0.006;
+  pitch = Math.max(0.08, Math.min(1.5, pitch + (e.clientY - drag[1]) * 0.005));
+  drag = [e.clientX, e.clientY]; place();
+});
+addEventListener('wheel', (e) => {
+  dist = Math.max(R * 0.15, Math.min(R * 4, dist * (1 + Math.sign(e.deltaY) * 0.1)));
+  place();
+}, { passive: true });
+addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (k === 'r') mode = 'runner';
+  else if (k === 'o') mode = 'overview';
+  else if (k === ',') t = Math.max(0, t - 0.02);
+  else if (k === '.') t = Math.min(1, t + 0.02);
+  place();
+});
+
+// expose for headless capture
+window.__preview = {
+  setMode: (m, u) => { mode = m; if (u != null) t = u; place(); },
+  setOrbit: (y, p, d) => { yaw = y; pitch = p; dist = d * R; place(); },
+  stats, routeLength, ready: true,
+};
+
+renderer.setAnimationLoop(() => renderer.render(scene, camera));
+</script>
