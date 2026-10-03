@@ -61,6 +61,55 @@ function cleanRing(pts) {
   return p.length >= 3 ? p : null;
 }
 
+
+// ── TERRAIN ────────────────────────────────────────────────────────────────
+// Replaces the flat plate. Stone Mountain measures 240 m of relief inside a
+// single 450 m extract — on flat ground that location is not simplified, it is
+// deleted. Everything else in the scene now has to sit ON this, so the height
+// sampler below is used by the roads, the areas and the buildings too.
+
+/** Bilinear height at world (x, y). y is NORTH, not three.js z. */
+export function heightAt(E, x, y) {
+  if (!E) return 0;
+  const N = E.grid;
+  const fi = (x - E.x0) / E.step, fj = (y - E.y0) / E.step;
+  const i = Math.max(0, Math.min(N - 2, Math.floor(fi)));
+  const j = Math.max(0, Math.min(N - 2, Math.floor(fj)));
+  const tx = Math.max(0, Math.min(1, fi - i)), ty = Math.max(0, Math.min(1, fj - j));
+  const z = E.z;
+  const a = z[j * N + i], b = z[j * N + i + 1];
+  const c = z[(j + 1) * N + i], d = z[(j + 1) * N + i + 1];
+  return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty;
+}
+
+function terrainGeometry(E) {
+  const N = E.grid, POS = [], UV = [], IDX = [];
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < N; i++) {
+      const x = E.x0 + i * E.step, y = E.y0 + j * E.step;
+      POS.push(x, E.z[j * N + i], -y);
+      UV.push(x / 24, y / 24);
+    }
+  }
+  for (let j = 0; j < N - 1; j++) {
+    for (let i = 0; i < N - 1; i++) {
+      const a = j * N + i, b = a + 1, c = a + N, d = c + 1;
+      // WINDING: (a,c,b) gives a DOWNWARD normal here and the terrain renders
+      // black — lit from underneath. Verified by hand: with vertices at
+      // (x, h, -y), cross(b-a, c-a) points +Y and cross(c-a, b-a) points -Y.
+      IDX.push(a, b, c, b, d, c);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(POS), 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(UV), 2));
+  g.setIndex(N * N > 65535 ? new THREE.Uint32BufferAttribute(IDX, 1)
+                           : new THREE.Uint16BufferAttribute(IDX, 1));
+  g.computeVertexNormals();
+  g.computeBoundingSphere();
+  return g;
+}
+
 /** Walls for many footprints, with FACADE UVs, as one merged geometry.
  *
  * NOT ExtrudeGeometry. Extrude gives you the shape but not the UVs — and the
@@ -69,7 +118,7 @@ function cleanRing(pts) {
  * trim sheet's real-world tile size. A 3.2 m storey is then a 3.2 m storey on
  * screen, and the window rows line up with the floors the building actually has.
  */
-function wallsGeometry(list, tileW, tileH) {
+function wallsGeometry(list, tileW, tileH, E) {
   const POS = [], UV = [], NOR = [], IDX = [];
   let base = 0;
   for (const b of list) {
@@ -77,6 +126,12 @@ function wallsGeometry(list, tileW, tileH) {
     if (!pts) continue;
     const h = b.h != null ? b.h : (EST_H[b.kind] ?? EST_DEFAULT);
     const ring = ringArea2(pts) < 0 ? pts.slice().reverse() : pts;
+    // Sit on the ground, and sink 1 m so a building on a slope never shows a
+    // gap on its downhill side. Sampling the MINIMUM under the footprint rather
+    // than the centroid is what stops that gap.
+    let g0 = Infinity;
+    for (const [x, y] of ring) g0 = Math.min(g0, heightAt(E, x, y));
+    g0 -= 1.0;
     let run = 0;
     for (let i = 0; i < ring.length; i++) {
       const [x0, y0] = ring[i];
@@ -87,7 +142,7 @@ function wallsGeometry(list, tileW, tileH) {
       // outward normal for a CCW ring in x/east, y/north, before the z flip
       const nx = dy / len, nz = dx / len;
       const u0 = run / tileW, u1 = (run + len) / tileW, v1 = h / tileH;
-      POS.push(x0, 0, -y0,  x1, 0, -y1,  x1, h, -y1,  x0, h, -y0);
+      POS.push(x0, g0, -y0,  x1, g0, -y1,  x1, g0 + h, -y1,  x0, g0 + h, -y0);
       UV.push(u0, 0,  u1, 0,  u1, v1,  u0, v1);
       for (let k = 0; k < 4; k++) NOR.push(nx, 0, nz);
       IDX.push(base, base + 1, base + 2, base, base + 2, base + 3);
@@ -107,17 +162,19 @@ function wallsGeometry(list, tileW, tileH) {
 }
 
 /** Flat roof caps at each building's height. */
-function roofsGeometry(list) {
+function roofsGeometry(list, E) {
   const geos = [];
   for (const b of list) {
     const pts = cleanRing(b.pts);
     if (!pts) continue;
     const h = b.h != null ? b.h : (EST_H[b.kind] ?? EST_DEFAULT);
     const ring = ringArea2(pts) < 0 ? pts.slice().reverse() : pts;
+    let g0 = Infinity;
+    for (const [x, y] of ring) g0 = Math.min(g0, heightAt(E, x, y));
     const shape = new THREE.Shape(ring.map(([x, y]) => new THREE.Vector2(x, y)));
     const g = new THREE.ShapeGeometry(shape);
     g.rotateX(-Math.PI / 2);
-    g.translate(0, h, 0);
+    g.translate(0, g0 - 1.0 + h, 0);
     // roof UVs in metres, so the concrete tiles at a believable scale
     const p = g.attributes.position;
     const uv = new Float32Array(p.count * 2);
@@ -166,7 +223,7 @@ function mergeGeometries(geos) {
 }
 
 /** Flat ribbon along a centreline, at `lift` metres, `w` metres wide. */
-function ribbon(pts, w, lift) {
+function ribbon(pts, w, lift, E) {
   const hw = w / 2, pos = [], idx = [];
   for (let i = 0; i < pts.length; i++) {
     const [ax, ay] = pts[Math.max(i - 1, 0)];
@@ -175,8 +232,10 @@ function ribbon(pts, w, lift) {
     const L = Math.hypot(dx, dy) || 1;
     const nx = -dy / L, ny = dx / L;
     const [x, y] = pts[i];
-    pos.push(x + nx * hw, lift, -(y + ny * hw));
-    pos.push(x - nx * hw, lift, -(y - ny * hw));
+    // per-vertex ground sample: a road laid flat across a hill floats at one
+    // end and buries itself at the other
+    pos.push(x + nx * hw, heightAt(E, x + nx * hw, y + ny * hw) + lift, -(y + ny * hw));
+    pos.push(x - nx * hw, heightAt(E, x - nx * hw, y - ny * hw) + lift, -(y - ny * hw));
   }
   for (let i = 0; i < pts.length - 1; i++) {
     const a = i * 2;
@@ -185,12 +244,12 @@ function ribbon(pts, w, lift) {
   return { pos, idx };
 }
 
-function ribbonsGeometry(ways, liftFn, widthFn) {
+function ribbonsGeometry(ways, liftFn, widthFn, E) {
   const POS = [], IDX = [];
   let base = 0;
   for (const w of ways) {
     if (!w.pts || w.pts.length < 2) continue;
-    const { pos, idx } = ribbon(w.pts, widthFn(w), liftFn(w));
+    const { pos, idx } = ribbon(w.pts, widthFn(w), liftFn(w), E);
     POS.push(...pos);
     for (const i of idx) IDX.push(i + base);
     base += pos.length / 3;
@@ -205,7 +264,7 @@ function ribbonsGeometry(ways, liftFn, widthFn) {
   return g;
 }
 
-function areasGeometry(list, lift) {
+function areasGeometry(list, lift, E) {
   const geos = [];
   for (const a of list) {
     const pts = cleanRing(a.pts);
@@ -214,7 +273,12 @@ function areasGeometry(list, lift) {
     const shape = new THREE.Shape(ring.map(([x, y]) => new THREE.Vector2(x, y)));
     const g = new THREE.ShapeGeometry(shape);
     g.rotateX(-Math.PI / 2);
-    g.translate(0, lift, 0);
+    // drape: lift each vertex onto the terrain
+    const pa = g.attributes.position;
+    for (let i = 0; i < pa.count; i++) {
+      pa.setY(i, heightAt(E, pa.getX(i), -pa.getZ(i)) + lift);
+    }
+    pa.needsUpdate = true;
     geos.push(g);
   }
   return geos.length ? mergeGeometries(geos) : null;
@@ -270,20 +334,34 @@ export function buildCity(world, opts = {}) {
     map: tex('../art/pbr/concrete_pavement/diff.jpg', 60, 60), color: 0x7a756a, roughness: 0.98 });
 
   const R = world.location.radius_m;
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(R * 4, R * 4), matGround);
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
-  ground.name = 'ground_FLAT_no_elevation_data';
-  group.add(ground); stats.draws++;
+  const E = world.elevation || null;
+  stats.relief = E ? +(Math.max(...E.z) - Math.min(...E.z)).toFixed(0) : 0;
+  if (E) {
+    const t = new THREE.Mesh(terrainGeometry(E), matGround);
+    t.receiveShadow = true; t.castShadow = true; t.name = 'terrain';
+    group.add(t); stats.draws++;
+    // a skirt beyond the sampled grid so the world does not end at a cliff edge
+    const skirt = new THREE.Mesh(new THREE.PlaneGeometry(R * 8, R * 8), matGround);
+    skirt.rotation.x = -Math.PI / 2;
+    skirt.position.y = Math.min(...E.z) - 2;
+    skirt.name = 'terrain_skirt';
+    group.add(skirt); stats.draws++;
+  } else {
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(R * 4, R * 4), matGround);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    ground.name = 'ground_FLAT_no_elevation_data';
+    group.add(ground); stats.draws++;
+  }
 
-  addMesh(areasGeometry(world.areas.filter((a) => a.kind !== 'water'), 0.04), matPark, 'areas_green');
-  addMesh(areasGeometry(world.areas.filter((a) => a.kind === 'water'), 0.05), matWater, 'areas_water');
+  addMesh(areasGeometry(world.areas.filter((a) => a.kind !== 'water'), 0.12, E), matPark, 'areas_green');
+  addMesh(areasGeometry(world.areas.filter((a) => a.kind === 'water'), 0.14, E), matWater, 'areas_water');
 
   const widthOf = (w) => (w.lanes ? w.lanes * LANE_M : (CLASS_W[w.kind] ?? 6));
   const carriage = world.roads.filter((w) => !FOOT_KINDS.has(w.kind));
   const foot = world.roads.filter((w) => FOOT_KINDS.has(w.kind));
-  addMesh(ribbonsGeometry(carriage, () => 0.08, widthOf), matRoad, 'roads');
-  addMesh(ribbonsGeometry(foot, () => 0.13, widthOf), matFoot, 'footways');
+  addMesh(ribbonsGeometry(carriage, () => 0.18, widthOf, E), matRoad, 'roads');
+  addMesh(ribbonsGeometry(foot, () => 0.26, widthOf, E), matFoot, 'footways');
 
   // ── FACADES: one draw call per style, chosen by height ───────────────────
   // Low-rise brick, mid-rise concrete, tall glass. Three wall meshes and one
@@ -324,9 +402,9 @@ export function buildCity(world, opts = {}) {
     const [tw, th] = tileOf(f.file);
     const mat = new THREE.MeshStandardMaterial({
       map: tex('../art/facades/' + f.file), roughness: 0.78, metalness: 0.04 });
-    addMesh(wallsGeometry(band, tw, th), mat, 'walls_' + f.file.split('_')[0]);
+    addMesh(wallsGeometry(band, tw, th, E), mat, 'walls_' + f.file.split('_')[0]);
   }
-  addMesh(roofsGeometry(generic), matRoof, 'roofs');
+  addMesh(roofsGeometry(generic, E), matRoof, 'roofs');
 
   // candidate route — the longest way in the extract
   let route = null, best = 0;

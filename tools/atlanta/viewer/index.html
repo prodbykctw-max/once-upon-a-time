@@ -90,6 +90,7 @@ document.getElementById('t').textContent = world.location.label;
 document.getElementById('m').innerHTML =
   `${world.location.osm} · ${R} m radius<br>` +
   `${stats.draws} draw calls · ${Math.round(stats.tris).toLocaleString()} triangles` +
+  (stats.relief ? ` · ${stats.relief} m relief` : ' · flat') +
   (stats.draws <= 150 ? '' : ' <span class="warn">(over 150)</span>') + '<br>' +
   `${stats.surveyed} surveyed height · <span class="warn">${stats.estimated} estimated</span>`;
 document.getElementById('att').textContent = world.attribution;

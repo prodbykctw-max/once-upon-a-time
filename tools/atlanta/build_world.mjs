@@ -78,13 +78,68 @@ for (const el of data.elements || []) {
   }
 }
 
+// ── ELEVATION GRID (Open-Meteo, Copernicus DEM) ─────────────────────────────
+// The flat plate had to go. Three probe points across Stone Mountain came back
+// 510 m, 379 m and 290 m — 220 m of real relief inside one extract — so a flat
+// ground plane there is not a simplification, it deletes the landmark.
+// Free, no key, ~0.75 s a call. Batched because the API takes coordinate lists,
+// and cached to disk because this is the slow part of a build.
+// 40x40 = 1600 points = 16 requests. Open-Meteo is free and rate-limits by the
+// minute, so the grid is sized to stay polite rather than to be as dense as
+// possible — 23 m spacing over a 450 m radius still resolves a mountain.
+const GRID = Number(process.env.ELEV_GRID || 40);
+async function elevation() {
+  const file = path.join(HERE, 'cache', `${key}_elev${GRID}_r${RADIUS}.json`);
+  if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
+  const pts = [];
+  for (let j = 0; j < GRID; j++) {
+    for (let i = 0; i < GRID; i++) {
+      const fx = -RADIUS + (2 * RADIUS * i) / (GRID - 1);
+      const fy = -RADIUS + (2 * RADIUS * j) / (GRID - 1);
+      pts.push([lat + fy / ky, lon + fx / kx]);
+    }
+  }
+  const z = [];
+  const CH = 100;                                   // coords per request
+  for (let i = 0; i < pts.length; i += CH) {
+    const c = pts.slice(i, i + CH);
+    const u = `https://api.open-meteo.com/v1/elevation?latitude=${c.map((p) => p[0].toFixed(6))}&longitude=${c.map((p) => p[1].toFixed(6))}`;
+    let ok = false;
+    for (let a = 0; a < 3 && !ok; a++) {
+      try {
+        const r = await fetch(u, { headers: { 'User-Agent': 'jande-once-upon-a-time/1.0 (contact prodbykctw@gmail.com)' } });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        z.push(...(await r.json()).elevation);
+        ok = true;
+      } catch (e) {
+        if (a === 2) throw new Error(`elevation: ${e.message}`);
+        // 429 here is per-MINUTE pacing, not a daily cap — it clears quickly.
+        await new Promise((s2) => setTimeout(s2, /429/.test(e.message) ? 25000 : 3000));
+      }
+    }
+    process.stdout.write(`\r  elevation ${Math.min(i + CH, pts.length)}/${pts.length}`);
+    await new Promise((s2) => setTimeout(s2, 1200));   // stay under the rate limit
+  }
+  // Heights are relative to the CENTRE of the extract, so the frame stays local
+  // metres with z=0 at the origin — same convention as x and y.
+  const mid = z[Math.floor(z.length / 2)];
+  const out = { grid: GRID, step: (2 * RADIUS) / (GRID - 1), x0: -RADIUS, y0: -RADIUS,
+                datum_m: mid, z: z.map((v) => +(v - mid).toFixed(2)) };
+  fs.writeFileSync(file, JSON.stringify(out));
+  process.stdout.write('\r');
+  return out;
+}
+const elev = await elevation();
+const zs = elev.z;
+const relief = Math.max(...zs) - Math.min(...zs);
+
 const withH = buildings.filter((b) => b.h != null);
 const world = {
   location: { key, label: loc.label, osm: loc.osm, lat, lon, radius_m: RADIUS },
   frame: { origin: 'location centre', units: 'metres', x: 'east', y: 'north' },
   attribution: 'Map data © OpenStreetMap contributors (ODbL) — https://osm.org/copyright',
   generated: new Date().toISOString().slice(0, 10),
-  buildings, roads, areas,
+  buildings, roads, areas, elevation: elev,
 };
 const out = path.join(HERE, 'world', `${key}.json`);
 fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -98,4 +153,5 @@ const km = (roads.reduce((s, r) => {
 console.log(`  buildings ${buildings.length} (${withH.length} with a real height, ${buildings.length - withH.length} unknown)`);
 console.log(`  roads     ${roads.length} ways, ${km} km total`);
 console.log(`  areas     ${areas.length} (parks, pitches, water)`);
+console.log(`  elevation ${elev.grid}x${elev.grid} grid, ${elev.step.toFixed(0)} m spacing, ${relief.toFixed(0)} m of relief`);
 console.log(`  -> ${path.relative(process.cwd(), out)}  ${(fs.statSync(out).size / 1024).toFixed(0)} KB`);

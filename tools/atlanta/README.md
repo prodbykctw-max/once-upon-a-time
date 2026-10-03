@@ -315,13 +315,37 @@ around the building instead of all leaning one way.
 
 Cost: **one draw call and 256 triangles.** 13 and 5,550 for the whole location.
 
+### Third pass — what actually made it read
+
+Client, on the second pass: *"the stadium doesn't look like that at all."*
+Correct. Four things were wrong, and three of them were structural rather than
+matters of detail:
+
+* **The lattice triangles were far too small.** Three rows produced a fine mesh
+  like window mullions. In the photograph there are only five or six triangles
+  across the entire face, each spanning nearly the full height of the glass.
+  **One row, heavy members** — this is primary structure, not glazing bars.
+* **The glass/shell boundary was a flat ring.** On the real building the white
+  shell comes **down in points between the glass panels**, and that chevron is
+  its signature line after the roof. `bandGeometry` now takes per-vertex
+  heights, which is what makes a zigzag boundary possible at all.
+* **It was a figure of revolution.** A uniformly scaled ring is a drum however
+  it is textured. Fixed per-facet radius and rim-height profiles break the
+  symmetry repeatably — no randomness, so the model is identical every load.
+* **The roof was closed.** Eight triangles meeting at a point make a tent, which
+  is the opposite of this building. The roof is now an **annulus with a real
+  hole**, pinwheeled against the outer ring, with the bowl visible below.
+
+Also down from 16 facets to **12**: at sixteen the panels get small enough to
+read as a cylinder again.
+
 ### Honest state
 
-It now reads as a recognisable faceted stadium with a triangulated glass wall
-and a petal roof — the family is right, and from the runner camera at speed it
-would pass. It is **not** a photographic match. Still missing: the real
-asymmetry (the true shell is not a figure of revolution — one side rises much
-higher than the other), the deep entry canopies, and rooftop plant.
+Recognisably the same building family now — folded white planes over dark
+angular glass, jagged roofline, open aperture — and at runner speed it would
+pass. Still not a photographic match: the real shell has sharper, more varied
+folds, the glass face is taller relative to the mass, and the entry canopies and
+ground-level detail are absent.
 
 **The logo is deliberately absent.** The three-pointed star is a trademark.
 Depicting the building is ordinary; reproducing the mark as an asset in a

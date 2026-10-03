@@ -31,15 +31,21 @@ const scaleRing = (ring, c, k) => ring.map(([x, y]) => [c[0] + (x - c[0]) * k, c
  * would turn the folds back into the drum we are trying to get away from.
  */
 function bandGeometry(ringA, hA, ringB, hB, uvScale = 0.05) {
+  // hA/hB may be a NUMBER or a per-vertex ARRAY. The array form is what lets a
+  // boundary zigzag instead of sitting as a flat ring, and on this building the
+  // glass/shell boundary is a chevron — arguably its most recognisable line
+  // after the roof.
+  const HA = (i) => (Array.isArray(hA) ? hA[i % hA.length] : hA);
+  const HB = (i) => (Array.isArray(hB) ? hB[i % hB.length] : hB);
   const POS = [], NOR = [], UV = [], IDX = [];
   let base = 0;
   const n = ringA.length;
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n;
-    const a0 = [ringA[i][0], hA, -ringA[i][1]];
-    const a1 = [ringA[j][0], hA, -ringA[j][1]];
-    const b1 = [ringB[j][0], hB, -ringB[j][1]];
-    const b0 = [ringB[i][0], hB, -ringB[i][1]];
+    const a0 = [ringA[i][0], HA(i), -ringA[i][1]];
+    const a1 = [ringA[j][0], HA(j), -ringA[j][1]];
+    const b1 = [ringB[j][0], HB(j), -ringB[j][1]];
+    const b0 = [ringB[i][0], HB(i), -ringB[i][1]];
     // face normal from the quad itself
     const ux = a1[0] - a0[0], uy = a1[1] - a0[1], uz = a1[2] - a0[2];
     const vx = b0[0] - a0[0], vy = b0[1] - a0[1], vz = b0[2] - a0[2];
@@ -47,7 +53,7 @@ function bandGeometry(ringA, hA, ringB, hB, uvScale = 0.05) {
     const L = Math.hypot(nx, ny, nz) || 1;
     nx /= L; ny /= L; nz /= L;
     const w = Math.hypot(a1[0] - a0[0], a1[2] - a0[2]);
-    const hgt = Math.abs(hB - hA);
+    const hgt = Math.abs(HB(i) - HA(i));
     POS.push(...a0, ...a1, ...b1, ...b0);
     UV.push(0, 0, w * uvScale, 0, w * uvScale, hgt * uvScale, 0, hgt * uvScale);
     for (let k = 0; k < 4; k++) NOR.push(nx, ny, nz);
@@ -75,6 +81,8 @@ function bandGeometry(ringA, hA, ringB, hB, uvScale = 0.05) {
  * glass and catch the sun separately from it.
  */
 function latticeGeometry(ringA, hA, ringB, hB, { rows = 3, w = 0.9, off = 0.8 } = {}) {
+  const HA = (i) => (Array.isArray(hA) ? hA[i % hA.length] : hA);
+  const HB = (i) => (Array.isArray(hB) ? hB[i % hB.length] : hB);
   const POS = [], NOR = [], UV = [], IDX = [];
   let base = 0;
   const n = ringA.length;
@@ -83,10 +91,10 @@ function latticeGeometry(ringA, hA, ringB, hB, { rows = 3, w = 0.9, off = 0.8 } 
 
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n;
-    const a0 = [ringA[i][0], hA, -ringA[i][1]];
-    const a1 = [ringA[j][0], hA, -ringA[j][1]];
-    const b1 = [ringB[j][0], hB, -ringB[j][1]];
-    const b0 = [ringB[i][0], hB, -ringB[i][1]];
+    const a0 = [ringA[i][0], HA(i), -ringA[i][1]];
+    const a1 = [ringA[j][0], HA(j), -ringA[j][1]];
+    const b1 = [ringB[j][0], HB(j), -ringB[j][1]];
+    const b0 = [ringB[i][0], HB(i), -ringB[i][1]];
     // facet normal
     let nx = (a1[1] - a0[1]) * (b0[2] - a0[2]) - (a1[2] - a0[2]) * (b0[1] - a0[1]);
     let ny = (a1[2] - a0[2]) * (b0[0] - a0[0]) - (a1[0] - a0[0]) * (b0[2] - a0[2]);
@@ -180,54 +188,81 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   if (ring.length >= 2 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) {
     ring = ring.slice(0, -1);
   }
-  // 16 facets reads as folded panels; the raw OSM ring is too irregular to
-  // fold cleanly and too coarse to curve.
-  ring = resample(ring, 16);
+  // TWELVE facets, not sixteen. The real shell is a handful of LARGE folded
+  // planes; at sixteen they get small enough to read as a cylinder again, which
+  // is exactly the drum this is meant to escape.
+  const F = 12;
+  ring = resample(ring, F);
   const c = centroidOf(ring);
 
-  const r = (k) => scaleRing(ring, c, k);
+  // ── ASYMMETRY. The building is not a figure of revolution. The roofline in
+  // the photograph rises and falls, one corner juts up well above the rest, and
+  // the plan is not a circle. A fixed per-facet profile breaks the symmetry in
+  // a repeatable way — no randomness, so the model is the same every load.
+  const RJIT = [1.00, 0.97, 1.03, 0.99, 1.05, 0.96, 1.01, 0.98, 1.04, 0.97, 1.02, 0.99];
+  const TOPJ = [1.00, 0.93, 1.07, 0.97, 1.18, 0.95, 1.02, 0.91, 1.12, 0.96, 1.05, 0.94];
+  const r = (k) => scaleRing(ring, c, k).map(([x, y], i) => {
+    const s2 = RJIT[i % F];
+    return [c[0] + (x - c[0]) * s2, c[1] + (y - c[1]) * s2];
+  });
+
+  // ── THE CHEVRON. The glass does not stop at a flat ring — the white shell
+  // comes DOWN in points between the glass panels, and that zigzag is the
+  // building's signature line after the roof. Alternating the boundary height
+  // per facet is what produces it.
+  const GTOP = [];
+  for (let i = 0; i < F; i++) GTOP.push(H * (i % 2 === 0 ? 0.74 : 0.44));
+
   const parts = [];
+  parts.push(['skirt', bandGeometry(r(1.00), 0, r(1.05), H * 0.08)]);
+  // The glass leans out at the base and in at the top — that lean is what makes
+  // it catch sky instead of ground.
+  parts.push(['glass', bandGeometry(r(1.05), H * 0.08, r(0.99), GTOP)]);
 
-  // skirt → glass → shell
-  // Proportions read off the photograph. The GLASS is the dominant face from
-  // the street — the first pass gave it a third of the height and it read as a
-  // black belt on a drum. The white shell is the upper structure, and it tapers
-  // hard; the real building leans in noticeably toward the roof.
-  parts.push(['skirt', bandGeometry(r(1.00), 0, r(1.04), H * 0.10)]);
-  // THE LEAN IS NOT DECORATION. A vertical mirror reflects the horizon and the
-  // ground; a leaning one catches the sky, which is why the real curtain wall
-  // reads bright. Nearly vertical glass renders dark no matter what the material
-  // says. ~10% inward over the band is about 11 degrees.
-  parts.push(['glass', bandGeometry(r(1.06), H * 0.10, r(0.96), H * 0.60)]);
-  parts.push(['shell', bandGeometry(r(0.96), H * 0.60, r(0.74), H * 0.96)]);
-  parts.push(['mullion', latticeGeometry(r(1.06), H * 0.10, r(0.96), H * 0.60,
-                                         { rows: 3, w: 1.1, off: 0.9 })]);
+  // ── BIG triangles. The first lattice used three rows and produced a fine
+  // mesh; in the photograph there are only five or six triangles across the
+  // whole face, each spanning nearly the full height of the glass. ONE row, and
+  // heavy members, because these are primary structure and not window mullions.
+  parts.push(['mullion', latticeGeometry(r(1.05), H * 0.08, r(0.99), GTOP,
+                                         { rows: 1, w: 2.2, off: 1.1 })]);
 
-  // ── the eight-petal aperture roof ──
-  const rim = r(0.74), oc = r(0.20);
+  // shell: from the chevron up to a jagged rim
+  const RIM = TOPJ.map((t) => H * 0.97 * t);
+  parts.push(['shell', bandGeometry(r(0.99), GTOP, r(0.78), RIM)]);
+
+  // ── roof: an ANNULUS WITH A REAL HOLE ──────────────────────────────────
+  // The first two attempts closed the centre: eight triangles meeting at a
+  // point make a tent, and that is the opposite of this building. The aperture
+  // is the whole idea — it is a retractable roof and the opening is what people
+  // picture. So the roof is a ring from the jagged rim to an inner ring, and
+  // the middle is simply absent.
+  //
+  // The inner ring is pinwheeled — rotated against the outer one — so the
+  // panels sweep rather than running straight in, which is what gives the
+  // camera-shutter read.
+  const rim = r(0.78), inner = r(0.30);
+  const PINWHEEL = 1;                       // inner ring offset, in facets
   const POS = [], NOR = [], UV = [], IDX = [];
   let base = 0;
-  const N = rim.length, PET = 8, per = N / PET;
-  for (let p = 0; p < PET; p++) {
-    const i0 = Math.round(p * per), i1 = Math.round((p + 1) * per) % N;
-    // each petal: from two rim points in to ONE oculus point, offset around the
-    // ring so the petals pinwheel rather than meeting head-on
-    const oi = Math.round((p * per + per * 0.5 + per * 0.45)) % N;
-    const a = [rim[i0][0], H * 0.96, -rim[i0][1]];
-    const bb = [rim[i1][0], H * 0.96, -rim[i1][1]];
-    // the petal tip rises well above the rim — that lift is what makes the
-    // roof read as a pinwheel of blades instead of a lid
-    const d = [oc[oi][0], H * 1.14, -oc[oi][1]];
-    let nx = (bb[1] - a[1]) * (d[2] - a[2]) - (bb[2] - a[2]) * (d[1] - a[1]);
-    let ny = (bb[2] - a[2]) * (d[0] - a[0]) - (bb[0] - a[0]) * (d[2] - a[2]);
-    let nz = (bb[0] - a[0]) * (d[1] - a[1]) - (bb[1] - a[1]) * (d[0] - a[0]);
+  const N = rim.length;
+  for (let i = 0; i < N; i++) {
+    const j = (i + 1) % N;
+    const ii = (i + PINWHEEL) % N, jj = (j + PINWHEEL) % N;
+    const a = [rim[i][0], RIM[i % F], -rim[i][1]];
+    const bb = [rim[j][0], RIM[j % F], -rim[j][1]];
+    // inner edge lifted, so the roof domes gently toward the opening
+    const cc = [inner[jj][0], H * 1.04, -inner[jj][1]];
+    const dd = [inner[ii][0], H * 1.04, -inner[ii][1]];
+    let nx = (bb[1] - a[1]) * (dd[2] - a[2]) - (bb[2] - a[2]) * (dd[1] - a[1]);
+    let ny = (bb[2] - a[2]) * (dd[0] - a[0]) - (bb[0] - a[0]) * (dd[2] - a[2]);
+    let nz = (bb[0] - a[0]) * (dd[1] - a[1]) - (bb[1] - a[1]) * (dd[0] - a[0]);
     const L = Math.hypot(nx, ny, nz) || 1;
     if (ny < 0) { nx = -nx; ny = -ny; nz = -nz; }
-    POS.push(...a, ...bb, ...d);
-    NOR.push(nx / L, ny / L, nz / L, nx / L, ny / L, nz / L, nx / L, ny / L, nz / L);
-    UV.push(0, 0, 1, 0, 0.5, 1);
-    IDX.push(base, base + 1, base + 2);
-    base += 3;
+    POS.push(...a, ...bb, ...cc, ...dd);
+    for (let k = 0; k < 4; k++) NOR.push(nx / L, ny / L, nz / L);
+    UV.push(0, 0, 1, 0, 1, 1, 0, 1);
+    IDX.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    base += 4;
   }
   const roof = new THREE.BufferGeometry();
   roof.setAttribute('position', new THREE.BufferAttribute(new Float32Array(POS), 3));
@@ -237,7 +272,27 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   roof.computeBoundingSphere();
   parts.push(['petals', roof]);
 
-  return parts.map(([k, g]) => new THREE.Mesh(g, mats[k] || mats.shell));
+  // the opening is not empty space — the bowl and the ring of lights sit below
+  const bowl = new THREE.Mesh(
+    new THREE.CylinderGeometry(0, 1, 1, 8),
+    mats.bowl || mats.skirt);
+  {
+    const cx = inner.reduce((a2, p2) => a2 + p2[0], 0) / inner.length;
+    const cy = inner.reduce((a2, p2) => a2 + p2[1], 0) / inner.length;
+    let rad = 0;
+    for (const p2 of inner) rad = Math.max(rad, Math.hypot(p2[0] - cx, p2[1] - cy));
+    bowl.geometry.dispose();
+    // Keep the bowl's rim CLEAR of the roof's inner edge. At rad*1.02 and a top
+    // at 1.01H it grazed the annulus at 1.04H and z-fought, which reads as
+    // stripes across the roof.
+    bowl.geometry = new THREE.CylinderGeometry(rad * 0.90, rad * 0.50, H * 0.40, 16, 1, true);
+    bowl.position.set(cx, H * 0.78, -cy);
+    bowl.material = mats.bowl || mats.skirt;
+  }
+  parts.push(['bowl', { __mesh: bowl }]);
+
+  return parts.map(([k, g]) => (g && g.__mesh) ? g.__mesh
+                                               : new THREE.Mesh(g, mats[k] || mats.shell));
 }
 
 export const HEROES = {
@@ -264,6 +319,9 @@ export function heroMaterials(THREE_) {
     // Painted structural steel: bright enough to draw the triangles against the
     // dark glass, and double-sided because a flat strip is seen from both ends
     // as it wraps the building.
+    // seen down through the open roof
+    bowl: new THREE.MeshStandardMaterial({
+      color: 0x3b3f46, roughness: 0.9, side: THREE.DoubleSide }),
     mullion: new THREE.MeshStandardMaterial({
       color: 0xdfe1e4, roughness: 0.52, metalness: 0.30, side: THREE.DoubleSide }),
   };
