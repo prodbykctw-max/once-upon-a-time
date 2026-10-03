@@ -48,3 +48,4 @@ __pycache__/
 
 # Atlanta world build — raw OSM extracts (large, re-fetchable, not ours to vendor)
 tools/atlanta/cache/
+tools/atlanta/art/pbr/

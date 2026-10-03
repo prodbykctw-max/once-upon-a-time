@@ -12,6 +12,21 @@
 // (facades and LODs need per-building objects); the runtime does not.
 import * as THREE from './vendor/three.module.min.js';
 
+// TILE SIZE COMES FROM THE FILENAME, deliberately. make_facades.py bakes the
+// real-world size of each trim sheet into its name, so there is exactly one
+// place that knows it. Rename a sheet and the UVs follow; there is no second
+// constant to forget.
+const FACADES = [
+  { max: 12,       file: 'brick_lowrise_14.4x9.6m.jpg' },
+  { max: 32,       file: 'concrete_midrise_18.0x16.0m.jpg' },
+  { max: Infinity, file: 'glass_tower_18.0x19.2m.jpg' },
+];
+const tileOf = (f) => {
+  const m = f.match(/_([\d.]+)x([\d.]+)m\./);
+  return m ? [parseFloat(m[1]), parseFloat(m[2])] : [16, 16];
+};
+const heightOfB = (b) => (b.h != null ? b.h : (EST_H[b.kind] ?? EST_DEFAULT));
+
 const FOOT_KINDS = new Set(['footway', 'path', 'steps', 'cycleway', 'pedestrian']);
 const LANE_M = 3.3;
 const CLASS_W = {
@@ -45,21 +60,71 @@ function cleanRing(pts) {
   return p.length >= 3 ? p : null;
 }
 
-/** Extrude many footprints into one merged geometry. */
-function buildingsGeometry(list) {
+/** Walls for many footprints, with FACADE UVs, as one merged geometry.
+ *
+ * NOT ExtrudeGeometry. Extrude gives you the shape but not the UVs — and the
+ * UVs are the entire point of a facade pass. Walls are built by hand so that
+ * U runs along the wall in metres and V runs up it in metres, divided by the
+ * trim sheet's real-world tile size. A 3.2 m storey is then a 3.2 m storey on
+ * screen, and the window rows line up with the floors the building actually has.
+ */
+function wallsGeometry(list, tileW, tileH) {
+  const POS = [], UV = [], NOR = [], IDX = [];
+  let base = 0;
+  for (const b of list) {
+    const pts = cleanRing(b.pts);
+    if (!pts) continue;
+    const h = b.h != null ? b.h : (EST_H[b.kind] ?? EST_DEFAULT);
+    const ring = ringArea2(pts) < 0 ? pts.slice().reverse() : pts;
+    let run = 0;
+    for (let i = 0; i < ring.length; i++) {
+      const [x0, y0] = ring[i];
+      const [x1, y1] = ring[(i + 1) % ring.length];
+      const dx = x1 - x0, dy = y1 - y0;
+      const len = Math.hypot(dx, dy);
+      if (len < 0.05) continue;
+      // outward normal for a CCW ring in x/east, y/north, before the z flip
+      const nx = dy / len, nz = dx / len;
+      const u0 = run / tileW, u1 = (run + len) / tileW, v1 = h / tileH;
+      POS.push(x0, 0, -y0,  x1, 0, -y1,  x1, h, -y1,  x0, h, -y0);
+      UV.push(u0, 0,  u1, 0,  u1, v1,  u0, v1);
+      for (let k = 0; k < 4; k++) NOR.push(nx, 0, nz);
+      IDX.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      base += 4;
+      run += len;
+    }
+  }
+  if (!POS.length) return null;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(POS), 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(UV), 2));
+  g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(NOR), 3));
+  g.setIndex(base > 65535 ? new THREE.Uint32BufferAttribute(IDX, 1)
+                          : new THREE.Uint16BufferAttribute(IDX, 1));
+  g.computeBoundingSphere();
+  return g;
+}
+
+/** Flat roof caps at each building's height. */
+function roofsGeometry(list) {
   const geos = [];
   for (const b of list) {
     const pts = cleanRing(b.pts);
     if (!pts) continue;
     const h = b.h != null ? b.h : (EST_H[b.kind] ?? EST_DEFAULT);
-    // Shape wants CCW for the outer ring; ExtrudeGeometry triangulates with
-    // earcut, which is sign-sensitive the same way bmesh was.
     const ring = ringArea2(pts) < 0 ? pts.slice().reverse() : pts;
     const shape = new THREE.Shape(ring.map(([x, y]) => new THREE.Vector2(x, y)));
-    const g = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false });
-    // world.json is x=east, y=north, z=up. three.js is y-up, so rotate the
-    // whole thing once here rather than swizzling every coordinate.
+    const g = new THREE.ShapeGeometry(shape);
     g.rotateX(-Math.PI / 2);
+    g.translate(0, h, 0);
+    // roof UVs in metres, so the concrete tiles at a believable scale
+    const p = g.attributes.position;
+    const uv = new Float32Array(p.count * 2);
+    for (let i = 0; i < p.count; i++) {
+      uv[i * 2] = p.getX(i) / 8;
+      uv[i * 2 + 1] = p.getZ(i) / 8;
+    }
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
     geos.push(g);
   }
   return geos.length ? mergeGeometries(geos) : null;
@@ -74,12 +139,14 @@ function mergeGeometries(geos) {
   }
   const pos = new Float32Array(vcount * 3);
   const nor = new Float32Array(vcount * 3);
+  const uvs = new Float32Array(vcount * 2);
   const idx = vcount > 65535 ? new Uint32Array(icount) : new Uint16Array(icount);
   let vo = 0, io = 0;
   for (const g of geos) {
-    const p = g.attributes.position, n = g.attributes.normal;
+    const p = g.attributes.position, n = g.attributes.normal, u = g.attributes.uv;
     pos.set(p.array.subarray(0, p.count * 3), vo * 3);
     if (n) nor.set(n.array.subarray(0, n.count * 3), vo * 3);
+    if (u) uvs.set(u.array.subarray(0, u.count * 2), vo * 2);
     if (g.index) {
       for (let i = 0; i < g.index.count; i++) idx[io++] = g.index.array[i] + vo;
     } else {
@@ -91,6 +158,7 @@ function mergeGeometries(geos) {
   const out = new THREE.BufferGeometry();
   out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  out.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
   out.setIndex(new THREE.BufferAttribute(idx, 1));
   out.computeBoundingSphere();
   return out;
@@ -176,18 +244,29 @@ export function buildCity(world, opts = {}) {
   // materials." No textures yet — this is massing under correct lighting, which
   // is what tells you whether the geometry and the scale are right. Trim-sheet
   // facades come next and plug into these same slots.
-  const matSurveyed = new THREE.MeshStandardMaterial({ color: 0x9a978f, roughness: 0.82, metalness: 0.03 });
-  const matEstimated = new THREE.MeshStandardMaterial({ color: 0xb4825c, roughness: 0.88, metalness: 0.0 });
+  const tex = (p, rx, ry) => {
+    const t = new THREE.TextureLoader().load(p);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    if (rx) t.repeat.set(rx, ry);
+    return t;
+  };
+  const matRoof = new THREE.MeshStandardMaterial({
+    map: tex('../art/pbr/rough_concrete/diff.jpg'), roughness: 0.95 });
   // Asphalt has to read DARK AGAINST THE GROUND, not merge with it. The first
   // pass had ground 0x23231f and road 0x2b2b30 — nearly the same luma — which
   // looked acceptable from above and became a sea of black at eye level, where
   // the game is actually played. Always judge surface contrast from the runner
   // camera, never the overview.
-  const matRoad = new THREE.MeshStandardMaterial({ color: 0x24242a, roughness: 0.93, metalness: 0.0 });
-  const matFoot = new THREE.MeshStandardMaterial({ color: 0x8d8a85, roughness: 0.95 });
+  const matRoad = new THREE.MeshStandardMaterial({
+    map: tex('../art/pbr/asphalt_02/diff.jpg'), color: 0x9a9a9a, roughness: 0.95 });
+  const matFoot = new THREE.MeshStandardMaterial({
+    map: tex('../art/pbr/concrete_pavement/diff.jpg'), roughness: 0.95 });
   const matPark = new THREE.MeshStandardMaterial({ color: 0x2f5327, roughness: 0.97 });
   const matWater = new THREE.MeshStandardMaterial({ color: 0x1d3f5c, roughness: 0.12, metalness: 0.5 });
-  const matGround = new THREE.MeshStandardMaterial({ color: 0x4a4740, roughness: 0.98 });
+  const matGround = new THREE.MeshStandardMaterial({
+    map: tex('../art/pbr/concrete_pavement/diff.jpg', 60, 60), color: 0x7a756a, roughness: 0.98 });
 
   const R = world.location.radius_m;
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(R * 4, R * 4), matGround);
@@ -205,12 +284,25 @@ export function buildCity(world, opts = {}) {
   addMesh(ribbonsGeometry(carriage, () => 0.08, widthOf), matRoad, 'roads');
   addMesh(ribbonsGeometry(foot, () => 0.13, widthOf), matFoot, 'footways');
 
-  const surveyed = world.buildings.filter((b) => b.h != null);
-  const estimated = world.buildings.filter((b) => b.h == null);
-  stats.surveyed = surveyed.length;
-  stats.estimated = estimated.length;
-  addMesh(buildingsGeometry(surveyed), matSurveyed, 'buildings_surveyed');
-  addMesh(buildingsGeometry(estimated), matEstimated, 'buildings_estimated');
+  // ── FACADES: one draw call per style, chosen by height ───────────────────
+  // Low-rise brick, mid-rise concrete, tall glass. Three wall meshes and one
+  // roof mesh for every building in the location.
+  stats.surveyed = world.buildings.filter((b) => b.h != null).length;
+  stats.estimated = world.buildings.filter((b) => b.h == null).length;
+  let lo = 0;
+  for (const f of FACADES) {
+    const band = world.buildings.filter((b) => {
+      const h = heightOfB(b);
+      return h > lo && h <= f.max;
+    });
+    lo = f.max;
+    if (!band.length) continue;
+    const [tw, th] = tileOf(f.file);
+    const mat = new THREE.MeshStandardMaterial({
+      map: tex('../art/facades/' + f.file), roughness: 0.78, metalness: 0.04 });
+    addMesh(wallsGeometry(band, tw, th), mat, 'walls_' + f.file.split('_')[0]);
+  }
+  addMesh(roofsGeometry(world.buildings), matRoof, 'roofs');
 
   // candidate route — the longest way in the extract
   let route = null, best = 0;

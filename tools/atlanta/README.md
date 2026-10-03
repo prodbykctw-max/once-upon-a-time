@@ -219,3 +219,54 @@ with real materials — the scale is right, and the budget has enormous headroom
 textures, no props, no trees, no kerbs, no crowd. It is bare because it *is*
 bare, and 142 of 150 buildings carry a guessed height, so **the facade pass is
 where the realism actually arrives.**
+
+## The facade pass — and the limit it exposes
+
+```bash
+node tools/atlanta/fetch_pbr.mjs     # CC0 wall/road/roof scans from Poly Haven
+python3 tools/atlanta/make_facades.py # composite them into facade trim sheets
+```
+
+Buildings are no longer flat-shaded boxes. Walls are **built by hand rather than
+extruded**, because `ExtrudeGeometry` gives you the shape but not the UVs — and
+the UVs are the entire point. U runs along the wall in metres, V runs up it in
+metres, each divided by the trim sheet's real tile size, so **a 3.2 m storey is
+a 3.2 m storey on screen** and window rows land on the floors the building
+actually has.
+
+Three styles, chosen by height: brick low-rise (≤12 m), concrete mid-rise
+(≤32 m), glass tower above. Roads get CC0 asphalt, pavements concrete. Still
+only **8 draw calls and 5,248 triangles** at Mercedes-Benz Stadium.
+
+**The tile size lives in the filename** — `brick_lowrise_14.4x9.6m.jpg` — and
+the viewer parses it. There is exactly one place that knows how big a sheet is,
+so the UVs cannot drift out of step with the art.
+
+**Windows are drawn, not photographed.** No signage, no brands, no recognisable
+interiors — nothing to clear before shipping. (The source project carries a live
+note to paint real chip brands out of a photographed facade; this avoids that
+class of problem entirely.)
+
+One scale trap worth recording: a Poly Haven wall scan covers about 2 m of real
+wall. Stretched once across a 14 m facade tile, the bricks come out a metre
+each and the building reads as a toy. `reps` tiles the base so a brick is a
+brick.
+
+### ⚠ What facades CANNOT fix: landmarks
+
+Put the render next to a photograph of Mercedes-Benz Stadium and the limit is
+obvious. The real building is a **faceted shell with a triangulated glass
+curtain wall and an eight-petal aperture roof**. OSM gives a footprint and the
+single number `height=93`. Extruded, that is a flat-topped drum.
+
+**No texture fixes a wrong silhouette.** A landmark *is* its shape.
+
+So the detail pass is two tracks, which is what the source project does too:
+
+| | how | covers |
+|---|---|---|
+| **Generic buildings** | extrusion + procedural facade trim sheets | 42 of 43 here, and nearly everything at the other locations |
+| **Hero landmarks** | modelled individually, photo-referenced, UV-projected | the stadium, the Stone Mountain carving, the school frontage, Apache |
+
+The generic track is done and cheap. The hero track is per-building art, and
+it is the only route to a building that reads as *that* building.
