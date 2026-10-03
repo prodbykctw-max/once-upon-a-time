@@ -11,6 +11,7 @@
 // into ONE BufferGeometry. The Blender blockout keeps them separate on purpose
 // (facades and LODs need per-building objects); the runtime does not.
 import * as THREE from './vendor/three.module.min.js';
+import { HEROES, heroMaterials } from './heroes.js';
 
 // TILE SIZE COMES FROM THE FILENAME, deliberately. make_facades.py bakes the
 // real-world size of each trim sheet into its name, so there is exactly one
@@ -289,9 +290,32 @@ export function buildCity(world, opts = {}) {
   // roof mesh for every building in the location.
   stats.surveyed = world.buildings.filter((b) => b.h != null).length;
   stats.estimated = world.buildings.filter((b) => b.h == null).length;
+
+  // ── HERO LANDMARKS first, and excluded from the generic pass below ───────
+  // A landmark IS its shape, so it gets bespoke geometry on its real footprint
+  // rather than an extrusion with a nice texture.
+  const heroMats = heroMaterials(THREE);
+  const heroIds = new Set();
+  stats.heroes = 0;
+  for (const b of world.buildings) {
+    const hero = HEROES[`way/${b.id}`] || HEROES[`relation/${b.id}`];
+    if (!hero) continue;
+    heroIds.add(b.id);
+    for (const m of hero.build(b, THREE, heroMats)) {
+      m.castShadow = true; m.receiveShadow = true;
+      m.name = 'hero_' + hero.name.replace(/\s+/g, '_');
+      group.add(m);
+      stats.draws++;
+      stats.tris += (m.geometry.index ? m.geometry.index.count
+                                      : m.geometry.attributes.position.count) / 3;
+    }
+    stats.heroes++;
+  }
+
+  const generic = world.buildings.filter((b) => !heroIds.has(b.id));
   let lo = 0;
   for (const f of FACADES) {
-    const band = world.buildings.filter((b) => {
+    const band = generic.filter((b) => {
       const h = heightOfB(b);
       return h > lo && h <= f.max;
     });
@@ -302,7 +326,7 @@ export function buildCity(world, opts = {}) {
       map: tex('../art/facades/' + f.file), roughness: 0.78, metalness: 0.04 });
     addMesh(wallsGeometry(band, tw, th), mat, 'walls_' + f.file.split('_')[0]);
   }
-  addMesh(roofsGeometry(world.buildings), matRoof, 'roofs');
+  addMesh(roofsGeometry(generic), matRoof, 'roofs');
 
   // candidate route — the longest way in the extract
   let route = null, best = 0;

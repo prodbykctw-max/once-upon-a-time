@@ -48,6 +48,35 @@ document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x8fb4d8);
+
+// ── AN ENVIRONMENT, OR METAL AND GLASS RENDER BLACK ─────────────────────────
+// The stadium's curtain wall came out pure black on the first pass. Nothing was
+// wrong with the geometry or the material: a MeshStandardMaterial at metalness
+// 0.78 reflects its environment almost entirely, and with no environment set
+// there is nothing to reflect. Reflective surfaces need something to reflect —
+// an easy half-hour to lose to "the shader is broken".
+// A painted sky/ground gradient through PMREM is enough, and it lifts every
+// other material in the scene at the same time.
+function skyEnvironment(renderer) {
+  const c = document.createElement('canvas');
+  c.width = 32; c.height = 256;
+  const g = c.getContext('2d').createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0.00, '#5b8fd0');   // zenith
+  g.addColorStop(0.45, '#aecbe8');
+  g.addColorStop(0.52, '#dfe7ef');   // horizon haze
+  g.addColorStop(0.58, '#8c8578');   // ground bounce
+  g.addColorStop(1.00, '#4a443a');
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 32, 256);
+  const tex = new THREE.CanvasTexture(c);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = pmrem.fromEquirectangular(tex).texture;
+  pmrem.dispose(); tex.dispose();
+  return env;
+}
+scene.environment = skyEnvironment(renderer);
 const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.5, 6000);
 
 const world = await (await fetch(`../world/${key}.json`)).json();
@@ -142,5 +171,27 @@ window.__preview = {
   stats, routeLength, ready: true,
 };
 
+// diagnostics for headless checks
+{
+  const glass = [];
+  group.traverse((o) => { if (o.isMesh && o.material && o.material.metalness > 0.5) glass.push(o); });
+  const g0 = glass[0];
+  let outward = null;
+  if (g0) {
+    const n = g0.geometry.attributes.normal, p = g0.geometry.attributes.position;
+    // does the first face normal point AWAY from the building centre?
+    g0.geometry.computeBoundingSphere();
+    const c = g0.geometry.boundingSphere.center;
+    const dx = p.getX(0) - c.x, dz = p.getZ(0) - c.z;
+    outward = (dx * n.getX(0) + dz * n.getZ(0)) > 0;
+  }
+  window.__diag = {
+    sceneEnvironment: !!scene.environment,
+    envType: scene.environment ? scene.environment.constructor.name : null,
+    glassMeshes: glass.length,
+    glassNormalPointsOutward: outward,
+    toneMapping: renderer.toneMapping,
+  };
+}
 renderer.setAnimationLoop(() => renderer.render(scene, camera));
 </script>

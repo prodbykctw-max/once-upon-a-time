@@ -270,3 +270,42 @@ So the detail pass is two tracks, which is what the source project does too:
 
 The generic track is done and cheap. The hero track is per-building art, and
 it is the only route to a building that reads as *that* building.
+
+## Hero landmarks — `viewer/heroes.js`
+
+A registry keyed by OSM id. `buildCity` skips any building with a hero builder
+and calls the builder instead, handing it the **real footprint** — so a hero
+still sits exactly on its surveyed outline and only its shape is bespoke.
+
+Mercedes-Benz Stadium is the first: a flared skirt, a **leaning glass curtain
+wall**, a faceted white shell tapering in, and an **eight-petal aperture roof**
+pinwheeling to an open oculus. 16 facets, flat-shaded on purpose — the real
+building is folded panels, and smooth normals would put the drum back.
+
+Whole location: **12 draw calls, 5,294 triangles.**
+
+### Two lighting bugs, both diagnosed rather than guessed
+
+**Metal and glass render BLACK with no environment.** The curtain wall came out
+pure black. A `MeshStandardMaterial` at metalness 0.78 is almost entirely
+reflective, and with `scene.environment` unset there is nothing to reflect.
+A painted sky/ground gradient through `PMREMGenerator` fixes it and lifts every
+other material at the same time.
+
+**Then it was STILL black, and neither obvious cause was it.** A headless probe
+confirmed the environment was bound and the face normals pointed outward. Two
+real reasons:
+
+* **Glass is a dielectric, not a metal.** At high metalness the reflection is
+  tinted by the base colour, so a dark blue base returns a dark reflection.
+  Architectural glass is low-roughness with its brightness coming from Fresnel —
+  low metalness, very low roughness, lifted `envMapIntensity`.
+* **The lean is not decoration.** A vertical mirror reflects the horizon and the
+  ground; a leaning one catches the sky. Near-vertical glass renders dark
+  whatever the material says. ~11° of inward lean is what makes it read.
+
+### Honest state
+
+It reads as *a modern stadium* now rather than a drum, and no longer as *that*
+stadium. Still missing: the triangulated mullion structure across the glass, the
+sharper asymmetry of the real folds, and the logo. Next pass.
