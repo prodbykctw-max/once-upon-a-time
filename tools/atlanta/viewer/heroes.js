@@ -63,6 +63,82 @@ function bandGeometry(ringA, hA, ringB, hB, uvScale = 0.05) {
   return g;
 }
 
+
+/**
+ * A lattice of thin structural members laid over a band — the triangulated
+ * steel that crosses Mercedes-Benz Stadium's curtain wall.
+ *
+ * THIS IS THE FEATURE THAT MAKES THE WALL RECOGNISABLE. Without it the glass is
+ * a smooth leaning surface and could belong to any arena; the big diagonal
+ * members are what people actually picture. Built as flat strips pushed
+ * `off` metres out along each facet's own normal so they sit proud of the
+ * glass and catch the sun separately from it.
+ */
+function latticeGeometry(ringA, hA, ringB, hB, { rows = 3, w = 0.9, off = 0.8 } = {}) {
+  const POS = [], NOR = [], UV = [], IDX = [];
+  let base = 0;
+  const n = ringA.length;
+
+  const lerp3 = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t];
+
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const a0 = [ringA[i][0], hA, -ringA[i][1]];
+    const a1 = [ringA[j][0], hA, -ringA[j][1]];
+    const b1 = [ringB[j][0], hB, -ringB[j][1]];
+    const b0 = [ringB[i][0], hB, -ringB[i][1]];
+    // facet normal
+    let nx = (a1[1] - a0[1]) * (b0[2] - a0[2]) - (a1[2] - a0[2]) * (b0[1] - a0[1]);
+    let ny = (a1[2] - a0[2]) * (b0[0] - a0[0]) - (a1[0] - a0[0]) * (b0[2] - a0[2]);
+    let nz = (a1[0] - a0[0]) * (b0[1] - a0[1]) - (a1[1] - a0[1]) * (b0[0] - a0[0]);
+    const NL = Math.hypot(nx, ny, nz) || 1;
+    nx /= NL; ny /= NL; nz /= NL;
+
+    const strut = (P, Q) => {
+      const dx = Q[0] - P[0], dy = Q[1] - P[1], dz = Q[2] - P[2];
+      const L = Math.hypot(dx, dy, dz) || 1;
+      const ux = dx / L, uy = dy / L, uz = dz / L;
+      // in-plane perpendicular = normal x direction
+      let sx = ny * uz - nz * uy, sy = nz * ux - nx * uz, sz = nx * uy - ny * ux;
+      const SL = Math.hypot(sx, sy, sz) || 1;
+      sx = (sx / SL) * (w / 2); sy = (sy / SL) * (w / 2); sz = (sz / SL) * (w / 2);
+      const ox = nx * off, oy = ny * off, oz = nz * off;
+      POS.push(P[0] + sx + ox, P[1] + sy + oy, P[2] + sz + oz,
+               Q[0] + sx + ox, Q[1] + sy + oy, Q[2] + sz + oz,
+               Q[0] - sx + ox, Q[1] - sy + oy, Q[2] - sz + oz,
+               P[0] - sx + ox, P[1] - sy + oy, P[2] - sz + oz);
+      for (let k = 0; k < 4; k++) NOR.push(nx, ny, nz);
+      UV.push(0, 0, 1, 0, 1, 1, 0, 1);
+      IDX.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      base += 4;
+    };
+
+    // the fold line at every facet edge — these are the verticals
+    strut(a0, b0);
+    for (let rI = 0; rI <= rows; rI++) {
+      const t = rI / rows;
+      strut(lerp3(a0, b0, t), lerp3(a1, b1, t));          // horizontal chord
+    }
+    // ZIGZAG diagonals: direction alternates per row AND per facet, so the
+    // triangles chevron around the building instead of all leaning one way.
+    for (let rI = 0; rI < rows; rI++) {
+      const t0 = rI / rows, t1 = (rI + 1) / rows;
+      const up = ((rI + i) % 2) === 0;
+      const P = up ? lerp3(a0, b0, t0) : lerp3(a1, b1, t0);
+      const Q = up ? lerp3(a1, b1, t1) : lerp3(a0, b0, t1);
+      strut(P, Q);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(POS), 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(NOR), 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(UV), 2));
+  g.setIndex(base > 65535 ? new THREE.Uint32BufferAttribute(IDX, 1)
+                          : new THREE.Uint16BufferAttribute(IDX, 1));
+  g.computeBoundingSphere();
+  return g;
+}
+
 /** Resample a ring to exactly n points, evenly by perimeter distance. */
 function resample(ring, n) {
   const segs = [];
@@ -124,6 +200,8 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   // says. ~10% inward over the band is about 11 degrees.
   parts.push(['glass', bandGeometry(r(1.06), H * 0.10, r(0.96), H * 0.60)]);
   parts.push(['shell', bandGeometry(r(0.96), H * 0.60, r(0.74), H * 0.96)]);
+  parts.push(['mullion', latticeGeometry(r(1.06), H * 0.10, r(0.96), H * 0.60,
+                                         { rows: 3, w: 1.1, off: 0.9 })]);
 
   // ── the eight-petal aperture roof ──
   const rim = r(0.74), oc = r(0.20);
@@ -183,5 +261,10 @@ export function heroMaterials(THREE_) {
     shell: new THREE.MeshStandardMaterial({ color: 0xd8d9dc, roughness: 0.46, metalness: 0.22 }),
     petals: new THREE.MeshStandardMaterial({
       color: 0xe4e5e8, roughness: 0.40, metalness: 0.25, side: THREE.DoubleSide }),
+    // Painted structural steel: bright enough to draw the triangles against the
+    // dark glass, and double-sided because a flat strip is seen from both ends
+    // as it wraps the building.
+    mullion: new THREE.MeshStandardMaterial({
+      color: 0xdfe1e4, roughness: 0.52, metalness: 0.30, side: THREE.DoubleSide }),
   };
 }

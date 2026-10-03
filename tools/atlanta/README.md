@@ -304,8 +304,26 @@ real reasons:
   ground; a leaning one catches the sky. Near-vertical glass renders dark
   whatever the material says. ~11° of inward lean is what makes it read.
 
+### The triangulated lattice
+
+Added, and it is the single biggest step. Without it the glass is a smooth
+leaning surface that could belong to any arena; the **big diagonal members are
+what people actually picture**. Thin strips pushed 0.9 m proud of the glass
+along each facet's own normal, so they catch the sun separately from it, with
+the diagonals zigzagging per row *and* per facet so the triangles chevron
+around the building instead of all leaning one way.
+
+Cost: **one draw call and 256 triangles.** 13 and 5,550 for the whole location.
+
 ### Honest state
 
-It reads as *a modern stadium* now rather than a drum, and no longer as *that*
-stadium. Still missing: the triangulated mullion structure across the glass, the
-sharper asymmetry of the real folds, and the logo. Next pass.
+It now reads as a recognisable faceted stadium with a triangulated glass wall
+and a petal roof — the family is right, and from the runner camera at speed it
+would pass. It is **not** a photographic match. Still missing: the real
+asymmetry (the true shell is not a figure of revolution — one side rises much
+higher than the other), the deep entry canopies, and rooftop plant.
+
+**The logo is deliberately absent.** The three-pointed star is a trademark.
+Depicting the building is ordinary; reproducing the mark as an asset in a
+commercial game is a different question and is the client's to answer, not
+something to slip in.
