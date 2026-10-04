@@ -356,13 +356,113 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   }
   parts.push(['bowl', { __mesh: bowl }]);
 
-  return parts.map(([k, g]) => (g && g.__mesh) ? g.__mesh
-                                               : new THREE.Mesh(g, mats[k] || mats.shell));
+  const meshes = parts.map(([k, g]) => (g && g.__mesh) ? g.__mesh
+                                                      : new THREE.Mesh(g, mats[k] || mats.shell));
+
+  // ── project the real photograph onto the shell and glass ────────────────
+  // Position is URL-tunable so it can be ALIGNED by looking, the same way the
+  // shape was: ?prx=..&pry=..&prz=..&pfov=..&pamt=..
+  const PAMT = qn('pamt', 1.0);
+  if (PAMT > 0.001) {
+    // Parametrised by AZIMUTH rather than raw x/z, because aligning a
+    // projection is a matter of walking around the building until the image
+    // lands — and that is one number to sweep, not two.
+    //
+    // The photograph is cropped to the building alone. Uncropped, its sky,
+    // trees and road project onto the shell as well, and a stadium wearing a
+    // hedge is worse than one wearing nothing.
+    const cx = c[0], cz = -c[1];
+    const ANG = qn('pang', 2.2), DIST = qn('pdist', 150), PH = qn('pheight', 20);
+    const proj = makeProjector(THREE, {
+      image: '../art/refs/mbs_july2018_cc0.jpg',
+      pos: [cx + Math.cos(ANG) * DIST, PH, cz + Math.sin(ANG) * DIST],
+      target: [cx, H * qn('ptgt', 0.45), cz],
+      fov: qn('pfov', 36),
+      aspect: 796 / 316,
+    });
+    for (const m of meshes) {
+      if (m.material === mats.skirt || m.material === mats.bowl) continue;
+      m.material = m.material.clone();
+      applyProjection(m.material, proj, { strength: PAMT });
+    }
+  }
+  return meshes;
 }
 
 export const HEROES = {
   'way/536744534': { name: 'Mercedes-Benz Stadium', build: mercedesBenzStadium },
 };
+
+/**
+ * PROJECTIVE TEXTURING — put the real building's PIXELS on the geometry.
+ *
+ * Five passes of parameter sweeping got the stadium to "the right family of
+ * building" and stopped there, and the overlay test says why: the model is
+ * roughly the right scale, but the real panel layout is bespoke — large, few,
+ * asymmetric. There is no parameter set that produces it, because it is not a
+ * family, it is one specific building. Procedural geometry can approximate a
+ * type; it cannot match an instance.
+ *
+ * So the photograph becomes the texture. A projector camera is placed where the
+ * shot was taken and the image is projected along its view, exactly like a slide
+ * projector: every vertex gets a UV from its position in that camera's clip
+ * space, so the real glass, the real mullions, the real panel joints and the
+ * real signage all land on the geometry.
+ *
+ * This is the same move the Corner Store Dash hero storefronts make — facade art
+ * "UV-projected from the same facade image, so paint and depth line up".
+ *
+ * THE LIMITATION IS REAL AND WORTH STATING: a projection is only correct from
+ * near the direction it was taken. Turn far enough and it smears. For a runner
+ * on a fixed route that is tolerable — she passes the building through a limited
+ * arc — and several projections can be blended by facing. It is not a substitute
+ * for a modelled asset if the player can orbit freely.
+ */
+export function makeProjector(THREE_, { image, pos, target, fov = 42, aspect = 1.5 }) {
+  const cam = new THREE.PerspectiveCamera(fov, aspect, 1, 4000);
+  cam.position.set(pos[0], pos[1], pos[2]);
+  cam.lookAt(target[0], target[1], target[2]);
+  cam.updateMatrixWorld(true);
+  cam.updateProjectionMatrix();
+  const m = new THREE.Matrix4()
+    .set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1)
+    .multiply(cam.projectionMatrix)
+    .multiply(cam.matrixWorldInverse);
+  const tex = new THREE.TextureLoader().load(image);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  return { matrix: m, texture: tex, camera: cam };
+}
+
+/** Patch a standard material so it samples the projected photograph. */
+export function applyProjection(mat, proj, { strength = 1.0 } = {}) {
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uProjMat = { value: proj.matrix };
+    shader.uniforms.uProjTex = { value: proj.texture };
+    shader.uniforms.uProjDir = { value: proj.camera.getWorldDirection(new THREE.Vector3()) };
+    shader.uniforms.uProjAmt = { value: strength };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform mat4 uProjMat;\nvarying vec4 vProj;\nvarying vec3 vWN;')
+      .replace('#include <worldpos_vertex>',
+        '#include <worldpos_vertex>\n#if defined(USE_ENVMAP) || defined(DISTANCE) || defined(USE_SHADOWMAP) || defined(USE_TRANSMISSION) || NUM_SPOT_LIGHT_COORDS > 0\n#else\n  vec4 worldPosition = modelMatrix * vec4( transformed, 1.0 );\n#endif\n  vProj = uProjMat * worldPosition;\n  vWN = normalize( mat3( modelMatrix ) * objectNormal );');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform sampler2D uProjTex;\nuniform vec3 uProjDir;\nuniform float uProjAmt;\nvarying vec4 vProj;\nvarying vec3 vWN;')
+      .replace('#include <color_fragment>',
+        '#include <color_fragment>\n  {\n'
+        + '    vec3 p = vProj.xyz / max(vProj.w, 1e-4);\n'
+        + '    // only where the projector can actually SEE the surface: inside the\n'
+        + '    // frustum and facing the projector. Without the facing test the image\n'
+        + '    // also paints the far side of the building, back to front.\n'
+        + '    float facing = clamp(-dot(normalize(vWN), normalize(uProjDir)), 0.0, 1.0);\n'
+        + '    float inside = step(0.0, p.x) * step(p.x, 1.0) * step(0.0, p.y) * step(p.y, 1.0) * step(0.0, vProj.w);\n'
+        + '    float k = uProjAmt * inside * smoothstep(0.05, 0.45, facing);\n'
+        + '    vec3 shot = texture2D(uProjTex, p.xy).rgb;\n'
+        + '    diffuseColor.rgb = mix(diffuseColor.rgb, shot, k);\n'
+        + '  }');
+  };
+  mat.needsUpdate = true;
+  return mat;
+}
 
 /** Materials the hero builders draw from. */
 export function heroMaterials(THREE_) {
