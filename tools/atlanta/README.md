@@ -366,12 +366,42 @@ profiles are deliberately out of phase.
 
 **15 draw calls and 5,558 triangles for the entire location.**
 
+### Fifth pass — stop guessing, sweep the shape
+
+Client: *"that shit doesn't look good."* Fair. Four passes of editing one
+constant per render was the wrong method for a question that is **visual**, so
+the stadium's shape became URL-tunable:
+
+```
+?loc=mbs&F=24&jit=0&pw=1&peak=1.12&gmax=0.78&gmin=0.42&ovh=1.10&apex=0.60
+```
+
+Variants now render **side by side against a photograph**, which settled in
+three sweeps what four passes of reasoning had not:
+
+* **THE WHITE IS A ROOF, NOT A WALL.** This was the real error, and it survived
+  four passes. The white panels are a **shallow sloping roof that OVERHANGS the
+  glass** and rises inward to the peaks. Built as vertical blades they read as a
+  crown of spikes; built as an overhanging roof they read as the building.
+  `ovh` is how far the roof's outer edge projects past the glass beneath it.
+* **The star fold was wrong once the roof was right.** The ±4.5% plan jitter
+  from the fourth pass existed to make a *wall* look folded. Over a sloping roof
+  it reads as crumple — 0.03 and 0.05 both look damaged next to 0. Now 0.
+* **The glass wall carries more height than the roof.** At 0.26–0.62 the roof
+  ate the building; 0.42–0.78 is the split the photographs show.
+* 24 facets with peaks every facet — a clean jagged edge rather than spikes.
+
+**The method is the point, and it generalises:** a shape question is settled by
+rendering candidates against the reference, not by reasoning about the
+reference. The same sweep harness should drive every hero that follows.
+
 ### Honest state
 
-It reads as the building. Folded white blades alternating with dark glass
-wedges, sawtooth crown, open aperture, low wide stance — a viewer who knows
-Atlanta would name it. Still absent: entry canopies and ground-level detail,
-the halo board, and the logo (deliberately — see below).
+Tall glass wall under a sloping faceted roof with a jagged overhanging edge,
+big structural triangles, open aperture, low wide stance. Against three
+reference angles the silhouette and the material relationship both hold. Still
+absent: entry canopies and ground-level detail, the halo board, and the logo
+(deliberately — see below).
 
 **The logo is deliberately absent.** The three-pointed star is a trademark.
 Depicting the building is ordinary; reproducing the mark as an asset in a

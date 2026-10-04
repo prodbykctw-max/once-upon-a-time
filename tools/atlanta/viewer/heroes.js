@@ -186,6 +186,12 @@ function resample(ring, n) {
  * The petals are the thing. That aperture roof is what people picture when they
  * picture this building, and it is the one feature an extrusion can never have.
  */
+// Tunables, overridable from the URL so shapes can be COMPARED rather than
+// guessed at one edit per render: ?F=12&jit=0.02&peak=1.30&gmax=0.95
+const Q = (typeof location !== 'undefined')
+  ? new URLSearchParams(location.search) : new URLSearchParams();
+const qn = (k, d) => (Q.has(k) ? parseFloat(Q.get(k)) : d);
+
 export function mercedesBenzStadium(b, THREE_, mats) {
   // OSM's height=93 is to the TOP OF THE HIGHEST POINT, not the main mass. Used
   // as the body height it makes a tower; across four reference angles the
@@ -205,7 +211,7 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   // each one. A crease down a blade means the PLAN zigzags in and out — the
   // building is a star, not a polygon. More facets plus a weak jitter reads as
   // a cylinder; more facets plus a strong one reads as folded metal.
-  const F = 24;
+  const F = Math.round(qn('F', 24));
   ring = resample(ring, F);
   const c = centroidOf(ring);
 
@@ -213,16 +219,23 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   // the photograph rises and falls, one corner juts up well above the rest, and
   // the plan is not a circle. A fixed per-facet profile breaks the symmetry in
   // a repeatable way — no randomness, so the model is the same every load.
+  // JITTER OFF. The star fold was invented to make the shell look folded, and
+  // once the white became a sloping roof the fold stopped helping and started
+  // reading as crumple. Settled by rendering the variants side by side against
+  // a photograph rather than reasoning about it — 0.03 and 0.05 both look
+  // damaged next to 0.
+  const JIT = qn('jit', 0.0);
   const RJIT = [];
-  for (let i = 0; i < F; i++) RJIT.push(i % 2 === 0 ? 1.045 : 0.955);
+  for (let i = 0; i < F; i++) RJIT.push(i % 2 === 0 ? 1 + JIT : 1 - JIT);
   // A JAGGED CROWN, not a rim. In every reference the top alternates hard
   // between peaks and valleys — that sawtooth silhouette is as recognisable as
   // the glass. A gently varying rim just reads as a wobbly drum.
   // The crown's sawtooth runs on a longer wavelength than the fold — a peak
   // every four facets, so each peak spans two folded blades.
-  const PEAKS = [1.34, 1.30, 0.92, 0.90];
+  // Peak every PW facets; the crown's wavelength is independent of the fold.
+  const PK = qn('peak', 1.12), VY = qn('valley', 0.95), PW = Math.round(qn('pw', 1));
   const TOPJ = [];
-  for (let i = 0; i < F; i++) TOPJ.push(PEAKS[i % PEAKS.length]);
+  for (let i = 0; i < F; i++) TOPJ.push(Math.floor(i / PW) % 2 === 0 ? PK : VY);
   const r = (k) => scaleRing(ring, c, k).map(([x, y], i) => {
     const s2 = RJIT[i % F];
     return [c[0] + (x - c[0]) * s2, c[1] + (y - c[1]) * s2];
@@ -241,9 +254,15 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   // pushes up in wedges between them.
   // Glass wedges push up where the crown dips, white blades come down where it
   // peaks — the two profiles are deliberately out of phase.
-  const GSEQ = [0.30, 0.33, 0.95, 0.92];
+  // Glass pushes up where the crown dips and the white blade comes down where
+  // it peaks — the two profiles run out of phase by design.
+  // The glass wall carries more of the height than the roof does. At 0.26-0.62
+  // the roof ate the building; against a photograph 0.42-0.78 is the split.
+  const GMAX = qn('gmax', 0.78), GMIN = qn('gmin', 0.42);
   const GTOP = [];
-  for (let i = 0; i < F; i++) GTOP.push(H * GSEQ[i % GSEQ.length]);
+  for (let i = 0; i < F; i++) {
+    GTOP.push(H * (Math.floor(i / PW) % 2 === 0 ? GMIN : GMAX));
+  }
 
   const parts = [];
   // A dark glazed CONCOURSE BAND runs the whole way round at ground level in
@@ -266,7 +285,15 @@ export function mercedesBenzStadium(b, THREE_, mats) {
   // shell: from the chevron up to a jagged rim
   const RIM = TOPJ.map((t) => H * 0.97 * t);
   void parts2;
-  parts.push(['shell', bandGeometry(r(0.99), GTOP, r(0.78), RIM)]);
+  // ── THE WHITE IS A ROOF, NOT A WALL ──────────────────────────────────────
+  // Side by side with a photograph this is the thing that was wrong. The white
+  // panels are a SHALLOW SLOPING ROOF that OVERHANGS the glass and rises inward
+  // to the peaks — not vertical blades standing on top of a glass band. Built
+  // as blades they read as a crown of spikes; built as a roof they read as the
+  // building. `ovh` is how far the roof's outer edge projects PAST the glass
+  // below it, which is what makes it an overhang rather than a taper.
+  const OVH = qn('ovh', 1.10), APEX = qn('apex', 0.62);
+  parts.push(['shell', bandGeometry(r(OVH), GTOP, r(APEX), RIM)]);
 
   // ── roof: an ANNULUS WITH A REAL HOLE ──────────────────────────────────
   // The first two attempts closed the centre: eight triangles meeting at a
@@ -350,7 +377,7 @@ export function heroMaterials(THREE_) {
     // brightness comes from Fresnel at grazing angles. Hence low metalness, very
     // low roughness and a lifted envMapIntensity.
     glass: new THREE.MeshStandardMaterial({
-      color: 0x51657d, roughness: 0.07, metalness: 0.22, envMapIntensity: 2.2 }),
+      color: 0x607690, roughness: 0.06, metalness: 0.20, envMapIntensity: 2.6 }),
     shell: new THREE.MeshStandardMaterial({ color: 0xd8d9dc, roughness: 0.46, metalness: 0.22 }),
     petals: new THREE.MeshStandardMaterial({
       color: 0xe4e5e8, roughness: 0.40, metalness: 0.25, side: THREE.DoubleSide }),
