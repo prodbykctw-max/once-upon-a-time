@@ -82,13 +82,75 @@ export function heightAt(E, x, y) {
   return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty;
 }
 
-function terrainGeometry(E) {
-  const N = E.grid, POS = [], UV = [], IDX = [];
+// Ground cover, painted ONTO the terrain rather than laid over it.
+const COVER = {
+  water:      [0.09, 0.19, 0.31],
+  wood:       [0.10, 0.19, 0.09],
+  forest:     [0.10, 0.19, 0.09],
+  scrub:      [0.21, 0.24, 0.14],
+  bare_rock:  [0.47, 0.46, 0.44],   // Stone Mountain's dome IS this
+  sand:       [0.60, 0.54, 0.40],
+  park:       [0.17, 0.33, 0.13],
+  grass:      [0.19, 0.36, 0.14],
+  grassland:  [0.22, 0.34, 0.16],
+  meadow:     [0.23, 0.35, 0.16],
+  recreation_ground: [0.18, 0.34, 0.14],
+  cemetery:   [0.20, 0.32, 0.16],
+  pitch:      [0.16, 0.38, 0.15],
+  track:      [0.38, 0.17, 0.12],   // the rubberised oval
+  playground: [0.33, 0.26, 0.18],
+  garden:     [0.19, 0.34, 0.15],
+};
+const BARE = [0.34, 0.31, 0.27];
+
+function pointInRing(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * Terrain, SUBDIVIDED finer than the elevation grid and painted per vertex.
+ *
+ * Two bugs fixed at once, both from laying ground cover over the ground as
+ * separate geometry: a coarse ShapeGeometry polygon draped on a hill cuts
+ * STRAIGHT THROUGH the terrain and through the roads, which is why Wade Walker
+ * came out as unbroken green with every road swallowed. Painting the surface
+ * instead means there is nothing to z-fight with and nothing to drape.
+ *
+ * SUB is why the boundaries stay sharp: the elevation grid is only 40x40 (23 m
+ * spacing), which would put a park edge in 23 m steps. Sampling bilinearly
+ * between those gives a finer mesh for free — the DEM is the limit on height
+ * detail, not on how finely it can be coloured.
+ */
+function terrainGeometry(E, areas, SUB = 3) {
+  const N = (E.grid - 1) * SUB + 1;
+  const step = (E.step * (E.grid - 1)) / (N - 1);
+  const POS = [], UV = [], COL = [], IDX = [];
+
+  // biggest polygons first so a pitch inside a park wins over the park
+  const sorted = (areas || []).slice().sort((a, b) => {
+    const ext = (p) => {
+      let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+      for (const [x, y] of p.pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+      return (x1 - x0) * (y1 - y0);
+    };
+    return ext(b) - ext(a);
+  });
+
   for (let j = 0; j < N; j++) {
     for (let i = 0; i < N; i++) {
-      const x = E.x0 + i * E.step, y = E.y0 + j * E.step;
-      POS.push(x, E.z[j * N + i], -y);
+      const x = E.x0 + i * step, y = E.y0 + j * step;
+      POS.push(x, heightAt(E, x, y), -y);
       UV.push(x / 24, y / 24);
+      let c = BARE;
+      for (const a of sorted) {
+        if (a.pts.length > 2 && pointInRing(x, y, a.pts)) c = COVER[a.kind] || c;
+      }
+      COL.push(c[0], c[1], c[2]);
     }
   }
   for (let j = 0; j < N - 1; j++) {
@@ -103,6 +165,7 @@ function terrainGeometry(E) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(POS), 3));
   g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(UV), 2));
+  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(COL), 3));
   g.setIndex(N * N > 65535 ? new THREE.Uint32BufferAttribute(IDX, 1)
                            : new THREE.Uint16BufferAttribute(IDX, 1));
   g.computeVertexNormals();
@@ -330,16 +393,43 @@ export function buildCity(world, opts = {}) {
     map: tex('../art/pbr/concrete_pavement/diff.jpg'), roughness: 0.95 });
   const matPark = new THREE.MeshStandardMaterial({ color: 0x2f5327, roughness: 0.97 });
   const matWater = new THREE.MeshStandardMaterial({ color: 0x1d3f5c, roughness: 0.12, metalness: 0.5 });
+  // ── A NEUTRAL DETAIL MAP, or the vertex colours never show ────────────────
+  // Ground cover is carried by vertex colour, and `map` MULTIPLIES it. The
+  // concrete scan is a strong tan, so grey granite came out tan, grass came out
+  // tan, everything came out tan — and it reads as "the painting is not
+  // working" when in fact the painting was fine and the texture was shouting
+  // over it. A detail map for a tinted surface has to be neutral: grain only.
+  const grainTexture = () => {
+    const n = 256, cv = document.createElement('canvas');
+    cv.width = cv.height = n;
+    const ctx = cv.getContext('2d');
+    const img = ctx.createImageData(n, n);
+    let seed = 1337;
+    for (let i = 0; i < n * n; i++) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;      // fixed seed: same every load
+      const v = 150 + ((seed >> 16) % 60);
+      img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
+      img.data[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    const t = new THREE.CanvasTexture(cv);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(90, 90);
+    return t;
+  };
   const matGround = new THREE.MeshStandardMaterial({
-    map: tex('../art/pbr/concrete_pavement/diff.jpg', 60, 60), color: 0x7a756a, roughness: 0.98 });
+    map: grainTexture(), color: 0xffffff, vertexColors: true, roughness: 0.97 });
 
   const R = world.location.radius_m;
   const E = world.elevation || null;
   stats.relief = E ? +(Math.max(...E.z) - Math.min(...E.z)).toFixed(0) : 0;
   if (E) {
-    const t = new THREE.Mesh(terrainGeometry(E), matGround);
+    const t = new THREE.Mesh(terrainGeometry(E, world.areas), matGround);
     t.receiveShadow = true; t.castShadow = true; t.name = 'terrain';
     group.add(t); stats.draws++;
+    // was omitted — the terrain is the biggest mesh in the scene and was not
+    // being counted, so every triangle figure quoted so far was short
+    stats.tris += t.geometry.index.count / 3;
     // a skirt beyond the sampled grid so the world does not end at a cliff edge
     const skirt = new THREE.Mesh(new THREE.PlaneGeometry(R * 8, R * 8), matGround);
     skirt.rotation.x = -Math.PI / 2;
@@ -354,8 +444,7 @@ export function buildCity(world, opts = {}) {
     group.add(ground); stats.draws++;
   }
 
-  addMesh(areasGeometry(world.areas.filter((a) => a.kind !== 'water'), 0.12, E), matPark, 'areas_green');
-  addMesh(areasGeometry(world.areas.filter((a) => a.kind === 'water'), 0.14, E), matWater, 'areas_water');
+  // Ground cover is PAINTED on the terrain above — no separate area meshes.
 
   const widthOf = (w) => (w.lanes ? w.lanes * LANE_M : (CLASS_W[w.kind] ?? 6));
   const carriage = world.roads.filter((w) => !FOOT_KINDS.has(w.kind));

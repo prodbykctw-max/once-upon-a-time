@@ -37,8 +37,11 @@ const q = `[out:json][timeout:180];
 (
   way(${bbox})["building"];
   way(${bbox})["highway"];
-  way(${bbox})["leisure"~"^(park|pitch|track|garden)$"];
-  way(${bbox})["natural"~"^(water|wood)$"];
+  way(${bbox})["leisure"~"^(park|pitch|track|garden|playground)$"];
+  // bare_rock matters: it is what Stone Mountain's dome actually IS, and
+  // without it the landmark renders as a dirt mound.
+  way(${bbox})["natural"~"^(water|wood|bare_rock|scrub|grassland|sand)$"];
+  way(${bbox})["landuse"~"^(grass|forest|meadow|recreation_ground|cemetery)$"];
 );
 out geom;`;
 // `out geom;` already carries tags. `out geom tags;` is a SYNTAX ERROR, and
@@ -74,7 +77,8 @@ for (const el of data.elements || []) {
                  oneway: t.oneway === 'yes' || undefined,
                  foot: (t.highway === 'footway' || t.highway === 'path') || undefined });
   } else {
-    areas.push({ id: el.id, pts, kind: t.leisure || t.natural, name: t.name || undefined });
+    areas.push({ id: el.id, pts, kind: t.leisure || t.natural || t.landuse,
+                 name: t.name || undefined });
   }
 }
 

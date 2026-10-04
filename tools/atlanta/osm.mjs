@@ -12,6 +12,7 @@
 // not ours to vendor.
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -42,7 +43,13 @@ const UA = 'jande-once-upon-a-time/1.0 (game world build; contact prodbykctw@gma
 
 /** Run an Overpass QL query, with on-disk caching keyed by `name`. */
 export async function overpass(name, query, { timeoutMs = 180000, force = false } = {}) {
-  const file = path.join(CACHE, `${name}.json`);
+  // THE QUERY IS PART OF THE CACHE KEY. It was not, and that is a quiet, nasty
+  // bug: widening the query to pull bare_rock changed nothing at all, because
+  // every location returned its old cached answer and the counts looked
+  // identical. A cache keyed on less than its inputs does not fail loudly — it
+  // tells you your change did nothing.
+  const sig = crypto.createHash('sha1').update(query).digest('hex').slice(0, 8);
+  const file = path.join(CACHE, `${name}_${sig}.json`);
   if (!force && fs.existsSync(file)) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
   }

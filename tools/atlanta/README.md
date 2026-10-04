@@ -377,3 +377,45 @@ the halo board, and the logo (deliberately — see below).
 Depicting the building is ordinary; reproducing the mark as an asset in a
 commercial game is a different question and is the client's to answer, not
 something to slip in.
+
+## Terrain, and painting the ground
+
+Every location now carries a real elevation grid (Open-Meteo, Copernicus DEM —
+free, no key, ~0.75 s a call, paced to stay inside the per-minute limit):
+
+| location | relief |
+|---|---|
+| Stone Mountain Park | **240 m** |
+| Wade Walker Park | 45 m |
+| Mercedes-Benz Stadium | 32 m |
+| DeKalb School of the Arts | 16 m |
+
+**Ground cover is PAINTED on the terrain, not laid over it.** Laying coarse area
+polygons on a hill makes them cut straight through it — Wade Walker came out as
+unbroken green with every road swallowed. Painting per vertex leaves nothing to
+z-fight with and nothing to drape. The terrain mesh is subdivided finer than the
+elevation grid (×3) so cover boundaries stay sharp; the DEM limits height
+detail, not colour detail.
+
+Buildings sample the **minimum** ground height under their footprint and sink
+1 m, so nothing gapes on its downhill side. Roads sample per vertex, because a
+road laid flat across a hill floats at one end and buries itself at the other.
+
+### Three bugs worth keeping
+
+**A cache keyed on less than its inputs does not fail loudly.** Widening the
+Overpass query to pull `bare_rock` changed nothing — every location returned its
+old cached answer and the element counts looked identical. The query is part of
+the cache key now (sha1, 8 chars).
+
+**A coloured detail map eats vertex colours.** Cover is carried by vertex
+colour and `map` *multiplies* it, so a tan concrete scan turned granite tan,
+grass tan, everything tan. It reads exactly like "the painting is broken" when
+the painting was fine. A detail map over a tinted surface must be **neutral** —
+grain only. Generated in-canvas from a fixed seed, so no asset and no variation
+between loads.
+
+**The terrain was never counted.** It is the biggest mesh in every scene and was
+added without touching `stats.tris`, so every triangle figure quoted before this
+was short. Real numbers: **29–33k triangles, 6–15 draw calls**, against 500k and
+150.
