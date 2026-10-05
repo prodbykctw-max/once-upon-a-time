@@ -13,6 +13,7 @@
 import * as THREE from './vendor/three.module.min.js';
 import { HEROES, heroMaterials } from './heroes.js';
 import { buildProps } from './props.js';
+import { asset } from './base.js';
 
 // TILE SIZE COMES FROM THE FILENAME, deliberately. make_facades.py bakes the
 // real-world size of each trim sheet into its name, so there is exactly one
@@ -423,16 +424,16 @@ export function buildCity(world, opts = {}) {
     return t;
   };
   const matRoof = new THREE.MeshStandardMaterial({
-    map: tex('../art/pbr/rough_concrete/diff.jpg'), roughness: 0.95 });
+    map: tex(asset('art/pbr/rough_concrete/diff.jpg')), roughness: 0.95 });
   // Asphalt has to read DARK AGAINST THE GROUND, not merge with it. The first
   // pass had ground 0x23231f and road 0x2b2b30 — nearly the same luma — which
   // looked acceptable from above and became a sea of black at eye level, where
   // the game is actually played. Always judge surface contrast from the runner
   // camera, never the overview.
   const matRoad = new THREE.MeshStandardMaterial({
-    map: tex('../art/pbr/asphalt_02/diff.jpg'), color: 0x9a9a9a, roughness: 0.95 });
+    map: tex(asset('art/pbr/asphalt_02/diff.jpg')), color: 0x9a9a9a, roughness: 0.95 });
   const matFoot = new THREE.MeshStandardMaterial({
-    map: tex('../art/pbr/concrete_pavement/diff.jpg'), roughness: 0.95 });
+    map: tex(asset('art/pbr/concrete_pavement/diff.jpg')), roughness: 0.95 });
   const matPark = new THREE.MeshStandardMaterial({ color: 0x2f5327, roughness: 0.97 });
   const matWater = new THREE.MeshStandardMaterial({ color: 0x1d3f5c, roughness: 0.12, metalness: 0.5 });
   // ── A NEUTRAL DETAIL MAP, or the vertex colours never show ────────────────
@@ -527,7 +528,7 @@ export function buildCity(world, opts = {}) {
     if (!band.length) continue;
     const [tw, th] = tileOf(f.file);
     const mat = new THREE.MeshStandardMaterial({
-      map: tex('../art/facades/' + f.file), roughness: 0.78, metalness: 0.04 });
+      map: tex(asset('art/facades/' + f.file)), roughness: 0.78, metalness: 0.04 });
     addMesh(wallsGeometry(band, tw, th, E), mat, 'walls_' + f.file.split('_')[0]);
   }
   addMesh(roofsGeometry(generic, E), matRoof, 'roofs');

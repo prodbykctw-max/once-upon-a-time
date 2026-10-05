@@ -14,6 +14,7 @@
 // This is the mechanism, not a one-off. Stone Mountain's carving, the school
 // frontage and Apache all land here the same way.
 import * as THREE from './vendor/three.module.min.js';
+import { asset } from './base.js';
 
 const centroidOf = (ring) => {
   let x = 0, y = 0;
@@ -374,7 +375,7 @@ export function mercedesBenzStadium(b, THREE_, mats) {
     const cx = c[0], cz = -c[1];
     const ANG = qn('pang', 2.2), DIST = qn('pdist', 150), PH = qn('pheight', 20);
     const proj = makeProjector(THREE, {
-      image: '../art/refs/mbs_july2018_cc0.jpg',
+      image: asset('art/refs/mbs_july2018_cc0.jpg'),
       pos: [cx + Math.cos(ANG) * DIST, PH, cz + Math.sin(ANG) * DIST],
       target: [cx, H * qn('ptgt', 0.45), cz],
       fov: qn('pfov', 36),

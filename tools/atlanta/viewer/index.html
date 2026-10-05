@@ -4,28 +4,77 @@
 <style>
   html,body{margin:0;height:100%;background:#0b0d10;overflow:hidden;
     font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#dfe3ea}
-  canvas{display:block}
+  /* touch-action:none, or dragging to orbit scrolls/zooms the PAGE on a phone
+     and the camera never moves. The preview link is opened on a phone more
+     often than on a desktop. */
+  canvas{display:block;touch-action:none}
   #hud{position:fixed;left:12px;top:12px;padding:10px 13px;border-radius:9px;
     background:rgba(10,12,16,.78);backdrop-filter:blur(6px);pointer-events:none;
     box-shadow:0 1px 0 rgba(255,255,255,.06) inset}
   #hud b{font-size:14px;letter-spacing:.01em}
   #hud .m{color:#8e96a6;font-size:11.5px;margin-top:3px}
   #hud .warn{color:#e5a05a}
-  #keys{position:fixed;left:12px;bottom:12px;color:#6f7686;font-size:11.5px}
-  #pick{position:fixed;right:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;max-width:46vw;justify-content:flex-end}
+  /* On-screen equivalents of R / O / , / . — a phone has no keyboard, and
+     without these the whole runner-eye view is unreachable on the device the
+     client actually opens the link on. */
+  #bar{position:fixed;left:12px;bottom:12px;display:flex;gap:6px;flex-wrap:wrap;
+    max-width:calc(100vw - 24px)}
+  #bar button{appearance:none;border:1px solid rgba(255,255,255,.09);
+    background:rgba(22,26,33,.88);color:#c6ccd8;font:inherit;font-size:12px;
+    padding:9px 13px;border-radius:9px;cursor:pointer;touch-action:manipulation}
+  #bar button.on{background:#2f6ae0;color:#fff;border-color:transparent}
+  #bar button:active{transform:translateY(1px)}
+  /* a chip, not bare text — over the dark asphalt it was invisible */
+  #keys{position:fixed;left:12px;bottom:58px;color:#8e96a6;font-size:11.5px;
+    background:rgba(10,12,16,.72);padding:5px 9px;border-radius:7px}
+  #keys b{color:#c6ccd8}
+  #pick{position:fixed;right:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;
+    max-width:46vw;justify-content:flex-end;align-items:center}
   #pick a{padding:5px 10px;border-radius:999px;background:rgba(22,26,33,.85);color:#c6ccd8;
     text-decoration:none;font-size:11.5px;border:1px solid rgba(255,255,255,.07)}
   #pick a.on{background:#2f6ae0;color:#fff;border-color:transparent}
   #att{position:fixed;right:12px;bottom:12px;color:#5b6271;font-size:10.5px}
+
+  /* At phone width the four corners collide: the location chips land ON the
+     HUD and the OSM attribution runs under the buttons. Stack instead.
+     THIS BLOCK MUST STAY LAST. Written above the base rules it lost every
+     shared property to the cascade — equal specificity, later wins — and the
+     chips inherited `top:12px` AND `bottom:66px`, stretching into 350px pills.
+     A media query is not more specific than the rule it is overriding. */
+  #dock{display:contents}
+  @media (max-width:640px){
+    #keys{display:none}
+    #hud{right:12px}
+    /* ONE flex column owns the bottom, so nothing is positioned against a
+       guessed offset. Stacking three fixed elements with hand-picked `bottom`
+       values collided at 390px AND again at 360px once the buttons wrapped to
+       two rows — a stack whose height depends on wrapping cannot be laid out
+       with constants. */
+    #dock{display:flex;flex-direction:column;align-items:stretch;gap:8px;
+      position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom))}
+    #pick,#bar,#att{position:static;max-width:none}
+    #att{text-align:right}
+  }
 </style>
 <div id="hud"><b id="t">loading…</b><div class="m" id="m"></div></div>
-<div id="pick"></div>
-<div id="keys">drag orbit · scroll zoom · <b>R</b> runner eye · <b>O</b> overview · <b>,</b>/<b>.</b> move along route</div>
-<div id="att"></div>
+<!-- #dock is `display:contents` on a wide screen, so each child keeps its own
+     corner; on a phone it becomes the one bottom column that owns them all. -->
+<div id="dock">
+  <div id="pick"></div>
+  <div id="keys">drag orbit · scroll zoom · <b>R</b> runner eye · <b>O</b> overview · <b>,</b>/<b>.</b> move along route</div>
+  <div id="bar">
+    <button id="bOver" class="on">overview</button>
+    <button id="bRun">runner eye</button>
+    <button id="bBack">&minus; back</button>
+    <button id="bFwd">forward &plus;</button>
+  </div>
+  <div id="att"></div>
+</div>
 
 <script type="module">
 import * as THREE from './vendor/three.module.min.js';
 import { buildCity, lightRig, heightAt } from './city.js';
+import { asset } from './base.js';
 
 const KEYS = ['mbs', 'dsa', 'wade', 'stonemtn'];
 const key = new URLSearchParams(location.search).get('loc') || 'mbs';
@@ -79,7 +128,24 @@ function skyEnvironment(renderer) {
 scene.environment = skyEnvironment(renderer);
 const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.5, 6000);
 
-const world = await (await fetch(`../world/${key}.json`)).json();
+// ── FOV IS VERTICAL, SO A PHONE HELD UPRIGHT IS A TELEPHOTO LENS ───────────
+// three.js `fov` is the VERTICAL angle, and horizontal follows the aspect. At
+// 390x844 that is aspect 0.46, so a 58 deg vertical is **29 deg horizontal** —
+// a zoom lens. Measured on the phone viewport: the runner view was a corridor
+// of tarmac with the stadium cropped clean out of frame, which reads as "the
+// city is missing" and is a lens choice.
+// Widen the vertical until the HORIZONTAL stays usable, capped at 82 so the
+// near ground does not fisheye. Landscape keeps the 58 it was framed for.
+function fitFov() {
+  const a = innerWidth / innerHeight;
+  const want = 2 * Math.atan(Math.tan((27.5 * Math.PI) / 180) / a) * (180 / Math.PI);
+  camera.fov = Math.max(58, Math.min(82, want));
+  camera.aspect = a;
+  camera.updateProjectionMatrix();
+}
+fitFov();
+
+const world = await (await fetch(asset(`world/${key}.json`))).json();
 const R = world.location.radius_m;
 scene.fog = new THREE.Fog(0x8fb4d8, R * 0.9, R * 3.4);
 const { group, stats, route, routeLength } = buildCity(world);
@@ -97,7 +163,18 @@ document.getElementById('m').innerHTML =
 document.getElementById('att').textContent = world.attribution;
 
 // ── cameras ─────────────────────────────────────────────────────────────────
-let mode = 'overview', t = 0.12, yaw = 0.6, pitch = 0.62, dist = R * 1.5;
+// WHERE THE RUNNER VIEW STARTS IS MEASURED, NOT 0.12 FOR EVERYTHING.
+// A shared default put the stadium run on a stretch of tarmac with the landmark
+// cropped out of frame, which reads as "there is nothing here". Sampled a 7x9
+// ray grid along each route at 0.1 steps and took the point where the location's
+// own geometry actually fills the frame:
+//   mbs 0.55  (hero 21% of the frame; 0.12 was 0%)
+//   dsa 0.30  ·  wade 0.30  ·  stonemtn 0.20 (the dome is 62% terrain there)
+// Past ~0.4 the DSA and Stone Mountain routes leave the extract and the frame
+// goes 78-94% sky — so these are also the last point that still has a world in it.
+const START_T = { mbs: 0.55, dsa: 0.30, wade: 0.30, stonemtn: 0.20 };
+const qf = (k, d) => { const v = parseFloat(new URLSearchParams(location.search).get(k)); return Number.isFinite(v) ? v : d; };
+let mode = 'overview', t = qf('t', START_T[key] ?? 0.12), yaw = 0.6, pitch = 0.62, dist = R * 1.5;
 
 // THE GROUND MOVED AND THE CAMERA DID NOT. Once the terrain carried real
 // elevation, a runner camera pinned to y=1.75 absolute ended up UNDERGROUND
@@ -148,30 +225,68 @@ function place() {
 place();
 
 addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
+  fitFov();
   renderer.setSize(innerWidth, innerHeight);
 });
-let drag = null;
-renderer.domElement.addEventListener('pointerdown', (e) => (drag = [e.clientX, e.clientY]));
-addEventListener('pointerup', () => (drag = null));
+// ── input. Pointer events cover mouse and touch in one path; the only thing
+//    they do NOT give for free is the two-finger pinch, which is the ONLY way
+//    to zoom on a phone (there is no wheel). Track every live pointer so the
+//    second finger is available rather than discarded.
+const live = new Map();
+let drag = null, pinch = 0;
+const zoomTo = (d) => { dist = Math.max(R * 0.15, Math.min(R * 4, d)); place(); };
+const spread = () => {
+  const [a, b] = [...live.values()];
+  return Math.hypot(a[0] - b[0], a[1] - b[1]);
+};
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  live.set(e.pointerId, [e.clientX, e.clientY]);
+  if (live.size === 2) { pinch = spread(); drag = null; }
+  else drag = [e.clientX, e.clientY];
+});
+const lift = (e) => {
+  live.delete(e.pointerId);
+  if (live.size < 2) pinch = 0;
+  if (!live.size) drag = null;
+};
+addEventListener('pointerup', lift);
+addEventListener('pointercancel', lift);
 addEventListener('pointermove', (e) => {
+  if (!live.has(e.pointerId)) return;
+  live.set(e.pointerId, [e.clientX, e.clientY]);
+  if (live.size >= 2) {
+    const s = spread();
+    if (pinch && s) zoomTo(dist * (pinch / s));
+    pinch = s;
+    return;
+  }
   if (!drag || mode === 'runner') return;
   yaw -= (e.clientX - drag[0]) * 0.006;
   pitch = Math.max(0.08, Math.min(1.5, pitch + (e.clientY - drag[1]) * 0.005));
   drag = [e.clientX, e.clientY]; place();
 });
 addEventListener('wheel', (e) => {
-  dist = Math.max(R * 0.15, Math.min(R * 4, dist * (1 + Math.sign(e.deltaY) * 0.1)));
-  place();
+  zoomTo(dist * (1 + Math.sign(e.deltaY) * 0.1));
 }, { passive: true });
+
+const bOver = document.getElementById('bOver'), bRun = document.getElementById('bRun');
+function setMode(m) {
+  mode = m;
+  bOver.classList.toggle('on', m === 'overview');
+  bRun.classList.toggle('on', m === 'runner');
+  place();
+}
+const step = (d) => { t = Math.max(0, Math.min(1, t + d)); if (mode !== 'runner') setMode('runner'); else place(); };
+bOver.onclick = () => setMode('overview');
+bRun.onclick = () => setMode('runner');
+document.getElementById('bBack').onclick = () => step(-0.02);
+document.getElementById('bFwd').onclick = () => step(0.02);
 addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
-  if (k === 'r') mode = 'runner';
-  else if (k === 'o') mode = 'overview';
-  else if (k === ',') t = Math.max(0, t - 0.02);
-  else if (k === '.') t = Math.min(1, t + 0.02);
-  place();
+  if (k === 'r') setMode('runner');
+  else if (k === 'o') setMode('overview');
+  else if (k === ',') step(-0.02);
+  else if (k === '.') step(0.02);
 });
 
 // expose for headless capture
