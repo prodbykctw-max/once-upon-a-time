@@ -12,6 +12,7 @@
 // (facades and LODs need per-building objects); the runtime does not.
 import * as THREE from './vendor/three.module.min.js';
 import { HEROES, heroMaterials } from './heroes.js';
+import { buildProps } from './props.js';
 
 // TILE SIZE COMES FROM THE FILENAME, deliberately. make_facades.py bakes the
 // real-world size of each trim sheet into its name, so there is exactly one
@@ -126,9 +127,16 @@ function pointInRing(x, y, ring) {
  * between those gives a finer mesh for free — the DEM is the limit on height
  * detail, not on how finely it can be coloured.
  */
-function terrainGeometry(E, areas, SUB = 3) {
-  const N = (E.grid - 1) * SUB + 1;
-  const step = (E.step * (E.grid - 1)) / (N - 1);
+function terrainGeometry(E, areas, SUB = 3, EXT = 2.2) {
+  // EXTEND PAST THE SAMPLED GRID instead of adding a flat skirt underneath it.
+  // The skirt was a plane at (min height - 2), and from a runner's eye it filled
+  // the lower half of the frame as a black wedge — it reads as a rendering
+  // fault. `heightAt` already clamps outside the grid, so simply meshing a wider
+  // area gives a border that joins the terrain seamlessly and has no step.
+  const span = E.step * (E.grid - 1);
+  const N = Math.round(((E.grid - 1) * SUB) * EXT) + 1;
+  const step = (span * EXT) / (N - 1);
+  const x0 = E.x0 - span * (EXT - 1) / 2, y0 = E.y0 - span * (EXT - 1) / 2;
   const POS = [], UV = [], COL = [], IDX = [];
 
   // biggest polygons first so a pitch inside a park wins over the park
@@ -143,7 +151,7 @@ function terrainGeometry(E, areas, SUB = 3) {
 
   for (let j = 0; j < N; j++) {
     for (let i = 0; i < N; i++) {
-      const x = E.x0 + i * step, y = E.y0 + j * step;
+      const x = x0 + i * step, y = y0 + j * step;
       POS.push(x, heightAt(E, x, y), -y);
       UV.push(x / 24, y / 24);
       let c = BARE;
@@ -285,9 +293,39 @@ function mergeGeometries(geos) {
   return out;
 }
 
+/**
+ * Resample a centreline so no segment is longer than `step` metres.
+ *
+ * SAME LESSON AS THE AREAS, learned twice. An OSM way can run 50 m or more
+ * between nodes, and a ribbon built straight between two terrain samples cuts
+ * through every hill in between — roads burst out of hillsides and vanish into
+ * them. Anything draped on terrain has to be subdivided FIRST, at a spacing
+ * finer than the terrain's own detail.
+ */
+function densify(pts, step = 8) {
+  if (pts.length < 2) return pts;
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+    const d = Math.hypot(x1 - x0, y1 - y0);
+    const n = Math.max(1, Math.ceil(d / step));
+    for (let k = 1; k <= n; k++) {
+      out.push([x0 + (x1 - x0) * (k / n), y0 + (y1 - y0) * (k / n)]);
+    }
+  }
+  return out;
+}
+
 /** Flat ribbon along a centreline, at `lift` metres, `w` metres wide. */
 function ribbon(pts, w, lift, E) {
-  const hw = w / 2, pos = [], idx = [];
+  // RIBBONS HAD NO UVs. A material with a `map` and no uv attribute samples one
+  // corner texel for the whole surface, so the footways rendered as a flat dark
+  // wedge — which looks like bad geometry or bad lighting and is neither. Found
+  // by raycasting the wedge rather than guessing at it again.
+  // U runs ACROSS the width, V runs ALONG the length in metres, so the surface
+  // tiles at a believable scale however long the way is.
+  const hw = w / 2, pos = [], uv = [], idx = [];
+  let run = 0;
   for (let i = 0; i < pts.length; i++) {
     const [ax, ay] = pts[Math.max(i - 1, 0)];
     const [bx, by] = pts[Math.min(i + 1, pts.length - 1)];
@@ -299,27 +337,31 @@ function ribbon(pts, w, lift, E) {
     // end and buries itself at the other
     pos.push(x + nx * hw, heightAt(E, x + nx * hw, y + ny * hw) + lift, -(y + ny * hw));
     pos.push(x - nx * hw, heightAt(E, x - nx * hw, y - ny * hw) + lift, -(y - ny * hw));
+    if (i > 0) run += Math.hypot(x - pts[i - 1][0], y - pts[i - 1][1]);
+    uv.push(0, run / 4, 1, run / 4);
   }
   for (let i = 0; i < pts.length - 1; i++) {
     const a = i * 2;
     idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
   }
-  return { pos, idx };
+  return { pos, uv, idx };
 }
 
 function ribbonsGeometry(ways, liftFn, widthFn, E) {
-  const POS = [], IDX = [];
+  const POS = [], UV = [], IDX = [];
   let base = 0;
   for (const w of ways) {
     if (!w.pts || w.pts.length < 2) continue;
-    const { pos, idx } = ribbon(w.pts, widthFn(w), liftFn(w), E);
+    const { pos, uv, idx } = ribbon(densify(w.pts), widthFn(w), liftFn(w), E);
     POS.push(...pos);
+    UV.push(...uv);
     for (const i of idx) IDX.push(i + base);
     base += pos.length / 3;
   }
   if (!POS.length) return null;
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(POS), 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(UV), 2));
   g.setIndex(base > 65535 ? new THREE.Uint32BufferAttribute(IDX, 1)
                           : new THREE.Uint16BufferAttribute(IDX, 1));
   g.computeVertexNormals();
@@ -430,12 +472,7 @@ export function buildCity(world, opts = {}) {
     // was omitted — the terrain is the biggest mesh in the scene and was not
     // being counted, so every triangle figure quoted so far was short
     stats.tris += t.geometry.index.count / 3;
-    // a skirt beyond the sampled grid so the world does not end at a cliff edge
-    const skirt = new THREE.Mesh(new THREE.PlaneGeometry(R * 8, R * 8), matGround);
-    skirt.rotation.x = -Math.PI / 2;
-    skirt.position.y = Math.min(...E.z) - 2;
-    skirt.name = 'terrain_skirt';
-    group.add(skirt); stats.draws++;
+    // (no skirt — the terrain mesh itself extends past the sampled grid)
   } else {
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(R * 4, R * 4), matGround);
     ground.rotation.x = -Math.PI / 2;
@@ -494,6 +531,16 @@ export function buildCity(world, opts = {}) {
     addMesh(wallsGeometry(band, tw, th, E), mat, 'walls_' + f.file.split('_')[0]);
   }
   addMesh(roofsGeometry(generic, E), matRoof, 'roofs');
+
+  // ── street furniture, instanced ──
+  const pr = buildProps(world.props, heightAt, E);
+  if (pr.stats.count) {
+    group.add(pr.group);
+    stats.draws += pr.stats.draws;
+    stats.tris += pr.stats.tris;
+    stats.props = pr.stats.count;
+    stats.propKinds = pr.stats.kinds;
+  } else { stats.props = 0; stats.propKinds = 0; }
 
   // candidate route — the longest way in the extract
   let route = null, best = 0;

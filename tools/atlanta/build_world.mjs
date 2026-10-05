@@ -42,6 +42,18 @@ const q = `[out:json][timeout:180];
   // without it the landmark renders as a dirt mound.
   way(${bbox})["natural"~"^(water|wood|bare_rock|scrub|grassland|sand)$"];
   way(${bbox})["landuse"~"^(grass|forest|meadow|recreation_ground|cemetery)$"];
+  // STREET FURNITURE. OSM carries this as nodes and it is free — around the
+  // stadium alone: 102 trees, 9 traffic signals, bollards, hydrants, bus stops,
+  // flagpoles, a billboard. It is the difference between a massing model and a
+  // place, and none of it needs buying or modelling from scratch.
+  node(${bbox})["natural"="tree"];
+  node(${bbox})["highway"~"^(street_lamp|traffic_signals|bus_stop|stop|give_way)$"];
+  node(${bbox})["amenity"~"^(bench|waste_basket|bicycle_parking|drinking_water|fountain|taxi)$"];
+  node(${bbox})["barrier"~"^(bollard|gate|lift_gate)$"];
+  node(${bbox})["emergency"="fire_hydrant"];
+  node(${bbox})["man_made"~"^(flagpole|mast|water_tower)$"];
+  node(${bbox})["advertising"="billboard"];
+  node(${bbox})["tourism"="artwork"];
 );
 out geom;`;
 // `out geom;` already carries tags. `out geom tags;` is a SYNTAX ERROR, and
@@ -61,8 +73,21 @@ const heightOf = (t) => {
   return null;                                        // unknown — leave it null, do not invent
 };
 
-const buildings = [], roads = [], areas = [];
+const buildings = [], roads = [], areas = [], props = [];
+const PROP_KEYS = ['natural', 'highway', 'amenity', 'barrier', 'emergency', 'man_made',
+                   'advertising', 'tourism'];
 for (const el of data.elements || []) {
+  // ── point props ──
+  if (el.type === 'node') {
+    const t = el.tags || {};
+    let kind = null;
+    for (const k of PROP_KEYS) if (t[k]) { kind = t[k]; break; }
+    if (!kind) continue;
+    const [x, y] = toXY(el);
+    if (Math.hypot(x, y) > RADIUS) continue;
+    props.push({ k: kind, p: [x, y] });
+    continue;
+  }
   if (!el.geometry || el.geometry.length < 2) continue;
   const t = el.tags || {};
   const pts = el.geometry.map(toXY);
@@ -143,7 +168,7 @@ const world = {
   frame: { origin: 'location centre', units: 'metres', x: 'east', y: 'north' },
   attribution: 'Map data © OpenStreetMap contributors (ODbL) — https://osm.org/copyright',
   generated: new Date().toISOString().slice(0, 10),
-  buildings, roads, areas, elevation: elev,
+  buildings, roads, areas, props, elevation: elev,
 };
 const out = path.join(HERE, 'world', `${key}.json`);
 fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -157,5 +182,10 @@ const km = (roads.reduce((s, r) => {
 console.log(`  buildings ${buildings.length} (${withH.length} with a real height, ${buildings.length - withH.length} unknown)`);
 console.log(`  roads     ${roads.length} ways, ${km} km total`);
 console.log(`  areas     ${areas.length} (parks, pitches, water)`);
+const pk = {};
+for (const p2 of props) pk[p2.k] = (pk[p2.k] || 0) + 1;
+const topProps = Object.entries(pk).sort((a, b) => b[1] - a[1]).slice(0, 6)
+  .map(([k, v]) => `${k} ${v}`).join(', ');
+console.log(`  props     ${props.length} (${topProps})`);
 console.log(`  elevation ${elev.grid}x${elev.grid} grid, ${elev.step.toFixed(0)} m spacing, ${relief.toFixed(0)} m of relief`);
 console.log(`  -> ${path.relative(process.cwd(), out)}  ${(fs.statSync(out).size / 1024).toFixed(0)} KB`);

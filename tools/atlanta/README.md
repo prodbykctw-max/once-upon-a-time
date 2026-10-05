@@ -449,3 +449,54 @@ between loads.
 added without touching `stats.tris`, so every triangle figure quoted before this
 was short. Real numbers: **29–33k triangles, 6–15 draw calls**, against 500k and
 150.
+
+## Filling the world from open sources
+
+**Searched before assuming, which I should have done first.** The honest answer
+to "nearly indistinguishable" needed a sourcing pass, not more tuning:
+
+| source | what it gives | licence | status |
+|---|---|---|---|
+| **OSM nodes** | trees, traffic signals, bollards, gates, hydrants, bus stops, flagpoles, benches, billboards | ODbL | **in use** — 139 props at the stadium alone |
+| **OSM `building:part`** | multi-part building massing | ODbL | present in Atlanta; not yet consumed |
+| **Open-Meteo / Copernicus DEM** | terrain | free, no key | in use |
+| **Poly Haven** | PBR surfaces | CC0 | in use |
+| **Wikimedia Commons** | reference photographs | CC0 only | in use, projected |
+| **Sketchfab** | a downloadable **CC-Attribution** Mercedes-Benz Stadium, 4,642 faces | CC BY | **found; download needs a free account** (`84c4ef1b46bf448580932bd382afe6e1`) |
+
+The stadium model is the answer to the landmark problem and it is **free** —
+CC Attribution, credit in the game's credits and nothing more. The Sketchfab
+download endpoint needs OAuth, so it is one sign-in away rather than a purchase.
+
+### Street furniture — `viewer/props.js`
+
+One `InstancedMesh` per type, so 96 trees cost **one draw call**. Shapes are
+deliberately simple — at runner speed a tree is a trunk and a mass of leaves.
+Variation is hashed from the instance index, so a street never reshuffles
+between loads but never looks stamped either.
+
+### Four bugs this pass, each found by measuring rather than guessing
+
+**The camera was underground.** Once terrain had real elevation, a runner eye
+pinned to `y=1.75` absolute sat below the hill — which renders as a black lower
+half and reads as a shader fault. Eye height is relative to the ground beneath
+her, always.
+
+**Roads cut through hills.** Same lesson as the areas, learned twice: an OSM way
+can run 50 m between nodes, and a ribbon built straight between two terrain
+samples passes through everything in between. Anything draped on terrain is
+subdivided first, finer than the terrain's own detail.
+
+**The terrain skirt was a black wedge.** A flat plane at (min height − 2) fills
+the lower frame from a low camera. Removed — the terrain mesh now simply extends
+past the sampled grid, where `heightAt` already clamps, so the border joins
+seamlessly with no step.
+
+**Ribbons had no UVs at all.** A material with a `map` and no `uv` attribute
+samples one corner texel for the entire surface, so every footway rendered as a
+flat dark shape. Three guesses missed it; a raycast named it in one call. Roads
+and pavements now carry real asphalt and real concrete.
+
+**Also:** not every three.js primitive is indexed — `IcosahedronGeometry` is not,
+and assuming an index threw at load, which looks like a data problem and is a
+geometry-API one.

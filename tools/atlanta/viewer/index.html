@@ -25,7 +25,7 @@
 
 <script type="module">
 import * as THREE from './vendor/three.module.min.js';
-import { buildCity, lightRig } from './city.js';
+import { buildCity, lightRig, heightAt } from './city.js';
 
 const KEYS = ['mbs', 'dsa', 'wade', 'stonemtn'];
 const key = new URLSearchParams(location.search).get('loc') || 'mbs';
@@ -91,12 +91,19 @@ document.getElementById('m').innerHTML =
   `${world.location.osm} · ${R} m radius<br>` +
   `${stats.draws} draw calls · ${Math.round(stats.tris).toLocaleString()} triangles` +
   (stats.relief ? ` · ${stats.relief} m relief` : ' · flat') +
+  (stats.props ? ` · ${stats.props} props (${stats.propKinds} kinds)` : '') +
   (stats.draws <= 150 ? '' : ' <span class="warn">(over 150)</span>') + '<br>' +
   `${stats.surveyed} surveyed height · <span class="warn">${stats.estimated} estimated</span>`;
 document.getElementById('att').textContent = world.attribution;
 
 // ── cameras ─────────────────────────────────────────────────────────────────
 let mode = 'overview', t = 0.12, yaw = 0.6, pitch = 0.62, dist = R * 1.5;
+
+// THE GROUND MOVED AND THE CAMERA DID NOT. Once the terrain carried real
+// elevation, a runner camera pinned to y=1.75 absolute ended up UNDERGROUND
+// wherever the ground rose — which renders as a black lower half and looks like
+// a shader fault. Eye height is relative to the ground beneath her, always.
+const groundAt = (x, z) => heightAt(world.elevation, x, -z);
 
 function routePoint(u) {
   const p = route.pts;
@@ -126,14 +133,16 @@ function place() {
     // level or slightly up, which is what puts the city in frame.
     const p = routePoint(t), look = routePoint(Math.min(t + 0.06, 1));
     const L = Math.hypot(p.hx, p.hz) || 1;
-    camera.position.set(p.x - (p.hx / L) * 6, 1.75, p.z - (p.hz / L) * 6);
-    camera.lookAt(look.x, 2.6, look.z);
+    const cxp = p.x - (p.hx / L) * 6, czp = p.z - (p.hz / L) * 6;
+    camera.position.set(cxp, groundAt(cxp, czp) + 1.75, czp);
+    camera.lookAt(look.x, groundAt(look.x, look.z) + 2.6, look.z);
   } else {
-    camera.position.set(
-      Math.cos(yaw) * Math.cos(pitch) * dist,
-      Math.sin(pitch) * dist,
-      Math.sin(yaw) * Math.cos(pitch) * dist);
-    camera.lookAt(0, 0, 0);
+    const ox = Math.cos(yaw) * Math.cos(pitch) * dist;
+    const oz = Math.sin(yaw) * Math.cos(pitch) * dist;
+    // never below the ground it is orbiting over
+    const oy = Math.max(Math.sin(pitch) * dist, groundAt(ox, oz) + 6);
+    camera.position.set(ox, oy, oz);
+    camera.lookAt(0, groundAt(0, 0) + 20, 0);
   }
 }
 place();
@@ -166,6 +175,17 @@ addEventListener('keydown', (e) => {
 });
 
 // expose for headless capture
+// what is actually under a screen point — for diagnosing "what IS that?"
+window.__pick = (nx, ny) => {
+  const rc = new THREE.Raycaster();
+  rc.setFromCamera(new THREE.Vector2(nx, ny), camera);
+  const hits = rc.intersectObjects(scene.children, true);
+  return hits.slice(0, 4).map((h) => ({
+    name: h.object.name || h.object.type,
+    dist: +h.distance.toFixed(1),
+    y: +h.point.y.toFixed(1),
+  }));
+};
 window.__preview = {
   setMode: (m, u) => { mode = m; if (u != null) t = u; place(); },
   setOrbit: (y, p, d) => { yaw = y; pitch = p; dist = d * R; place(); },
