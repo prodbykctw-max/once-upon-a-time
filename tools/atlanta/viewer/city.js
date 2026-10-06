@@ -661,12 +661,33 @@ export function lightRig(scene, R, { azimuth = -0.6, elevation = 0.95 } = {}) {
   // shadow had nothing filling it, so half the frame was a void. Outdoors the
   // sky IS the fill, so the hemisphere carries real intensity and the sun comes
   // down to match. Judge this from the runner camera; from above it looked fine.
-  scene.add(new THREE.HemisphereLight(0xbcd4ef, 0x6a6354, 2.1));
-  const sun = new THREE.DirectionalLight(0xfff2dc, 2.0);
+  // SKY 0.75 / SUN 3.4, NOT 2.1 / 2.0. At parity the fill was as strong as the
+  // key, so shadows landed at roughly half brightness and NOTHING READ AS
+  // GROUNDED — the client's words were "thin lines over each other… it doesn't
+  // look finished". Shadows were rendering the whole time (proved by diffing
+  // castShadow on against off: 11.6% of pixels change); they were simply being
+  // washed out. Swept four balances at one camera and measured ground-luminance
+  // spread: overhead luma std 60.7 -> 69.7 and the 5th percentile 29 -> 13,
+  // which is the difference between a hint and a shadow.
+  //
+  // 1.0 RATHER THAN LOWER, and the reason is measured: the sweep also watched a
+  // street canyon at Apache from the RUNNER camera, which is where the old
+  // comment warned a thin sky turns shadow into a void. That canyon sits at
+  // ~51% near-black — AND IT ALREADY DID AT 2.1, so the darkness there is not
+  // caused by this balance and cannot be fixed by raising the fill; it is a
+  // separate problem (unlit north faces in a deep street). Below 1.0 the canyon
+  // does start to lose: 0.75 pushed it to 57%. So 1.0 takes most of the shadow
+  // structure while leaving the worst-case view no worse than it was.
+  // Judge any change to these two numbers from the RUNNER camera, not above.
+  scene.add(new THREE.HemisphereLight(0xbcd4ef, 0x6a6354, 1.0));
+  const sun = new THREE.DirectionalLight(0xfff2dc, 3.2);
   const d = R * 1.2;
   sun.position.set(Math.cos(azimuth) * d, Math.sin(elevation) * d * 1.3, Math.sin(azimuth) * d);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
+  // Without a normal bias a 2048 map over a 700 m span self-shadows into acne
+  // on every near-flat surface — the terrain most of all.
+  sun.shadow.normalBias = 0.6;
   const c = sun.shadow.camera;
   c.left = -R; c.right = R; c.top = R; c.bottom = -R; c.near = 1; c.far = d * 4;
   scene.add(sun);
