@@ -43,6 +43,28 @@
 > is a phase of its own**, not a task. Several art items (idle dance, Game II
 > outfit, Purple Guy, more jump frames) are blocked only on `$AUTOSPRITE_KEY`.
 
+> ## 🕴 SHIPPED 10-06 — THE THREE MEN, SILHOUETTE-TESTED FIRST
+> `tools/atlanta/viewer/men.js` + `silhouette.html`, `79c35ff`.
+> The brief's own next step, done before any character art is generated.
+>
+> **THE MASS SAYS THE ACTION:** low = low and wide (jump), gate = high with a
+> gap underneath (slide), wall = full height and solid (go round). Measured at
+> 5.8 m — the distance the decision is actually made, 1.2 s at 4.8 m/s —
+> through the game's lens and chase pitch. On-screen IoU 0.055 / 0.201 / 0.207.
+>
+> **GUARDRAIL: NORMALISE SCALE AWAY AND TWO RECTANGLES ARE THE SAME RECTANGLE.**
+> First pass had low as a wide box and wall as a tall one: shape-only IoU 0.565,
+> marginal. Fixed by changing the OUTLINE, not the size — low is now a wedge
+> rising at the back, wall a T with shoulders far wider than its stance. One is
+> wide at the floor, the other at the top. 0.565 -> 0.489.
+>
+> **OPEN, needs a client call:** (1) they do NOT read as PEOPLE yet — a hump, an
+> archway and a cross. The ACTION is legible, the humanity is not; that is what
+> AutoSprite is for, and the test existed to avoid wasting those generations.
+> (2) At the shipped cadence (a hazard every ~5.4 m) they CROWD at distance into
+> a thicket rather than three figures. Good for "Atlanta all in your face", bad
+> for reading each one.
+
 > ## 🏃 SHIPPED 10-06 — JANDÉ IS IN THE RUN
 > `tools/atlanta/viewer/hero.js`, `7883798`. Her REAL sprite art, billboarded.
 > **No new art and no AutoSprite credit** — `bkrun`/`bkjump`/`bkslide` are

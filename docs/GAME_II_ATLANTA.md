@@ -621,3 +621,41 @@ Sketchfab `84c4ef1b46bf448580932bd382afe6e1`, CC Attribution, 4,642 faces.
 Its download endpoint requires an `Authorization` header and answers HTTP 401
 without one. **Blocked on `SKETCHFAB_TOKEN` in the environment — that is the
 whole of it.**
+
+
+---
+
+## 10-06 — step 2 of the sequencing is done: the black-silhouette test
+
+`tools/atlanta/viewer/men.js`, `viewer/silhouette.html`, `79c35ff`.
+
+The sequencing above puts the silhouette test before any rendering, as the
+cheapest way to kill the readability risk. It ran, and it found a real failure
+before any credit was spent.
+
+**The rule: the mass says the action.** `low` is low and wide (jump it), `gate`
+is high with a gap underneath (slide under), `wall` is full height and solid (go
+round). Measured at 5.8 m — 1.2 s at her 4.8 m/s run, which is the last moment
+the shape can still be identified usefully — through the game's own lens and
+chase-camera pitch:
+
+| pair | on-screen IoU | shape-only IoU |
+|---|---|---|
+| low \| gate | 0.055 | 0.383 |
+| low \| wall | 0.201 | 0.489 |
+| gate \| wall | 0.207 | 0.254 |
+
+**The first pass failed and the fix was the outline, not the size.** `low` and
+`wall` measured 0.565 once scale was normalised away, because a wide rectangle
+and a tall rectangle are the same rectangle. `low` became a wedge rising at the
+back with the head dropped forward; `wall` became a T with shoulders far wider
+than its stance.
+
+**Still open, and both are client calls:**
+
+1. They do not read as **people** — a hump, an archway and a cross. The action
+   is legible; the humanity is not. That is the AutoSprite job, and this test
+   existed precisely so those generations are not spent on shapes that fail.
+2. At the shipped cadence (a hazard every ~5.4 m) they **crowd** at distance
+   into a thicket rather than three distinct figures. Arguably right for
+   "Atlanta all in your face", arguably bad for reading each one.

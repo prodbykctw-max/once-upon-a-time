@@ -957,3 +957,71 @@ tool tree. Counted off the 404, not off the comment.
 
 No console errors, no 404s. Jump driven through the real input path; slide
 confirmed both directly and through the key path with `bkslide` swapped in.
+
+---
+
+## The three men — `viewer/men.js`, `viewer/silhouette.html`
+
+The client's redesign turns the three obstacles into men she is dodging.
+`docs/GAME_II_ATLANTA.md` puts a **black-silhouette test before any rendering**,
+and this is it — a reproducible page, not a judgement. Open
+`viewer/silhouette.html?w=390&h=844` for a phone frame.
+
+**It is a readability problem, not a modelling one.** Today `low` / `gate` /
+`wall` are three different *kinds* of object, so they telegraph jump / slide /
+dodge instantly — the player reads the shape, never the label. Make all three
+person-shaped and that telegraph is gone unless the silhouettes are built to
+carry it. Three AutoSprite characters that turn out confusable at speed is three
+wasted generations, so the outline gets proven first.
+
+The rule every proportion follows: **the mass says the action.**
+
+| | silhouette | action |
+|---|---|---|
+| `low` | mass low and wide, nothing above knee height | jump it |
+| `gate` | mass high, clear gap underneath | slide under |
+| `wall` | full height, solid, no gap anywhere | go round |
+
+### Measured at the distance the decision is actually made
+
+5.8 m — 1.2 s at 4.8 m/s — through the game's own lens and chase-camera pitch.
+
+| pair | on-screen IoU | shape-only IoU |
+|---|---|---|
+| low \| gate | 0.055 | 0.383 |
+| low \| wall | 0.201 | **0.489** |
+| gate \| wall | 0.207 | 0.254 |
+
+Two metrics on purpose. **On-screen IoU** asks whether they occupy the same part
+of the frame, which is the real question while she runs a fixed lane — position
+is part of the read. **Shape-only IoU** normalises both to their bounding boxes
+first, deliberately destroying the size cue, as a stress test for "what if the
+player can't judge scale".
+
+**The first pass failed that stress test, and the fix was the outline, not the
+size.** `low` and `wall` measured **0.565** shape-only, because `low` was a wide
+rectangle and `wall` a tall one — normalise scale away and two rectangles are
+the same rectangle. `low` is now a wedge that rises at the back with the head
+dropped forward; `wall` is a **T**, shoulders far wider than its stance. One is
+wide at the floor, the other wide at the top. **0.565 → 0.489**, on-screen
+**0.263 → 0.201**.
+
+### In the levels
+
+Instanced men standing on the ground — feet at `y = 0`, not floating at a box
+centre, so the silhouette the test measured is the silhouette the player meets —
+facing back down the route at her, in the purple range that keeps them with the
+villain the client already has. MBS carries 36 `low`, 21 `gate`, 23 `wall`.
+Draw calls and triangles unchanged: still one mesh per kind.
+
+### Two findings, stated rather than buried
+
+**They do not yet read as PEOPLE.** They read as a hump, an archway and a cross.
+The *action* is legible; the *humanity* is not — and that is exactly what
+AutoSprite is for. This test was only ever about not wasting those generations
+on shapes that don't work.
+
+**At the shipped cadence they crowd.** One hazard every ~5.4 m means that at
+distance they stack into a thicket rather than three distinct figures. Arguably
+right for "Atlanta all in your face", arguably bad for reading each one. Needs a
+client call, not a unilateral tuning change.
