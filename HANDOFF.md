@@ -43,6 +43,38 @@
 > is a phase of its own**, not a task. Several art items (idle dance, Game II
 > outfit, Purple Guy, more jump frames) are blocked only on `$AUTOSPRITE_KEY`.
 
+> ## 🚗 SHIPPED 10-06 — CROWDS AND TRAFFIC ARE IN THE PREVIEW
+> `tools/atlanta/viewer/life.js`, `5f43729`. Live on the link above; `?life=0`
+> for the empty city, `?peds=N&cars=N` to tune.
+> **Measured cost: +6 draw calls and +20,844 triangles for 260 people and 90
+> vehicles, 0.08-0.15 ms CPU/frame** — 4% of the 150-draw budget. One
+> InstancedMesh per TYPE, so the agent count is free in draw calls; 500 people
+> and 160 vehicles is the same six calls. The walk is a vertex shader keyed off
+> a per-instance phase, not a skeleton.
+>
+> **A SHIPPED BUG CAME OUT OF IT: `props.js`'s hash could never exceed 0.5.**
+> `(h ^ (h>>13)) * 1274126177` leaves int32 — the product is a double and the
+> low bits go to float precision before `>>> 0`. Measured over 20,000 samples:
+> max **0.49997**. Every tree has been rotated within 0..PI instead of 0..2PI
+> and scaled in the bottom half of its range, which is the "it looks instanced"
+> failure the variation exists to prevent. `Math.imul` in both files.
+>
+> **Guardrail:** an OSM way is a FRAGMENT, not a route — 155 drivable ways at
+> MBS averaging 83 m. Anything that travels along them must link way ends into
+> the real network (OSM shares junction coordinates exactly; every linked gap
+> measures 0.000 m) and reverse at dead ends, or it teleports. Discontinuities
+> > 1 m went 41/s -> 6.6/s and the worst jump 1637 m -> 7 m.
+
+> ## 📦 10-06 — THE ENGINE IS NOT WHAT COSTS: three.js is 189 KB gzipped
+> Whole engine 189 KB gz; our four modules 27 KB; all four worlds 55 KB.
+> **271 KB of new code and data** against an 8 MB compressed budget, with the
+> shipped `index.html` at 0.16 MB gz and `web/` at 6.3 MB. The real cost is
+> 4.3 MB of 1024px textures, shared by every location and never optimised.
+> So the blocker for putting Game II's 3D world in the build is **not size** —
+> it is that `index.html` stops being the whole game once there are ES modules
+> and a `world/` folder. That decision is already open below; this just prices
+> it. Numbers in `tools/atlanta/README.md`.
+
 > ## 🔑 ACTIVE 10-06 — ONE ENV VAR BLOCKS THE STADIUM MODEL
 > **`SKETCHFAB_TOKEN`, added to the cloud environment's settings.** Nothing else
 > is missing and nothing else was attempted.

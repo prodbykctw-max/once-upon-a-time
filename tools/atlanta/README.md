@@ -578,3 +578,122 @@ Sketchfab's own docs require an `Authorization` header (`Token <API_TOKEN>` or a
 OAuth bearer). There is no anonymous route and none was attempted. The session
 reads **`SKETCHFAB_TOKEN`** from the environment; `env | grep -i sketchfab` is
 empty, so this is one environment variable away, not a research problem.
+
+---
+
+## Crowds and traffic — `viewer/life.js`
+
+**Live in the preview** (`?life=1`, on by default; `?peds=N&cars=N` to tune,
+`?life=0` for the empty city). Both come free from data already in `world.json`
+and thrown away until now: **16.3 km of footway and 12.9 km of drivable road**
+at MBS alone.
+
+### What it costs — measured against the same city with life off
+
+| | city only | with life | cost |
+|---|---|---|---|
+| MBS | 24 draws / 153,377 tris | 30 / 174,221 | **+6 draws, +20,844 tris** |
+| DSA | 11 / 138,318 | 17 / 159,162 | +6 / +20,844 |
+| Wade | 5 / 136,249 | 11 / 157,093 | +6 / +20,844 |
+| Stone Mtn | 9 / 135,661 | 15 / 156,505 | +6 / +20,844 |
+
+…for **260 people and 90 vehicles**, at **0.08–0.15 ms of CPU per frame** to
+drive all 350. Against the carried budget (150 draws / 500k tris) that is 4% of
+the draw budget and 4% of the triangles.
+
+**The agent count is free in draw calls**, because there is one InstancedMesh
+per TYPE — six total: one crowd, five vehicle classes. A Mesh per pedestrian
+would spend the entire budget on the crowd and leave nothing for the city. The
+ceiling is therefore set by what looks right, not by what the renderer can
+address; 500 people and 160 vehicles is the same six draw calls.
+
+**The walk cycle is a vertex shader, not a skeleton.** Skinned instancing needs
+a bone texture and a custom pipeline. A walk does not: tag each vertex with the
+limb it belongs to (`aPart`) and the joint it pivots about (`aJoint`), then
+swing it by `sin(time*rate + aPhase)` where `aPhase` is a per-instance
+attribute. Zero CPU per limb, no skeleton, and `onBeforeCompile` keeps
+MeshStandardMaterial's lighting, shadows and environment. Arms take **0.55** of
+the leg's amplitude and the hip swings **0.44 rad (25 deg)** — a single
+amplitude at 0.80 threw the arms near horizontal and the figure read as
+sprinting, which is visible at close range and was judged from the render.
+
+### Four bugs, each found by measuring rather than looking
+
+**1. The hash could never exceed 0.5 — and it shipped.**
+`(h ^ (h >> 13)) * 1274126177` silently leaves int32: the product is ~9.6e17, a
+double, and the low bits are gone to float precision before `>>> 0` runs.
+Measured over 20,000 samples: **min 0.00000, max 0.49997.** It does not throw
+and it does not look wrong; every caller quietly gets the bottom half of the
+range it asked for. `props.js` has shipped with it, so **every tree was rotated
+within 0..PI instead of 0..2PI** and scaled in the bottom half of its range —
+which is exactly the "it looks instanced" failure the variation exists to
+prevent. `Math.imul` keeps every step in int32: flat across all ten deciles, and
+all five vehicle types appear instead of two. Fixed in both files.
+
+**2. `at()` mapped `s === len` to 0.** The modulo wrap sends the end of a way to
+its start, and the dead-end reversal sets exactly that value — so every agent
+turning round teleported the full length of its way. **85 of them in 10 seconds,
+the worst a 345 m jump.** `advance` owns wrap-around now, so `at` clamps.
+
+**3. An OSM way is a fragment, not a route.** 155 drivable ways at MBS averaging
+83 m. Wrapping `s` modulo the way length means a car reaching the end of a block
+reappears at its start — a pop every ~8 s per agent, so with 140 vehicles
+something teleports several times a second. OSM already shares junction
+coordinates (**measured: every linked gap is 0.000 m**), so linking way ends
+builds the real network and agents turn corners. **Tolerance is 2 m, not 9:**
+over MBS's 312 drivable and 638 foot endpoints, 66% / 78% have a neighbour
+within half a metre, and widening 0.5 m → 9 m buys only 5% / 11% more links
+while costing a 9 m hop. Dead ends — **29% of drivable way-ends**, cul-de-sacs
+and ways cut by the extract boundary — reverse rather than wrap.
+
+**4. A corner flips the perpendicular.** An agent draws at `offset x
+perpendicular`, and the perpendicular swings with the heading, so two ways
+meeting at a sharp angle jump a car **twice its lane offset** sideways — 16.5 m
+on the widest road at MBS. Steering to the centreline over the last 12 m of a
+way makes the corner continuous by construction (at offset 0 both ways evaluate
+to the same point) and looks like cutting a corner, which is what it is.
+
+**Net, over 60 simulated seconds with 560 agents:**
+
+| | before | after |
+|---|---|---|
+| discontinuities > 1 m | 41/s | **6.6/s** (worst location) |
+| worst single jump | 1637 m | **7 m** |
+
+What is left is a lane change, not a teleport.
+
+> **A measurement bug worth recording, because it cost an hour.** Sampling the
+> exit point through `at()` with an out-of-range `s` reports the far end of the
+> way — so an exact link table looked like a 40 m mean teleport, and the hunt
+> went looking for a fault in the linking that was never there. When an
+> instrument disagrees with a direct check of the data, suspect the instrument.
+
+### Known limits
+
+- Agents are **on rails** — no steering, no collision, no traffic lights. They
+  pass through each other and through the hero. At runner speed nobody can tell,
+  but a car will drive through a stationary player.
+- Vehicles do not stop at the **8 traffic signals** OSM gives at MBS. The data
+  is already loaded (`props.js` draws them); wiring them is a later pass.
+- The crowd is **not culled** — all instances update every frame. At 500 agents
+  that is 0.3 ms, so it has not needed to be; it would at several thousand.
+
+## Can this go in the game? — the payload answer
+
+| | gzipped |
+|---|---|
+| three.js, the whole engine (`three.module.min.js` + `three.core.js`) | **189 KB** |
+| `city.js` + `heroes.js` + `props.js` + `life.js` | **27 KB** |
+| all four `world/*.json` | **55 KB** |
+| **total new code and data** | **271 KB** |
+| textures (3 PBR diffuse + 3 facade trim sheets, shared by every location) | 4.3 MB |
+
+For scale: the shipped `index.html` is **0.47 MB raw / 0.16 MB gzipped**, and
+`web/` is 6.3 MB. The budget carried from Corner Store Dash is 8 MB compressed.
+
+**So the engine is not the problem — 189 KB is noise.** The cost is the
+textures, they are shared across all nine locations, and they are 1024² JPEGs
+that have had no optimisation pass at all. What this does change is the
+single-file architecture: `index.html` stops being the whole game once there are
+ES modules and a `world/` folder, which is the open decision already recorded in
+`HANDOFF.md`, not a new one.

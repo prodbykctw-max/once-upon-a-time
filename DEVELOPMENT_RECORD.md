@@ -1217,6 +1217,63 @@ Pinch-to-zoom and on-screen view buttons were added for the same reason: a phone
 has no wheel and no keyboard, so zoom and the entire runner-eye view were
 unreachable on the device the link is actually opened on.
 
+### 10-06 · Crowds and traffic — and a hash that could never exceed a half
+
+Client: *"can we put procedural crowds and all that shit in the game traffic?"*
+`viewer/life.js`, `5f43729`. The answer is yes and it is cheap, because the data
+was already there and being discarded: 16.3 km of footway and 12.9 km of
+drivable road at MBS.
+
+**+6 draw calls and +20,844 triangles for 260 people and 90 vehicles**, at
+0.08–0.15 ms of CPU per frame — 4% of the carried 150-draw budget. One
+InstancedMesh per TYPE is the whole trick: six meshes (one crowd, five vehicle
+classes) however many agents there are, so 500 people and 160 vehicles costs the
+same six calls. The walk cycle is a vertex shader — vertices tagged with their
+limb and joint, swung by `sin(time + aPhase)` off a per-instance attribute —
+rather than a skeleton, which would have meant a bone texture and a custom
+pipeline for a leg that moves.
+
+**The find that matters beyond this feature:** the project's deterministic hash
+**could never return above 0.5**. `(h ^ (h >> 13)) * 1274126177` silently leaves
+int32 — the product is ~9.6e17, a double, and the low bits are gone to float
+precision before `>>> 0` runs. Measured over 20,000 samples: min 0.00000, max
+**0.49997**. It does not throw, it does not look wrong, and every caller quietly
+receives the bottom half of the range it asked for. `props.js` has shipped with
+it since the street-furniture pass, so every tree has been rotated within 0..PI
+instead of 0..2PI and scaled in the bottom half of its range — precisely the
+"it looks instanced" failure the variation exists to prevent. `Math.imul` keeps
+every step in int32; the fix is flat across all ten deciles.
+
+**The guardrail this leaves behind: an OSM way is a FRAGMENT, not a route.**
+155 drivable ways at MBS, averaging 83 m. Anything that travels along them and
+wraps `s` modulo the way length teleports — a pop every ~8 s per agent. OSM
+already shares junction coordinates (measured: every linked gap is 0.000 m), so
+linking way ends builds the real network; the tolerance is 2 m rather than 9
+because widening it buys 5% more links and costs a 9 m hop. Dead ends — 29% of
+drivable way-ends — reverse. Two subtler ones fell out of the same hunt:
+`at()` mapped `s === len` to 0, so every dead-end reversal jumped a whole way
+length (345 m at worst), and a corner flips the perpendicular, so an offset
+agent sidesteps twice its lane offset unless it steers to the centreline first.
+Net: >1 m discontinuities 41/s → 6.6/s, worst jump 1637 m → 7 m.
+
+One measurement bug is recorded with them, because it cost an hour and is the
+kind that recurs: sampling the exit point through `at()` with an out-of-range
+`s` reports the far end of the way, which made an exact link table look like a
+40 m mean teleport. When an instrument disagrees with a direct check of the
+data, suspect the instrument.
+
+### 10-06 · What putting this in the game would actually cost
+
+three.js entire, gzipped: **189 KB**. The four viewer modules: 27 KB. All four
+worlds: 55 KB. **271 KB of new code and data** against an 8 MB compressed
+budget, next to a shipped `index.html` of 0.16 MB gz and a 6.3 MB `web/`. The
+real weight is 4.3 MB of 1024px textures, shared by every location and never
+given an optimisation pass.
+
+So size is not the blocker. The blocker is architectural and already on the
+books: `index.html` stops being the whole game once there are ES modules and a
+`world/` folder. This prices that decision rather than making it.
+
 ### Open — the stadium model needs one credential
 
 The honest state of the landmark: the overlay test proved procedural parametric
