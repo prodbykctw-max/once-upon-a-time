@@ -178,7 +178,14 @@ fitFov();
 
 const world = await (await fetch(asset(`world/${key}.json`))).json();
 const R = world.location.radius_m;
-scene.fog = new THREE.Fog(0x8fb4d8, R * 0.9, R * 3.4);
+// THE FOG HAS TO END WHERE THE WORLD ENDS. It was R*3.4, which is 360-960 m
+// FURTHER than the terrain actually reaches — so the ground ran out while the
+// air was still clear and every wide shot finished on a flat tan plate with a
+// hard edge against the sky. Derive it from the terrain's real extent instead:
+// the mesh spans the sampled grid times EXT (2.2), so half of that is how far
+// the world goes, and the fog is fully closed by then.
+const _tspan = world.elevation.step * (world.elevation.grid - 1) * 2.2 / 2;
+scene.fog = new THREE.Fog(0x8fb4d8, _tspan * 0.42, _tspan * 0.96);
 // ?life=1 populates the streets; ?peds=N&cars=N tune it.
 const qsp = new URLSearchParams(location.search);
 const lifeOpt = qsp.get('life') === '0' ? null

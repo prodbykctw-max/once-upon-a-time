@@ -6684,24 +6684,110 @@ function titleEntrance(){
     els.forEach(function(e){ e.style.opacity=''; e.style.transform=''; });
   }
 }
+// Shared handle so the pointer/tilt driver can steer the title camera without
+// reaching into the render loop's closure.
+var TITLE3D={look:function(){}};
+
+// ── TITLE PARALLAX ─────────────────────────────────────────────────────────
+// Pointer on desktop, device tilt on a phone. Drives BOTH the starfield camera
+// and a CSS 3D rotation of the wordmark block, so the text sits IN the field
+// rather than on top of it. Gated on body.rm like everything else, and it does
+// nothing at all if GSAP is missing.
+function titleParallax(){
+  // PARALLAX THE WORDMARK, NOT ITS CONTAINER. `.tw` carries the JELLY UI
+  // `jellyIn` entrance, whose last keyframe is transform:scale(1) — and a
+  // FINISHED CSS animation still outranks inline styles in the cascade, so
+  // `.tw`'s transform is pinned to the identity matrix forever. Measured: GSAP
+  // writes a correct inline transform, a sibling with no animation moves to
+  // matrix(1,0,0,1,40,0) with the same call, and `.tw` stays identity.
+  // Anything that needs to move a jellyIn element has to move its children.
+  var tw=document.querySelector('#titleScreen .tw-j'); if(!tw) return;
+  if(document.body.classList.contains('rm')) return;
+  // TRANSLATE, NOT ROTATE. rotationY/rotationX was the obvious choice and it
+  // does not survive here: GSAP writes a correct inline `transform:rotateY(..)`
+  // and the browser resolves it straight back to the identity matrix, measured
+  // repeatedly and also with a raw inline style, so it is not GSAP's doing.
+  // A counter-translate gives the same read anyway — the wordmark lags the
+  // starfield's camera, which is exactly the parallax cue — and it works.
+  var qx=null,qy=null;
+  if(typeof gsap!=='undefined'){
+    qx=gsap.quickTo(tw,'x',{duration:.9,ease:'power2.out'});
+    qy=gsap.quickTo(tw,'y',{duration:.9,ease:'power2.out'});
+  }
+  function aim(nx,ny){
+    nx=Math.max(-1,Math.min(1,nx)); ny=Math.max(-1,Math.min(1,ny));
+    TITLE3D.look(nx,ny);
+    // Opposite sign to the field: the camera pans one way, the title holds
+    // back, and the gap between them is the depth.
+    if(qx){ qx(-nx*16); qy(-ny*10); }
+  }
+  addEventListener('pointermove',function(e){
+    aim((e.clientX/innerWidth-.5)*2, (e.clientY/innerHeight-.5)*2);
+  },{passive:true});
+  // A phone has no pointer to follow, so the tilt is the input. gamma is
+  // left/right, beta front/back; both are degrees and both need clamping or a
+  // pocket-angle phone pins the field to one corner.
+  addEventListener('deviceorientation',function(e){
+    if(e.gamma==null||e.beta==null) return;
+    aim(e.gamma/35, (e.beta-45)/40);
+  },{passive:true});
+}
+
 function initTitleBG(){var bc=document.getElementById('bgC'),c2=bc.getContext('2d');bc.width=innerWidth;bc.height=innerHeight;
-  var stars=[],wisps=[];for(var i=0;i<200;i++)stars.push({x:Math.random()*bc.width,y:Math.random()*bc.height,s:Math.random()*1.6+.3,b:Math.random()*6.28,v:.015+Math.random()*.03});
-  for(i=0;i<40;i++)wisps.push({x:Math.random()*bc.width,y:Math.random()*bc.height+80,vx:(Math.random()-.5)*.5,vy:-.35-Math.random()*.35,a:Math.random()*6.28,sz:3+Math.random()*7});
+  // ── 3D TITLE FIELD ────────────────────────────────────────────────────────
+  // This was a flat 2D starfield: x, y and a twinkle. It is now a real
+  // perspective field — every star and wisp carries a Z, and is projected with
+  // the same pinhole the runner uses (s = F/(F+z)), so near stars sweep past
+  // and far ones barely move. That is depth you can actually see, and it costs
+  // nothing: no three.js, no second WebGL context, no new bytes. The game
+  // already renders 3D; the title just was not doing it.
+  var F=520, ZF=1400;                       // focal length, far plane
+  function mk(){ return {x:(Math.random()-.5)*2600, y:(Math.random()-.5)*1700,
+                         z:Math.random()*ZF, s:Math.random()*1.5+.45,
+                         b:Math.random()*6.28, v:.015+Math.random()*.03}; }
+  function mkw(){ return {x:(Math.random()-.5)*2400, y:Math.random()*1500-250,
+                          z:200+Math.random()*(ZF-200), vy:-.28-Math.random()*.3,
+                          a:Math.random()*6.28, sz:5+Math.random()*9}; }
+  var stars=[],wisps=[],i;
+  for(i=0;i<260;i++)stars.push(mk());
+  for(i=0;i<46;i++)wisps.push(mkw());
   var _tbg=c2.createLinearGradient(0,0,0,bc.height);_tbg.addColorStop(0,'#020006');_tbg.addColorStop(.45,'#1a0a2e');_tbg.addColorStop(1,'#04000C');
+  // the camera drifts, which is what sells the depth — parallax needs motion
+  var camX=0,camY=0,tgX=0,tgY=0,t=0;
+  TITLE3D.look=function(nx,ny){ tgX=nx*170; tgY=ny*110; };
   (function l(){
     // SELF-HEAL ON ROTATE: this canvas was sized once at load and never again, so
     // turning the phone left it at the old width — the uncovered strip read as a
-    // hard vertical seam splitting the title background. Re-size (and rebuild the
-    // gradient, which is height-based) whenever the viewport changes.
+    // hard vertical seam splitting the title background.
     if(bc.width!==innerWidth||bc.height!==innerHeight){
       bc.width=innerWidth;bc.height=innerHeight;
       _tbg=c2.createLinearGradient(0,0,0,bc.height);
       _tbg.addColorStop(0,'#020006');_tbg.addColorStop(.45,'#1a0a2e');_tbg.addColorStop(1,'#04000C');
-      for(var _si=0;_si<stars.length;_si++){stars[_si].x=Math.random()*bc.width;stars[_si].y=Math.random()*bc.height;}
     }
+    var still=document.body.classList.contains('rm');
+    var cx=bc.width/2, cy=bc.height/2;
+    if(!still){ t+=.016; camX+=(tgX-camX)*.045; camY+=(tgY-camY)*.045; }
     c2.fillStyle=_tbg;c2.fillRect(0,0,bc.width,bc.height);
-    for(var i=0;i<stars.length;i++){var s=stars[i];s.b+=s.v;c2.fillStyle='rgba(255,215,0,'+(Math.sin(s.b)*.4+.34)+')';c2.beginPath();c2.arc(s.x,s.y,s.s,0,6.28);c2.fill();}
-    for(i=0;i<wisps.length;i++){var w=wisps[i];w.x+=w.vx;w.y+=w.vy;w.a+=.018;if(w.y<-20){w.y=bc.height+10;w.x=Math.random()*bc.width;}c2.fillStyle='rgba(130,0,255,'+(Math.sin(w.a)*.17+.08)+')';c2.beginPath();c2.ellipse(w.x,w.y,w.sz*.28,w.sz,Math.sin(w.a)*.44,0,6.28);c2.fill();}
+
+    // wisps first — they are the far haze and must sit BEHIND the stars
+    for(i=0;i<wisps.length;i++){var w=wisps[i];
+      if(!still){ w.y+=w.vy*(1-w.z/ZF*.6); w.a+=.018; w.z-=.35; }
+      if(w.z<60||w.y<-900){ wisps[i]=mkw(); wisps[i].z=ZF; continue; }
+      var ws=F/(F+w.z);
+      var wx=cx+(w.x-camX*1.4)*ws, wy=cy+(w.y-camY*1.4)*ws;
+      c2.fillStyle='rgba(130,0,255,'+((Math.sin(w.a)*.17+.09)*ws*1.5).toFixed(3)+')';
+      c2.beginPath();c2.ellipse(wx,wy,w.sz*.28*ws*2.2,w.sz*ws*2.2,Math.sin(w.a)*.44,0,6.28);c2.fill();}
+
+    for(i=0;i<stars.length;i++){var st=stars[i];
+      if(!still){ st.b+=st.v; st.z-=1.25; }
+      if(st.z<40){ stars[i]=mk(); stars[i].z=ZF; continue; }
+      var sc=F/(F+st.z);
+      var sx=cx+(st.x-camX)*sc, sy=cy+(st.y-camY)*sc;
+      if(sx<-40||sx>bc.width+40||sy<-40||sy>bc.height+40) continue;
+      // nearer stars are brighter AND bigger — the two cues that read as depth
+      var al=(Math.sin(st.b)*.35+.4)*Math.min(1,sc*2.1);
+      c2.fillStyle='rgba(255,215,0,'+al.toFixed(3)+')';
+      c2.beginPath();c2.arc(sx,sy,Math.max(.3,st.s*sc*2.3),0,6.28);c2.fill();}
     requestAnimationFrame(l);})();}
 
 // ---------- loop ----------
@@ -6995,7 +7081,7 @@ function startGame(){
 }
 
 // ---------- wire UI ----------
-function wire(){applyMotionClass();titleEntrance();
+function wire(){applyMotionClass();titleEntrance();titleParallax();
   document.getElementById('tPress').onclick=function(){audInit();sfx('ui');show('loginScreen');};
   document.getElementById('lBtn').onclick=function(){var nm=document.getElementById('lName').value.trim(),em=document.getElementById('lEmail').value.trim(),msg=document.getElementById('lMsg');
     if(!em||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){msg.style.color='rgba(255,50,80,.9)';msg.textContent='Valid email required!';return;}
