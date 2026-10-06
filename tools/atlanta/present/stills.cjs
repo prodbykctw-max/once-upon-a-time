@@ -1,5 +1,12 @@
 const {chromium}=require('/opt/node22/lib/node_modules/playwright');
+const fs=require('fs');
 const OUT='/home/user/once-upon-a-time/presentation/stills';
+// Create the output directory every run. git does not track empty directories,
+// so deleting the videos and then rebasing removed presentation/video/ itself —
+// and ffmpeg's only complaint was "No such file or directory" for the OUTPUT,
+// after a full render had already been paid for. Twelve encodes lost to a
+// missing folder.
+fs.mkdirSync(OUT,{recursive:true});
 // Six locations, each with three framings: an establishing hero shot, a
 // street-level look, and the runner's own eye — the view the game is actually
 // played from.

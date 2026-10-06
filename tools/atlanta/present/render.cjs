@@ -15,6 +15,12 @@ const fs=require('fs');
 const {execFileSync, execSync}=require('child_process');
 const FF=execSync("python3 -c \"import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())\"").toString().trim();
 const OUT='/home/user/once-upon-a-time/presentation/video';
+// Create the output directory every run. git does not track empty directories,
+// so deleting the videos and then rebasing removed presentation/video/ itself —
+// and ffmpeg's only complaint was "No such file or directory" for the OUTPUT,
+// after a full render had already been paid for. Twelve encodes lost to a
+// missing folder.
+fs.mkdirSync(OUT,{recursive:true});
 const W=960,H=540,FPS=24;
 const ease = t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
 const KEYS=process.argv.slice(2);
