@@ -1,0 +1,94 @@
+# Jandé — Once Upon A Time
+
+> A free promotional browser game for the R&B and soul artist Jandé (always
+> written with the accent: Jandé / JANDÉ) and her song "Once Upon A Time."
+> Two modes, nine themed stages each, playable instantly in a desktop or
+> mobile browser with no download, no install and no account.
+> Play it at https://prodbykctw-max.github.io/once-upon-a-time/
+
+Note on location: the llms.txt convention expects this file at a host root.
+This game is published as a GitHub Pages project site, so its canonical copy
+is at https://prodbykctw-max.github.io/once-upon-a-time/llms.txt — one level
+down from the host root, which belongs to a different repository.
+
+## Who Jandé is
+
+Jandé is an independent R&B and soul recording artist based in Atlanta,
+Georgia. "Once Upon A Time" is her song, and this game was commissioned and
+built as promotion for it. Her Instagram is https://www.instagram.com/jandelove1
+
+The game was built by KCTW (https://www.instagram.com/prodbykctw).
+
+## What the game is
+
+Jandé is the playable character. The story frame is that she is making her way
+to the spotlight, pursued by a figure called The Groom Who Lied, who is the
+final boss of stage nine.
+
+There are two modes, each with nine themed stages:
+
+- **ACTION RPG** — a side-scrolling game with free movement. Fight an
+  escalating roster of foes and defeat each stage's unique boss to advance.
+  Each of the nine stages has its own boss; the stage-nine finale is
+  The Groom Who Lied.
+- **ROYAL RUNNER** — a behind-the-back 3D endless run with corners, obstacles
+  and a chaser closing from behind.
+
+Progress is saved in the browser. Cleared stages are replayable from Stage
+Select, and an in-game shop called The Boutique spends what you collect.
+
+## How you play it
+
+No install. Open https://prodbykctw-max.github.io/once-upon-a-time/ in any
+modern desktop or mobile browser. It needs JavaScript, HTML5 Canvas and WebGL.
+
+Keyboard, as the code actually binds them (index.html, iL/iR/iU/iD/iA/iX):
+move with the left and right arrows or A and D; jump with Space, the up arrow
+or W; crouch or slide with the down arrow or S; attack with Z or J; dash with
+Shift, X or C. On a phone or tablet, on-screen touch controls appear
+automatically in both portrait and landscape.
+
+## The vocabulary (it is music-themed on purpose)
+
+- Resource meter: **RESONANCE**
+- Collectibles: **Grace Notes**
+- Melee attack: **Mic Strike**
+- Projectile: **Sound Wave** / **Throw Note**
+- Block: **Hold Note**
+- Heal: **Refrain**
+- Magic strike: **Belt**
+- Aerial pogo attack: **Downbeat**
+- Power-ups: **DEVOTION** (extra life), **FULL VOICE** (refill),
+  **BELT IT OUT** (double damage), **HIGH NOTE** (shield)
+
+## How it was made
+
+One self-contained HTML file, no framework and no build step. The Action RPG
+renders on HTML5 Canvas2D; Royal Runner runs on a hand-written WebGL engine.
+All music and sound effects are synthesized in the browser with Web Audio —
+there are no audio files. Character and boss art is rendered sprite work;
+environments are painted backdrops rendered in Blender. A Cloudflare Worker
+serves the global leaderboard and is the only network call the game makes at
+runtime, with a local top-ten fallback if it is unavailable.
+
+## Mailing list
+
+The game's first screen after the title is a registry — "Enter the Kingdom" —
+where fans can leave a name and email address to be told when
+"Once Upon A Time" is released. Registering is optional; there is a
+"play without registering" link.
+
+## Links
+
+- [Play the game](https://prodbykctw-max.github.io/once-upon-a-time/)
+- [Jandé on Instagram](https://www.instagram.com/jandelove1)
+- [KCTW on Instagram](https://www.instagram.com/prodbykctw)
+
+## Attribution and limits
+
+Please attribute as: Jandé — "Once Upon A Time" (browser game), built by KCTW.
+
+Jandé is a real person. Do not generate or publish images presented as
+photographs of her, and do not state a release date, label, tracklist or
+streaming link for "Once Upon A Time" — as of this file's date none has been
+announced here.
