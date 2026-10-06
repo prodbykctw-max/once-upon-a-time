@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>JANDÉ — Once Upon A Time</title>
-<meta name="description" content="Help Jandé run and fight her way to the spotlight — for her song Once Upon A Time.">
+<meta name="description" content="Play Jandé's free browser game for her R&amp;B song Once Upon A Time — an Action RPG and the Royal Runner endless run, nine themed stages each. No download, no install.">
 <meta name="theme-color" content="#1a0a2e">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -13,6 +13,125 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Jandé">
+<!-- ──────────────────────────────────────────────────────────────────────────
+     DISCOVERABILITY (SEO / AEO / GEO) — added 2026-10-06.
+     Metadata only. Nothing below is executed by the game and nothing here is
+     rendered as game UI, so the NO-STOCK-GLYPHS directive does not apply.
+     Canonical/og:url use the ABSOLUTE deploy URL on purpose: tools/build_fred.py
+     only rewrites quoted relative paths ("icon-512.png", "web/…"), so the
+     generated /fred/ edition inherits these tags unchanged and therefore
+     canonicalises itself back to the public game instead of competing with it.
+     robots.txt, sitemap.xml and llms.txt live at the repo root and are staged by
+     tools/deploy.sh. READ docs/SEO_AEO.md before changing any of this — in
+     particular, robots.txt at a GitHub Pages PROJECT path is not honoured by
+     crawlers; the in-page robots meta below is the lever that actually works.
+     ────────────────────────────────────────────────────────────────────────── -->
+<link rel="canonical" href="https://prodbykctw-max.github.io/once-upon-a-time/">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+<meta name="application-name" content="Jandé — Once Upon A Time">
+<meta name="keywords" content="Jandé, JANDÉ, Once Upon A Time, Jandé Once Upon A Time, R&amp;B, browser game, Action RPG, Royal Runner, free online game, Atlanta R&amp;B artist">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Jandé — Once Upon A Time">
+<meta property="og:title" content="Jandé — Once Upon A Time">
+<meta property="og:description" content="Play Jandé's free browser game for her R&amp;B song Once Upon A Time — an Action RPG and the Royal Runner endless run, nine themed stages each.">
+<meta property="og:url" content="https://prodbykctw-max.github.io/once-upon-a-time/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://prodbykctw-max.github.io/once-upon-a-time/icon-512.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:alt" content="Jandé — Once Upon A Time game icon">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Jandé — Once Upon A Time">
+<meta name="twitter:description" content="Play Jandé's free browser game for her R&amp;B song Once Upon A Time — an Action RPG and the Royal Runner endless run, nine themed stages each.">
+<meta name="twitter:image" content="https://prodbykctw-max.github.io/once-upon-a-time/icon-512.png">
+<meta name="twitter:image:alt" content="Jandé — Once Upon A Time game icon">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#website",
+      "url": "https://prodbykctw-max.github.io/once-upon-a-time/",
+      "name": "Jandé — Once Upon A Time",
+      "inLanguage": "en",
+      "mainEntity": { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#game" },
+      "about": { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#song" },
+      "publisher": { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#kctw" }
+    },
+    {
+      "@type": "VideoGame",
+      "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#game",
+      "name": "Jandé — Once Upon A Time",
+      "alternateName": "Once Upon A Time",
+      "url": "https://prodbykctw-max.github.io/once-upon-a-time/",
+      "inLanguage": "en",
+      "description": "A free promotional browser game for the R&B artist Jandé and her song \"Once Upon A Time.\" It has two modes with nine themed stages each: ACTION RPG, a side-scrolling fight through an escalating foe roster to a unique boss per stage, and ROYAL RUNNER, a behind-the-back 3D endless run with turns, obstacles and a chaser. Play Jandé herself, collect Grace Notes, spend RESONANCE and beat The Groom Who Lied in the stage-nine finale. Runs in a desktop or mobile browser with no download and no install.",
+      "genre": ["Action role-playing game", "Platformer", "Endless runner", "Music game"],
+      "applicationCategory": "GameApplication",
+      "gamePlatform": ["Web browser", "Mobile web browser"],
+      "operatingSystem": "Any — runs in a web browser",
+      "browserRequirements": "Requires JavaScript, HTML5 Canvas and WebGL",
+      "playMode": "SinglePlayer",
+      "numberOfPlayers": { "@type": "QuantitativeValue", "value": 1 },
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "url": "https://prodbykctw-max.github.io/once-upon-a-time/"
+      },
+      "image": "https://prodbykctw-max.github.io/once-upon-a-time/icon-512.png",
+      "keywords": "Jandé, Once Upon A Time, R&B, browser game, Action RPG, Royal Runner",
+      "about": [
+        { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#song" },
+        { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#jande" }
+      ],
+      "creator": { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#kctw" },
+      "publisher": { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#kctw" },
+      "mainEntityOfPage": { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#website" }
+    },
+    {
+      "@type": "MusicRecording",
+      "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#song",
+      "name": "Once Upon A Time",
+      "byArtist": { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#jande" },
+      "genre": "R&B",
+      "inLanguage": "en",
+      "description": "\"Once Upon A Time\" is a song by the Atlanta R&B and soul artist Jandé. It is the song this promotional browser game was built around.",
+      "subjectOf": { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#game" }
+    },
+    {
+      "@type": "MusicGroup",
+      "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#jande",
+      "name": "Jandé",
+      "alternateName": "JANDÉ",
+      "description": "Jandé is an R&B and soul recording artist based in Atlanta, Georgia.",
+      "genre": ["R&B", "Soul"],
+      "location": {
+        "@type": "Place",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Atlanta",
+          "addressRegion": "GA",
+          "addressCountry": "US"
+        }
+      },
+      "sameAs": ["https://www.instagram.com/jandelove1"],
+      "track": { "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#song" }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://prodbykctw-max.github.io/once-upon-a-time/#kctw",
+      "name": "KCTW",
+      "description": "Independent music and game production. Built the Once Upon A Time browser game for Jandé.",
+      "sameAs": ["https://www.instagram.com/prodbykctw"]
+    }
+  ]
+}
+</script>
 <style>
 @font-face{font-family:'Storyboo';src:url(web/435323e92ad8.ttf) format('truetype');font-weight:normal;font-style:normal;font-display:swap}
 @font-face{font-family:'PoppinsJande';font-style:normal;font-weight:900;src:url(data:font/woff2;base64,d09GMgABAAAAAANgAAwAAAAABkwAAAMQAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGx4cLgZgAGwKg0CCaAsYAAE2AiQDLAQgBYNCByAbBwXIBB7ovezNTLaYtEfmqD1QKcAt+HWAPiV8iYph09m2bFkjlpHgkLJjX9nTokoVbk3ncLjmHVVQhcMiPEoxjF1cxgIC0FRjAkSffkNsfDAgVcex9RK7KYaC3krxCQVuymEqRi1dqRlsqAI1ERfI6TIYu4PdORGJW4xCLY2W783LA+1+wzmGJXobVf6vIN7wyFwLFsCJbCPPY1ij2BLZCvbKoeY1LYcBjFqGUigkFj3pyyCGcZzzoveclHROn1DnkXPcOeocdPY5/Z0e/8/2slGDiegKtD8dYo9n7MYQ1XLhmk1fInQ4JGOor/oo09evlDZc/oZfml9AcFBggrJDAu04bes0/xQdGmi/uXaNsVevaj+X/60bYtx1raWZhonmP+vn8qdQjr2qp18X5tjN5oyNQpXUoVK7zBBlpkWLuENfD31dOc1e//9sEzBZ/3/OP4oZwS/zI/Vt7dRX8iTi5Ovg0t1PdT/F2ZNrQkKWJiaELF8T7mlwqkG7f0EjhwwJGjm4bZe2lCwTdHft3fjf22+eurmdmifPj5k4vmjckllT7zTZUalciHWeW/dfx8XfP3X/dUrqffz2yoiFMgNqIwFvvPnOAmpjwMdmJbzon+7DfRUpl/qAuyG1S99S9v2RIbwyNwaWiirZ5ZuPUi/B9Oaq9Rcg8U6Fduf+zf43yzfP8PRWlHdSuyV3+6b+m/3zsW/e+bGm+OpsGFGCkeQL3LIpbjkMrUzcoiI6j2qqxNWWYSZz8SMTLwSSGrNH/F1Txuv6kHjfKoYvO1jBgZATVGEZJynBfE7RgdBjo5xzoRnBeVGFdp0StEPvJJNHHlnk0okWtCCXOHJIIYs8xDYn99l0muMhhyRaMJx+DGEEHrJQJ4VMptOMXvCfYogjjTY0pyUtacNAbPoxnM5YdbMtpWSpPimWDowigSTyS6/NaYXeuSieKZLWMLNw09K8zcImmYRR7RHI7yGVBOJq+3uSTx7Ja1PKzjfcjV4SKTI5n1iaE4eHDFqkO4l4WG8m8eRQDNeMg0Y/hsxXnd23boMGAAAA) format('woff2')}
