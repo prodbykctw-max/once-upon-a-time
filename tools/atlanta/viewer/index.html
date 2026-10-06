@@ -103,8 +103,9 @@
 <script type="module">
 import * as THREE from './vendor/three.module.min.js';
 import { buildCity, lightRig, heightAt } from './city.js';
-import { asset } from './base.js';
+import { asset, rootAsset } from './base.js';
 import { createRun } from './play.js';
+import { createHero } from './hero.js';
 
 const KEYS = ['mbs', 'dsa', 'wade', 'stonemtn'];
 const key = new URLSearchParams(location.search).get('loc') || 'mbs';
@@ -320,6 +321,7 @@ function setMode(m) {
   bRun.classList.toggle('on', m === 'runner');
   const playing = m === 'play';
   document.body.classList.toggle('playing', playing);
+  if (hero) hero.group.visible = playing;
   document.getElementById('bPlay').classList.toggle('on', playing);
   pad.classList.toggle('on', playing);
   runBox.classList.toggle('on', playing);
@@ -383,6 +385,8 @@ window.__preview = {
 // Until this existed the obstacle slots were drawn and nothing touched them,
 // so the level data had never been tested by the only thing that can test it.
 const run = level ? createRun(level, heightAt, world.elevation) : null;
+const hero = run ? createHero(rootAsset) : null;
+if (hero) { scene.add(hero.group); hero.group.visible = false; }
 const runBox = document.getElementById('run');
 const pad = document.getElementById('pad');
 const held = { left: 0, right: 0, jump: 0, slide: 0 };
@@ -421,12 +425,18 @@ function startPlay() {
 
 function placePlayCamera() {
   const p = run.pose();
-  const back = run.at(Math.max(0, run.s - 5.5));
+  // CHASE FRAMING IS MEASURED AGAINST THE CONTROL PAD, not judged by eye. At
+  // 5.5 m back she spanned 56-95% of a 900x600 frame and the pad starts at 82%,
+  // so her FEET were behind the buttons — on the one view where footing is the
+  // whole read. Back to 8 m and a look target lower than the camera pitches the
+  // view down, which lifts her up the frame: ~51-81%, clear of the pad, and
+  // ~30% of frame height instead of 39%.
+  const back = run.at(run.s - 8.0);          // may be negative: `at` extrapolates
   const bx = back.x + back.nx * run.laneX * level.laneM;
   const by = back.y + back.ny * run.laneX * level.laneM;
-  camera.position.set(bx, heightAt(world.elevation, bx, by) + 2.5 + run.y * 0.5, -by);
-  const look = run.at(Math.min(level.len, run.s + 14));
-  camera.lookAt(look.x, heightAt(world.elevation, look.x, look.y) + 2.2, -look.y);
+  camera.position.set(bx, heightAt(world.elevation, bx, by) + 3.0 + run.y * 0.45, -by);
+  const look = run.at(Math.min(level.len, run.s + 16));
+  camera.lookAt(look.x, heightAt(world.elevation, look.x, look.y) + 1.4, -look.y);
 }
 
 // Attached here, not in the __preview literal above: that object is built
@@ -456,7 +466,12 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min(0.05, (now - _prev) / 1000);
   _prev = now;
   if (life) life.update(dt);
-  if (mode === 'play' && run) { run.update(dt, edge()); placePlayCamera(); runHud(); }
+  if (mode === 'play' && run) {
+    run.update(dt, edge());
+    if (hero) hero.update(dt, run, camera);
+    placePlayCamera();
+    runHud();
+  }
   renderer.render(scene, camera);
 });
 </script>

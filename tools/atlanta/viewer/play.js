@@ -50,6 +50,18 @@ export function createRun(level, heightAt, E) {
   /** Point, heading and ground height at distance `s` along the route. */
   function at(s) {
     const { pts, cum } = level;
+    // EXTRAPOLATE BEHIND THE START. The chase camera trails 5.5 m back, and at
+    // s = 0 a clamp puts it exactly on her — so at the moment the run begins
+    // she is inside the near plane and the level opens with no hero on screen.
+    // The road does not exist behind the start line, but the camera still has
+    // to be somewhere, so project back along the first segment.
+    if (s < 0) {
+      const a = pts[0], b = pts[1] || pts[0];
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      const dx = (b[0] - a[0]) / L, dy = (b[1] - a[1]) / L;
+      return { x: a[0] + dx * s, y: a[1] + dy * s, dx, dy,
+               nx: dy, ny: -dx, h: Math.atan2(dx, dy) };
+    }
     let lo = 0, hi = cum.length - 1;
     while (lo < hi - 1) { const m = (lo + hi) >> 1; if (cum[m] <= s) lo = m; else hi = m; }
     const a = pts[lo], b = pts[lo + 1] || pts[lo];
