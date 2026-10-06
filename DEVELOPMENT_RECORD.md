@@ -1274,6 +1274,59 @@ So size is not the blocker. The blocker is architectural and already on the
 books: `index.html` stops being the whole game once there are ES modules and a
 `world/` folder. This prices that decision rather than making it.
 
+### 10-06 · Each location becomes a 90-second level
+
+Client: *"this is gonna be a game so everything should be level basically prep
+this for the runner game"*, then *"you have to optimize the levels that we're
+gonna be using for gameplay too."* `viewer/level.js`, `bf57cfc`.
+
+**What transfers from the shipped runner is TIMING, not units.** Royal Runner's
+z-space is stylised — `mv = eff*2.4`, `eff = min(11.5, 5.2 + dist*0.0045)`,
+`GS.dist = z/76.8` with `T=32` — and none of it is metres. The portable part is
+the cadence it produces: far plane 2.00 s of travel, obstacles every 0.44–0.77 s,
+jump airtime 0.73 s, first corner ~13 s, corners ~25 s apart. A level is
+therefore a DURATION — 90 s, which at 4.8 m/s is 432 m. Targeting metres gave
+157–359 second levels, three to six minutes down one street.
+
+Routes are beam-searched rather than walked. The first version took the
+straightest continuation at each junction and measured **zero corners over
+756 m**, because straightest-first is a machine for never turning. Final
+selection re-stitches each candidate and scores the polyline the player actually
+runs, because the junction heuristic scored as clean routes that measured 171,
+168 and 160 degrees once stitched. DSA now runs three corners at 83 / 101 / 95
+degrees; Wade one at exactly 90.
+
+**The guardrail, and it is the most reusable thing in this era: never ask the
+DEM for detail it does not have.** Three separate bugs, all the same shape.
+Grade was sampled over 10 m windows against a 15.4–23.1 m elevation grid, so it
+read its own bilinear interpolation back as terrain — that is the entirety of
+Stone Mountain's "264% grade", and it condemned whole streets on invented spikes,
+returning *no level at all* for three of four locations. Terrain was meshed at
+6 m spacing across a 1,536 m square from 17.9 m data, which measured **132,098 of
+165,446 triangles — 79.8% of the scene**, more than the city, crowd and traffic
+combined; split into two LOD rings it is 38,970, and the whole scene drops 56%.
+And the route optimizer could not see bends *inside* a way, so it picked a
+switchback trail with 115 corners and straights as short as 1 m and scored it as
+a clean zero-corner leg.
+
+Corridor culling went in too — a 432 m ribbon through a 450 m extract drops
+29–48 buildings per location — and is recorded mainly because it was the obvious
+lever and the wrong one: it saved 1–5% of triangles. The terrain was where the
+other 75% lived.
+
+One regression was caught by looking rather than by a number: `mergeGeometries`
+carried position, normal and uv but not `color`, so the moment terrain became
+two merged rings the entire ground rendered black. A material compiled with
+`vertexColors: true` and no `color` attribute reads zero, and the triangle count
+looked perfect throughout.
+
+Left open and stated: MBS still has a 174-degree hairpin; Stone Mountain finds
+no corners inside a 12% grade cap; obstacle slots are placed and drawn but
+nothing collides with them yet; and the shipped far plane is 2 s of travel —
+**10 m of visible road**, which is fine for an abstract corridor and absurd for
+Atlanta. That last is a client decision about how the runner should feel, not
+something to quietly change.
+
 ### Open — the stadium model needs one credential
 
 The honest state of the landmark: the overlay test proved procedural parametric

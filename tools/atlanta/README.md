@@ -697,3 +697,116 @@ that have had no optimisation pass at all. What this does change is the
 single-file architecture: `index.html` stops being the whole game once there are
 ES modules and a `world/` folder, which is the open decision already recorded in
 `HANDOFF.md`, not a new one.
+
+---
+
+## Levels — `viewer/level.js`
+
+Each location is a **90-second run**, not a place to orbit. Live in the preview;
+`?level=0` turns it off, `?secs=N` / `?len=N` retarget it, `?giz=0` hides the
+route markers.
+
+### What transfers from the shipped runner is TIMING, not units
+
+Royal Runner works in a stylised z-space — `mv = eff*2.4` z per frame with
+`eff = min(11.5, 5.2 + dist*0.0045)`, obstacles spawned at `z=1500`, and
+`GS.dist = z/76.8` since `T=32`. None of that is metres and none of it should be
+forced onto real geometry. Read straight off the shipped constants, the portable
+part is the cadence:
+
+| | shipped value | in seconds |
+|---|---|---|
+| far plane | 1500 z ÷ 12.48 z/frame | **2.00 s** of travel |
+| obstacle spacing | `nextZ` 330–570+ z | **0.44–0.77 s** |
+| jump airtime | 2×13.5/0.62 = 43.5 frames | **0.73 s** |
+| first corner | `GS.dist > 130` | **~13 s** |
+| corner spacing | `sinceTurn > 240` | **~25 s** at base speed |
+
+At a 4.8 m/s run — which is what the 0.73 s jump arc implies — a 90 s level is
+**432 m**. Targeting metres instead of duration gave **157–359 second** levels:
+three to six minutes down one street.
+
+### The route is SEARCHED, not walked
+
+| location | length | corners | angles | first corner | max grade |
+|---|---|---|---|---|---|
+| MBS | 432 m / 90 s | 2 | 174°, 72° | 36 s | −11% |
+| DSA | 362 m / 75 s | 3 | **83°, 101°, 95°** | 23 s | −19% |
+| Wade | 432 m / 90 s | 1 | **90°** | 37 s | −18% |
+| Stone Mtn | 432 m / 90 s | 0 | — | — | +23% |
+
+The first version took the straightest continuation at each junction. The
+measurement killed it: **zero corners over 756 m at MBS**, because
+straightest-first is by construction a machine for never turning — and three of
+the four locations then fell back to a single long way, one leg, no corners.
+
+A beam search now scores candidates on corner angle, corner spacing, grade and
+length. **60–120° is the band that matters:** the shipped turn is a *binary*
+left/right swipe, so 90° reads as a corner and 40° demands the same input while
+not looking like it needs one. Final selection re-stitches each finished
+candidate and scores the polyline the player actually runs — the junction
+heuristic only prunes, because it scored as clean routes that measured **171°,
+168° and 160°** once stitched.
+
+### Three measurement bugs, all the same shape
+
+Each one was asking the data for detail it does not have.
+
+**1. Grade sampled finer than the DEM.** The elevation grid is 15.4–23.1 m
+depending on location, and grade was measured over **10 m** windows — 1.5× to
+2.3× finer than the data — so it read back its own bilinear interpolation as
+terrain. That is the whole of Stone Mountain's **"264% grade"**: an artifact, not
+a cliff. It also condemned entire streets on one invented spike, which is why
+three of four locations returned **no level at all**. The window is now
+`max(DEM step, 25 m)`, which is also what a runner physically feels.
+
+**2. Terrain meshed finer than the DEM, across an area nobody sees.** Measured
+at MBS, by mesh:
+
+| | triangles | share |
+|---|---|---|
+| **terrain** | **132,098** | **79.8%** |
+| crowd | 18,720 | 11.3% |
+| trees | 5,124 | 3.1% |
+| everything else | 9,504 | 5.8% |
+
+One uniform grid at `SUB=3` × `EXT=2.2` meshes a **1,536 m square at 6 m
+spacing** from 17.9 m data. `SUB` exists for the vertex-painted ground *cover*,
+which needs resolution only where the player can see its edges. Split into two
+rings — sampled extent at full `SUB`, filler beyond it at `SUB=1`, inner quads
+skipped so nothing z-fights:
+
+**terrain 132,098 → 38,970 (−70%); whole scene 165,446 → 72,318 (−56%).**
+
+**3. The optimizer could not see bends inside a way.** Scoring only junction
+turns let the Stone Mountain search pick a single way that was a **switchback
+trail — 115 corners, straights as short as 1 m** — and score it as a clean
+zero-corner leg. OSM said exactly what it was; the search could not read it.
+
+### Corridor culling — the obvious lever, and the wrong one
+
+A level is a 432 m ribbon through a 350–450 m extract, so anything far from the
+route is paid for every frame and never seen. Culling to a 160 m band drops
+**29–48 buildings and up to 198 ways** per location… and saves **1–5% of
+triangles**. Worth keeping, worth recording that it was not the answer: the
+terrain was where the other 75% lived. Hero landmarks are **never** culled — the
+stadium is visible from everywhere and is why the location exists.
+
+> **A regression caught by looking rather than by a number.** `mergeGeometries`
+> carried position, normal and uv but **not `color`**, so the moment terrain
+> became two merged rings the entire ground rendered **black** — a material
+> compiled with `vertexColors: true` and no `color` attribute reads zero. Ground
+> cover is painted per vertex, so it silently deleted every park and verge while
+> the triangle count looked perfect.
+
+### Open, and stated rather than hidden
+
+- **MBS still has a 174° hairpin.** The scorer penalises it; MBS's alternatives
+  scored worse. Needs either a wider search or a hand-placed start.
+- **Stone Mountain finds no corners** inside a 12% grade cap. It is a mountain
+  with switchback trails; a cornerless run around it is defensible, but it is a
+  fallback, not a design.
+- **The far plane is 2 s of travel = 10 m of visible road.** Fine for an abstract
+  corridor, absurd for Atlanta. three.js can see as far as we like, so this is a
+  client decision about how the runner should feel, flagged as `stats.sightM`.
+- Obstacle slots are placed and drawn, but nothing collides with them yet.

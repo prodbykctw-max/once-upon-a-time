@@ -43,6 +43,37 @@
 > is a phase of its own**, not a task. Several art items (idle dance, Game II
 > outfit, Purple Guy, more jump frames) are blocked only on `$AUTOSPRITE_KEY`.
 
+> ## 🏁 SHIPPED 10-06 — EACH LOCATION IS A 90-SECOND LEVEL
+> `tools/atlanta/viewer/level.js`, `bf57cfc`. Live on the preview link.
+> **Timing transfers from the shipped runner, units do NOT.** Royal Runner's
+> z-space is stylised (`mv=eff*2.4`, `GS.dist=z/76.8`); what is portable is the
+> cadence it produces — far plane 2.00 s, obstacles every 0.44-0.77 s, jump
+> airtime 0.73 s, corners ~25 s apart. A level is a DURATION: 90 s = 432 m at
+> 4.8 m/s. Targeting metres gave 157-359 second levels.
+> Routes are beam-searched and scored on the stitched polyline the player
+> actually runs, because the junction heuristic scored 171/168/160 deg corners
+> as clean. DSA now has three corners at 83/101/95 deg; Wade one at 90.
+>
+> **GUARDRAIL — NEVER ASK THE DEM FOR DETAIL IT DOES NOT HAVE.** Three bugs,
+> one shape: grade sampled over 10 m against a 15-23 m grid (that is the whole
+> of Stone Mountain's "264% grade" — an interpolation artifact, and it returned
+> NO level for three locations); terrain meshed at 6 m over a 1,536 m square
+> from 17.9 m data (**79.8% of all triangles**); and an optimizer that could not
+> see bends inside a way, so it picked a 115-corner switchback trail and scored
+> it clean.
+> **Terrain split into two LOD rings: 132,098 -> 38,970 tris (-70%), whole scene
+> -56%.** Corridor culling was the obvious lever and the wrong one — it saved
+> 1-5%.
+>
+> **Watch out:** `mergeGeometries` did not carry `color`, so the two-ring
+> terrain rendered pure black. Anything vertex-painted that goes through it
+> needs that attribute.
+>
+> **OPEN, needs a client call:** the shipped far plane is 2 s of travel = **10 m
+> of visible road**. Fine for an abstract corridor, absurd for Atlanta.
+> Also open: MBS has one 174 deg hairpin; Stone Mountain finds no corners under
+> a 12% grade cap; obstacle slots are placed but nothing collides with them yet.
+
 > ## 🚗 SHIPPED 10-06 — CROWDS AND TRAFFIC ARE IN THE PREVIEW
 > `tools/atlanta/viewer/life.js`, `5f43729`. Live on the link above; `?life=0`
 > for the empty city, `?peds=N&cars=N` to tune.
