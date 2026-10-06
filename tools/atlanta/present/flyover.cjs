@@ -1,6 +1,14 @@
 const {chromium}=require('/opt/node22/lib/node_modules/playwright');
 const fs=require('fs');
-const FF='/opt/pw-browsers/ffmpeg-1011/ffmpeg-linux';
+// NOT Playwright's ffmpeg. That build is minimal — it ships `png` and `libvpx`
+// and NOTHING ELSE, so `-c:v libx264` fails and it cannot even open an image
+// sequence (no image2 demuxer): the error it gives is "No such file or
+// directory", which sends you looking for missing frames that are all present.
+// imageio-ffmpeg carries a full build with libx264.
+//   pip install imageio-ffmpeg
+const FF=require('child_process')
+  .execSync("python3 -c \"import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())\"")
+  .toString().trim();
 const {execFileSync}=require('child_process');
 const OUT='/home/user/once-upon-a-time/presentation/video';
 const TMP='/tmp/flyframes';
@@ -18,6 +26,9 @@ const ease = t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
   const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',
     args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   for (const [key,label] of LOCS){
+    // RESUMABLE. Six locations at ~14 min each is long enough that something
+    // will interrupt it; an already-encoded location is simply skipped.
+    if (fs.existsSync(`${OUT}/${key}_flyover.mp4`)) { console.log(`  ${label.padEnd(26)} already rendered, skipping`); continue; }
     fs.rmSync(TMP,{recursive:true,force:true}); fs.mkdirSync(TMP,{recursive:true});
     const pg=await b.newPage({viewport:{width:W,height:H}});
     await pg.goto(`http://localhost:8000/tools/atlanta/viewer/index.html?loc=${key}&life=1&peds=420&cars=140&giz=0`,{waitUntil:'load'});
@@ -41,7 +52,7 @@ const ease = t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
     const mins=((Date.now()-t0)/60000).toFixed(1);
     execFileSync(FF,['-y','-framerate',String(FPS),'-i',`${TMP}/f%04d.jpg`,
       '-c:v','libx264','-pix_fmt','yuv420p','-crf','20','-movflags','+faststart',
-      `${OUT}/${key}_flyover.mp4`],{stdio:'ignore'});
+      `${OUT}/${key}_flyover.mp4`],{stdio:['ignore','ignore','pipe']});
     const kb=(fs.statSync(`${OUT}/${key}_flyover.mp4`).size/1024).toFixed(0);
     console.log(`  ${label.padEnd(26)} ${N} frames in ${mins} min -> ${key}_flyover.mp4 (${kb} KB)`);
   }
