@@ -1456,6 +1456,18 @@ released; an official artist URL for `sameAs`; whether to widen the brand-only
 pass was scoped to `<head>`. Someone also has to submit the sitemap in Search
 Console — no repo can do that.
 
+
+**Security hardening (Oct 6).** From the 2026-10-06 audit. (1) Stored XSS: the
+`?lb=` query and the `jande_lb` localStorage override of `LB_URL` are gone (any
+saved value is now removed on load), and both leaderboards render distance and
+score through `Number()`; names were already escaped. (2) A `<meta>` CSP: self +
+inline only, `connect-src` limited to the leaderboard Worker. (3) The Worker
+grants CORS only to the github.io origin, rate limits submits per IP
+(`SUBMIT_LIMIT`), requires the new `dur` field (wall-clock run seconds, from
+`RUN_T0`, reset wherever a fresh run resets `RUN_CONTINUES`) and rejects runs
+beyond caps derived from the scoring code, and no longer returns exception
+text. Existing board data untouched. Details: `cloudflare/README.md`.
+
 ---
 
 *Jandé — "Once Upon A Time"*
