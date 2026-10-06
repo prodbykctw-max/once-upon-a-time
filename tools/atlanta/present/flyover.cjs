@@ -43,8 +43,13 @@ const ease = t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
       // zooms into a tour" the client asked for. Yaw is linear so the spin is
       // even; pitch and distance are eased so the descent settles.
       const yaw = 0.6 + u*Math.PI*2;
-      const pitch = 0.88 - e*0.66;          // 0.88 overhead -> 0.22 near-ground
-      const dist  = 2.00 - e*1.55;          // 2.0R -> 0.45R
+      // CLOSE, AND NEVER OUTSIDE THE FOG. The first cut opened at 2.0x radius,
+      // which is BEYOND the fog plane — so the first three seconds were a grey
+      // wash of nothing, and from that height the world was thin road ribbons
+      // on an empty plane. Client: "it just exposed the seams." It starts
+      // inside the city now and ends at rooftop height.
+      const pitch = 0.52 - e*0.33;          // 0.52 -> 0.19, never straight down
+      const dist  = 1.30 - e*0.72;          // 1.3R -> 0.58R, always inside fog
       await pg.evaluate(a=>__preview.setOrbit(a[0],a[1],a[2]), [yaw,pitch,dist]);
       await pg.screenshot({path:`${TMP}/f${String(i).padStart(4,'0')}.jpg`, type:'jpeg', quality:90});
     }
