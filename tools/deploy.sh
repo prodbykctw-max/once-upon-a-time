@@ -34,6 +34,11 @@ touch .nojekyll
 git checkout --orphan _deploy_tmp
 git reset -q
 git add index.html web .nojekyll apple-touch-icon.png icon-192.png icon-512.png manifest.webmanifest
+# DISCOVERABILITY (2026-10-06): SEO/AEO files must be named EXPLICITLY here or
+# they simply never reach gh-pages — this script stages a fixed list, never -A.
+# Adding one of these to the repo root without adding it to this line ships
+# nothing. See docs/SEO_AEO.md.
+git add robots.txt sitemap.xml llms.txt
 git add -f fred/index.html          # generated, and .gitignored on the dev branch
 git reset -q -- web/_manifest.txt 2>/dev/null || true   # debug file, not served
 

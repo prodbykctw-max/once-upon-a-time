@@ -18,7 +18,8 @@
      Metadata only. Nothing below is executed by the game and nothing here is
      rendered as game UI, so the NO-STOCK-GLYPHS directive does not apply.
      Canonical/og:url use the ABSOLUTE deploy URL on purpose: tools/build_fred.py
-     only rewrites quoted relative paths ("icon-512.png", "web/…"), so the
+     only rewrites quoted RELATIVE asset paths (the icons, the manifest, the
+     hashed asset folder), so an absolute URL passes through it untouched and the
      generated /fred/ edition inherits these tags unchanged and therefore
      canonicalises itself back to the public game instead of competing with it.
      robots.txt, sitemap.xml and llms.txt live at the repo root and are staged by
