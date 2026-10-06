@@ -855,6 +855,12 @@ body.mobile .joy-knob{width:64px;height:64px}
   <button class="ov-btn" id="setClose" style="margin-top:14px">BACK</button>
 </div></div>
 
+<!-- GSAP 3.15.0, vendored under web/ like every other asset. Free for
+     commercial use since Webflow took it over in April 2025; the only
+     prohibition is building a rival no-code animation tool, which this is not.
+     27 KB gzipped, one script, NO build step — the single-file architecture is
+     intact. -->
+<script src="web/9396f256329c.js"></script>
 <script>
 // baked pixel-art world pack (walls/floors per stage, chaser, item icons)
 var TEXDATA={
@@ -6646,6 +6652,38 @@ function showOver(won){
   running=false;applyTouchMode();}
 
 // ---------- title BG ----------
+// ── TITLE ENTRANCE (GSAP) ──────────────────────────────────────────────────
+// The title screen was four elements with CSS keyframes that all started at
+// once. This staggers them into an actual reveal: the wordmark draws in, the
+// rule grows out of it, the subtitle settles, the CTA arrives last.
+//
+// GATED ON body.rm, which is the reduce-motion setting plus the OS preference
+// (applyMotionClass). CLAUDE.md is explicit: never animate under body.rm — so
+// under it every element is simply placed at its final state, no tween at all.
+// Also degrades to that if GSAP failed to load, so a missing script can never
+// leave the title invisible.
+function titleEntrance(){
+  var els = ['.tw-j', '.tw-line', '.tw-o', '#tPress']
+    .map(function(q){ return document.querySelector(q); }).filter(Boolean);
+  if (!els.length) return;
+  var still = document.body.classList.contains('rm') || typeof gsap === 'undefined';
+  if (still){
+    els.forEach(function(e){ e.style.opacity=''; e.style.transform=''; });
+    return;
+  }
+  try{
+    gsap.set(els, {opacity:0});
+    var tl = gsap.timeline({defaults:{ease:'power3.out'}});
+    tl.fromTo('.tw-j',    {opacity:0, scale:.92, letterSpacing:'+=14px'},
+                          {opacity:1, scale:1, letterSpacing:'', duration:1.15}, 0)
+      .fromTo('.tw-line', {opacity:0, scaleY:0}, {opacity:1, scaleY:1, duration:.55, transformOrigin:'50% 0%'}, .55)
+      .fromTo('.tw-o',    {opacity:0, y:10},     {opacity:1, y:0, duration:.6}, .72)
+      .fromTo('#tPress',  {opacity:0, y:14},     {opacity:1, y:0, duration:.6}, .95);
+  }catch(_te){
+    // never leave the screen blank because an animation threw
+    els.forEach(function(e){ e.style.opacity=''; e.style.transform=''; });
+  }
+}
 function initTitleBG(){var bc=document.getElementById('bgC'),c2=bc.getContext('2d');bc.width=innerWidth;bc.height=innerHeight;
   var stars=[],wisps=[];for(var i=0;i<200;i++)stars.push({x:Math.random()*bc.width,y:Math.random()*bc.height,s:Math.random()*1.6+.3,b:Math.random()*6.28,v:.015+Math.random()*.03});
   for(i=0;i<40;i++)wisps.push({x:Math.random()*bc.width,y:Math.random()*bc.height+80,vx:(Math.random()-.5)*.5,vy:-.35-Math.random()*.35,a:Math.random()*6.28,sz:3+Math.random()*7});
@@ -6957,7 +6995,7 @@ function startGame(){
 }
 
 // ---------- wire UI ----------
-function wire(){applyMotionClass();
+function wire(){applyMotionClass();titleEntrance();
   document.getElementById('tPress').onclick=function(){audInit();sfx('ui');show('loginScreen');};
   document.getElementById('lBtn').onclick=function(){var nm=document.getElementById('lName').value.trim(),em=document.getElementById('lEmail').value.trim(),msg=document.getElementById('lMsg');
     if(!em||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){msg.style.color='rgba(255,50,80,.9)';msg.textContent='Valid email required!';return;}
