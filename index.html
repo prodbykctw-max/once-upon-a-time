@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://jande-leaderboard.prodbykctw.workers.dev; manifest-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>JANDÉ — Once Upon A Time</title>
 <meta name="description" content="Play Jandé's free browser game for her R&amp;B song Once Upon A Time — an Action RPG and the Royal Runner endless run, nine themed stages each. No download.">
@@ -3886,16 +3887,16 @@ function saveRun(){
   return{runs:runs,stamp:stamp,me:_lastRun};}
 // ── GLOBAL LEADERBOARD — the only online feature; silently falls back to the
 //    local top-10 when the endpoint is unset or unreachable. Set the Worker
-//    URL once via ?lb=<url> (persists) or bake it into LB_URL below. ──
+//    URL is fixed here; there is deliberately no runtime override (an
+//    attacker-supplied ?lb= URL used to persist and feed the board). ──
 var LB_URL='https://jande-leaderboard.prodbykctw.workers.dev';
-try{LB_URL=localStorage.getItem('jande_lb')||LB_URL;}catch(x){}
-(function(){try{var m=(location.search.match(/[?&]lb=([^&#]+)/)||[])[1];
-  if(m){LB_URL=decodeURIComponent(m).replace(/\/+$/,'');localStorage.setItem('jande_lb',LB_URL);}}catch(x){}})();
+try{localStorage.removeItem('jande_lb')}catch(x){}
+var RUN_T0=Date.now();   // wall-clock start of the current run (sent as dur)
 function lbOn(){return !!LB_URL;}
 function lbSubmit(run){
   if(!LB_URL||!run)return;
   try{fetch(LB_URL+'/submit',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({name:run.n,dist:run.d,score:run.s,mode:run.m})}).catch(function(){});}catch(x){}}
+    body:JSON.stringify({name:run.n,dist:run.d,score:run.s,mode:run.m,dur:Math.max(0,Math.round((Date.now()-RUN_T0)/1000))})}).catch(function(){});}catch(x){}}
 function lbTop(mode,n,cb){
   if(!LB_URL){cb(null);return;}
   var done=false,to=setTimeout(function(){if(!done){done=true;cb(null);}},4500);
@@ -3919,7 +3920,7 @@ function fillGlobalBoard(me){
     if(!hdr||!body||!rows||!rows.length)return;
     var html='';rows.forEach(function(r,i){
       var mine=(r.n===me.n&&r.d===me.d&&r.s===me.s);
-      html+='<div class="bd-row'+(mine?' me':'')+'"><span>'+(i+1)+'. '+esc(r.n)+'</span><span>'+r.d+'m · '+(r.s||0).toLocaleString()+'</span></div>';});
+      html+='<div class="bd-row'+(mine?' me':'')+'"><span>'+(i+1)+'. '+esc(r.n)+'</span><span>'+(Number(r.d)|0)+'m · '+(Number(r.s)||0).toLocaleString()+'</span></div>';});
     body.innerHTML=html;hdr.style.display='';});}
 
 // ── WALLET (gems persist across runs; start with 1 free gem) ──
@@ -6625,7 +6626,7 @@ function showOver(won){
   document.getElementById('ovM').textContent=Math.floor(GS.dist)+'m · '+GS.totalNotes+' notes · '+GS.score.toLocaleString()+' pts';
   var bh='<div class="bd-h">— TOP RUNS —</div>';
   sv.runs.slice(0,5).forEach(function(r,i){
-    bh+='<div class="bd-row'+(r.t===sv.stamp?' me':'')+'"><span>'+(i+1)+'. '+(r.m==='temple'?'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABKElEQVR4nO3bsQnCQBhA4SgOYCmWYnqLlOIMTuIwTuIMYpnCXgsr0c4NtE/+BydJjOL7ynBHjsdxxGCyTJIkSfoHg75uPB9PntVr58ett/VUDftewLcyDDAMMAwYpQ5sclhGc0/7WW1cvspq4yJN7ps61x0DDAMMAwwDwsM3OrQO5a42blmskw7LaG5erFOmtn7faG50ILtjgGGAYYBhgGGAYYBhgGGAYUD4Ezx8TXA9dr6YT8ini9o1n3zfYBhgGGAYkPzO9369dLiM7+OOAYYBhgGGAYYBhgGGAYYBhgHJT75t227KpHGbbdHxSmLuGGAYYBhgGGAYYBhgGGAYYBhgGGAYYBhgGGAYYBhgGGAYYBhgGJD8OW/097Nf5BduDRkGGAYYBrwAzcA3NITnyGwAAAAASUVORK5CYII=" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt="">':'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABL0lEQVR4nO3aPw4BQRhA8SUOoJQoiUapkeiUexCHchClTqJRaoReqdZwgJ2XTLKf8e/9ys3aiZfJl7W2qiRJxXXetfC4P3hEXu98u4Z+l27kxX6JYYBhgGFAr8QiqUFbD++ha2yq5hptBrI7BhgGGAYYBnzUne+qHmV9dr25ZJ3n8H0BwwDDAMOAIsM3NWgPp93L151NFo1juQPZHQMMAwwDDAPCh+83DtoUdwwwDDAMMAwIf+abGnizyeItA7kNdwwwDDAMMAwo8odbtOi73BR3DDAMMAwwDDAMMAwwDDAMMAwIv/NNPfPdH7eN81J3r7lS15tPl75qVoJhgGGAYUCrn+q5g3Y+XTaOtRmMJdZ1xwDDAMMAw4AibztEP48tsa47BhgGGAYYRpIkSfprT87IS4ghF4emAAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt="">')+' '+esc(r.n)+'</span><span>'+r.d+'m · '+Number(r.s).toLocaleString()+'</span></div>';});
+    bh+='<div class="bd-row'+(r.t===sv.stamp?' me':'')+'"><span>'+(i+1)+'. '+(r.m==='temple'?'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABKElEQVR4nO3bsQnCQBhA4SgOYCmWYnqLlOIMTuIwTuIMYpnCXgsr0c4NtE/+BydJjOL7ynBHjsdxxGCyTJIkSfoHg75uPB9PntVr58ett/VUDftewLcyDDAMMAwYpQ5sclhGc0/7WW1cvspq4yJN7ps61x0DDAMMAwwDwsM3OrQO5a42blmskw7LaG5erFOmtn7faG50ILtjgGGAYYBhgGGAYYBhgGGAYUD4Ezx8TXA9dr6YT8ini9o1n3zfYBhgGGAYkPzO9369dLiM7+OOAYYBhgGGAYYBhgGGAYYBhgHJT75t227KpHGbbdHxSmLuGGAYYBhgGGAYYBhgGGAYYBhgGGAYYBhgGGAYYBhgGGAYYBhgGJD8OW/097Nf5BduDRkGGAYYBrwAzcA3NITnyGwAAAAASUVORK5CYII=" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt="">':'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABL0lEQVR4nO3aPw4BQRhA8SUOoJQoiUapkeiUexCHchClTqJRaoReqdZwgJ2XTLKf8e/9ys3aiZfJl7W2qiRJxXXetfC4P3hEXu98u4Z+l27kxX6JYYBhgGFAr8QiqUFbD++ha2yq5hptBrI7BhgGGAYYBnzUne+qHmV9dr25ZJ3n8H0BwwDDAMOAIsM3NWgPp93L151NFo1juQPZHQMMAwwDDAPCh+83DtoUdwwwDDAMMAwIf+abGnizyeItA7kNdwwwDDAMMAwo8odbtOi73BR3DDAMMAwwDDAMMAwwDDAMMAwIv/NNPfPdH7eN81J3r7lS15tPl75qVoJhgGGAYUCrn+q5g3Y+XTaOtRmMJdZ1xwDDAMMAw4AibztEP48tsa47BhgGGAYYRpIkSfprT87IS4ghF4emAAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt="">')+' '+esc(r.n)+'</span><span>'+(Number(r.d)|0)+'m · '+(Number(r.s)||0).toLocaleString()+'</span></div>';});
   if(lbOn())bh+='<div class="bd-h" id="lbHdr" style="display:none">— GLOBAL TOP —</div><div id="lbRows"></div>';
   if(GS.newAch&&GS.newAch.length){
     bh+='<div class="bd-h">— TROPHIES UNLOCKED · +'+(GS.newAch.length*20)+' NOTES +'+GS.newAch.length+' GEMS —</div>';
@@ -6955,7 +6956,7 @@ function bgGo(ai){
   var lab=document.getElementById('bgvName');
   if(lab)lab.textContent=(ai+1)+' / 9  ·  '+STAGES[ai].n;
   if(!running){ startGame(); }
-  else { GS={}; CHECKPOINT=ai; CHECKPOINT_X=0; RUN_CONTINUES=0; initGS(ai); setZoom(BASEZ); updateHUD(); }
+  else { GS={}; CHECKPOINT=ai; CHECKPOINT_X=0; RUN_CONTINUES=0;RUN_T0=Date.now(); initGS(ai); setZoom(BASEZ); updateHUD(); }
 }
 function bgViewer(){
   var st=0; try{st=+(localStorage.getItem('jande_bgview_stage')||0)||0;}catch(e){}
@@ -7068,7 +7069,7 @@ function startGame(){
   resize();
   var lm=document.getElementById('loadMsg');
   try{localStorage.setItem('jande_mode_'+MODE,'1');}catch(x){} // for BOTH WORLDS trophy
-  function begin(){if(lm)lm.style.display='none';GS={};var _ss=(MODE==='side')?START_STAGE:0;CHECKPOINT=_ss;CHECKPOINT_X=0;RUN_CONTINUES=0;initGS(_ss);
+  function begin(){if(lm)lm.style.display='none';GS={};var _ss=(MODE==='side')?START_STAGE:0;CHECKPOINT=_ss;CHECKPOINT_X=0;RUN_CONTINUES=0;RUN_T0=Date.now();initGS(_ss);
     GS.adaptEarly=adaptGet().early||0;
     var stk=streakTick();
     if(stk.g>0){var w3=wallet();w3.gems+=stk.g;setWallet(w3);GS.gemsLive=w3.gems;}
@@ -7134,7 +7135,7 @@ function wire(){applyMotionClass();titleEntrance();titleParallax();
       if(!running){running=true;applyTouchMode();loop();}
       return;}
     continueRun();};
-  document.getElementById('ovRestart').onclick=function(){sfx('ui');document.getElementById('overlay').classList.remove('on');RUN_CONTINUES=0;GS={};var _rs=(MODE==='side')?START_STAGE:0;CHECKPOINT=_rs;CHECKPOINT_X=0;initGS(_rs);updateHUD();showLevelCard(_rs,function(){if(!running){running=true;applyTouchMode();loop();}});};
+  document.getElementById('ovRestart').onclick=function(){sfx('ui');document.getElementById('overlay').classList.remove('on');RUN_CONTINUES=0;RUN_T0=Date.now();GS={};var _rs=(MODE==='side')?START_STAGE:0;CHECKPOINT=_rs;CHECKPOINT_X=0;initGS(_rs);updateHUD();showLevelCard(_rs,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('ovM2').onclick=function(){START_STAGE=0;var _re=document.getElementById('ovRestart');if(_re)_re.style.display='';['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('pmResume').onclick=function(){GS.paused=false;syncPauseMenu();};
   // ── SETTINGS menu (difficulty / sound / motion), reachable from mode-select + pause ──
@@ -7163,7 +7164,7 @@ function wire(){applyMotionClass();titleEntrance();titleParallax();
       if(v==='on')sfx('ui');syncSet();});
     pick('setMotion',function(v){setSetting('reduceMotion',v==='on'?1:0);applyMotionClass();sfx('ui');});
   })();
-  document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=0;CHECKPOINT_X=0;RUN_CONTINUES=0;initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
+  document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=0;CHECKPOINT_X=0;RUN_CONTINUES=0;RUN_T0=Date.now();initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('pmMenu').onclick=function(){GS.paused=false;syncPauseMenu();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('btnPause').onclick=function(){GS.paused=!GS.paused;syncPauseMenu();};
   document.getElementById('btnMap').onclick=function(){GS.mapOpen=!GS.mapOpen;};
