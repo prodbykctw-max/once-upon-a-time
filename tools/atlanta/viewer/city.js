@@ -14,6 +14,7 @@ import * as THREE from './vendor/three.module.min.js';
 import { HEROES, heroMaterials } from './heroes.js';
 import { buildProps } from './props.js';
 import { buildLife } from './life.js';
+import { buildLevel, levelGizmo, corridorFilter } from './level.js';
 import { asset } from './base.js';
 
 // TILE SIZE COMES FROM THE FILENAME, deliberately. make_facades.py bakes the
@@ -129,7 +130,25 @@ function pointInRing(x, y, ring) {
  * between those gives a finer mesh for free — the DEM is the limit on height
  * detail, not on how finely it can be coloured.
  */
-function terrainGeometry(E, areas, SUB = 3, EXT = 2.2) {
+function terrainGeometry(E, areas, SUB = 3, EXT = 2.2, opts = {}) {
+  // ── TWO RINGS, BECAUSE 80% OF THE TRIANGLE BUDGET WAS OUT HERE ──────────
+  // Measured at MBS: terrain was **132,098 of 165,446 triangles — 79.8%** of
+  // the whole scene, more than the city, the crowd and the traffic combined.
+  // One uniform grid at SUB=3 across EXT=2.2 meshes a 1,536 m square at 6 m
+  // spacing, which is (a) three times finer than the 17.9 m DEM actually
+  // resolves and (b) spread over 4.84x the area the data even covers. Culling
+  // buildings to the level corridor saved 5% of triangles; this is where the
+  // other 75% lives.
+  // SUB exists for the ground-cover COLOUR, which is painted per vertex and
+  // needs resolution only where the player can see the edges of it. So: the
+  // sampled extent gets the full SUB, and the filler ring beyond it — distant
+  // ground, no cover boundaries worth resolving — gets SUB=1, with the quads
+  // under the inner ring skipped so nothing z-fights.
+  if (opts.ring !== 'inner' && opts.ring !== 'outer' && EXT > 1) {
+    const inner = terrainGeometry(E, areas, SUB, 1, { ring: 'inner' });
+    const outer = terrainGeometry(E, areas, 1, EXT, { ring: 'outer' });
+    return mergeGeometries([inner, outer]);
+  }
   // EXTEND PAST THE SAMPLED GRID instead of adding a flat skirt underneath it.
   // The skirt was a plane at (min height - 2), and from a runner's eye it filled
   // the lower half of the frame as a black wedge — it reads as a rendering
@@ -163,8 +182,15 @@ function terrainGeometry(E, areas, SUB = 3, EXT = 2.2) {
       COL.push(c[0], c[1], c[2]);
     }
   }
+  // the hole the inner ring fills, in this grid's own index space
+  const holeLo = opts.ring === 'outer' ? Math.floor((E.x0 - x0) / step) : -1;
+  const holeHi = opts.ring === 'outer' ? Math.ceil((E.x0 + span - x0) / step) : -1;
+  const holeLoY = opts.ring === 'outer' ? Math.floor((E.y0 - y0) / step) : -1;
+  const holeHiY = opts.ring === 'outer' ? Math.ceil((E.y0 + span - y0) / step) : -1;
   for (let j = 0; j < N - 1; j++) {
     for (let i = 0; i < N - 1; i++) {
+      if (opts.ring === 'outer' &&
+          i >= holeLo && i + 1 <= holeHi && j >= holeLoY && j + 1 <= holeHiY) continue;
       const a = j * N + i, b = a + 1, c = a + N, d = c + 1;
       // WINDING: (a,c,b) gives a DOWNWARD normal here and the terrain renders
       // black — lit from underneath. Verified by hand: with vertices at
@@ -271,6 +297,13 @@ function mergeGeometries(geos) {
   const pos = new Float32Array(vcount * 3);
   const nor = new Float32Array(vcount * 3);
   const uvs = new Float32Array(vcount * 2);
+  // CARRY VERTEX COLOUR. This helper handled position, normal and uv only, and
+  // the moment the terrain was built as two LOD rings and merged, the whole
+  // ground went **black** — a material compiled with `vertexColors: true` and no
+  // `color` attribute reads zero. The ground cover is painted per vertex, so
+  // dropping it silently deletes every park, verge and patch of grass.
+  const anyCol = geos.some((g) => g.attributes.color);
+  const col = anyCol ? new Float32Array(vcount * 3).fill(1) : null;
   const idx = vcount > 65535 ? new Uint32Array(icount) : new Uint16Array(icount);
   let vo = 0, io = 0;
   for (const g of geos) {
@@ -278,6 +311,9 @@ function mergeGeometries(geos) {
     pos.set(p.array.subarray(0, p.count * 3), vo * 3);
     if (n) nor.set(n.array.subarray(0, n.count * 3), vo * 3);
     if (u) uvs.set(u.array.subarray(0, u.count * 2), vo * 2);
+    if (col && g.attributes.color) {
+      col.set(g.attributes.color.array.subarray(0, p.count * 3), vo * 3);
+    }
     if (g.index) {
       for (let i = 0; i < g.index.count; i++) idx[io++] = g.index.array[i] + vo;
     } else {
@@ -290,6 +326,7 @@ function mergeGeometries(geos) {
   out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
   out.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  if (col) out.setAttribute('color', new THREE.BufferAttribute(col, 3));
   out.setIndex(new THREE.BufferAttribute(idx, 1));
   out.computeBoundingSphere();
   return out;
@@ -485,25 +522,57 @@ export function buildCity(world, opts = {}) {
 
   // Ground cover is PAINTED on the terrain above — no separate area meshes.
 
+  // ── THE LEVEL FIRST, because it decides what is worth building ──────────
+  // A location is extracted at a 350-450 m radius; a level is a 432 m ribbon
+  // through it, and the runner camera never leaves that ribbon. Everything out
+  // of sight of the route is geometry nobody will ever see, paid for on every
+  // frame of a phone's budget — so the route has to exist before the city does.
+  let level = null, nearRoute = null;
+  if (opts.level) {
+    level = buildLevel(world, heightAt, E, opts.level === true ? {} : opts.level);
+    if (level) {
+      stats.level = level.stats;
+      if (opts.cull !== false) nearRoute = corridorFilter(level, opts.cullBandM ?? 160);
+    }
+  }
+  // Anything with a footprint is kept if ANY of its points is in the band —
+  // a building half in view must not pop out of existence.
+  const inBand = (pts) => !nearRoute || pts.some(([x, y]) => nearRoute(x, y));
+  const culled = { buildings: 0, props: 0, ways: 0 };
+
   const widthOf = (w) => (w.lanes ? w.lanes * LANE_M : (CLASS_W[w.kind] ?? 6));
-  const carriage = world.roads.filter((w) => !FOOT_KINDS.has(w.kind));
-  const foot = world.roads.filter((w) => FOOT_KINDS.has(w.kind));
+  const roadsIn = world.roads.filter((w) => {
+    if (inBand(w.pts)) return true; culled.ways++; return false;
+  });
+  const carriage = roadsIn.filter((w) => !FOOT_KINDS.has(w.kind));
+  const foot = roadsIn.filter((w) => FOOT_KINDS.has(w.kind));
   addMesh(ribbonsGeometry(carriage, () => 0.18, widthOf, E), matRoad, 'roads');
   addMesh(ribbonsGeometry(foot, () => 0.26, widthOf, E), matFoot, 'footways');
 
   // ── FACADES: one draw call per style, chosen by height ───────────────────
   // Low-rise brick, mid-rise concrete, tall glass. Three wall meshes and one
   // roof mesh for every building in the location.
-  stats.surveyed = world.buildings.filter((b) => b.h != null).length;
-  stats.estimated = world.buildings.filter((b) => b.h == null).length;
+  const buildingsIn = world.buildings.filter((b) => {
+    if (inBand(b.pts)) return true; culled.buildings++; return false;
+  });
+  stats.surveyed = buildingsIn.filter((b) => b.h != null).length;
+  stats.estimated = buildingsIn.filter((b) => b.h == null).length;
 
   // ── HERO LANDMARKS first, and excluded from the generic pass below ───────
   // A landmark IS its shape, so it gets bespoke geometry on its real footprint
   // rather than an extrusion with a nice texture.
+  // HERO LANDMARKS ARE NEVER CULLED. The stadium is why the location exists and
+  // it is visible from everywhere; dropping it because its footprint sits
+  // outside a 160 m band would delete the level's whole reason for being.
+  for (const b of world.buildings) {
+    if ((HEROES[`way/${b.id}`] || HEROES[`relation/${b.id}`]) && !buildingsIn.includes(b)) {
+      buildingsIn.push(b); culled.buildings--;
+    }
+  }
   const heroMats = heroMaterials(THREE);
   const heroIds = new Set();
   stats.heroes = 0;
-  for (const b of world.buildings) {
+  for (const b of buildingsIn) {
     const hero = HEROES[`way/${b.id}`] || HEROES[`relation/${b.id}`];
     if (!hero) continue;
     heroIds.add(b.id);
@@ -518,7 +587,7 @@ export function buildCity(world, opts = {}) {
     stats.heroes++;
   }
 
-  const generic = world.buildings.filter((b) => !heroIds.has(b.id));
+  const generic = buildingsIn.filter((b) => !heroIds.has(b.id));
   let lo = 0;
   for (const f of FACADES) {
     const band = generic.filter((b) => {
@@ -535,7 +604,10 @@ export function buildCity(world, opts = {}) {
   addMesh(roofsGeometry(generic, E), matRoof, 'roofs');
 
   // ── street furniture, instanced ──
-  const pr = buildProps(world.props, heightAt, E);
+  const propsIn = (world.props || []).filter((p) => {
+    if (!nearRoute || nearRoute(p.p[0], p.p[1])) return true; culled.props++; return false;
+  });
+  const pr = buildProps(propsIn, heightAt, E);
   if (pr.stats.count) {
     group.add(pr.group);
     stats.draws += pr.stats.draws;
@@ -556,6 +628,16 @@ export function buildCity(world, opts = {}) {
     stats.life = life.stats;
   }
 
+  // ── the level gizmo, drawn last so it sits over the world ───────────────
+  if (level && opts.levelGizmo !== false) {
+    const gz = levelGizmo(level, heightAt, E);
+    group.add(gz);
+    stats.draws += gz.children.length;
+  }
+
+  stats.culled = culled;
+  stats.cullBandM = nearRoute ? nearRoute.bandM : null;
+
   // candidate route — the longest way in the extract
   let route = null, best = 0;
   for (const w of world.roads) {
@@ -565,7 +647,7 @@ export function buildCity(world, opts = {}) {
     }
     if (d > best) { best = d; route = w; }
   }
-  return { group, stats, route, routeLength: best, life };
+  return { group, stats, route, routeLength: best, life, level };
 }
 
 /** Sun + sky, sized to the location. */

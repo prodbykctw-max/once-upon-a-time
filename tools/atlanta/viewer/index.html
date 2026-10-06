@@ -152,7 +152,15 @@ scene.fog = new THREE.Fog(0x8fb4d8, R * 0.9, R * 3.4);
 const qsp = new URLSearchParams(location.search);
 const lifeOpt = qsp.get('life') === '0' ? null
   : { peds: +(qsp.get('peds') ?? 260), cars: +(qsp.get('cars') ?? 90) };
-const { group, stats, route, routeLength, life } = buildCity(world, { life: lifeOpt });
+// Length comes from the TARGET DURATION (90 s), not a metre count — ?len= and
+// ?secs= override. Passing a fixed 1200 m here silently defeated that and gave
+// 250-second levels.
+const levelOpt = qsp.get('level') === '0' ? null : {
+  ...(qsp.get('len') ? { targetM: +qsp.get('len') } : {}),
+  ...(qsp.get('secs') ? { targetS: +qsp.get('secs') } : {}),
+};
+const { group, stats, route, routeLength, life, level } =
+  buildCity(world, { life: lifeOpt, level: levelOpt, levelGizmo: qsp.get('giz') !== '0' });
 scene.add(group);
 lightRig(scene, R);
 
@@ -310,7 +318,7 @@ window.__pick = (nx, ny) => {
 window.__preview = {
   setMode: (m, u) => { mode = m; if (u != null) t = u; place(); },
   setOrbit: (y, p, d) => { yaw = y; pitch = p; dist = d * R; place(); },
-  stats, routeLength, ready: true, life, scene, camera,
+  stats, routeLength, ready: true, life, level, scene, camera,
 };
 
 // diagnostics for headless checks
