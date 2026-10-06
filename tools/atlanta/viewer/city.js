@@ -102,6 +102,11 @@ const COVER = {
   cemetery:   [0.20, 0.32, 0.16],
   pitch:      [0.16, 0.38, 0.15],
   track:      [0.38, 0.17, 0.12],   // the rubberised oval
+  // A stadium footprint is the track surface plus its infield, and it is the
+  // whole point of the Track & Field location — without a colour it paints as
+  // bare ground and the landmark disappears into the grass around it.
+  stadium:    [0.36, 0.16, 0.12],
+  sports_centre: [0.20, 0.33, 0.15],
   playground: [0.33, 0.26, 0.18],
   garden:     [0.19, 0.34, 0.15],
 };

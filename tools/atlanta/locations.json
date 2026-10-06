@@ -1,4 +1,10 @@
 {
+  "_meta": {
+    "attribution": "Data © OpenStreetMap contributors, ODbL 1.0 — https://osm.org/copyright",
+    "geocoder": "Nominatim",
+    "generated": "2026-10-02",
+    "note": "A 9th location is still outstanding (client: \"we will have a 9th soon\")."
+  },
   "home": {
     "label": "Home",
     "resolved": false,
@@ -56,10 +62,20 @@
   },
   "track": {
     "label": "Track & Field",
-    "resolved": false,
-    "fictional": false,
-    "ambiguous": true,
-    "note": "Which track? Needs the client to name it — likely a school or park track."
+    "resolved": true,
+    "osm": "way/1560248370",
+    "name": "Napoleon B. Cobb Stadium",
+    "display": "Napoleon B. Cobb Stadium — the athletics stadium on the DeKalb School of the Arts / Avondale campus",
+    "lat": 33.7590617,
+    "lon": -84.266094,
+    "bbox": {
+      "minlat": 33.7577175,
+      "maxlat": 33.7604059,
+      "minlon": -84.2670971,
+      "maxlon": -84.265091
+    },
+    "kind": "leisure/stadium",
+    "note": "Client, 10-06: \"the DSA track is it\". Resolved to Napoleon B. Cobb Stadium, 158 m from the DSA building — sport=running;american_football. It is the campus track, not Legacy Park Track 1.3 km away."
   },
   "mbs": {
     "label": "Mercedes-Benz Stadium",
@@ -88,11 +104,5 @@
     "fictional": false,
     "ambiguous": true,
     "note": "Which church? Needs the client. Treat as sensitive if it is hers — same question as Home."
-  },
-  "_meta": {
-    "attribution": "Data © OpenStreetMap contributors, ODbL 1.0 — https://osm.org/copyright",
-    "geocoder": "Nominatim",
-    "generated": "2026-10-02",
-    "note": "A 9th location is still outstanding (client: \"we will have a 9th soon\")."
   }
 }

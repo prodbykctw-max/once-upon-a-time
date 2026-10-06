@@ -37,7 +37,14 @@ const q = `[out:json][timeout:180];
 (
   way(${bbox})["building"];
   way(${bbox})["highway"];
-  way(${bbox})["leisure"~"^(park|pitch|track|garden|playground)$"];
+  // stadium and sports_centre matter as much as track here: the DSA track
+  // resolved to Napoleon B. Cobb Stadium, which OSM tags leisure=stadium with
+  // sport=running;american_football. Without them the location's whole reason
+  // for existing -- the running surface -- is absent from the extract and the
+  // level gets built on blank ground.
+  // (No backticks in this comment: it lives inside a JS template literal, and
+  // a backtick here terminates the query string mid-sentence.)
+  way(${bbox})["leisure"~"^(park|pitch|track|garden|playground|stadium|sports_centre)$"];
   // bare_rock matters: it is what Stone Mountain's dome actually IS, and
   // without it the landmark renders as a dirt mound.
   way(${bbox})["natural"~"^(water|wood|bare_rock|scrub|grassland|sand)$"];
