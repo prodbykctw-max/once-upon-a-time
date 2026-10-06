@@ -41,9 +41,30 @@
      shared property to the cascade — equal specificity, later wins — and the
      chips inherited `top:12px` AND `bottom:66px`, stretching into 350px pills.
      A media query is not more specific than the rule it is overriding. */
+  /* the run pad: only up during play. It needs its OWN fixed position on a
+     wide screen, because #dock is `display:contents` there and a static child
+     of nothing lands in page flow where nobody can see it. */
+  #pad{display:none;gap:6px;position:fixed;left:12px;right:12px;bottom:62px}
+  #pad.on{display:flex}
+  /* During a run the preview chrome is in the way — the info panel is 418 px
+     wide and the run readout is centred, so at 1000 px they overlap. Play is a
+     different screen, not the same screen with a banner added. */
+  body.playing #hud, body.playing #keys, body.playing #pick{display:none}
+  #pad button{flex:1;appearance:none;border:1px solid rgba(255,255,255,.12);
+    background:rgba(28,33,42,.92);color:#dfe3ea;font:inherit;font-size:13px;
+    padding:14px 8px;border-radius:10px;touch-action:manipulation;cursor:pointer}
+  #pad button:active{background:#2f6ae0;color:#fff}
+  #run{position:fixed;left:50%;transform:translateX(-50%);top:12px;padding:8px 14px;
+    border-radius:9px;background:rgba(10,12,16,.82);display:none;text-align:center;
+    font-variant-numeric:tabular-nums}
+  #run.on{display:block}
+  #run b{font-size:15px}
+  #run .sub{color:#8e96a6;font-size:11.5px;margin-top:2px}
+  #run .bad{color:#ff7a90}
   #dock{display:contents}
   @media (max-width:640px){
     #keys{display:none}
+    #pad{position:static;left:auto;right:auto;bottom:auto}
     #hud{right:12px}
     /* ONE flex column owns the bottom, so nothing is positioned against a
        guessed offset. Stacking three fixed elements with hand-picked `bottom`
@@ -56,6 +77,7 @@
     #att{text-align:right}
   }
 </style>
+<div id="run"><b id="runT">—</b><div class="sub" id="runS"></div></div>
 <div id="hud"><b id="t">loading…</b><div class="m" id="m"></div></div>
 <!-- #dock is `display:contents` on a wide screen, so each child keeps its own
      corner; on a phone it becomes the one bottom column that owns them all. -->
@@ -67,6 +89,13 @@
     <button id="bRun">runner eye</button>
     <button id="bBack">&minus; back</button>
     <button id="bFwd">forward &plus;</button>
+    <button id="bPlay">play the level</button>
+  </div>
+  <div id="pad">
+    <button data-k="left">&lt;</button>
+    <button data-k="jump">jump</button>
+    <button data-k="slide">slide</button>
+    <button data-k="right">&gt;</button>
   </div>
   <div id="att"></div>
 </div>
@@ -75,6 +104,7 @@
 import * as THREE from './vendor/three.module.min.js';
 import { buildCity, lightRig, heightAt } from './city.js';
 import { asset } from './base.js';
+import { createRun } from './play.js';
 
 const KEYS = ['mbs', 'dsa', 'wade', 'stonemtn'];
 const key = new URLSearchParams(location.search).get('loc') || 'mbs';
@@ -288,9 +318,15 @@ function setMode(m) {
   mode = m;
   bOver.classList.toggle('on', m === 'overview');
   bRun.classList.toggle('on', m === 'runner');
-  place();
+  const playing = m === 'play';
+  document.body.classList.toggle('playing', playing);
+  document.getElementById('bPlay').classList.toggle('on', playing);
+  pad.classList.toggle('on', playing);
+  runBox.classList.toggle('on', playing);
+  if (!playing) place();
 }
 const step = (d) => { t = Math.max(0, Math.min(1, t + d)); if (mode !== 'runner') setMode('runner'); else place(); };
+document.getElementById('bPlay').onclick = startPlay;
 bOver.onclick = () => setMode('overview');
 bRun.onclick = () => setMode('runner');
 document.getElementById('bBack').onclick = () => step(-0.02);
@@ -343,6 +379,74 @@ window.__preview = {
     toneMapping: renderer.toneMapping,
   };
 }
+// ── PLAYING THE LEVEL ───────────────────────────────────────────────────────
+// Until this existed the obstacle slots were drawn and nothing touched them,
+// so the level data had never been tested by the only thing that can test it.
+const run = level ? createRun(level, heightAt, world.elevation) : null;
+const runBox = document.getElementById('run');
+const pad = document.getElementById('pad');
+const held = { left: 0, right: 0, jump: 0, slide: 0 };
+const edge = () => {            // lane/jump/slide are EDGE triggered, not held
+  const o = { left: held.left === 1, right: held.right === 1,
+              jump: held.jump === 1, slide: held.slide === 1 };
+  for (const k in held) if (held[k]) held[k]++;
+  return o;
+};
+const press = (k) => { if (!held[k]) held[k] = 1; };
+const release = (k) => { held[k] = 0; };
+
+for (const btn of pad.querySelectorAll('button')) {
+  const k = btn.dataset.k;
+  btn.addEventListener('pointerdown', (e) => { e.preventDefault(); press(k); });
+  btn.addEventListener('pointerup', () => release(k));
+  btn.addEventListener('pointerleave', () => release(k));
+}
+const KEYMAP = { arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right',
+                 arrowup: 'jump', w: 'jump', ' ': 'jump',
+                 arrowdown: 'slide', s: 'slide' };
+addEventListener('keydown', (e) => {
+  const k = KEYMAP[e.key.toLowerCase()];
+  if (k && mode === 'play') { e.preventDefault(); press(k); }
+});
+addEventListener('keyup', (e) => {
+  const k = KEYMAP[e.key.toLowerCase()];
+  if (k) release(k);
+});
+
+function startPlay() {
+  if (!run) return;
+  run.reset();
+  setMode('play');
+}
+
+function placePlayCamera() {
+  const p = run.pose();
+  const back = run.at(Math.max(0, run.s - 5.5));
+  const bx = back.x + back.nx * run.laneX * level.laneM;
+  const by = back.y + back.ny * run.laneX * level.laneM;
+  camera.position.set(bx, heightAt(world.elevation, bx, by) + 2.5 + run.y * 0.5, -by);
+  const look = run.at(Math.min(level.len, run.s + 14));
+  camera.lookAt(look.x, heightAt(world.elevation, look.x, look.y) + 2.2, -look.y);
+}
+
+// Attached here, not in the __preview literal above: that object is built
+// before `run` exists, and naming it there threw "Cannot access 'run' before
+// initialization" — a const in its temporal dead zone, which reads like a
+// module-order problem and is a declaration-order one.
+window.__preview.run = run;
+window.__preview.startPlay = startPlay;
+
+function runHud() {
+  const pct = Math.round((run.s / level.len) * 100);
+  const la = run.lookahead();
+  document.getElementById('runT').innerHTML =
+    run.done ? `FINISHED · ${run.hits} hit${run.hits === 1 ? '' : 's'}`
+             : `${pct}% · ${run.hits ? `<span class="bad">${run.hits} hit${run.hits === 1 ? '' : 's'}</span>` : 'clean'}`;
+  document.getElementById('runS').textContent = run.done
+    ? `${Math.round(level.len)} m in ${run.t.toFixed(1)}s · ${run.picked} pickups`
+    : la ? `next: ${la.tp} in ${la.m} m (${la.s}s) · lane ${la.lane}` : 'road clear';
+}
+
 // A real clock, not a fixed 1/60 — the agents must not slow down on a slow
 // frame, and must not sprint on a fast one. Clamped so a backgrounded tab does
 // not teleport the whole city on return.
@@ -352,6 +456,7 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min(0.05, (now - _prev) / 1000);
   _prev = now;
   if (life) life.update(dt);
+  if (mode === 'play' && run) { run.update(dt, edge()); placePlayCamera(); runHud(); }
   renderer.render(scene, camera);
 });
 </script>

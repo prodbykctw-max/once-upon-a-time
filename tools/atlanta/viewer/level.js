@@ -154,7 +154,7 @@ function legShape(pts) {
  *   - length that hits the target, because a level is a fixed thing
  */
 /** Stitch legs into one polyline and cut it at `targetM`. */
-function stitch(legs, targetM) {
+function stitch(legs, targetM, fromM = 0) {
   const pts = [];
   for (const leg of legs) {
     for (let i = 0; i < leg.pts.length; i++) {
@@ -166,6 +166,19 @@ function stitch(legs, targetM) {
   for (let i = 1; i < pts.length; i++) {
     cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   }
+  // cut the front
+  if (fromM > 0 && fromM < cum[cum.length - 1]) {
+    let k = 0; while (k < cum.length - 2 && cum[k + 1] <= fromM) k++;
+    const f = (fromM - cum[k]) / ((cum[k + 1] - cum[k]) || 1);
+    const a = pts[k], b = pts[k + 1];
+    const head = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+    pts.splice(0, k + 1, head);
+    cum.length = 0; cum.push(0);
+    for (let i = 1; i < pts.length; i++) {
+      cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    }
+  }
+  // cut the tail
   if (targetM && cum[cum.length - 1] > targetM) {
     let k = 1; while (k < cum.length - 1 && cum[k + 1] < targetM) k++;
     const f = (targetM - cum[k]) / ((cum[k + 1] - cum[k]) || 1);
@@ -189,15 +202,21 @@ function stitch(legs, targetM) {
  * search had scored as clean. So final selection re-stitches each finished
  * candidate and scores the corners the trimmed polyline actually contains.
  */
-function routeScore(legs, targetM) {
-  const { pts, cum, len } = stitch(legs.slice(), targetM);
+function routeScore(legs, targetM, fromM = 0) {
+  const { pts, cum, len } = stitch(legs.slice(), targetM + fromM, fromM);
   const turns = findCorners(pts, cum);
   let sc = 0;
   let prev = 0;
   for (const t of turns) {
     // 60-120 is a corner you read as a corner. Outside it is either a kink that
     // did not need a swipe or a U-turn that reads as a dead end.
-    sc += (t.deg >= 60 && t.deg <= 120) ? 40 : -45;
+    // A HAIRPIN IS A FAILURE, NOT A DEDUCTION. At -45 a 174 deg corner was
+    // simply outscored by the length and spacing bonuses around it, so MBS kept
+    // shipping one. Over 140 deg the player runs back the way they came, which
+    // no single left/right swipe expresses; price it so no amount of other
+    // merit buys it.
+    if (t.deg > 140) sc -= 400;
+    else sc += (t.deg >= 60 && t.deg <= 120) ? 40 : -45;
     const gap = t.s - prev;
     if (gap < 70) sc -= 45;
     else if (gap > 260) sc -= 12;
@@ -205,7 +224,14 @@ function routeScore(legs, targetM) {
   }
   if (!turns.length) sc -= 60;             // a corridor is not a level
   if (turns.length > 6) sc -= (turns.length - 6) * 20;
-  sc -= Math.abs(len - targetM) * 0.08;
+  // LENGTH SHORTFALL IS A FAILURE, NOT A DEDUCTION. At a flat 0.08/m a route
+  // 179 m short of target lost only 14 points — less than a single corner bonus
+  // — so hardening the hairpin rule immediately produced a clean 253 m level
+  // where a 432 m one was wanted. Over-length is free (the route is trimmed);
+  // under-length is not, because nothing can recover the missing seconds.
+  const over = len - targetM;
+  sc -= over > 0 ? over * 0.02
+                 : Math.abs(over) * 0.10 + Math.max(0, targetM * 0.85 - len) * 0.9;
   return { sc, turns, len };
 }
 
@@ -218,6 +244,7 @@ function legPenalty(L) {
 
 function searchRoute(ways, adj, heightAt, E, opt) {
   const { targetM, maxGrade, beam, cornerMin, cornerMax } = opt;
+  const searchM = opt.searchM || targetM;
   const legCache = new Map();
   const legOf = (i, fromStart) => {
     const k = i * 2 + (fromStart ? 0 : 1);
@@ -251,7 +278,7 @@ function searchRoute(ways, adj, heightAt, E, opt) {
   for (let depth = 0; depth < 24 && states.length; depth++) {
     const next = [];
     for (const st of states) {
-      if (st.total >= targetM) { done.push(st); continue; }
+      if (st.total >= searchM) { done.push(st); continue; }
       const L = legOf(st.last.i, st.last.fromStart);
       const outs = adj[st.last.i][st.last.fromStart ? 0 : 1];
       let extended = false;
@@ -290,14 +317,28 @@ function searchRoute(ways, adj, heightAt, E, opt) {
   if (!done.length) return null;
   // Re-score every finished candidate on the polyline it actually produces,
   // then take the best. The in-flight score only ever existed to prune.
+  // SLIDE THE LEVEL ALONG THE ROUTE. A 432 m level cut from the front of a
+  // route takes whatever happens to be there — and at Stone Mountain the
+  // biggest connected component is three ways totalling 2,973 m, so the window
+  // always landed INSIDE a single 1 km trail and met no junction at all. The
+  // start of a level is a design choice, not a consequence of which way OSM
+  // listed first: try every 25 m offset and keep the best stretch.
   for (const st of done) {
-    st.final = routeScore(st.legs.map((l) => ({ pts: legOf(l.i, l.fromStart).pts })), targetM).sc;
+    const segs = st.legs.map((l) => ({ pts: legOf(l.i, l.fromStart).pts }));
+    let bestSc = -Infinity, bestFrom = 0;
+    const slack = Math.max(0, st.total - targetM);
+    for (let from = 0; from <= slack; from += 25) {
+      const sc = routeScore(segs, targetM, from).sc;
+      if (sc > bestSc) { bestSc = sc; bestFrom = from; }
+    }
+    st.final = bestSc; st.fromM = bestFrom;
   }
   done.sort((a, b) => b.final - a.final);
   const best = done[0];
   return { legs: best.legs.map((l) => ({ idx: l.i, pts: legOf(l.i, l.fromStart).pts,
                                          kind: ways[l.i].kind, name: ways[l.i].name })),
-           total: best.total, searched: done.length, finalScore: Math.round(best.final) };
+           total: best.total, searched: done.length, finalScore: Math.round(best.final),
+           fromM: best.fromM || 0 };
 }
 
 /**
@@ -361,16 +402,31 @@ export function buildLevel(world, heightAt, E, opts = {}) {
   // Both constraints walk out together: Stone Mountain is a mountain with
   // switchback trails, so demanding a 12% grade AND 40 m straights there leaves
   // nothing at all, and "no level" is the worst possible answer.
-  let found = null, usedCap = maxGrade, usedStraight = 40;
-  const LADDER = [[maxGrade, 40], [maxGrade * 1.5, 40], [maxGrade * 2.5, 25],
-                  [maxGrade * 4, 15], [99, 0]];
+  // EVERY RUNG IS TRIED AND THE BEST ROUTE WINS — the ladder used to stop at
+  // the first rung that reached 90% of target length, which is why Stone
+  // Mountain shipped a 432 m corridor with ZERO corners: the strictest rung
+  // found a long straight way, declared success, and never looked at the rungs
+  // where the mountain's actual junctions live. Length is one term in the
+  // score, not a gate on the search.
+  let found = null, usedCap = maxGrade, usedStraight = 25, bestSc = -Infinity;
+  // The straight-length rungs are gentle because the filter is BLUNT: it
+  // rejects a whole street for one tight bend. Measured at Stone Mountain, 40 m
+  // left 5 of 20 ways standing and none of the 14 junction transitions in the
+  // 60-120 deg band were reachable — so the level came back a cornerless
+  // corridor. `legPenalty` already prices bend density properly; the hard
+  // filter only has to stop genuine switchbacks.
+  const LADDER = [[maxGrade, 25], [maxGrade * 1.5, 20], [maxGrade * 2.5, 15],
+                  [maxGrade * 4, 12], [99, 8]];
   for (const [cap, ms] of LADDER) {
     const r = searchRoute(ways, adj, heightAt, E, {
-      targetM, maxGrade: cap, minStraight: ms,
-      beam: opts.beam ?? 48, cornerMin: 60, cornerMax: 120,
+      targetM, searchM: targetM * 2, maxGrade: cap, minStraight: ms,
+      beam: opts.beam ?? 96, cornerMin: 60, cornerMax: 120,
     });
-    if (r) { found = r; usedCap = cap; usedStraight = ms; }
-    if (r && r.total >= targetM * 0.9) break;
+    if (!r) continue;
+    // A steeper rung has to EARN its win, or every location ends up climbing.
+    const penalty = (cap > maxGrade ? 25 : 0) + (ms < 20 ? 15 : 0);
+    const sc = r.finalScore - penalty;
+    if (sc > bestSc) { bestSc = sc; found = r; usedCap = cap; usedStraight = ms; }
   }
   if (!found) return null;
   const { legs, total, searched } = found;
@@ -379,7 +435,7 @@ export function buildLevel(world, heightAt, E, opts = {}) {
   // says, not where OSM happens to stop drawing a street. Without this a single
   // 1.3 km way became a 273-SECOND level, because any way longer than the
   // target satisfied the search at depth zero and was never cut back.
-  const { pts, cum, len } = stitch(legs, targetM);
+  const { pts, cum, len } = stitch(legs, targetM + (found.fromM || 0), found.fromM || 0);
 
   const turns = findCorners(pts, cum);
 
@@ -413,8 +469,15 @@ export function buildLevel(world, heightAt, E, opts = {}) {
   const beats = [];
   const clearOf = (s, m) => turns.some((t) => Math.abs(t.s - s) < m);
   let s = speed * BEAT.firstTurn * 0.35, n = 0;   // a little run-up before the first thing
+  // SEEDED PER LOCATION. Keyed on the index alone, every level got the SAME
+  // beat map — measured: identical impossible sequences at 123 m, 240 m, 327 m
+  // and 345 m in all four locations, because the same index produced the same
+  // roll everywhere. Four levels sharing one rhythm is four times the same
+  // level.
+  let seed = 0;
+  for (const ch of String(world.location.key || 'x')) seed = Math.imul(seed + ch.charCodeAt(0), 2654435761) | 0;
   const rnd = (i) => {                            // deterministic: a level must replay the same
-    let h = Math.imul(i + 1, 2654435761); h ^= h >>> 15;
+    let h = Math.imul(i + 1 + seed, 2654435761); h ^= h >>> 15;
     return (Math.imul(h, 2246822519) >>> 0) / 4294967296;
   };
   while (s < len - speed * 2) {
@@ -430,6 +493,36 @@ export function buildLevel(world, heightAt, E, opts = {}) {
              : k < 0.74 ? 'pw' : k < 0.82 ? 'gem' : 'notes';
     beats.push({ s: +s.toFixed(1), lane, tp });
   }
+
+  // ── FAIRNESS PASS: no sequence the player physically cannot clear ────────
+  // Airtime is 0.73 s and a slide is 0.43 s, so two jump obstacles 0.58 s apart
+  // in the same lane means she is still airborne when she reaches the second
+  // one and lands on it. Measured before this existed: 3-4 such sequences per
+  // level. The spawn cadence is lifted from an ENDLESS runner, where the ramp
+  // and `adaptF()` keep the density down; a fixed level has to check instead.
+  // Preference is to MOVE THE LANE, not delay the beat — delaying erodes the
+  // rhythm the cadence exists to produce.
+  const RECOVER = { low: BEAT.jumpAir, gate: 0.43, wall: 0.12 };
+  const HAZARD = new Set(['low', 'gate', 'wall']);
+  let unfair = 0;
+  for (let i = 1; i < beats.length; i++) {
+    const a = beats[i];
+    if (!HAZARD.has(a.tp)) continue;
+    let p = null;
+    for (let j = i - 1; j >= 0; j--) if (HAZARD.has(beats[j].tp)) { p = beats[j]; break; }
+    if (!p) continue;
+    const gap = (a.s - p.s) / speed;
+    if (gap >= (RECOVER[p.tp] ?? 0.4) || a.lane !== p.lane) continue;
+    unfair++;
+    // try the other two lanes; a wall still has to leave one lane open
+    const alt = [-1, 0, 1].filter((l) => l !== p.lane);
+    const taken = new Set(beats.filter((o) => HAZARD.has(o.tp) && Math.abs(o.s - a.s) < speed * 0.4)
+                               .map((o) => o.lane));
+    const free = alt.find((l) => !taken.has(l));
+    if (free !== undefined) a.lane = free;
+    else a.s = +(p.s + speed * ((RECOVER[p.tp] ?? 0.4) + 0.05)).toFixed(1);
+  }
+  beats.sort((x, y) => x.s - y.s);
 
   const straights = [];
   let last = 0;
@@ -456,6 +549,7 @@ export function buildLevel(world, heightAt, E, opts = {}) {
     climbM: Math.round(climb),
     dropM: Math.round(drop),
     obstacles: beats.length,
+    unfairFixed: unfair,
     routesSearched: searched,
     score: found.finalScore,
     targetM,
