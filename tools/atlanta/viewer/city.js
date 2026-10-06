@@ -160,6 +160,17 @@ function pointInRing(x, y, ring) {
  * detail, not on how finely it can be coloured.
  */
 function terrainGeometry(E, areas, SUB = 3, EXT = 2.2, opts = {}) {
+  // ── CONTACT SHADING ───────────────────────────────────────────────────────
+  // A cast shadow tells you where the sun is; it does not tell you that a wall
+  // MEETS the ground. Without the darkening in that join every building looks
+  // placed on the terrain rather than built into it, which is most of why a
+  // massing model reads as toys on a tabletop. This is a cheap stand-in for
+  // ambient occlusion: terrain vertices inside or near a footprint lose light,
+  // falling off over `AO_M` metres.
+  // Bounding boxes, not point-in-polygon: at 13,924 vertices against 114
+  // buildings that is 1.6M tests either way, and a box is a handful of compares
+  // while a ring walk is not. The footprint shapes are irregular enough that
+  // the difference is invisible once it is a soft gradient.
   // ── TWO RINGS, BECAUSE 80% OF THE TRIANGLE BUDGET WAS OUT HERE ──────────
   // Measured at MBS: terrain was **132,098 of 165,446 triangles — 79.8%** of
   // the whole scene, more than the city, the crowd and the traffic combined.
@@ -174,8 +185,8 @@ function terrainGeometry(E, areas, SUB = 3, EXT = 2.2, opts = {}) {
   // ground, no cover boundaries worth resolving — gets SUB=1, with the quads
   // under the inner ring skipped so nothing z-fights.
   if (opts.ring !== 'inner' && opts.ring !== 'outer' && EXT > 1) {
-    const inner = terrainGeometry(E, areas, SUB, 1, { ring: 'inner' });
-    const outer = terrainGeometry(E, areas, 1, EXT, { ring: 'outer' });
+    const inner = terrainGeometry(E, areas, SUB, 1, { ring: 'inner', buildings: opts.buildings });
+    const outer = terrainGeometry(E, areas, 1, EXT, { ring: 'outer', buildings: opts.buildings });
     return mergeGeometries([inner, outer]);
   }
   // EXTEND PAST THE SAMPLED GRID instead of adding a flat skirt underneath it.
@@ -199,6 +210,15 @@ function terrainGeometry(E, areas, SUB = 3, EXT = 2.2, opts = {}) {
     return ext(b) - ext(a);
   });
 
+  const AO_M = 9;
+  const boxes = (opts.buildings || []).map((b) => {
+    let bx0 = 1e9, bx1 = -1e9, by0 = 1e9, by1 = -1e9;
+    for (const [px, py] of b.pts) {
+      if (px < bx0) bx0 = px; if (px > bx1) bx1 = px;
+      if (py < by0) by0 = py; if (py > by1) by1 = py;
+    }
+    return [bx0 - AO_M, by0 - AO_M, bx1 + AO_M, by1 + AO_M, bx0, by0, bx1, by1];
+  });
   for (let j = 0; j < N; j++) {
     for (let i = 0; i < N; i++) {
       const x = x0 + i * step, y = y0 + j * step;
@@ -208,7 +228,18 @@ function terrainGeometry(E, areas, SUB = 3, EXT = 2.2, opts = {}) {
       for (const a of sorted) {
         if (a.pts.length > 2 && pointInRing(x, y, a.pts)) c = COVER[a.kind] || c;
       }
-      COL.push(c[0], c[1], c[2]);
+      // nearest footprint wins: deepest occlusion, not the sum of them
+      let ao = 1;
+      for (let k = 0; k < boxes.length; k++) {
+        const bb = boxes[k];
+        if (x < bb[0] || x > bb[2] || y < bb[1] || y > bb[3]) continue;
+        const dx = Math.max(bb[4] - x, 0, x - bb[6]);
+        const dy = Math.max(bb[5] - y, 0, y - bb[7]);
+        const d = Math.hypot(dx, dy);                 // 0 inside the footprint
+        const f = 0.45 + 0.55 * Math.min(1, d / AO_M);
+        if (f < ao) ao = f;
+      }
+      COL.push(c[0] * ao, c[1] * ao, c[2] * ao);
     }
   }
   // the hole the inner ring fills, in this grid's own index space
@@ -249,7 +280,17 @@ function terrainGeometry(E, areas, SUB = 3, EXT = 2.2, opts = {}) {
 function wallsGeometry(list, tileW, tileH, E) {
   const POS = [], UV = [], NOR = [], IDX = [];
   let base = 0;
+  const COL = [];
   for (const b of list) {
+    // Per-building wall tint from its own OSM id. Without it a facade band is
+    // one flat colour across every building in it, so a street reads as one
+    // extruded slab. Narrow range on purpose — these are tints over a shared
+    // trim sheet, not different materials.
+    const _sd = (b.id * 2246822519) >>> 0;
+    const _t = ((_sd >>> 9) & 255) / 255, _w = ((_sd >>> 17) & 255) / 255;
+    const _l = 0.72 + _t * 0.42;
+    const _tint = [_l * (0.98 + _w * 0.07), _l * (0.99 + _w * 0.02), _l * (1.03 - _w * 0.07)];
+    const _before = POS.length / 3;
     const pts = cleanRing(b.pts);
     if (!pts) continue;
     const h = b.h != null ? b.h : (EST_H[b.kind] ?? EST_DEFAULT);
@@ -277,12 +318,14 @@ function wallsGeometry(list, tileW, tileH, E) {
       base += 4;
       run += len;
     }
+    for (let _v = _before; _v < POS.length / 3; _v++) COL.push(_tint[0], _tint[1], _tint[2]);
   }
   if (!POS.length) return null;
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(POS), 3));
   g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(UV), 2));
   g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(NOR), 3));
+  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(COL), 3));
   g.setIndex(base > 65535 ? new THREE.Uint32BufferAttribute(IDX, 1)
                           : new THREE.Uint16BufferAttribute(IDX, 1));
   g.computeBoundingSphere();
@@ -311,6 +354,23 @@ function roofsGeometry(list, E) {
       uv[i * 2 + 1] = p.getZ(i) / 8;
     }
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    // ── ROOFS ARE NOT WHITE, AND THEY ARE NOT ALL THE SAME ──────────────────
+    // Every roof shared one bright concrete material, so a drone shot was a
+    // field of identical white lids — the single loudest "unfinished" cue in
+    // the flyover. Real roofs are dark: tar, gravel, membrane, plant. Each
+    // building gets a deterministic dark tone from its own OSM id, so the
+    // variation is stable across loads and between the viewer and any later
+    // bake.
+    const seed = (b.id * 2654435761) >>> 0;
+    const t = ((seed >>> 8) & 255) / 255;
+    const warm = ((seed >>> 16) & 255) / 255;
+    // 0.17..0.34 luma: dark enough to sit under the sky, varied enough to read
+    // as different buildings from above.
+    const base = 0.17 + t * 0.17;
+    const col = [base * (0.94 + warm * 0.12), base * (0.96 + warm * 0.06), base * (1.02 - warm * 0.06)];
+    const cs = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) { cs[i * 3] = col[0]; cs[i * 3 + 1] = col[1]; cs[i * 3 + 2] = col[2]; }
+    g.setAttribute('color', new THREE.BufferAttribute(cs, 3));
     geos.push(g);
   }
   return geos.length ? mergeGeometries(geos) : null;
@@ -463,6 +523,12 @@ function areasGeometry(list, lift, E) {
  * Blender blockout makes, so the two previews agree.
  */
 export function buildCity(world, opts = {}) {
+  // R and E are hoisted to the top because almost everything below needs them:
+  // the level search needs the elevation, the terrain's contact shading needs
+  // the level's culled building set, and the terrain needs E. Declared further
+  // down they created a dead zone that moved around as the order changed.
+  const R = world.location.radius_m;
+  const E = world.elevation || null;
   const group = new THREE.Group();
   const stats = { draws: 0, tris: 0, surveyed: 0, estimated: 0 };
 
@@ -490,8 +556,11 @@ export function buildCity(world, opts = {}) {
     if (rx) t.repeat.set(rx, ry);
     return t;
   };
+  // vertexColors so each roof carries its own tone; the concrete map is the
+  // texture, the attribute is the tint.
   const matRoof = new THREE.MeshStandardMaterial({
-    map: tex(asset('art/pbr/rough_concrete/diff.jpg')), roughness: 0.95 });
+    map: tex(asset('art/pbr/rough_concrete/diff.jpg')), roughness: 0.95,
+    vertexColors: true });
   // Asphalt has to read DARK AGAINST THE GROUND, not merge with it. The first
   // pass had ground 0x23231f and road 0x2b2b30 — nearly the same luma — which
   // looked acceptable from above and became a sea of black at eye level, where
@@ -561,27 +630,7 @@ export function buildCity(world, opts = {}) {
   const matGround = new THREE.MeshStandardMaterial({
     map: grainTexture(), color: 0xffffff, vertexColors: true, roughness: 0.97 });
 
-  const R = world.location.radius_m;
-  const E = world.elevation || null;
-  stats.relief = E ? +(Math.max(...E.z) - Math.min(...E.z)).toFixed(0) : 0;
-  if (E) {
-    const t = new THREE.Mesh(terrainGeometry(E, world.areas), matGround);
-    t.receiveShadow = true; t.castShadow = true; t.name = 'terrain';
-    group.add(t); stats.draws++;
-    // was omitted — the terrain is the biggest mesh in the scene and was not
-    // being counted, so every triangle figure quoted so far was short
-    stats.tris += t.geometry.index.count / 3;
-    // (no skirt — the terrain mesh itself extends past the sampled grid)
-  } else {
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(R * 4, R * 4), matGround);
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    ground.name = 'ground_FLAT_no_elevation_data';
-    group.add(ground); stats.draws++;
-  }
-
-  // Ground cover is PAINTED on the terrain above — no separate area meshes.
-
+  // Declared HERE, before the terrain, because the terrain's contact shading
   // ── THE LEVEL FIRST, because it decides what is worth building ──────────
   // A location is extracted at a 350-450 m radius; a level is a 432 m ribbon
   // through it, and the runner camera never leaves that ribbon. Everything out
@@ -600,6 +649,33 @@ export function buildCity(world, opts = {}) {
   const inBand = (pts) => !nearRoute || pts.some(([x, y]) => nearRoute(x, y));
   const culled = { buildings: 0, props: 0, ways: 0 };
 
+  // needs the footprints — and it must be the CULLED set, so the shading
+  // matches the buildings that are actually drawn. It was declared with the
+  // facade pass further down, which put it in its own temporal dead zone.
+  const buildingsIn = world.buildings.filter((b) => {
+    if (inBand(b.pts)) return true; culled.buildings++; return false;
+  });
+
+  stats.relief = E ? +(Math.max(...E.z) - Math.min(...E.z)).toFixed(0) : 0;
+  if (E) {
+    const t = new THREE.Mesh(terrainGeometry(E, world.areas, 3, 2.2, { buildings: buildingsIn }), matGround);
+    t.receiveShadow = true; t.castShadow = true; t.name = 'terrain';
+    group.add(t); stats.draws++;
+    // was omitted — the terrain is the biggest mesh in the scene and was not
+    // being counted, so every triangle figure quoted so far was short
+    stats.tris += t.geometry.index.count / 3;
+    // (no skirt — the terrain mesh itself extends past the sampled grid)
+  } else {
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(R * 4, R * 4), matGround);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    ground.name = 'ground_FLAT_no_elevation_data';
+    group.add(ground); stats.draws++;
+  }
+
+  // Ground cover is PAINTED on the terrain above — no separate area meshes.
+
+
   const widthOf = (w) => (w.lanes ? w.lanes * LANE_M : (CLASS_W[w.kind] ?? 6));
   const roadsIn = world.roads.filter((w) => {
     if (inBand(w.pts)) return true; culled.ways++; return false;
@@ -612,9 +688,6 @@ export function buildCity(world, opts = {}) {
   // ── FACADES: one draw call per style, chosen by height ───────────────────
   // Low-rise brick, mid-rise concrete, tall glass. Three wall meshes and one
   // roof mesh for every building in the location.
-  const buildingsIn = world.buildings.filter((b) => {
-    if (inBand(b.pts)) return true; culled.buildings++; return false;
-  });
   stats.surveyed = buildingsIn.filter((b) => b.h != null).length;
   stats.estimated = buildingsIn.filter((b) => b.h == null).length;
 
@@ -658,7 +731,8 @@ export function buildCity(world, opts = {}) {
     if (!band.length) continue;
     const [tw, th] = tileOf(f.file);
     const mat = new THREE.MeshStandardMaterial({
-      map: tex(asset('art/facades/' + f.file)), roughness: 0.78, metalness: 0.04 });
+      map: tex(asset('art/facades/' + f.file)), roughness: 0.78, metalness: 0.04,
+      vertexColors: true });
     addMesh(wallsGeometry(band, tw, th, E), mat, 'walls_' + f.file.split('_')[0]);
   }
   addMesh(roofsGeometry(generic, E), matRoof, 'roofs');
