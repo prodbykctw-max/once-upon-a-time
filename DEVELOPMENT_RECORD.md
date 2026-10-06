@@ -1389,6 +1389,73 @@ licence. The download endpoint answers **HTTP 401** and the docs require an
 `Authorization` header; there is no anonymous route and none was attempted.
 Blocked on `SKETCHFAB_TOKEN` in the environment, nothing else.
 
+### 10-06 · Found by machines — the SEO / AEO / GEO pass
+
+Spec: **`docs/SEO_AEO.md`**. The ask was an audit of the live URL for search and
+for AI-assistant visibility, then the safe wins implemented. Shipped to the dev
+branch; **reaches the public game on the next `tools/deploy.sh`.**
+
+**What the audit found.** The live page had a title, a description, a theme
+colour and a manifest — and **nothing else**. No canonical, no robots meta, **no
+Open Graph and no Twitter card at all** (a shared link rendered as a bare URL
+with no preview), no structured data, and 404s on `robots.txt`, `sitemap.xml`
+and `llms.txt`. Performance needed no work: 487 KB compresses to **169 KB gzip**
+and Fastly answers in ~200 ms.
+
+**The thing that shapes every decision here: the game is not text.** The whole
+document is a render loop. A crawler sees a few hundred words of markup, **zero
+heading elements**, and 22 `<img>` tags that are almost all deliberately-empty-alt
+base64 control glyphs. So on-page copy is not the lever. Three things are:
+structured data, `llms.txt`, and a social card — because a promo game travels as
+a shared link.
+
+**Shipped.** A fenced metadata block in `index.html`'s `<head>` only — canonical,
+robots, full Open Graph with image dimensions, Twitter card, and a 5-node JSON-LD
+`@graph`: `WebSite` → `VideoGame` (free `Offer`, both modes, the nine stages,
+Grace Notes, RESONANCE, The Groom Who Lied) → `MusicRecording` → `MusicGroup`
+(Jandé; `MusicGroup` on purpose — schema.org says it covers a solo musician and
+it is what `byArtist` expects) → `Organization` (KCTW). Plus `robots.txt`,
+`sitemap.xml` and `llms.txt` at the root, and the one `git add` line in
+`tools/deploy.sh` without which **none of those three would ever have reached
+`gh-pages`** — the script stages an explicit list, never `-A`, and that is exactly
+why a new root file ships nothing silently.
+
+**Deliberately not fabricated:** no `aggregateRating`, no `review`, no
+`datePublished` on the game or the song, no `FAQPage`. The song is unreleased, the
+ratings do not exist, and FAQ markup is supposed to mirror Q&A visible on the
+page. Omission beats invention in a file whose whole purpose is to be quoted.
+
+**`robots.txt` here is theatre, and the doc says so.** Crawlers read
+`robots.txt` only from the **host root**. This is a GitHub Pages *project* site,
+so the file lands at `/once-upon-a-time/robots.txt`, which nothing fetches; the
+real root 404s and belongs to a different repo. **Per-crawler AI rules therefore
+cannot be set from here at all** — the file is a drop-in for the day a custom
+domain exists. The lever that works today is the in-page `<meta name="robots">`.
+With no host robots.txt crawlers default to allowed, which is what this project
+wants anyway, so nothing is being lost.
+
+**`llms.txt` was fact-checked against the code, not the README, and that caught a
+real error.** `README.md` documents `K` as block / Hold Note. **There is no
+`KeyK` binding anywhere in `index.html`** — the helpers are `iL/iR/iU/iD/iA/iX`
+(arrows or A/D, Space/Up/W, Down/S, Z or J, Shift/X/C, plus undocumented Digit5
+and Digit3). The README line is stale and still needs correcting.
+
+**One trap worth keeping.** `tools/build_fred.py` rewrites `(?<![./\w])web/` and
+**fails the build on a count mismatch** — so the literal string `web/` written
+inside an HTML comment in `index.html` gets rewritten too, and broke the count.
+Reworded. Conversely, absolute URLs pass through untouched, so the generated
+`/fred/` edition now inherits the canonical and **canonicalises itself back to
+the public game** instead of competing with it. Free, and correct.
+
+**Open, and needing the client, not a session:** a real **1200×630 key-art
+card** (`og:image` currently points at `icon-512.png` because the only other
+images in the repo are 256×256 tiling textures — this is the highest-value item
+left, and it must be added to `deploy.sh`'s staged list); real song metadata once
+released; an official artist URL for `sameAs`; whether to widen the brand-only
+`<title>`; and the one-line `<h1>` on the title screen, left out because this
+pass was scoped to `<head>`. Someone also has to submit the sitemap in Search
+Console — no repo can do that.
+
 ---
 
 *Jandé — "Once Upon A Time"*

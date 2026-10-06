@@ -44,14 +44,27 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
-**Controls:**
-- `← →` Move
-- `Space` Jump
-- `Z` Attack (Mic Strike)
-- `Shift` Dash
-- `K` Block (Hold Note)
+**Controls** (read off the input helpers `iL`/`iR`/`iU`/`iD`/`iA`/`iX` in
+`index.html`, not from memory):
 
-On mobile, on-screen touch controls appear automatically.
+| | |
+|---|---|
+| Move | `←` `→` or `A` `D` |
+| Jump | `Space`, `↑` or `W` |
+| Crouch / slide | `↓` or `S` |
+| Attack (Mic Strike) | `Z` or `J` |
+| Dash | `Shift`, `X` or `C` |
+
+On mobile, on-screen touch controls appear automatically, in both portrait and
+landscape.
+
+> **Block / Hold Note is not bound to anything.** This file used to document it
+> as `K`; there is no `KeyK` binding anywhere in the game. The `block` sprite
+> sheet exists in `SPRITES` (3 frames, `web/1b211642b143.png`) but the animation
+> state is never entered — zero references to it in the draw path. So the
+> mechanic is art-only in the shipped build. Left as-is and recorded rather than
+> quietly deleted, because the art is there and the vocabulary is binding:
+> whoever wires it up should keep the name **Hold Note**.
 
 ---
 

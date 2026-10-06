@@ -43,6 +43,50 @@
 > is a phase of its own**, not a task. Several art items (idle dance, Game II
 > outfit, Purple Guy, more jump frames) are blocked only on `$AUTOSPRITE_KEY`.
 
+> ## 🔎 SHIPPED 10-06, NOT YET DEPLOYED — SEO / AEO / GEO
+> Spec: **`docs/SEO_AEO.md`**. On the dev branch only; it reaches the public
+> game on the **next `bash tools/deploy.sh`**. Metadata and root files only —
+> no game code, no body markup, so it does not collide with the client-notes
+> freeze above.
+>
+> **The live page had no Open Graph and no Twitter card at all** — a shared link
+> rendered as a bare URL with no preview. Also no canonical, no robots meta, no
+> structured data, and 404s on `robots.txt` / `sitemap.xml` / `llms.txt`. Added
+> all of it, plus a 5-node JSON-LD graph (`WebSite` / `VideoGame` /
+> `MusicRecording` / `MusicGroup` Jandé / `Organization` KCTW). Performance
+> needed nothing: 487 KB → **169 KB gzip**, ~200 ms.
+>
+> **TRAP 1 — `tools/deploy.sh` stages an EXPLICIT LIST, never `-A`.** A new root
+> file not named in that line ships **nothing, silently**, and a local audit
+> still looks green. `robots.txt sitemap.xml llms.txt` were added to it. Do the
+> same for the social card when it exists.
+>
+> **TRAP 2 — `robots.txt` at a GitHub Pages PROJECT path is not read by anyone.**
+> Crawlers fetch it only from the host root, which 404s and belongs to a
+> different repo. So **per-crawler AI rules cannot be set from here at all**; the
+> file is a drop-in for a future custom domain. The lever that works today is the
+> in-page `<meta name="robots">`. Nothing is being lost — with no host
+> `robots.txt`, crawlers default to allowed, which is what this project wants.
+>
+> **TRAP 3 — never write the literal `web/` in `index.html` prose or comments.**
+> `tools/build_fred.py` rewrites `(?<![./\w])web/` and fails the build on a count
+> mismatch; it does not know a comment is a comment. It bit this change once.
+>
+> **FOUND IN PASSING: `README.md` is WRONG about the controls.** It documents
+> `K` as block / Hold Note. **There is no `KeyK` binding anywhere in
+> `index.html`** — the helpers are `iL/iR/iU/iD/iA/iX` (arrows or A/D, Space/Up/W,
+> Down/S, Z or J, Shift/X/C, plus undocumented Digit5/Digit3). `llms.txt` carries
+> the verified set; the README still needs the fix.
+>
+> **OPEN, needs the client:** (1) a real **1200×630 key-art card** — `og:image`
+> points at `icon-512.png` because every other image in the repo is a 256×256
+> tiling texture; this is the highest-value item left. (2) Song metadata once
+> released (no `datePublished` was invented). (3) An official artist URL for
+> `sameAs` — Instagram alone does not consolidate an entity. (4) Whether to widen
+> the brand-only `<title>`. (5) The one-line `<h1>` on the title screen
+> (`<div class="tw-j">` → `<h1 class="tw-j">`), left out because this pass was
+> scoped to `<head>`. (6) Submit the sitemap in Search Console — no repo can.
+
 > ## 🕴 SHIPPED 10-06 — THE THREE MEN, SILHOUETTE-TESTED FIRST
 > `tools/atlanta/viewer/men.js` + `silhouette.html`, `79c35ff`.
 > The brief's own next step, done before any character art is generated.
