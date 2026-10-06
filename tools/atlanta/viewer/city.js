@@ -109,6 +109,30 @@ const COVER = {
   sports_centre: [0.20, 0.33, 0.15],
   playground: [0.33, 0.26, 0.18],
   garden:     [0.19, 0.34, 0.15],
+
+  // ── URBAN GROUND ──────────────────────────────────────────────────────────
+  // Without these the extract is one tan plane with road ribbons on it. Parking
+  // is the big one: 16 lots at MBS alone, and they are what actually surrounds
+  // an American stadium. Kept DESATURATED and close in value to each other —
+  // the point is to break the plane into readable areas, not to turn the city
+  // into a landuse map.
+  amenity_parking:      [0.21, 0.21, 0.22],
+  amenity_school:       [0.25, 0.28, 0.22],
+  amenity_university:   [0.25, 0.28, 0.22],
+  amenity_hospital:     [0.28, 0.27, 0.27],
+  amenity_place_of_worship: [0.27, 0.25, 0.24],
+  residential:          [0.27, 0.25, 0.22],
+  retail:               [0.30, 0.27, 0.24],
+  commercial:           [0.28, 0.27, 0.27],
+  industrial:           [0.26, 0.25, 0.24],
+  construction:         [0.34, 0.30, 0.22],
+  brownfield:           [0.30, 0.27, 0.19],
+  railway:              [0.22, 0.20, 0.19],
+  farmland:             [0.33, 0.31, 0.19],
+  military:             [0.24, 0.25, 0.21],
+  quarry:               [0.38, 0.36, 0.33],
+  plaza:                [0.33, 0.32, 0.30],
+  bridge:               [0.25, 0.25, 0.26],
 };
 const BARE = [0.34, 0.31, 0.27];
 
@@ -486,21 +510,52 @@ export function buildCity(world, opts = {}) {
   // working" when in fact the painting was fine and the texture was shouting
   // over it. A detail map for a tinted surface has to be neutral: grain only.
   const grainTexture = () => {
-    const n = 256, cv = document.createElement('canvas');
+    // MULTI-SCALE, OR IT VANISHES AT ALTITUDE. This was one octave of per-pixel
+    // white noise at repeat 90 — detail finer than a screen pixel the moment the
+    // camera leaves the ground, so it averaged to flat grey and bare ground read
+    // as paper. That is a large part of the client's "thin lines over each
+    // other… it doesn't look finished": the roads had detail and the ground had
+    // none, so the roads were the only thing the eye could find.
+    // Three octaves: broad patches that survive a drone shot, mid-scale mottle,
+    // and the original fine grain for when she is standing on it. Still NEUTRAL
+    // grey — this multiplies the vertex colours that carry the ground cover, and
+    // any hue here tints every surface in the world.
+    const n = 512, cv = document.createElement('canvas');
     cv.width = cv.height = n;
     const ctx = cv.getContext('2d');
     const img = ctx.createImageData(n, n);
     let seed = 1337;
-    for (let i = 0; i < n * n; i++) {
-      seed = (seed * 1103515245 + 12345) & 0x7fffffff;      // fixed seed: same every load
-      const v = 150 + ((seed >> 16) % 60);
-      img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = v;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return (seed >> 16) / 32768; };
+    // value-noise octave: a coarse lattice, smoothly interpolated
+    const octave = (cells) => {
+      const g = new Float32Array((cells + 1) * (cells + 1));
+      for (let i = 0; i < g.length; i++) g[i] = rnd();
+      const sm = (t) => t * t * (3 - 2 * t);                 // smoothstep
+      return (x, y) => {
+        const fx = x / n * cells, fy = y / n * cells;
+        const ix = Math.floor(fx), iy = Math.floor(fy);
+        const tx = sm(fx - ix), ty = sm(fy - iy);
+        const a = g[iy * (cells + 1) + ix],       b = g[iy * (cells + 1) + ix + 1];
+        const c = g[(iy + 1) * (cells + 1) + ix], d = g[(iy + 1) * (cells + 1) + ix + 1];
+        return (a + (b - a) * tx) + ((c + (d - c) * tx) - (a + (b - a) * tx)) * ty;
+      };
+    };
+    const o1 = octave(4), o2 = octave(16);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const i = y * n + x;
+      // 0.55 broad + 0.30 mid + 0.15 fine, centred on mid grey
+      const v = 128 + (o1(x, y) - 0.5) * 62 + (o2(x, y) - 0.5) * 34 + (rnd() - 0.5) * 17;
+      const c = Math.max(70, Math.min(205, v)) | 0;
+      img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = c;
       img.data[i * 4 + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
     const t = new THREE.CanvasTexture(cv);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(90, 90);
+    t.anisotropy = 8;
+    // One tile per ~70 m: the broad octave then reads at roughly 17 m, which is
+    // a patch you can see from the air and still walk across.
+    t.repeat.set(11, 11);
     return t;
   };
   const matGround = new THREE.MeshStandardMaterial({

@@ -48,7 +48,18 @@ const q = `[out:json][timeout:180];
   // bare_rock matters: it is what Stone Mountain's dome actually IS, and
   // without it the landmark renders as a dirt mound.
   way(${bbox})["natural"~"^(water|wood|bare_rock|scrub|grassland|sand)$"];
-  way(${bbox})["landuse"~"^(grass|forest|meadow|recreation_ground|cemetery)$"];
+  // URBAN LAND USE, not just the green stuff. The old filter pulled grass,
+  // forest, meadow, recreation_ground and cemetery only — so around
+  // Mercedes-Benz Stadium it discarded SIXTEEN PARKING LOTS plus residential,
+  // retail, commercial, construction and brownfield. Those are the big
+  // polygons that break up open ground, and without them the world renders as
+  // one flat tan plane with thin road ribbons drawn on it. Client, on the
+  // flyover: "thin lines over each other... it doesn't look finished."
+  way(${bbox})["landuse"~"^(grass|forest|meadow|recreation_ground|cemetery|residential|retail|commercial|industrial|construction|brownfield|railway|farmland|military|quarry)$"];
+  way(${bbox})["amenity"~"^(parking|school|university|hospital|place_of_worship)$"];
+  // Pedestrian plazas mapped as areas rather than lines.
+  way(${bbox})["area:highway"];
+  way(${bbox})["man_made"="bridge"];
   // STREET FURNITURE. OSM carries this as nodes and it is free — around the
   // stadium alone: 102 trees, 9 traffic signals, bollards, hydrants, bus stops,
   // flagpoles, a billboard. It is the difference between a massing model and a
@@ -109,7 +120,11 @@ for (const el of data.elements || []) {
                  oneway: t.oneway === 'yes' || undefined,
                  foot: (t.highway === 'footway' || t.highway === 'path') || undefined });
   } else {
-    areas.push({ id: el.id, pts, kind: t.leisure || t.natural || t.landuse,
+    areas.push({ id: el.id, pts,
+                 kind: t.leisure || t.natural || t.landuse
+                       || (t.amenity ? 'amenity_' + t.amenity : null)
+                       || (t['area:highway'] ? 'plaza' : null)
+                       || (t.man_made === 'bridge' ? 'bridge' : null),
                  name: t.name || undefined });
   }
 }
