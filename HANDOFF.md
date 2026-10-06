@@ -43,6 +43,29 @@
 > is a phase of its own**, not a task. Several art items (idle dance, Game II
 > outfit, Purple Guy, more jump frames) are blocked only on `$AUTOSPRITE_KEY`.
 
+> ## 🏃 SHIPPED 10-06 — JANDÉ IS IN THE RUN
+> `tools/atlanta/viewer/hero.js`, `7883798`. Her REAL sprite art, billboarded.
+> **No new art and no AutoSprite credit** — `bkrun`/`bkjump`/`bkslide` are
+> already in `web/` (3 sheets, 5x5 of 256 px cells, 471 KB).
+>
+> **GUARDRAIL — THREE SHEETS OF EQUAL PIXEL SIZE ARE NOT THREE SPRITES OF EQUAL
+> SCALE.** Measured over all 75 cells: her body is 182 px in bkrun and 227 px in
+> bkjump, and the gap below her feet is 35 / 16 / 13 px. Scaling each cell to one
+> world height makes her GROW 25% on jumping; anchoring by the cell floats her a
+> DIFFERENT amount per state, which reads as the ground moving. One cell = one
+> fixed world size (182 px = 1.70 m, so a 256 px cell = 2.391 m), plus a measured
+> foot offset per sheet.
+>
+> Jump frames map to the ARC, not a timer (same trap as the RPG's 6-frame jump),
+> referenced to the real launch velocity 6.57 m/s.
+> Chase framing measured against the CONTROL PAD: at 5.5 m back her feet were
+> behind the buttons. 8 m back, look target below the camera.
+>
+> Also: `at()` now extrapolates behind the start line, or the camera sits on top
+> of her at s=0 and the level opens with no hero on screen. And the repo root is
+> THREE levels up from the viewer — `rootAsset` in base.js, not a 471 KB
+> duplicate of her art in the tool tree.
+
 > ## 🎮 SHIPPED 10-06 — THE LEVELS ARE PLAYABLE, AND ALL FOUR OPEN ITEMS CLOSED
 > `tools/atlanta/viewer/play.js`, `63d78d6`. Hit **play the level** on the
 > preview link. Lanes, jump, slide, collision; arrows/WASD or four buttons.

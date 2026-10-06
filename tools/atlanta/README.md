@@ -884,3 +884,76 @@ That fix immediately exposed the next one: a flat 0.08/m length term cost a rout
 179 m short only 14 points — less than one corner bonus — so hardening the
 hairpin rule produced a clean **253 m** level where 432 m was wanted. Length
 shortfall is now a failure too; over-length is free, because the route is trimmed.
+
+---
+
+## Jandé in the run — `viewer/hero.js`
+
+She's in it. **No new art, no 3D character, no AutoSprite credit spent** — the
+shipped game already has exactly what a behind-the-back runner needs:
+`bkrun`, `bkjump`, `bkslide`, three 1280×1280 sheets of 5×5 cells, 25 frames
+each, **471 KB already in `web/`**. A camera-facing quad is the right primitive
+and not a shortcut: the view is fixed behind her, so there is no angle from
+which a billboard betrays itself. Billboarding is **yaw-only** — facing a camera
+that looks down would lean her out of the ground plane.
+
+### Two traps, both found by measuring the alpha bounds of all 75 cells
+
+Three sheets of the same pixel size do **not** hold sprites of the same scale.
+
+| sheet | body height | gap below her feet |
+|---|---|---|
+| `bkrun` | 182 px | 35 px |
+| `bkjump` | **227 px** | 16 px |
+| `bkslide` | 150 px | 13 px |
+
+**She would grow 25% the instant she jumped.** Scaling every cell to one world
+height is the obvious thing and it is wrong. One cell is one fixed world size
+instead — 182 px of body = 1.70 m, so a 256 px cell is **2.391 m** — and the
+difference then reads as the pose it actually is, limbs extended.
+
+**She would float a different amount in every state.** Anchoring the quad by the
+cell puts her 0.33 m off the ground running and 0.12 m sliding, which reads as
+the *ground* moving. Each sheet carries its own measured foot offset.
+
+### The jump maps to the arc, not to a timer
+
+The same trap the RPG's 6-frame jump hit, already recorded in `CLAUDE.md`: a
+fixed playback rate finishes early and holds the landing pose in mid-air. Frames
+are driven by where she is in the arc, referenced to the real launch velocity
+(`g·t/2 = 18 × 0.73 / 2 = 6.57 m/s`). An invented `8.9` compressed the whole
+rise into the first fifth of the sheet. Measured through the real input path:
+apex 1.05 m against a 1.2 m target.
+
+### Chase framing is measured against the control pad
+
+At 5.5 m back she spanned **56–95%** of a 900×600 frame and the pad starts at
+**82%** — her *feet were behind the buttons*, on the one view where footing is
+the entire read. 8 m back, camera at +3.0 m, look target *below* the camera so
+the view pitches down and lifts her up the frame: **55–81%**, 26% of frame
+height. Phone measured too: 53–70%, clear.
+
+### Two bugs it turned up
+
+**At the start of a run the camera sat exactly on top of her.** It trails 8 m
+back and `at()` clamps to the route, so at `s = 0` camera and hero shared a
+position and the level opened with no hero on screen. The road does not exist
+behind the start line, but the camera still has to be somewhere — `at()` now
+extrapolates along the first segment for negative `s`.
+
+**The repo root is three levels up from `tools/atlanta/viewer/`, not two.** Her
+sheets are the shipped game's own in `web/`, so they need their own base
+(`rootAsset` in `base.js`) rather than a 471 KB duplicate of her art inside the
+tool tree. Counted off the 404, not off the comment.
+
+### Verified
+
+| location | hero | draws | triangles | level |
+|---|---|---|---|---|
+| MBS | ✓ | 35 | 68,789 | 432 m / 90 s |
+| DSA | ✓ | 28 | 64,915 | 362 m / 75 s |
+| Wade | ✓ | 21 | 61,521 | 432 m / 90 s |
+| Stone Mtn | ✓ | 25 | 63,761 | 394 m / 82 s |
+
+No console errors, no 404s. Jump driven through the real input path; slide
+confirmed both directly and through the key path with `bkslide` swapped in.
