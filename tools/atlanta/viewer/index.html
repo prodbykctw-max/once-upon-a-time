@@ -107,7 +107,7 @@ import { asset, rootAsset } from './base.js';
 import { createRun } from './play.js';
 import { createHero } from './hero.js';
 
-const KEYS = ['mbs', 'dsa', 'track', 'wade', 'stonemtn'];
+const KEYS = ['mbs', 'apache', 'dsa', 'track', 'wade', 'stonemtn'];
 const key = new URLSearchParams(location.search).get('loc') || 'mbs';
 
 const pick = document.getElementById('pick');
@@ -322,6 +322,11 @@ function setMode(m) {
   const playing = m === 'play';
   document.body.classList.toggle('playing', playing);
   if (hero) hero.group.visible = playing;
+  // The corner posts are a DIAGNOSTIC, not set dressing: 5 m cylinders that sit
+  // on the route, so the first one at Apache stood a few metres from the start
+  // and filled the frame with a green column. They are useful from the overview
+  // and in the way while playing.
+  group.traverse((o) => { if (/^turn_[LR]_/.test(o.name)) o.visible = !playing; });
   document.getElementById('bPlay').classList.toggle('on', playing);
   pad.classList.toggle('on', playing);
   runBox.classList.toggle('on', playing);

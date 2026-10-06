@@ -95,8 +95,14 @@
   },
   "apache": {
     "label": "Old Apache Kafe",
-    "resolved": false,
-    "note": "no Nominatim match"
+    "resolved": true,
+    "osm": "way/144417817",
+    "name": "Apache Cafe (closed) — 64 Third Street NW",
+    "display": "The Midtown room on Third Street NW, west of Peachtree. Closed after 20 years; the building is not mapped and the venue has no OSM feature.",
+    "lat": 33.77385,
+    "lon": -84.3876,
+    "kind": "venue/closed",
+    "note": "Client called it the OLD Apache Kafe, which is the original Midtown room at 64 Third Street NW (30308) — not the later Marietta St location. TRAP: every geocoder returns a DIFFERENT 3rd Street NW in Bankhead (30318), because OSM spells the Midtown one \"Third Street Northwest\". Searching \"3rd\" silently gives you an address 2.5 km away in the wrong neighbourhood. Centred on the east (Peachtree) end of the way, since 64 is a low number. This is a STREET-level fix, not a surveyed building: the venue is gone and nothing in OSM marks it. Needs client photo reference for the facade."
   },
   "church": {
     "label": "Church",
