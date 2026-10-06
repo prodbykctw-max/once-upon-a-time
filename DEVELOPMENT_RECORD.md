@@ -1166,8 +1166,74 @@ for the client rather than a defect.
 decision, not a depth decision — never switch that plane on for a stage without
 driving it and measuring dark coverage in **both** orientations.
 
+## ERA VIII — ATLANTA, IN THREE DIMENSIONS (October 2–6, 2026) · [CLOUD]
+
+Game II leaves the fairytale. Client: *"the whimsical world of this fairytale
+game is not right for the project"* — the runner is re-set in real Atlanta
+locations, the three obstacles become men she is dodging, and the bar is
+*"I need real materials. I need it all to be 3-D really dope."* Decided three.js;
+world data comes from OpenStreetMap, elevation from Copernicus via Open-Meteo.
+The pipeline, the measurements and every bug are in `tools/atlanta/README.md`;
+the brief is `docs/GAME_II_ATLANTA.md`.
+
+### 10-06 · The preview became a link, and a phone found four bugs
+
+<https://claude.ai/artifact/Pz6DWYWGciRUXmcdo2FLu2> — all four built locations
+(Mercedes-Benz Stadium, DeKalb School of the Arts, Wade Walker Park, Stone
+Mountain), orbit and runner-eye, no checkout and no local server. `029b95f`.
+
+Publishing it was the first time the viewer ran anywhere but the repo checkout,
+and each thing that broke was a class of bug worth keeping:
+
+**A relative path is a layout assumption.** `'../art/…'` in four files is correct
+only while the page sits in `tools/atlanta/viewer/` with its assets one level up;
+flat, the same `'../'` walks off the top of the site. `viewer/base.js` derives
+the prefix from the document's own directory, so **one** `index.html` serves
+both — verified identical, 24 draws / 153,377 tris at MBS either way. A build
+flag would have meant two files to keep in step, and they would have drifted.
+
+**`camera.fov` is VERTICAL.** At 390x844 the aspect is 0.46, so the 58 deg that
+framed the desktop view is **29 deg horizontally** — a zoom lens. The runner view
+on a phone was a corridor of tarmac with the stadium cropped clean out of frame,
+which reads as "the city is missing" and is a lens choice, not missing geometry.
+
+**A shared default start is not a start.** `t=0.12` for every location put the
+stadium run on empty road. Ray-sampled a 7x9 grid along each route at 0.1 steps
+and took where the location's own geometry fills the frame — mbs 0.55 (hero 21%,
+was **0%**), dsa 0.30, wade 0.30, stonemtn 0.20 (dome 62%). The same sweep found
+that past ~0.4 the DSA and Stone Mountain routes leave the extract entirely and
+the frame goes **78–94% sky**.
+
+**Two cascade bugs, both caught by measuring rather than looking.** A media query
+is not more specific than the rule it overrides: written above the base rules it
+lost every shared property, so `#pick` kept `top:12px` AND gained `bottom:66px`
+and stretched into 350px pills. And a stack whose height depends on wrapping
+cannot be laid out with constants — three fixed elements on hand-picked `bottom`
+offsets collided at 390px, then again at 360px once the buttons wrapped to two
+rows. The bottom is one flex column now. Pairwise overlap measured at 1000x600,
+390x844 and 360x640: **none**, no page scroll at any.
+
+Pinch-to-zoom and on-screen view buttons were added for the same reason: a phone
+has no wheel and no keyboard, so zoom and the entire runner-eye view were
+unreachable on the device the link is actually opened on.
+
+### Open — the stadium model needs one credential
+
+The honest state of the landmark: the overlay test proved procedural parametric
+geometry cannot match a specific building instance, and projecting a photo onto
+approximate geometry puts features in the wrong places. Against the client's bar
+— *"a nearly indistinguishable comparison"* — a real mesh is the route.
+
+Searched all of Sketchfab rather than assuming: exactly **one** matching model is
+both downloadable and licensed (`84c4ef1b46bf448580932bd382afe6e1`, CC
+Attribution, 4,642 faces). The one titled "Game Ready Asset (FREE)" is
+`isDownloadable:false` with an empty licence object — FREE in a title is not a
+licence. The download endpoint answers **HTTP 401** and the docs require an
+`Authorization` header; there is no anonymous route and none was attempted.
+Blocked on `SKETCHFAB_TOKEN` in the environment, nothing else.
+
 ---
 
 *Jandé — "Once Upon A Time"*
-*Complete development record · PRODBYKCTW · assembled July 25, updated September 15, 2026*
+*Complete development record · PRODBYKCTW · assembled July 25, updated October 6, 2026*
 *Consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment — and adds Era IV: The Living Bosses.*

@@ -43,6 +43,35 @@
 > is a phase of its own**, not a task. Several art items (idle dance, Game II
 > outfit, Purple Guy, more jump frames) are blocked only on `$AUTOSPRITE_KEY`.
 
+> ## 🔑 ACTIVE 10-06 — ONE ENV VAR BLOCKS THE STADIUM MODEL
+> **`SKETCHFAB_TOKEN`, added to the cloud environment's settings.** Nothing else
+> is missing and nothing else was attempted.
+>
+> Searched all of Sketchfab: **one** "mercedes benz stadium" model is both
+> downloadable and licensed — uid `84c4ef1b46bf448580932bd382afe6e1`, CC
+> Attribution, 4,642 faces, author *notmrsus*. The one titled "Game Ready Asset
+> (FREE)" is `isDownloadable:false` with an empty licence object, so FREE in a
+> title is not a licence. `GET /v3/models/<uid>/download` answers **HTTP 401**
+> and Sketchfab's docs require an `Authorization` header; there is no anonymous
+> route. `env | grep -i sketchfab` is empty. Session reads `SKETCHFAB_TOKEN`.
+>
+> **Why it matters:** the overlay test already proved procedural parametric
+> geometry cannot match a specific building instance, and projecting a photo
+> onto approximate geometry puts features in the wrong places. The client's bar
+> is *"a nearly indistinguishable comparison."* A real mesh is the route to it.
+
+> ## ✅ SHIPPED 10-06 — THE ATLANTA PREVIEW IS A LINK NOW
+> <https://claude.ai/artifact/Pz6DWYWGciRUXmcdo2FLu2> — all four built locations,
+> orbit and runner-eye, works on a phone, no checkout and no local server.
+> `029b95f`. Detail and the measurements in `tools/atlanta/README.md`.
+> Four things had to change, each measured: assets resolve through
+> `viewer/base.js` so **one** `index.html` serves both the repo layout and a flat
+> bundle; `camera.fov` is VERTICAL, so 58 deg on a 390x844 phone was 29 deg
+> horizontal and cropped the stadium clean out of the runner view; the shared
+> `t=0.12` start put every run on empty road (ray-sampled per route — mbs 0.55
+> puts the hero at 21% of frame, was 0%); and pinch-zoom plus on-screen
+> view buttons, without which zoom and runner-eye were unreachable on a phone.
+
 > ## 🏙 10-02 — GAME II GOES TO ATLANTA: `docs/GAME_II_ATLANTA.md`
 > Client: *"the whimsical world of this fairytale game is not right for the
 > project"*; the runner is re-set in real Atlanta locations and the three

@@ -500,3 +500,81 @@ and pavements now carry real asphalt and real concrete.
 **Also:** not every three.js primitive is indexed — `IcosahedronGeometry` is not,
 and assuming an index threw at load, which looks like a data problem and is a
 geometry-API one.
+
+---
+
+## The shareable preview — one link, phone-ready
+
+**Live:** <https://claude.ai/artifact/Pz6DWYWGciRUXmcdo2FLu2> — all four locations,
+orbit and runner-eye, no checkout and no local server.
+
+Four things stood between the local viewer and a link, all of them measured
+(`029b95f`).
+
+**Asset base.** Paths were `'../art/...'` and `'../world/...'` in four files,
+correct only when the page sits in `tools/atlanta/viewer/` with its assets one
+level up. A published bundle is flat, so the same `'../'` walks off the top of
+the site and 404s every texture. `viewer/base.js` derives the prefix from the
+document's own directory instead, so **one `index.html` serves both layouts** —
+verified identical: 24 draws / 153,377 tris at MBS from either. A build flag
+would have meant two `index.html` files, and they would have drifted.
+
+**FOV is VERTICAL, so a phone held upright is a telephoto lens.** three.js
+`camera.fov` is the vertical angle and horizontal follows the aspect: at
+390x844 that is aspect 0.46, so a 58 deg vertical is **29 deg horizontal**. The
+runner view on a phone was a corridor of tarmac with the stadium cropped clean
+out of frame, which reads as "the city is missing" and is a lens choice. Widen
+vertical until horizontal stays usable, capped at 82 so the near ground does not
+fisheye; landscape keeps the 58 it was framed for.
+
+**Where the run starts is measured, not 0.12 for everything.** Sampled a 7x9 ray
+grid along each route at 0.1 steps and took the point where the location's own
+geometry actually fills the frame:
+
+| location | start `t` | what fills the frame there |
+|---|---|---|
+| mbs | 0.55 | hero 21% (at 0.12 it was **0%** — empty road) |
+| dsa | 0.30 | footways 33%, terrain 17% |
+| wade | 0.30 | roads 30%, terrain 24% |
+| stonemtn | 0.20 | terrain 62% — the dome |
+
+Past ~0.4 the DSA and Stone Mountain routes leave the extract and the frame goes
+**78–94% sky**. So these are also the last point that still has a world in it.
+
+**Touch.** Pointer events already covered drag; pinch-to-zoom did not exist and a
+phone has no wheel, so zoom was simply unreachable — it now comes off the second
+pointer. `R`/`O`/`,`/`.` likewise had no on-screen equivalent, so the entire
+runner-eye view was unreachable on the device the link is actually opened on.
+`canvas` needs `touch-action:none` or a drag scrolls the page, not the camera.
+
+### Two cascade bugs, both found by measuring instead of looking
+
+**A media query is not more specific than the rule it overrides.** The mobile
+block sat ABOVE the base rules; equal specificity, later wins, so `#pick` kept
+`top:12px` AND got `bottom:66px` and stretched into 350px vertical pills. The
+block must stay last in the stylesheet.
+
+**A stack whose height depends on wrapping cannot be laid out with constants.**
+Three fixed elements on hand-picked `bottom` offsets collided at 390px, and again
+at 360px once the buttons wrapped to two rows. The bottom is one flex column now
+(`#dock`, `display:contents` on wide). Measured pairwise overlap at 1000x600,
+390x844 and 360x640: **none**, and no page scroll at any of them.
+
+## The stadium model — blocked on exactly one credential
+
+Searched rather than assumed. Across all of Sketchfab, **one** model matching
+"mercedes benz stadium" is both downloadable and licensed:
+
+| uid | licence | faces | author |
+|---|---|---|---|
+| `84c4ef1b46bf448580932bd382afe6e1` | CC Attribution | 4,642 | notmrsus |
+
+The one titled "Game Ready Asset (FREE)" (`b3b4dbae…`) is **not** downloadable —
+`isDownloadable:false`, empty licence object — so the word FREE in a title is not
+a licence. Measured, not read off the page.
+
+`GET https://api.sketchfab.com/v3/models/<uid>/download` answers **HTTP 401**;
+Sketchfab's own docs require an `Authorization` header (`Token <API_TOKEN>` or an
+OAuth bearer). There is no anonymous route and none was attempted. The session
+reads **`SKETCHFAB_TOKEN`** from the environment; `env | grep -i sketchfab` is
+empty, so this is one environment variable away, not a research problem.

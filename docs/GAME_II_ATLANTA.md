@@ -588,3 +588,36 @@ but is laptop render time.
 5. Characters, once the key exists.
 
 Steps 1–3 can happen without AutoSprite and without spending anything.
+
+---
+
+## Status, 10-06 — there is something to look at
+
+**<https://claude.ai/artifact/Pz6DWYWGciRUXmcdo2FLu2>** · all four built
+locations, orbit and runner-eye, works on a phone, no checkout and no server.
+
+| location | OSM | state |
+|---|---|---|
+| Mercedes-Benz Stadium | `way/536744534` | built — landmark still short of the bar |
+| DeKalb School of the Arts | `way/1412872982` | built |
+| Wade Walker Park | `way/34775500` | built |
+| Stone Mountain Park | `relation/1447405` | built — 240 m of real relief |
+| Home | — | **fictional by design.** Client: *"we're not gonna use our real house, because we don't want her actual personal information given out like that"* |
+| Track & Field | — | needs the client to name it |
+| Church | — | needs the client to name it |
+| Old Apache Kafe | — | **not in OSM** — the venue is closed. Needs photo reference |
+| the ninth | — | client said one is coming |
+
+Build method, every measurement and every bug: `tools/atlanta/README.md`.
+
+### The one blocked item
+
+The stadium is not yet at *"a nearly indistinguishable comparison."* Procedural
+parametric geometry cannot match a specific building instance — the overlay test
+settled that — and projecting a photo onto approximate geometry puts features in
+the wrong places. A real mesh is the route, and exactly one usable one exists:
+Sketchfab `84c4ef1b46bf448580932bd382afe6e1`, CC Attribution, 4,642 faces.
+
+Its download endpoint requires an `Authorization` header and answers HTTP 401
+without one. **Blocked on `SKETCHFAB_TOKEN` in the environment — that is the
+whole of it.**
