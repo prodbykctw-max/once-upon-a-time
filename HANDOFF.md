@@ -43,6 +43,34 @@
 > is a phase of its own**, not a task. Several art items (idle dance, Game II
 > outfit, Purple Guy, more jump frames) are blocked only on `$AUTOSPRITE_KEY`.
 
+> ## 🎮 SHIPPED 10-06 — THE LEVELS ARE PLAYABLE, AND ALL FOUR OPEN ITEMS CLOSED
+> `tools/atlanta/viewer/play.js`, `63d78d6`. Hit **play the level** on the
+> preview link. Lanes, jump, slide, collision; arrows/WASD or four buttons.
+> Hairpin gone (MBS 30/72 deg), Stone Mountain now has TWO 89 deg corners, and
+> the "10 m sight line" was a conflation — 2.0 s is the REACTION window, not the
+> draw distance. Measured in play: 116 hazards visible ahead, farthest 400 m.
+>
+> **GUARDRAIL — A LEVEL IS NOT TESTED UNTIL IT IS PLAYED.** Running it found two
+> defects that drawing it could not: 3-4 PHYSICALLY IMPOSSIBLE sequences per
+> level (two jump obstacles 0.54-0.58 s apart in one lane against 0.73 s of
+> airtime), and every location sharing ONE beat map because the RNG keyed on
+> index alone. Both fixed; impossible sequences 3-4 -> 0 everywhere.
+> The spawn cadence is lifted from an ENDLESS runner where the ramp and
+> `adaptF()` hold density down — a fixed level must check instead.
+>
+> **Gravity in the runner is 18 m/s^2, not 9.81.** The shipped 0.73 s airtime
+> under real gravity is a 0.65 m apex and the `low` obstacle is 0.90 m. And the
+> shipped lane ease is PER FRAME, so it needs making frame-rate independent or a
+> 120 Hz phone changes lanes twice as fast as a 60 Hz one.
+>
+> **Stone Mountain was a DATA limit**, not a scoring one: 450 m gave 20 ways in
+> 6 disconnected components. Rebuilt at 800 m -> 168 ways. Window sliding landed
+> in the same pass and did NOT fix it (isolated by re-running the 450 m extract).
+>
+> Still honest about: the simulated expert takes 1-3 hits, which is NOT claimed
+> as clean — either the test policy is naive or there is an unfairness pattern
+> not yet modelled.
+
 > ## 🏁 SHIPPED 10-06 — EACH LOCATION IS A 90-SECOND LEVEL
 > `tools/atlanta/viewer/level.js`, `bf57cfc`. Live on the preview link.
 > **Timing transfers from the shipped runner, units do NOT.** Royal Runner's

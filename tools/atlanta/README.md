@@ -810,3 +810,77 @@ stadium is visible from everywhere and is why the location exists.
   corridor, absurd for Atlanta. three.js can see as far as we like, so this is a
   client decision about how the runner should feel, flagged as `stats.sightM`.
 - Obstacle slots are placed and drawn, but nothing collides with them yet.
+
+---
+
+## Playing the level — `viewer/play.js`
+
+**Hit "play the level."** Arrows / WASD on a keyboard, four buttons on a phone.
+Lanes, jump, slide, collision, and a run you can finish or fail.
+
+| location | length | corners | angles | hazards | do nothing | play well |
+|---|---|---|---|---|---|---|
+| MBS | 432 m / 90 s | 2 | 30°, 72° | 80 | 23 hits | 3 |
+| DSA | 362 m / 75 s | 3 | 83°, 101°, 95° | 54 | 15 hits | 3 |
+| Wade | 432 m / 90 s | 1 | 90° | 79 | 28 hits | 1 |
+| Stone Mtn | 394 m / 82 s | 2 | **89°, 89°** | 76 | 25 hits | 3 |
+
+Matches the shipped model exactly: lanes −1/0/1 eased at `0.28` per 60 Hz frame,
+0.73 s airtime, 0.43 s slide, `low`/`gate`/`wall` meaning jump / slide / dodge.
+
+**Gravity is 18 m/s², not 9.81.** Keeping the shipped 0.73 s airtime under real
+gravity gives a 0.65 m apex, and the `low` obstacle is 0.90 m — she would clear
+nothing. A runner's jump is game feel, not ballistics: apex 1.2 m in 0.73 s needs
+`g = 8h/t²`. The lane ease was also made frame-rate independent; as shipped it is
+per-frame, so a 120 Hz phone would change lanes twice as fast as a 60 Hz one.
+
+### Playing it immediately found two defects that drawing it could not
+
+**The levels were physically impossible in places** — 3–4 sequences each: two
+jump obstacles **0.54–0.58 s apart in the same lane against 0.73 s of airtime**,
+so she is still in the air and lands on the second one. The cadence is lifted
+from an *endless* runner, where the difficulty ramp and `adaptF()` keep density
+down; a fixed level has to check instead. A fairness pass now moves the **lane**
+— never the beat, which would erode the rhythm the cadence exists to create —
+unless no lane is free. **3–4 per level → 0, all four locations.**
+
+**Every level had the same beat map.** The RNG keyed on index alone, so the
+identical impossible sequences appeared at 123 m, 240 m, 327 m and 345 m in *all
+four* locations. Four levels sharing one rhythm is four times the same level.
+Seeded per location, hazard counts are now 80 / 54 / 79 / 76.
+
+> The simulated expert still takes 1–3 hits, and that is **not** claimed as
+> clean. The audit finds no impossible sequence *under the rules I defined*, so
+> it is either a naive test policy or an unfairness pattern not yet modelled.
+
+### The "10 m sight line" was a conflation
+
+2.0 s is the shipped **reaction** window. In an endless runner that is also the
+moment an obstacle spawns, so in a real city it would pop into existence 10 m
+ahead — which is what looked wrong. In a **level** the obstacles are placed along
+the route and drawn as far as the camera sees. Measured in play: **116 hazards
+visible ahead, the farthest at 400 m, fog at 1,190 m.** Draw distance and
+decision distance are different numbers.
+
+### Stone Mountain was a data limit, and window sliding did not fix it
+
+Its 450 m extract had 20 ways in **6 disconnected components**; the biggest is
+3 ways / 2,973 m, so a 432 m window always landed inside a single 1 km trail and
+met no junction at all. **Rebuilt at 800 m: 168 ways**, and the level is now
+394 m with two 89° corners at −9.2% grade.
+
+Window sliding — trying every 25 m offset and keeping the best stretch, so the
+start of a level is a design choice rather than whichever way OSM listed first —
+went in during the same pass and is worth keeping. It did **not** fix Stone
+Mountain: isolated by restoring the 450 m extract and re-running, still 0
+corners. Recorded so the credit lands on the right change.
+
+### Corner scoring: a hairpin is a failure, not a deduction
+
+At −45 a 174° corner was simply outscored by the length and spacing bonuses
+around it, so MBS kept shipping one. Over 140° the player runs back the way they
+came and no single left/right swipe expresses that, so it is priced at −400.
+That fix immediately exposed the next one: a flat 0.08/m length term cost a route
+179 m short only 14 points — less than one corner bonus — so hardening the
+hairpin rule produced a clean **253 m** level where 432 m was wanted. Length
+shortfall is now a failure too; over-length is free, because the route is trimmed.

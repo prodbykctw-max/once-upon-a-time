@@ -1327,6 +1327,53 @@ nothing collides with them yet; and the shipped far plane is 2 s of travel —
 Atlanta. That last is a client decision about how the runner should feel, not
 something to quietly change.
 
+### 10-06 · The levels become playable, and four open items close
+
+`viewer/play.js`, `63d78d6`. Lanes, jump, slide and collision against the placed
+obstacle slots, matching the shipped model — lanes −1/0/1 eased at 0.28 per
+60 Hz frame, 0.73 s airtime, 0.43 s slide, low/gate/wall meaning jump/slide/dodge.
+
+**The guardrail: a level is not tested until it is played.** Running the levels
+found two defects that drawing them could not. Each contained **3–4 physically
+impossible sequences** — two jump obstacles 0.54–0.58 s apart in the same lane
+against 0.73 s of airtime, so she is still airborne and lands on the second. The
+cadence is lifted from an *endless* runner, where the difficulty ramp and
+`adaptF()` hold density down; a fixed level has to check. And **every location
+shared one beat map**, because the RNG keyed on index alone — the identical
+impossible sequences appeared at 123, 240, 327 and 345 m in all four. Both
+fixed: impossible sequences 3–4 → 0 everywhere, hazard counts now 80/54/79/76.
+
+Two shipped-engine facts worth keeping. Gravity in the runner is **18 m/s², not
+9.81** — the shipped 0.73 s airtime under real gravity gives a 0.65 m apex and
+the `low` obstacle is 0.90 m, so she would clear nothing; a runner's jump is
+game feel, not ballistics. And the shipped lane ease is **per frame**, so it has
+to be made frame-rate independent or a 120 Hz phone changes lanes twice as fast
+as a 60 Hz one.
+
+The **"10 m sight line" turned out to be a conflation**, which is the fix. 2.0 s
+is the reaction window; in an endless runner it is *also* the spawn moment, so in
+a city an obstacle would pop in 10 m ahead. In a level the obstacles are placed
+along the route and drawn as far as the camera sees — measured in play, 116
+hazards visible ahead, the farthest at 400 m, fog at 1,190 m.
+
+The MBS hairpin closed by pricing a >140° corner at −400 rather than −45: it had
+simply been outscored by the length and spacing bonuses around it. That exposed
+the next one immediately — a flat 0.08/m length term cost a route 179 m short
+only 14 points, less than one corner bonus, so the hairpin fix produced a clean
+253 m level where 432 m was wanted.
+
+**Stone Mountain was a data limit, and the measurement said so.** Its 450 m
+extract had 20 ways in six disconnected components, the biggest 3 ways / 2,973 m,
+so a 432 m window always landed inside a single kilometre of trail and met no
+junction. Rebuilt at 800 m it has 168 ways and the level runs 394 m with two 89°
+corners at −9.2%. Window sliding went in during the same pass and is kept, but it
+did *not* fix Stone Mountain — isolated by restoring the 450 m extract and
+re-running, still zero corners. Recorded so the credit lands on the right change.
+
+Not claimed as finished: the simulated expert still takes 1–3 hits. The audit
+finds no impossible sequence under the rules defined for it, so that is either a
+naive test policy or an unfairness pattern not yet modelled.
+
 ### Open — the stadium model needs one credential
 
 The honest state of the landmark: the overlay test proved procedural parametric
