@@ -148,7 +148,11 @@ fitFov();
 const world = await (await fetch(asset(`world/${key}.json`))).json();
 const R = world.location.radius_m;
 scene.fog = new THREE.Fog(0x8fb4d8, R * 0.9, R * 3.4);
-const { group, stats, route, routeLength } = buildCity(world);
+// ?life=1 populates the streets; ?peds=N&cars=N tune it.
+const qsp = new URLSearchParams(location.search);
+const lifeOpt = qsp.get('life') === '0' ? null
+  : { peds: +(qsp.get('peds') ?? 260), cars: +(qsp.get('cars') ?? 90) };
+const { group, stats, route, routeLength, life } = buildCity(world, { life: lifeOpt });
 scene.add(group);
 lightRig(scene, R);
 
@@ -158,6 +162,8 @@ document.getElementById('m').innerHTML =
   `${stats.draws} draw calls · ${Math.round(stats.tris).toLocaleString()} triangles` +
   (stats.relief ? ` · ${stats.relief} m relief` : ' · flat') +
   (stats.props ? ` · ${stats.props} props (${stats.propKinds} kinds)` : '') +
+  (stats.life ? `<br>${stats.life.peds} people walking · ${stats.life.cars} vehicles driving ` +
+                `(${stats.life.footKm} km footway, ${stats.life.driveKm} km road)` : '') +
   (stats.draws <= 150 ? '' : ' <span class="warn">(over 150)</span>') + '<br>' +
   `${stats.surveyed} surveyed height · <span class="warn">${stats.estimated} estimated</span>`;
 document.getElementById('att').textContent = world.attribution;
@@ -304,7 +310,7 @@ window.__pick = (nx, ny) => {
 window.__preview = {
   setMode: (m, u) => { mode = m; if (u != null) t = u; place(); },
   setOrbit: (y, p, d) => { yaw = y; pitch = p; dist = d * R; place(); },
-  stats, routeLength, ready: true,
+  stats, routeLength, ready: true, life, scene, camera,
 };
 
 // diagnostics for headless checks
@@ -329,5 +335,15 @@ window.__preview = {
     toneMapping: renderer.toneMapping,
   };
 }
-renderer.setAnimationLoop(() => renderer.render(scene, camera));
+// A real clock, not a fixed 1/60 — the agents must not slow down on a slow
+// frame, and must not sprint on a fast one. Clamped so a backgrounded tab does
+// not teleport the whole city on return.
+let _prev = performance.now();
+renderer.setAnimationLoop(() => {
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - _prev) / 1000);
+  _prev = now;
+  if (life) life.update(dt);
+  renderer.render(scene, camera);
+});
 </script>

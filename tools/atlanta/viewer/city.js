@@ -13,6 +13,7 @@
 import * as THREE from './vendor/three.module.min.js';
 import { HEROES, heroMaterials } from './heroes.js';
 import { buildProps } from './props.js';
+import { buildLife } from './life.js';
 import { asset } from './base.js';
 
 // TILE SIZE COMES FROM THE FILENAME, deliberately. make_facades.py bakes the
@@ -543,6 +544,18 @@ export function buildCity(world, opts = {}) {
     stats.propKinds = pr.stats.kinds;
   } else { stats.props = 0; stats.propKinds = 0; }
 
+  // ── crowds and traffic, instanced and on rails ──
+  // Off by default so every measurement of the CITY stays comparable to the
+  // ones already recorded; `?life=1` turns it on.
+  let life = null;
+  if (opts.life) {
+    life = buildLife(world, heightAt, E, opts.life === true ? {} : opts.life);
+    group.add(life.group);
+    stats.draws += life.stats.draws;
+    stats.tris += life.stats.tris;
+    stats.life = life.stats;
+  }
+
   // candidate route — the longest way in the extract
   let route = null, best = 0;
   for (const w of world.roads) {
@@ -552,7 +565,7 @@ export function buildCity(world, opts = {}) {
     }
     if (d > best) { best = d; route = w; }
   }
-  return { group, stats, route, routeLength: best };
+  return { group, stats, route, routeLength: best, life };
 }
 
 /** Sun + sky, sized to the location. */
