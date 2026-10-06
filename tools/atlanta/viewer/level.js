@@ -23,6 +23,7 @@
 // abstract corridor and absurd for Atlanta. Flagged in `stats.sightM`, because
 // it is a design decision for the client, not something to quietly paper over.
 import * as THREE from './vendor/three.module.min.js';
+import { manGeometries } from './men.js';
 
 // Timing, in seconds, lifted from the shipped runner (see above).
 export const BEAT = {
@@ -634,23 +635,39 @@ export function levelGizmo(level, heightAt, E) {
     g.add(m);
   }
 
-  // obstacle slots, one instanced block per kind
-  const KIND = { low: [0xd8713a, 0.9], gate: [0x9a6ad8, 1.9], wall: [0xd84a4a, 2.4],
-                 pw: [0x4ad8c8, 1.2], gem: [0xe8d24a, 1.0], notes: [0x8fd84a, 0.8] };
+  // ── the obstacles: the three men, and the pickups ───────────────────────
+  // Hazards are PEOPLE now, not coloured blocks — the client's redesign. They
+  // are modelled standing on the ground rather than floating at a box centre,
+  // so the silhouette the readability test measured is the silhouette the
+  // player meets. One InstancedMesh per kind, same as everything else here.
+  const men = manGeometries();
+  const PICKUP = { pw: [0x4ad8c8, 1.2], gem: [0xe8d24a, 1.0], notes: [0x8fd84a, 0.8] };
+  const MAN_COL = { low: 0x4a3a52, gate: 0x5c3f63, wall: 0x6b4a73 };
   const byKind = {};
   for (const b of level.beats) (byKind[b.tp] ||= []).push(b);
+
   for (const k of Object.keys(byKind)) {
-    const [col, h] = KIND[k];
-    const geo = new THREE.BoxGeometry(1.2, h, 0.5);
-    const mesh = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({
-      color: col, transparent: true, opacity: 0.75 }), byKind[k].length);
-    mesh.name = 'slot_' + k;
+    const list = byKind[k];
+    const isMan = !!men[k];
+    const geo = isMan ? men[k] : new THREE.BoxGeometry(1.2, PICKUP[k][1], 0.5);
+    const mat = isMan
+      // Lit, not flat: they stand in the world she is running through. The
+      // purple range keeps them with the villain the client already has.
+      ? new THREE.MeshStandardMaterial({ color: MAN_COL[k], roughness: 0.85, flatShading: true })
+      : new THREE.MeshBasicMaterial({ color: PICKUP[k][0], transparent: true, opacity: 0.8 });
+    const mesh = new THREE.InstancedMesh(geo, mat, list.length);
+    mesh.name = (isMan ? 'man_' : 'slot_') + k;
+    mesh.castShadow = isMan;
+    mesh.receiveShadow = isMan;
     const d = new THREE.Object3D();
-    byKind[k].forEach((b, i) => {
+    list.forEach((b, i) => {
       const p = at(b.s);
       const x = p.x + p.nx * b.lane * level.laneM, y = p.y + p.ny * b.lane * level.laneM;
-      d.position.set(x, heightAt(E, x, y) + h / 2 + 0.2, -y);
-      d.rotation.set(0, Math.atan2(p.nx, p.ny), 0);
+      // Men are authored with their feet at y=0; pickups float at their centre.
+      const lift = isMan ? 0 : PICKUP[k][1] / 2 + 0.2;
+      d.position.set(x, heightAt(E, x, y) + lift, -y);
+      // Facing HER, which is back down the route — they are standing in her way.
+      d.rotation.set(0, Math.atan2(-p.nx, -p.ny) + Math.PI / 2, 0);
       d.updateMatrix(); mesh.setMatrixAt(i, d.matrix);
     });
     g.add(mesh);

@@ -1,0 +1,171 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Silhouette Test</title>
+<!--
+  THE BLACK-SILHOUETTE TEST, as a reproducible page rather than a judgement.
+
+  `docs/GAME_II_ATLANTA.md` puts this before any character rendering: once the
+  three obstacles all become men, they stop telegraphing jump / slide / dodge by
+  being different kinds of object, and the only thing left carrying that
+  information is the outline. Three AutoSprite characters that turn out to be
+  confusable at speed is three wasted generations, so the shape gets proven
+  first, with every cue except the outline removed.
+
+  It renders each man as pure black on white, at the SIZE AND DISTANCE THE
+  DECISION IS ACTUALLY MADE AT, and reports pairwise overlap. Open with
+  ?w=390&h=844 to test a phone frame.
+-->
+<style>
+  html,body{margin:0;background:#fff}
+  canvas{display:block}
+  #out{position:fixed;left:0;top:0;font:12px ui-monospace,monospace;color:#111;
+    background:#fff;padding:6px 8px;white-space:pre}
+</style>
+<div id="out">measuring…</div>
+<script type="module">
+import * as THREE from './vendor/three.module.min.js';
+import { MEN } from './men.js';
+
+const q = new URLSearchParams(location.search);
+const W = +(q.get('w') || 390), H = +(q.get('h') || 844);
+
+// ── WHERE THE DECISION IS MADE ────────────────────────────────────────────
+// Not the far plane, and not where the obstacle first appears. She runs at
+// 4.8 m/s; the simulated expert in play.js commits to a jump 0.36 s out and a
+// slide 0.22 s out, and a lane change needs ~1.2 s to be comfortable. So the
+// LAST moment the shape can still be identified usefully is about 1.2 s —
+// 5.8 metres. If the three are not separable there, they are not separable.
+const RUN_MS = 4.8, DECIDE_S = 1.2;
+const DIST = RUN_MS * DECIDE_S;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+document.body.appendChild(renderer.domElement);
+
+// Same lens the game uses: fov is vertical, widened on a tall screen so the
+// horizontal stays usable (see index.html).
+const aspect = W / H;
+const want = 2 * Math.atan(Math.tan((27.5 * Math.PI) / 180) / aspect) * (180 / Math.PI);
+const fov = Math.max(58, Math.min(82, want));
+const camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 100);
+// Eye height and pitch copied from the chase camera: 3.0 m up, looking at 1.4 m
+// sixteen metres out. The silhouette has to read from where she is seen from.
+camera.position.set(0, 3.0, DIST + 8.0);
+camera.lookAt(0, 1.4, DIST - 8.0);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
+const black = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+const KINDS = ['low', 'gate', 'wall'];
+const shots = {};
+
+function renderOne(kind) {
+  scene.clear();
+  scene.background = new THREE.Color(0xffffff);
+  const m = new THREE.Mesh(MEN[kind](), black);
+  m.position.set(0, 0, 0);
+  scene.add(m);
+  renderer.render(scene, camera);
+  const gl = renderer.getContext();
+  const px = new Uint8Array(W * H * 4);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  // binarise: anything not near-white is silhouette
+  const bits = new Uint8Array(W * H);
+  let n = 0, minX = W, maxX = 0, minY = H, maxY = 0;
+  for (let i = 0; i < W * H; i++) {
+    const on = px[i * 4] < 128 ? 1 : 0;
+    bits[i] = on;
+    if (on) {
+      n++;
+      const x = i % W, y = (i / W) | 0;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+  }
+  return { bits, n, w: maxX - minX + 1, h: maxY - minY + 1, minX, minY, maxX, maxY };
+}
+
+for (const k of KINDS) shots[k] = renderOne(k);
+
+/**
+ * Pairwise confusability.
+ *
+ * IoU over the raw frames answers "do they occupy the same part of the screen",
+ * which is the question that matters while she is running a fixed lane — the
+ * obstacle does not move to meet her, so position IS part of the read. A second
+ * figure, IoU after aligning both to their bounding boxes, separates "different
+ * place" from "different shape": two silhouettes that only differ in where they
+ * sit will score high there and are the risky pair, because a lane change moves
+ * the viewpoint and the position cue goes away.
+ */
+function iou(a, b) {
+  let inter = 0, uni = 0;
+  for (let i = 0; i < a.bits.length; i++) {
+    const x = a.bits[i], y = b.bits[i];
+    if (x | y) uni++;
+    if (x & y) inter++;
+  }
+  return uni ? inter / uni : 0;
+}
+
+function iouAligned(a, b) {
+  // resample both bounding boxes to 64x64 and compare shape alone
+  const N = 64;
+  const samp = (s) => {
+    const o = new Uint8Array(N * N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const x = s.minX + Math.round((i / (N - 1)) * (s.w - 1));
+      const y = s.minY + Math.round((j / (N - 1)) * (s.h - 1));
+      o[j * N + i] = s.bits[y * W + x];
+    }
+    return o;
+  };
+  const A = samp(a), B = samp(b);
+  let inter = 0, uni = 0;
+  for (let i = 0; i < N * N; i++) { if (A[i] | B[i]) uni++; if (A[i] & B[i]) inter++; }
+  return uni ? inter / uni : 0;
+}
+
+const lines = [];
+lines.push(`frame ${W}x${H}  fov ${fov.toFixed(1)} deg  decision distance ${DIST.toFixed(1)} m (${DECIDE_S}s @ ${RUN_MS} m/s)`);
+for (const k of KINDS) {
+  const s = shots[k];
+  lines.push(`${k.padEnd(5)} ${String(s.w).padStart(3)}x${String(s.h).padStart(3)} px  ` +
+             `${((100 * s.n) / (W * H)).toFixed(2)}% of frame  ` +
+             `top ${(100 * s.minY / H).toFixed(0)}%  bottom ${(100 * s.maxY / H).toFixed(0)}%`);
+}
+for (let i = 0; i < KINDS.length; i++) {
+  for (let j = i + 1; j < KINDS.length; j++) {
+    const a = KINDS[i], b = KINDS[j];
+    lines.push(`${a} vs ${b}:  on-screen IoU ${iou(shots[a], shots[b]).toFixed(3)}   ` +
+               `shape-only IoU ${iouAligned(shots[a], shots[b]).toFixed(3)}`);
+  }
+}
+document.getElementById('out').textContent = lines.join('\n');
+
+window.__silo = {
+  ready: true,
+  stats: Object.fromEntries(KINDS.map((k) => [k, {
+    w: shots[k].w, h: shots[k].h, px: shots[k].n,
+    topPct: +(100 * shots[k].minY / H).toFixed(1),
+    botPct: +(100 * shots[k].maxY / H).toFixed(1),
+  }])),
+  pairs: Object.fromEntries(
+    KINDS.flatMap((a, i) => KINDS.slice(i + 1).map((b) => [
+      `${a}|${b}`, { screen: +iou(shots[a], shots[b]).toFixed(3),
+                     shape: +iouAligned(shots[a], shots[b]).toFixed(3) }]))),
+  // draw all three side by side for a human look
+  showAll() {
+    scene.clear();
+    scene.background = new THREE.Color(0xffffff);
+    KINDS.forEach((k, i) => {
+      const m = new THREE.Mesh(MEN[k](), black);
+      m.position.set((i - 1) * 2.0, 0, 0);
+      scene.add(m);
+    });
+    renderer.render(scene, camera);
+  },
+};
+</script>
