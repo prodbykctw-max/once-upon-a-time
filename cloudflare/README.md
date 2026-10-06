@@ -21,29 +21,38 @@ npx wrangler deploy         # deploys leaderboard-worker.js + binds the KV
 `wrangler deploy` prints the live URL, e.g.
 `https://jande-leaderboard.<your-subdomain>.workers.dev`.
 
-## Point the game at it (no game redeploy needed)
+## The game's URL is fixed
 
-Open the game once with the URL as a query param — it saves to localStorage:
+`LB_URL` in `index.html` is hard-coded to the deployed Worker. There is
+deliberately **no** `?lb=` or localStorage override any more: that override
+persisted an attacker-supplied URL and fed its rows into the page (stored XSS,
+security audit 2026-10-06). Changing the Worker URL means editing `LB_URL`.
 
-```
-https://prodbykctw-max.github.io/once-upon-a-time/?lb=https://jande-leaderboard.<your-subdomain>.workers.dev
-```
+## Security (2026-10-06)
 
-Or hand the URL to the cloud session and it'll bake it in as the default
-(`LB_URL` in `index.html`) so every visitor gets it automatically.
+- CORS is granted only to `https://prodbykctw-max.github.io`; `POST /submit`
+  from any other Origin (or none) gets 403.
+- `SUBMIT_LIMIT` (Workers Rate Limiting, namespace 3001): 5 submits / 60 s per
+  `CF-Connecting-IP`. Skipped if the binding is absent.
+- Plausibility caps (derived from the game code, see the constants in
+  `leaderboard-worker.js`): `dur` (run seconds) is required; runner distance
+  <= 40 m/s and score <= 5,000/m + 100k; RPG stage distance <= 600 and score
+  <= 30,000/s + 100k (15M absolute). Rejected runs get a generic 400.
+- Errors return a generic 500 (no exception text).
+- Tests: `node --test cloudflare/leaderboard-worker.test.mjs`.
+- Deploy order: publish the game (it sends `dur`) BEFORE the Worker, or
+  submissions from the old page are rejected until it updates.
 
 ## Test the API directly
 
 ```bash
 BASE=https://jande-leaderboard.<your-subdomain>.workers.dev
 curl -s "$BASE/top?mode=all&n=10"
-curl -s -X POST "$BASE/submit" -H 'Content-Type: application/json' \
-  -d '{"name":"TEST","dist":420,"score":9001,"mode":"side"}'
 ```
 
 ## Endpoints
 
 - `GET /top?mode=all|side|temple&n=20` → `{ ok, mode, runs:[{n,d,s,m,t}] }`
-- `POST /submit` `{ name, dist, score, mode }` → `{ ok, rank }`
+- `POST /submit` `{ name, dist, score, mode, dur }` → `{ ok, rank }`
 
 Runs are sorted by distance then score, deduped to each name's best, capped at 100.

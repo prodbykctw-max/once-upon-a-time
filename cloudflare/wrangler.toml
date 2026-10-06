@@ -7,3 +7,13 @@ workers_dev = true
 [[kv_namespaces]]
 binding = "LB"
 id = "9dc38fa2efba4f8d9cd412b512d3c3ef"
+
+# Per-IP rate limit on POST /submit (5 per 60 s). The Worker skips the check
+# if this binding is missing, so deploying without it does not break submits.
+[[ratelimits]]
+name = "SUBMIT_LIMIT"
+namespace_id = "3001"
+
+  [ratelimits.simple]
+  limit = 5
+  period = 60
