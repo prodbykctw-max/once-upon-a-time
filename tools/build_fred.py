@@ -23,6 +23,13 @@ OUTD = os.path.join(REPO, 'fred')
 OUT  = os.path.join(OUTD, 'index.html')
 
 
+# Anchors copied VERBATIM from index.html. If index.html changes these, this
+# build fails loudly rather than silently emitting a stale /fred/ edition.
+BEGIN_BTN = '<button type="button" class="tw-press btn-tav" id="tPress">\u2014 BEGIN \u2014</button>'
+TW_PRESS_CSS = (".tw-press{display:block;width:100%;background:transparent;\n"
+                "  font-size:clamp(13px,2.2vw,17px);margin-top:36px;pointer-events:auto;padding:15px 46px}")
+
+
 def burst_free_scroll():
     """The proclamation scroll, as SVG geometry.
 
@@ -171,16 +178,18 @@ function startGame(){""",
         'fredNext')
 
     # 5. the scroll + the in-run chip
-    sub("""  <div class="tw-press btn-tav" id="tPress">— BEGIN —</div>
+    # tPress is a <button>, not a <div> (10-06): it is the primary CTA and as a
+    # div it was neither keyboard-focusable nor announced as a control. These
+    # anchors are VERBATIM COPIES of index.html, so any change to that markup
+    # fails this build — which is the point, and is how this one was caught.
+    sub("""  """ + BEGIN_BTN + """
   </div>""",
-        """  <div class="tw-press btn-tav" id="tPress">— BEGIN —</div>
+        """  """ + BEGIN_BTN + """
   </div>
 """ + burst_free_scroll().rstrip('\n'),
         'title scroll')
 
-    sub(".tw-press{font-size:clamp(13px,2.2vw,17px);margin-top:36px;pointer-events:auto;padding:15px 46px}",
-        ".tw-press{font-size:clamp(13px,2.2vw,17px);margin-top:36px;pointer-events:auto;padding:15px 46px}" + CSS,
-        'edition CSS')
+    sub(TW_PRESS_CSS, TW_PRESS_CSS + CSS, 'edition CSS')
 
     sub("""  try{ if(/[?&]bg=1/.test(location.search)) setTimeout(bgViewer,60); }catch(_bv){}""",
         """  try{ if(/[?&]bg=1/.test(location.search)) setTimeout(bgViewer,60); }catch(_bv){}
