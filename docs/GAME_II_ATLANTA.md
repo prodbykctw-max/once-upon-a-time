@@ -603,7 +603,7 @@ locations, orbit and runner-eye, works on a phone, no checkout and no server.
 | Wade Walker Park | `way/34775500` | built |
 | Stone Mountain Park | `relation/1447405` | built — 240 m of real relief |
 | Home | — | **fictional by design.** Client: *"we're not gonna use our real house, because we don't want her actual personal information given out like that"* |
-| Track & Field | — | needs the client to name it |
+| Track & Field | `way/1560248370` | **built** — Napoleon B. Cobb Stadium, the DSA campus track |
 | Church | — | needs the client to name it |
 | Old Apache Kafe | — | **not in OSM** — the venue is closed. Needs photo reference |
 | the ninth | — | client said one is coming |
@@ -659,3 +659,41 @@ than its stance.
 2. At the shipped cadence (a hazard every ~5.4 m) they **crowd** at distance
    into a thicket rather than three distinct figures. Arguably right for
    "Atlanta all in your face", arguably bad for reading each one.
+
+
+---
+
+## 10-06 — Track & Field resolved: the DSA campus track
+
+Client: *"the DSA track is it."* Resolved to **Napoleon B. Cobb Stadium**,
+`way/1560248370` — `leisure=stadium`, `sport=running;american_football`,
+operator DeKalb County School District, old name *Avondale Stadium*, **158 m
+from the DSA building**. Built at a 420 m radius: 432 m / 90 s level, 3 corners
+(89°, 131°, 85°), 25 draw calls, 65,517 triangles.
+
+**Which track, measured rather than assumed.** The 300 m DSA extract contains no
+athletics track at all — seven unnamed pitches, nothing tagged for running.
+Querying out to 1,500 m finds three candidates, and only one is on the campus;
+Legacy Park Track is 1.3 km away and is not it.
+
+**Two fixes the location forced, either of which would have shipped a blank
+level.** `build_world.mjs` pulled `leisure` in
+`(park|pitch|track|garden|playground)` and this stadium is tagged
+`leisure=stadium`, so the location's whole reason for existing would have been
+missing from its own extract. And `city.js` had no ground-cover colour for
+`stadium` or `sports_centre`, so even once extracted the surface would have
+painted as bare ground. Both render now: Cobb Stadium at 186×297 m, Python Park
+at 301×456 m.
+
+**Open on this level:** a 131° corner (inside the 140° hairpin rejection but
+outside the 60–120° band) and a 20.6% max grade, the steepest of the five.
+Worth a look before it is called final.
+
+### Remaining locations
+
+| | state |
+|---|---|
+| Home | fictional by design — needs a design pass, never a real address |
+| Old Apache Kafe | not in OSM (venue closed) — needs photo reference |
+| Church | needs the client to name it |
+| the ninth | client said one is coming |
