@@ -44,6 +44,9 @@ const LANES = 3;              // t3.lane is -1, 0, 1 — do not change without t
 const LANE_M = 1.6;           // metres between lane centres; 3 lanes = 4.8 m corridor
 
 const FOOT_KINDS = new Set(['footway', 'path', 'pedestrian', 'steps', 'cycleway']);
+// Too narrow to hold a 4.8 m three-lane corridor. `pedestrian` is excluded on
+// purpose — those are plazas and promenades, which are wide.
+const NARROW = new Set(['footway', 'path', 'steps', 'cycleway']);
 
 function pathLen(pts) {
   let d = 0;
@@ -204,7 +207,7 @@ function stitch(legs, targetM, fromM = 0) {
  * candidate and scores the corners the trimmed polyline actually contains.
  */
 function routeScore(legs, targetM, fromM = 0) {
-  const { pts, cum, len } = stitch(legs.slice(), targetM + fromM, fromM);
+  const { pts, cum, len } = stitch(legs.slice(), targetM, fromM);
   const turns = findCorners(pts, cum);
   let sc = 0;
   let prev = 0;
@@ -223,6 +226,24 @@ function routeScore(legs, targetM, fromM = 0) {
     else if (gap > 260) sc -= 12;
     prev = t.s;
   }
+  // ── THE LEVEL MUST PASS THROUGH ITS LOCATION. A HARD RULE, NOT A WEIGHT. ──
+  // This started as a soft penalty on mean distance from the centre and became
+  // a tuning fight: at 0.55 it overpowered the corner and length terms (MBS
+  // lost both corners, Stone Mountain overshot to 760 m); softened to 0.18 it
+  // stopped working and Apache drifted back out to a towpath at the edge of the
+  // extract with the city a smudge on the horizon. Seven weighted terms is too
+  // many to balance by hand against six locations.
+  //
+  // So this one is a gate. A level named after a place has to GO THERE: some
+  // part of the route must come within 250 m of the location centre. Everything
+  // else stays a score; this is a rule.
+  let nearest = Infinity;
+  for (let i = 0; i < pts.length; i++) {
+    const d = Math.hypot(pts[i][0], pts[i][1]);
+    if (d < nearest) nearest = d;
+  }
+  if (nearest > 250) sc -= 500 + (nearest - 250) * 2;
+
   if (!turns.length) sc -= 60;             // a corridor is not a level
   if (turns.length > 6) sc -= (turns.length - 6) * 20;
   // LENGTH SHORTFALL IS A FAILURE, NOT A DEDUCTION. At a flat 0.08/m a route
@@ -236,11 +257,61 @@ function routeScore(legs, targetM, fromM = 0) {
   return { sc, turns, len };
 }
 
+/**
+ * How much of a leg runs jammed against a building.
+ *
+ * THE CORRIDOR IS 4.8 m WIDE (3 lanes at 1.6). A 2 m sidewalk hugging a tower
+ * cannot hold it, and the route search had no idea: it scored corners, grade
+ * and straight length and nothing about ROOM. Apache picked exactly such a
+ * footway, and the play capture came out as a camera grinding along a wall with
+ * the hero not even visible. Measured per leg as the fraction of sample points
+ * within `NEED` metres of a building footprint.
+ *
+ * Bounding boxes again, for the same reason as the terrain's contact shading:
+ * at a few hundred samples against a hundred buildings it is thousands of tests
+ * either way, and a soft penalty does not need polygon precision.
+ */
+function legClearance(pts, boxes, NEED = 5) {
+  if (!boxes || !boxes.length) return 1;
+  let near = 0, n = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const steps = Math.max(1, Math.min(8, Math.round(
+      Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) / 12)));
+    for (let k = 0; k < steps; k++) {
+      const f = k / steps;
+      const x = pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f;
+      const y = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f;
+      n++;
+      for (let b = 0; b < boxes.length; b++) {
+        const bb = boxes[b];
+        if (x > bb[0] - NEED && x < bb[2] + NEED && y > bb[1] - NEED && y < bb[3] + NEED) { near++; break; }
+      }
+    }
+  }
+  return n ? 1 - near / n : 1;
+}
+
 /** A leg the player will feel as twitchy: many bends, or bends packed close. */
 function legPenalty(L) {
+  let p = 0;
+  // ── ROOM, AND STILL IN THE CITY ─────────────────────────────────────────
+  // The corridor is 4.8 m (3 lanes x 1.6), so the question is whether the way
+  // can HOLD it — which its class already answers. A first attempt scored
+  // geometric distance from buildings instead, and that was the wrong
+  // quantity: "avoid buildings" became "avoid the city", and Apache's route
+  // walked out to empty ground at the edge of the extract where there was
+  // nothing to see at all. A city runner should run AMONG buildings, just not
+  // pressed against one.
+  if (L.narrow) p -= 120;               // footway/path: cannot hold the corridor
+  // Only the genuinely jammed case is still refused — a way with buildings on
+  // top of it for nearly its whole length.
+  if (L.clear !== undefined && L.clear < 0.25) p -= 180;
+  // ...and wandering out of the location is its own failure: the level is
+  // supposed to be AT the place it is named after.
+  if (L.farM !== undefined) p -= Math.max(0, L.farM - 220) * 0.35;
   // 1 bend per 120 m is a street; 1 per 20 m is a switchback.
   const density = L.bends / Math.max(1, L.len / 100);
-  return -(Math.max(0, density - 1) * 18) - (L.minStraight < 80 ? 20 : 0);
+  return p + -(Math.max(0, density - 1) * 18) - (L.minStraight < 80 ? 20 : 0);
 }
 
 function searchRoute(ways, adj, heightAt, E, opt) {
@@ -252,7 +323,11 @@ function searchRoute(ways, adj, heightAt, E, opt) {
     let v = legCache.get(k);
     if (!v) {
       const pts = fromStart ? ways[i].pts : ways[i].pts.slice().reverse();
+      const _mid = pts[Math.floor(pts.length / 2)];
       v = { pts, len: pathLen(pts), grade: legGrade(pts, heightAt, E),
+            clear: legClearance(pts, opt.boxes),
+            narrow: NARROW.has(ways[i].kind),
+            farM: Math.hypot(_mid[0], _mid[1]),
             ...legShape(pts),
             inH: headingAt(ways[i].pts, fromStart),
             outH: Math.atan2(pts[pts.length - 1][1] - pts[pts.length - 2][1],
@@ -396,6 +471,15 @@ export function buildLevel(world, heightAt, E, opts = {}) {
   const ways = world.roads.filter((w) => w.pts.length >= 2 && pathLen(w.pts) >= 15);
 
   const adj = adjacency(ways);
+  // building bounds, for the clearance test
+  const boxes = (world.buildings || []).map((b) => {
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const [px, py] of b.pts) {
+      if (px < x0) x0 = px; if (px > x1) x1 = px;
+      if (py < y0) y0 = py; if (py > y1) y1 = py;
+    }
+    return [x0, y0, x1, y1];
+  });
   // RELAX RATHER THAN RETURN NOTHING. Stone Mountain has only 7 of its 20 ways
   // under 12% — it is a mountain — so a hard cap there means no level at all,
   // which is the worst possible answer. Walk the cap out and report the one
@@ -420,7 +504,7 @@ export function buildLevel(world, heightAt, E, opts = {}) {
                   [maxGrade * 4, 12], [99, 8]];
   for (const [cap, ms] of LADDER) {
     const r = searchRoute(ways, adj, heightAt, E, {
-      targetM, searchM: targetM * 2, maxGrade: cap, minStraight: ms,
+      targetM, searchM: targetM * 2, maxGrade: cap, minStraight: ms, boxes,
       beam: opts.beam ?? 96, cornerMin: 60, cornerMax: 120,
     });
     if (!r) continue;
@@ -436,7 +520,12 @@ export function buildLevel(world, heightAt, E, opts = {}) {
   // says, not where OSM happens to stop drawing a street. Without this a single
   // 1.3 km way became a 273-SECOND level, because any way longer than the
   // target satisfied the search at depth zero and was never cut back.
-  const { pts, cum, len } = stitch(legs, targetM + (found.fromM || 0), found.fromM || 0);
+  // targetM, NOT targetM + fromM: `stitch` cuts the front FIRST and rebuilds the
+  // cumulative table from zero, so the tail cut is already measured from the new
+  // start. Adding the offset on top left every slid level exactly `fromM` too
+  // long — MBS 475 m and Stone Mountain 760 m against a 432 m target, which is
+  // 158 seconds of running in a level specced at 90.
+  const { pts, cum, len } = stitch(legs, targetM, found.fromM || 0);
 
   const turns = findCorners(pts, cum);
 

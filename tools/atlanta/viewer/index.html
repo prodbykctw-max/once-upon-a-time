@@ -366,7 +366,14 @@ window.__pick = (nx, ny) => {
   }));
 };
 window.__preview = {
-  setMode: (m, u) => { mode = m; if (u != null) t = u; place(); },
+  // DELEGATE to the real setMode. This used to set `mode` directly and call
+  // place(), which skipped everything the real one does — showing the hero,
+  // hiding the dev chrome, raising the pad. Every scripted capture drove THIS
+  // one, so every play video was rendered with Jandé invisible: correctly
+  // positioned 8.3 m ahead, dead centre of frame, texture loaded, and
+  // `visible:false`. A second entry point that is almost the real thing is
+  // worse than no entry point.
+  setMode: (m, u) => { if (u != null) t = u; setMode(m); },
   setOrbit: (y, p, d) => { yaw = y; pitch = p; dist = d * R; place(); },
   stats, routeLength, ready: true, life, level, scene, camera,
 };
