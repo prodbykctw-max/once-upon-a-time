@@ -24,6 +24,7 @@
 // it is a design decision for the client, not something to quietly paper over.
 import * as THREE from './vendor/three.module.min.js';
 import { manGeometries } from './men.js';
+import { findCircuit } from './circuit.js';
 
 // Timing, in seconds, lifted from the shipped runner (see above).
 export const BEAT = {
@@ -470,6 +471,24 @@ export function buildLevel(world, heightAt, E, opts = {}) {
   // one carriageway, and restricting to roads strands the park and the campus.
   const ways = world.roads.filter((w) => w.pts.length >= 2 && pathLen(w.pts) >= 15);
 
+  // ── A CIRCUIT FIRST, IF THE STREETS CONTAIN ONE ─────────────────────────
+  // A closed lap is strictly better than a point-to-point line here: it cannot
+  // wander off, it stays in the location, it never crosses a building because
+  // streets do not, and it LAPS — so an endless runner reaches the end already
+  // at the start, with no seam. The seven-term point-to-point scorer below
+  // exists to approximate those properties; a loop just has them.
+  // Falls through to that scorer where the extract holds no cycle at all,
+  // which measured as DSA, Wade and Stone Mountain — a radius problem, since
+  // Wade goes 0 loops at 400 m to 3 at 900 m.
+  if (opts.circuit !== false) {
+    const circ = findCircuit(world, heightAt, E, { targetM });
+    if (circ) {
+      const turns = findCorners(circ.pts, circ.cum);
+      return finishLevel(world, heightAt, E, circ.pts, circ.cum, circ.len, turns, speed,
+                         targetM, { ...circ.stats, kind: 'circuit', closed: true });
+    }
+  }
+
   const adj = adjacency(ways);
   // building bounds, for the clearance test
   const boxes = (world.buildings || []).map((b) => {
@@ -529,127 +548,11 @@ export function buildLevel(world, heightAt, E, opts = {}) {
 
   const turns = findCorners(pts, cum);
 
-  // ── the climb ────────────────────────────────────────────────────────────
-  // Sampled every 10 m. A runner cannot be sent up a 1-in-4; Stone Mountain has
-  // 240 m of relief in a 450 m radius, so this is a real constraint there and
-  // not a formality.
-  const grade = [];
-  const gstep = Math.max(E.step || 20, 25);     // never finer than the DEM
-  let steepest = 0, climb = 0, drop = 0, prevZ = null;
-  for (let s = 0; s <= len; s += gstep) {
-    let lo = 0; while (lo < cum.length - 2 && cum[lo + 1] < s) lo++;
-    const f = (s - cum[lo]) / ((cum[lo + 1] - cum[lo]) || 1);
-    const a = pts[lo], b = pts[lo + 1] || pts[lo];
-    const x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f;
-    const z = heightAt(E, x, y);
-    if (prevZ !== null) {
-      const g = (z - prevZ) / gstep;
-      if (Math.abs(g) > Math.abs(steepest)) steepest = g;
-      if (g > 0) climb += z - prevZ; else drop += prevZ - z;
-    }
-    prevZ = z;
-    grade.push(+z.toFixed(2));
-  }
-
-  // ── the beat map ─────────────────────────────────────────────────────────
-  // Obstacles and note runs laid along `s` at the shipped cadence, converted to
-  // metres through the run speed. Corners are kept CLEAR: the shipped game
-  // never spawns an obstacle in the same beat as a turn, and a swipe that has
-  // to be both a lane change and a corner is not a fair ask.
-  const beats = [];
-  const clearOf = (s, m) => turns.some((t) => Math.abs(t.s - s) < m);
-  let s = speed * BEAT.firstTurn * 0.35, n = 0;   // a little run-up before the first thing
-  // SEEDED PER LOCATION. Keyed on the index alone, every level got the SAME
-  // beat map — measured: identical impossible sequences at 123 m, 240 m, 327 m
-  // and 345 m in all four locations, because the same index produced the same
-  // roll everywhere. Four levels sharing one rhythm is four times the same
-  // level.
-  let seed = 0;
-  for (const ch of String(world.location.key || 'x')) seed = Math.imul(seed + ch.charCodeAt(0), 2654435761) | 0;
-  const rnd = (i) => {                            // deterministic: a level must replay the same
-    let h = Math.imul(i + 1 + seed, 2654435761); h ^= h >>> 15;
-    return (Math.imul(h, 2246822519) >>> 0) / 4294967296;
-  };
-  while (s < len - speed * 2) {
-    const r = rnd(n++);
-    const gap = speed * (BEAT.obMin + r * (BEAT.obMax - BEAT.obMin));
-    s += gap;
-    if (clearOf(s, speed * 2.2)) continue;        // leave 2.2 s either side of a corner
-    const lane = Math.floor(rnd(n * 7) * LANES) - 1;
-    const k = rnd(n * 13);
-    // Same mix as the shipped spawn table: low 24%, gate 20%, wall 22%, then
-    // power-up, gem and note runs.
-    const tp = k < 0.24 ? 'low' : k < 0.44 ? 'gate' : k < 0.66 ? 'wall'
-             : k < 0.74 ? 'pw' : k < 0.82 ? 'gem' : 'notes';
-    beats.push({ s: +s.toFixed(1), lane, tp });
-  }
-
-  // ── FAIRNESS PASS: no sequence the player physically cannot clear ────────
-  // Airtime is 0.73 s and a slide is 0.43 s, so two jump obstacles 0.58 s apart
-  // in the same lane means she is still airborne when she reaches the second
-  // one and lands on it. Measured before this existed: 3-4 such sequences per
-  // level. The spawn cadence is lifted from an ENDLESS runner, where the ramp
-  // and `adaptF()` keep the density down; a fixed level has to check instead.
-  // Preference is to MOVE THE LANE, not delay the beat — delaying erodes the
-  // rhythm the cadence exists to produce.
-  const RECOVER = { low: BEAT.jumpAir, gate: 0.43, wall: 0.12 };
-  const HAZARD = new Set(['low', 'gate', 'wall']);
-  let unfair = 0;
-  for (let i = 1; i < beats.length; i++) {
-    const a = beats[i];
-    if (!HAZARD.has(a.tp)) continue;
-    let p = null;
-    for (let j = i - 1; j >= 0; j--) if (HAZARD.has(beats[j].tp)) { p = beats[j]; break; }
-    if (!p) continue;
-    const gap = (a.s - p.s) / speed;
-    if (gap >= (RECOVER[p.tp] ?? 0.4) || a.lane !== p.lane) continue;
-    unfair++;
-    // try the other two lanes; a wall still has to leave one lane open
-    const alt = [-1, 0, 1].filter((l) => l !== p.lane);
-    const taken = new Set(beats.filter((o) => HAZARD.has(o.tp) && Math.abs(o.s - a.s) < speed * 0.4)
-                               .map((o) => o.lane));
-    const free = alt.find((l) => !taken.has(l));
-    if (free !== undefined) a.lane = free;
-    else a.s = +(p.s + speed * ((RECOVER[p.tp] ?? 0.4) + 0.05)).toFixed(1);
-  }
-  beats.sort((x, y) => x.s - y.s);
-
-  const straights = [];
-  let last = 0;
-  for (const t of turns) { straights.push(t.s - last); last = t.s; }
-  straights.push(len - last);
-
-  const stats = {
-    lengthM: Math.round(len),
-    legs: legs.length,
-    runSeconds: +(len / speed).toFixed(1),
-    corners: turns.length,
-    cornerDegs: turns.map((t) => t.deg),
-    // A 45 deg junction asks for the same binary swipe as a 90 and does not
-    // look like it needs one. Counted so a level is judged before it is built.
-    awkward: turns.filter((t) => t.deg < 60).length,
-    nearRight: turns.filter((t) => t.deg >= 60 && t.deg <= 120).length,
-    longestStraightM: Math.round(Math.max(...straights)),
-    shortestStraightM: Math.round(Math.min(...straights)),
-    firstCornerS: turns.length ? +(turns[0].s / speed).toFixed(1) : null,
-    maxGradePct: +(steepest * 100).toFixed(1),
-    gradeCapPct: +(maxGrade * 100).toFixed(0),
-    gradeCapUsedPct: usedCap >= 99 ? 'none' : +(usedCap * 100).toFixed(0),
-    minStraightUsedM: usedStraight,
-    climbM: Math.round(climb),
-    dropM: Math.round(drop),
-    obstacles: beats.length,
-    unfairFixed: unfair,
-    routesSearched: searched,
-    score: found.finalScore,
-    targetM,
-    corridorM: LANES * LANE_M,
-    // THE ONE THAT NEEDS A DECISION: the shipped far plane is 2 s of travel.
-    sightM: Math.round(speed * BEAT.sight),
-  };
-
-  return { pts, cum, len, turns, grade, beats, legs, stats,
-           laneM: LANE_M, lanes: LANES, speed };
+  return finishLevel(world, heightAt, E, pts, cum, len, turns, speed, targetM,
+                     { kind: 'route', closed: false, legs: legs.length,
+                       routesSearched: searched, score: found.finalScore,
+                       gradeCapUsedPct: usedCap >= 99 ? 'none' : +(usedCap * 100).toFixed(0),
+                       minStraightUsedM: usedStraight }, legs);
 }
 
 /**
@@ -762,4 +665,131 @@ export function levelGizmo(level, heightAt, E) {
     g.add(mesh);
   }
   return g;
+}
+
+
+/**
+ * Everything a level needs once its CENTRELINE exists, shared by both route
+ * shapes. A circuit and a point-to-point line differ only in how the polyline
+ * is chosen; the climb profile, the beat map, the fairness pass and the stats
+ * are identical, and duplicating them is how the two drift apart.
+ */
+function finishLevel(world, heightAt, E, pts, cum, len, turns, speed, targetM, extra, legs) {
+  // ── the climb ────────────────────────────────────────────────────────────
+  // Sampled every 10 m. A runner cannot be sent up a 1-in-4; Stone Mountain has
+  // 240 m of relief in a 450 m radius, so this is a real constraint there and
+  // not a formality.
+  const grade = [];
+  const gstep = Math.max(E.step || 20, 25);     // never finer than the DEM
+  let steepest = 0, climb = 0, drop = 0, prevZ = null;
+  for (let s = 0; s <= len; s += gstep) {
+    let lo = 0; while (lo < cum.length - 2 && cum[lo + 1] < s) lo++;
+    const f = (s - cum[lo]) / ((cum[lo + 1] - cum[lo]) || 1);
+    const a = pts[lo], b = pts[lo + 1] || pts[lo];
+    const x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f;
+    const z = heightAt(E, x, y);
+    if (prevZ !== null) {
+      const g = (z - prevZ) / gstep;
+      if (Math.abs(g) > Math.abs(steepest)) steepest = g;
+      if (g > 0) climb += z - prevZ; else drop += prevZ - z;
+    }
+    prevZ = z;
+    grade.push(+z.toFixed(2));
+  }
+
+  // ── the beat map ─────────────────────────────────────────────────────────
+  // Obstacles and note runs laid along `s` at the shipped cadence, converted to
+  // metres through the run speed. Corners are kept CLEAR: the shipped game
+  // never spawns an obstacle in the same beat as a turn, and a swipe that has
+  // to be both a lane change and a corner is not a fair ask.
+  const beats = [];
+  const clearOf = (s, m) => turns.some((t) => Math.abs(t.s - s) < m);
+  let s = speed * BEAT.firstTurn * 0.35, n = 0;   // a little run-up before the first thing
+  // SEEDED PER LOCATION. Keyed on the index alone, every level got the SAME
+  // beat map — measured: identical impossible sequences at 123 m, 240 m, 327 m
+  // and 345 m in all four locations, because the same index produced the same
+  // roll everywhere. Four levels sharing one rhythm is four times the same
+  // level.
+  let seed = 0;
+  for (const ch of String(world.location.key || 'x')) seed = Math.imul(seed + ch.charCodeAt(0), 2654435761) | 0;
+  const rnd = (i) => {                            // deterministic: a level must replay the same
+    let h = Math.imul(i + 1 + seed, 2654435761); h ^= h >>> 15;
+    return (Math.imul(h, 2246822519) >>> 0) / 4294967296;
+  };
+  while (s < len - speed * 2) {
+    const r = rnd(n++);
+    const gap = speed * (BEAT.obMin + r * (BEAT.obMax - BEAT.obMin));
+    s += gap;
+    if (clearOf(s, speed * 2.2)) continue;        // leave 2.2 s either side of a corner
+    const lane = Math.floor(rnd(n * 7) * LANES) - 1;
+    const k = rnd(n * 13);
+    // Same mix as the shipped spawn table: low 24%, gate 20%, wall 22%, then
+    // power-up, gem and note runs.
+    const tp = k < 0.24 ? 'low' : k < 0.44 ? 'gate' : k < 0.66 ? 'wall'
+             : k < 0.74 ? 'pw' : k < 0.82 ? 'gem' : 'notes';
+    beats.push({ s: +s.toFixed(1), lane, tp });
+  }
+
+  // ── FAIRNESS PASS: no sequence the player physically cannot clear ────────
+  // Airtime is 0.73 s and a slide is 0.43 s, so two jump obstacles 0.58 s apart
+  // in the same lane means she is still airborne when she reaches the second
+  // one and lands on it. Measured before this existed: 3-4 such sequences per
+  // level. The spawn cadence is lifted from an ENDLESS runner, where the ramp
+  // and `adaptF()` keep the density down; a fixed level has to check instead.
+  // Preference is to MOVE THE LANE, not delay the beat — delaying erodes the
+  // rhythm the cadence exists to produce.
+  const RECOVER = { low: BEAT.jumpAir, gate: 0.43, wall: 0.12 };
+  const HAZARD = new Set(['low', 'gate', 'wall']);
+  let unfair = 0;
+  for (let i = 1; i < beats.length; i++) {
+    const a = beats[i];
+    if (!HAZARD.has(a.tp)) continue;
+    let p = null;
+    for (let j = i - 1; j >= 0; j--) if (HAZARD.has(beats[j].tp)) { p = beats[j]; break; }
+    if (!p) continue;
+    const gap = (a.s - p.s) / speed;
+    if (gap >= (RECOVER[p.tp] ?? 0.4) || a.lane !== p.lane) continue;
+    unfair++;
+    // try the other two lanes; a wall still has to leave one lane open
+    const alt = [-1, 0, 1].filter((l) => l !== p.lane);
+    const taken = new Set(beats.filter((o) => HAZARD.has(o.tp) && Math.abs(o.s - a.s) < speed * 0.4)
+                               .map((o) => o.lane));
+    const free = alt.find((l) => !taken.has(l));
+    if (free !== undefined) a.lane = free;
+    else a.s = +(p.s + speed * ((RECOVER[p.tp] ?? 0.4) + 0.05)).toFixed(1);
+  }
+  beats.sort((x, y) => x.s - y.s);
+
+  const straights = [];
+  let last = 0;
+  for (const t of turns) { straights.push(t.s - last); last = t.s; }
+  straights.push(len - last);
+
+  const stats = {
+    lengthM: Math.round(len),
+    legs: legs ? legs.length : null,
+    runSeconds: +(len / speed).toFixed(1),
+    corners: turns.length,
+    cornerDegs: turns.map((t) => t.deg),
+    // A 45 deg junction asks for the same binary swipe as a 90 and does not
+    // look like it needs one. Counted so a level is judged before it is built.
+    awkward: turns.filter((t) => t.deg < 60).length,
+    nearRight: turns.filter((t) => t.deg >= 60 && t.deg <= 120).length,
+    longestStraightM: Math.round(Math.max(...straights)),
+    shortestStraightM: Math.round(Math.min(...straights)),
+    firstCornerS: turns.length ? +(turns[0].s / speed).toFixed(1) : null,
+    maxGradePct: +(steepest * 100).toFixed(1),
+    climbM: Math.round(climb),
+    dropM: Math.round(drop),
+    obstacles: beats.length,
+    unfairFixed: unfair,
+    targetM,
+    corridorM: LANES * LANE_M,
+    // THE ONE THAT NEEDS A DECISION: the shipped far plane is 2 s of travel.
+    sightM: Math.round(speed * BEAT.sight),
+  };
+
+  return { pts, cum, len, turns, grade, beats, legs: legs || null,
+           stats: { ...stats, ...extra },
+           laneM: LANE_M, lanes: LANES, speed, closed: !!(extra && extra.closed) };
 }
