@@ -186,7 +186,11 @@ const relief = Math.max(...zs) - Math.min(...zs);
 
 const withH = buildings.filter((b) => b.h != null);
 const world = {
-  location: { key, label: loc.label, osm: loc.osm, lat, lon, radius_m: RADIUS },
+  // `signature` names a route this location IS, overriding any search —
+  // Stone Mountain is the Walk-Up Trail. Carried into the world file so the
+  // viewer stays self-contained and never has to read locations.json.
+  location: { key, label: loc.label, osm: loc.osm, lat, lon, radius_m: RADIUS,
+              ...(loc.signature ? { signature: loc.signature } : {}) },
   frame: { origin: 'location centre', units: 'metres', x: 'east', y: 'north' },
   attribution: 'Map data © OpenStreetMap contributors (ODbL) — https://osm.org/copyright',
   generated: new Date().toISOString().slice(0, 10),

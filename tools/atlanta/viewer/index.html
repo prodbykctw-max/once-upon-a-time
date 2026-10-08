@@ -194,6 +194,7 @@ const lifeOpt = qsp.get('life') === '0' ? null
 // ?secs= override. Passing a fixed 1200 m here silently defeated that and gave
 // 250-second levels.
 const levelOpt = qsp.get('level') === '0' ? null : {
+  ...(world.location.signature ? { signature: world.location.signature } : {}),
   ...(qsp.get('len') ? { targetM: +qsp.get('len') } : {}),
   ...(qsp.get('secs') ? { targetS: +qsp.get('secs') } : {}),
 };

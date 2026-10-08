@@ -471,6 +471,55 @@ export function buildLevel(world, heightAt, E, opts = {}) {
   // one carriageway, and restricting to roads strands the park and the campus.
   const ways = world.roads.filter((w) => w.pts.length >= 2 && pathLen(w.pts) >= 15);
 
+  // ── A SIGNATURE ROUTE BEATS ANY SEARCH ──────────────────────────────────
+  // Some locations ARE one named route, and no scorer should be allowed to
+  // argue. Stone Mountain is the Walk-Up Trail: 1,994 m climbing 197 m, which
+  // people walk every day. A circuit search there returns a flat ring at -2%
+  // grade — technically a lap, and not Stone Mountain. `signature` in
+  // locations.json names the way, and the level is the best window of it.
+  if (opts.signature && world.roads) {
+    const sig = world.roads.filter((w) => w.name === opts.signature && w.pts.length >= 2);
+    if (sig.length) {
+      // stitch the named ways end to end, nearest-neighbour, since OSM splits a
+      // long trail into pieces that are not in route order
+      const rem = sig.slice();
+      let chain = rem.shift().pts.slice();
+      while (rem.length) {
+        const tail = chain[chain.length - 1];
+        let bi = -1, brev = false, bd = Infinity;
+        rem.forEach((w, i) => {
+          const d0 = Math.hypot(w.pts[0][0] - tail[0], w.pts[0][1] - tail[1]);
+          const d1 = Math.hypot(w.pts[w.pts.length - 1][0] - tail[0], w.pts[w.pts.length - 1][1] - tail[1]);
+          if (d0 < bd) { bd = d0; bi = i; brev = false; }
+          if (d1 < bd) { bd = d1; bi = i; brev = true; }
+        });
+        if (bi < 0 || bd > 60) break;             // the next piece is not actually attached
+        const nx = rem.splice(bi, 1)[0].pts;
+        const seg = brev ? nx.slice().reverse() : nx;
+        for (let i = 1; i < seg.length; i++) chain.push(seg[i]);
+      }
+      const scum = [0];
+      for (let i = 1; i < chain.length; i++) {
+        scum.push(scum[i - 1] + Math.hypot(chain[i][0] - chain[i - 1][0], chain[i][1] - chain[i - 1][1]));
+      }
+      if (scum[scum.length - 1] >= targetM) {
+        // take the window that CLIMBS the most — on a mountain that is the point
+        let bestFrom = 0, bestGain = -Infinity;
+        for (let from = 0; from + targetM <= scum[scum.length - 1]; from += 40) {
+          let i0 = 0; while (i0 < scum.length - 1 && scum[i0] < from) i0++;
+          let i1 = i0; while (i1 < scum.length - 1 && scum[i1] < from + targetM) i1++;
+          const g = heightAt(E, chain[i1][0], chain[i1][1]) - heightAt(E, chain[i0][0], chain[i0][1]);
+          if (g > bestGain) { bestGain = g; bestFrom = from; }
+        }
+        const { pts, cum, len } = stitch([{ pts: chain }], targetM, bestFrom);
+        const turns = findCorners(pts, cum);
+        return finishLevel(world, heightAt, E, pts, cum, len, turns, speed, targetM,
+                           { kind: 'signature', closed: false, name: opts.signature,
+                             climbM: Math.round(bestGain), fullRouteM: Math.round(scum[scum.length - 1]) });
+      }
+    }
+  }
+
   // ── A CIRCUIT FIRST, IF THE STREETS CONTAIN ONE ─────────────────────────
   // A closed lap is strictly better than a point-to-point line here: it cannot
   // wander off, it stays in the location, it never crosses a building because
