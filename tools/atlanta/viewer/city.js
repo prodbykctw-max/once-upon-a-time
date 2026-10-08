@@ -135,6 +135,7 @@ const COVER = {
   bridge:               [0.25, 0.25, 0.26],
 };
 const BARE = [0.34, 0.31, 0.27];
+const WHITE = [1, 1, 1];   // neutral: let the aerial photo through untinted
 
 function pointInRing(x, y, ring) {
   let inside = false;
@@ -185,8 +186,8 @@ function terrainGeometry(E, areas, SUB = 3, EXT = 2.2, opts = {}) {
   // ground, no cover boundaries worth resolving — gets SUB=1, with the quads
   // under the inner ring skipped so nothing z-fights.
   if (opts.ring !== 'inner' && opts.ring !== 'outer' && EXT > 1) {
-    const inner = terrainGeometry(E, areas, SUB, 1, { ring: 'inner', buildings: opts.buildings });
-    const outer = terrainGeometry(E, areas, 1, EXT, { ring: 'outer', buildings: opts.buildings });
+    const inner = terrainGeometry(E, areas, SUB, 1, { ring: 'inner', buildings: opts.buildings, aerial: opts.aerial });
+    const outer = terrainGeometry(E, areas, 1, EXT, { ring: 'outer', buildings: opts.buildings, aerial: opts.aerial });
     return mergeGeometries([inner, outer]);
   }
   // EXTEND PAST THE SAMPLED GRID instead of adding a flat skirt underneath it.
@@ -223,10 +224,24 @@ function terrainGeometry(E, areas, SUB = 3, EXT = 2.2, opts = {}) {
     for (let i = 0; i < N; i++) {
       const x = x0 + i * step, y = y0 + j * step;
       POS.push(x, heightAt(E, x, y), -y);
-      UV.push(x / 24, y / 24);
-      let c = BARE;
-      for (const a of sorted) {
-        if (a.pts.length > 2 && pointInRing(x, y, a.pts)) c = COVER[a.kind] || c;
+      // ── UVs FROM WORLD METRES WHEN THERE IS A PHOTO ───────────────────────
+      // With an aerial the ground is not tiled at all: the texture is a single
+      // georeferenced image and every vertex samples the real place it stands
+      // on. Without one, fall back to the tiling grain at 24 m.
+      if (opts.aerial) {
+        UV.push((x - opts.aerial.x0) / (opts.aerial.x1 - opts.aerial.x0),
+                (y - opts.aerial.y0) / (opts.aerial.y1 - opts.aerial.y0));
+      } else {
+        UV.push(x / 24, y / 24);
+      }
+      // THE PHOTO ALREADY CONTAINS THE LAND USE. Painting grass green under a
+      // picture of grass tints the picture; the vertex colour carries ONLY the
+      // contact shading when an aerial is in play.
+      let c = opts.aerial ? WHITE : BARE;
+      if (!opts.aerial) {
+        for (const a of sorted) {
+          if (a.pts.length > 2 && pointInRing(x, y, a.pts)) c = COVER[a.kind] || c;
+        }
       }
       // nearest footprint wins: deepest occlusion, not the sum of them
       let ao = 1;
@@ -658,7 +673,33 @@ export function buildCity(world, opts = {}) {
 
   stats.relief = E ? +(Math.max(...E.z) - Math.min(...E.z)).toFixed(0) : 0;
   if (E) {
-    const t = new THREE.Mesh(terrainGeometry(E, world.areas, 3, 2.2, { buildings: buildingsIn }), matGround);
+    // AERIAL FIRST, GRAIN AS THE FALLBACK. `world.aerial` is written by
+    // fetch_aerial.mjs and carries the georeference, so the texture lands on
+    // the real metres rather than being tiled.
+    const aerial = world.aerial || null;
+    const matTerr = aerial
+      // AN AERIAL IS ALREADY LIT. The photo was taken in sunlight and carries
+      // its own shadows and exposure; running it through the sun a second time
+      // double-exposes it and the whole ground goes pale and chalky. Hold it
+      // down so the scene light only shapes it — the contact shading still
+      // lands, because that rides the vertex colour. 0xAAAAAA measured against
+      // three alternatives at one camera: ground luma 94 with nothing blown,
+      // against 53 at 0x6E (murky) and 114 at 0xC8 (back to chalky).
+      ? new THREE.MeshStandardMaterial({ map: tex(asset('art/aerial/' + aerial.file)),
+                                         vertexColors: true, roughness: 1.0,
+                                         color: 0xaaaaaa })
+      : matGround;
+    if (aerial) {
+      // One image across the whole ground: never repeat it, and clamp so the
+      // edge pixel does not wrap round and smear the far side of the world
+      // across the near one.
+      const m = matTerr.map;
+      m.wrapS = m.wrapT = THREE.ClampToEdgeWrapping;
+      m.repeat.set(1, 1);
+      m.anisotropy = 8;
+    }
+    const t = new THREE.Mesh(terrainGeometry(E, world.areas, 3, 2.2,
+                                             { buildings: buildingsIn, aerial }), matTerr);
     t.receiveShadow = true; t.castShadow = true; t.name = 'terrain';
     group.add(t); stats.draws++;
     // was omitted — the terrain is the biggest mesh in the scene and was not
@@ -682,8 +723,16 @@ export function buildCity(world, opts = {}) {
   });
   const carriage = roadsIn.filter((w) => !FOOT_KINDS.has(w.kind));
   const foot = roadsIn.filter((w) => FOOT_KINDS.has(w.kind));
-  addMesh(ribbonsGeometry(carriage, () => 0.18, widthOf, E), matRoad, 'roads');
-  addMesh(ribbonsGeometry(foot, () => 0.26, widthOf, E), matFoot, 'footways');
+  // ── THE PHOTO ALREADY HAS THE ROADS ─────────────────────────────────────
+  // Drawing OSM ribbons on top of an aerial paints a second, approximate road
+  // over a real one — and the two never quite line up, because the ribbon is a
+  // constant-width extrusion of a centreline while the photo shows the actual
+  // carriageway with its bays, turn lanes and kerb radii. The result reads as a
+  // misregistered overlay, which is worse than either alone.
+  if (!world.aerial) {
+    addMesh(ribbonsGeometry(carriage, () => 0.18, widthOf, E), matRoad, 'roads');
+    addMesh(ribbonsGeometry(foot, () => 0.26, widthOf, E), matFoot, 'footways');
+  }
 
   // ── FACADES: one draw call per style, chosen by height ───────────────────
   // Low-rise brick, mid-rise concrete, tall glass. Three wall meshes and one

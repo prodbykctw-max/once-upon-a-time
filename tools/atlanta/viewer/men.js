@@ -4,6 +4,15 @@
 // become "guys that she's trying to avoid", in the register of the Gross
 // Sisters — broad, blocking, deliberately in her way.
 //
+// AND THEY ARE SUITORS, NOT THUGS. Client, 10-08: "the obstacles are guys,
+// courters, that want to be with her, that she's avoiding." That is a different
+// character brief and it should show in the art when it is made: they are
+// pressing, presuming, trying to get her attention — leaning in, blocking the
+// pavement, arms spread to cut her off. Not menacing her, courting her, which
+// is why she has to keep moving. The SILHOUETTE rules below do not change (the
+// mass still has to say the action), but the pose language does: a man blocking
+// your path to talk to you stands differently from one trying to hurt you.
+//
 // ── WHY THIS IS A READABILITY PROBLEM, NOT A MODELLING ONE ─────────────────
 // Today `low` / `gate` / `wall` are three different KINDS of object, so they
 // telegraph jump / slide / dodge instantly — the player reads the shape, not
