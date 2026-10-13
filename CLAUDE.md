@@ -111,6 +111,15 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
 - **NO STOCK GLYPHS IN GAME UI** (client directive): never use Unicode arrows/
   symbols/emoji as visual elements — the OS renders them off-theme. Anything
   visual is a made asset in the game's style, or plain words.
+- **NO ARTIFACTS, NO LINKS — DELIVER FILES** (client directive, binding; he has
+  had to say this more than once). Every deliverable is a **downloaded file**:
+  a PDF, a PNG, an MP4, sent straight to him. Never a claude.ai artifact, never
+  a hosted page, never a URL he has to open, and never "I published it, here's
+  the link." He works from his phone and forwards things to Jandé and Frédéric;
+  a link he cannot download is not a deliverable. Build the HTML if HTML is the
+  best way to lay something out — then **print it to PDF and send the PDF**, and
+  keep the page in the repo as source. The only URL that belongs in a reply is
+  the live game itself.
 - **Two-tier typography:** Storyboo is the **display** face only (wordmark, one
   hero heading per screen). All body/UI text uses `var(--body)`. Don't flatten it
   back — all-Storyboo read as "AI slop" to the client.
