@@ -1,4 +1,15 @@
-# Presentation set — Jandé: Once Upon A Time, Game II (Atlanta)
+# Presentation sets — Jandé: Once Upon A Time
+
+Two separate sets, for two different things:
+
+- **`characters/`** — the **Game I RPG cast**: Jandé, six foe types, nine
+  bosses. An 8-page PDF plus five sheets, all generated from the shipped
+  atlases. See `characters/README.md`.
+- **`stills/` + `video/`** — the **Game II (Atlanta) world**, described below.
+
+---
+
+## Game II (Atlanta)
 
 For showing Jandé and Frédéric. **Everything here is generated** — the scripts
 in `tools/atlanta/present/` are the source of truth.

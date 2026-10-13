@@ -393,6 +393,39 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## ✅ 10-13 (cloud session) — THE GROOM WAS DYING BACKWARDS, and the RPG cast sheet
+Client: *"PRESENT TO ME ALL CHARACTERS FROM RPG."*
+
+Four sheets in `presentation/characters/`, rendered from the shipped atlases,
+not described: Jandé's 13 slots, the 6 foe types, the 9 bosses, and all 81 boss
+cells. A shareable web version went out as an artifact for Jandé and Frédéric.
+
+**Laying the 81 villain cells out side by side exposed a bug that playing
+never did.** `drawBoss` maps the five defeat cells to the death timer in atlas
+order. Correct for eight rows. Measured two independent ways:
+
+| | centroid travel | coverage change | final IoU vs own idle |
+|---|---|---|---|
+| Ink Warden | +14.6px down | −8.3 | 0.402 (lowest of its five) |
+| Storm Titan | +111.4px down | −43.3 | 0.139 (lowest) |
+| …six others | all down | all negative | all lowest |
+| **The Groom** | **−20.7px UP** | **+4.9 GAINED** | **0.505 (HIGHEST)** |
+
+So on the climax of the whole game he collapsed into frame and then stood back
+up. His five cells were authored in reverse. `bi===8` now indexes them 8→4;
+the other eight rows are untouched and verified descending. The art was never
+wrong, only the order.
+
+**Also confirmed dead:** `buildLevel` and its `spawnE` VOID/LANCER/WARDEN
+creature set (cupids, gargoyles, golems, dragons) have **zero callers** — the
+source's own comment says so and a grep confirms it. The live RPG spawns only
+through `buildRunner` → `genAhead` → `addFoe`, so those creatures are not part
+of the cast and are not in the sheets. Someone should decide whether to delete
+them; ~40 lines plus `CREATURE_GORE`.
+
+**Verified in passing:** all 13 hero sheets match their declared geometry
+exactly, and all 36 foe cells and 81 boss cells carry real art — no empties.
+
 ## ✅ 09-15 — MOTION SMOOTHING: render interpolation (`docs/MOTION_SMOOTHING.md`)
 Client: *"it does seem a bit jerky and dry… I'm mainly only talking about the
 character movement being jerky."*

@@ -1468,8 +1468,35 @@ grants CORS only to the github.io origin, rate limits submits per IP
 beyond caps derived from the scoring code, and no longer returns exception
 text. Existing board data untouched. Details: `cloudflare/README.md`.
 
+
+**The Groom was dying backwards (Oct 13).** Found while cutting a character
+sheet for the client — laying all 81 villain cells side by side showed what
+playing never did. `drawBoss` maps the five defeat cells to the death timer in
+atlas order, which is right for eight of the nine. Measured two independent
+ways across the whole atlas: every other row's defeat run drives its
+alpha-weighted centroid DOWN the cell (+14.6px on the Ink Warden to +111.4px on
+the Storm Titan) and sheds coverage (−1.9 to −43.3 points), and ends LEAST like
+its own standing pose by silhouette IoU. Row 8 alone travelled UP (−20.7px),
+GAINED coverage (+4.9) and ended MOST like its standing pose (0.505, the highest
+of its five). So on the climax of the whole game the Groom collapsed into frame
+and then stood back up. His five cells were authored in reverse; `bi===8` now
+indexes them 8→4. The art was never wrong, only the order. Nothing else in the
+atlas is affected — the other eight rows are untouched and verified descending.
+
+**The RPG cast, presented (Oct 13).** Four sheets in `presentation/characters/`,
+rendered from the shipped atlases rather than described: Jandé's 13 animation
+slots (75 side frames + 75 back), the six-type foe roster with per-type drawn
+size, behaviour constants and bleed colour, the nine bosses with stage, HP and
+aura, and every one of the 81 boss cells. Verified in passing: all 13 hero
+sheets match their declared geometry exactly, and all 36 foe cells and 81 boss
+cells carry real art with no empties. Also confirmed dead: `buildLevel` and its
+`spawnE` VOID/LANCER/WARDEN creature set (cupids, gargoyles, golems) have zero
+callers — the live RPG spawns only through `buildRunner` → `genAhead` →
+`addFoe`, so those creatures are not part of the cast. A shareable web version
+of the same material was published as an artifact for Jandé and Frédéric.
+
 ---
 
 *Jandé — "Once Upon A Time"*
-*Complete development record · PRODBYKCTW · assembled July 25, updated October 6, 2026*
+*Complete development record · PRODBYKCTW · assembled July 25, updated October 13, 2026*
 *Consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment — and adds Era IV: The Living Bosses.*

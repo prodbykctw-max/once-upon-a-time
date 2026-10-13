@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Cast</title>
+<style>
+  @font-face{font-family:'Storyboo';src:url('storyboo.ttf') format('truetype');font-display:swap}
+
+  :root{
+    /* The palette is the GAME'S OWN. --ink is the Ink Warden's ink (26,20,34),
+       --cream is the torn page from the same aura code, --gold is stage 1's accent. */
+    --ink:#15111c; --panel:#1f1829; --panel2:#271e34; --rule:#3d3350;
+    --cream:#ece4d4; --dim:#a79ab6; --gold:#ffd978; --blood:#d8384f;
+    --body:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  :root:not([data-theme="light"]){color-scheme:dark}
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --ink:#f3efe6; --panel:#fffdf8; --panel2:#f7f2e8; --rule:#ddd2c0;
+      --cream:#231b30; --dim:#6b5f7a; --gold:#8a6410; --blood:#b01d33;
+      color-scheme:light;
+    }
+  }
+  :root[data-theme="dark"]{--ink:#15111c;--panel:#1f1829;--panel2:#271e34;--rule:#3d3350;--cream:#ece4d4;--dim:#a79ab6;--gold:#ffd978;--blood:#d8384f;color-scheme:dark}
+  :root[data-theme="light"]{--ink:#f3efe6;--panel:#fffdf8;--panel2:#f7f2e8;--rule:#ddd2c0;--cream:#231b30;--dim:#6b5f7a;--gold:#8a6410;--blood:#b01d33;color-scheme:light}
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ink);color:var(--cream);font-family:var(--body);
+       font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 16px 96px}
+  .display{font-family:'Storyboo',var(--body);font-weight:400;letter-spacing:.01em;line-height:1.02;text-wrap:balance}
+  .mono{font-family:var(--mono);font-size:.78rem;letter-spacing:.02em;color:var(--dim)}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+
+  /* ── masthead ─────────────────────────────────────────────── */
+  header{padding:72px 0 40px;border-bottom:1px solid var(--rule)}
+  h1.display{font-size:clamp(3rem,11vw,6.5rem);margin:.08em 0 .22em}
+  .tagline{font-size:clamp(1.05rem,2.4vw,1.35rem);color:var(--cream);max-width:40ch;margin:0}
+  .standfirst{color:var(--dim);max-width:62ch;margin:18px 0 0}
+
+  .tally{display:flex;flex-wrap:wrap;gap:12px;margin:34px 0 0;padding:0;list-style:none}
+  .tally li{background:var(--panel);border:1px solid var(--rule);border-radius:10px;
+            padding:12px 18px;min-width:132px}
+  .tally b{display:block;font-family:'Storyboo',var(--body);font-size:1.9rem;line-height:1;color:var(--gold)}
+  .tally span{font-family:var(--mono);font-size:.7rem;letter-spacing:.11em;text-transform:uppercase;color:var(--dim)}
+
+  /* ── sections ─────────────────────────────────────────────── */
+  section{padding:68px 0 0}
+  h2.display{font-size:clamp(2.1rem,5.6vw,3.4rem);margin:.18em 0 .1em}
+  .sechead{border-bottom:1px solid var(--rule);padding-bottom:22px;margin-bottom:34px}
+  .sechead p{color:var(--dim);max-width:66ch;margin:10px 0 0}
+
+  /* ── Jandé ────────────────────────────────────────────────── */
+  .hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:40px;align-items:start}
+  .poses{display:flex;gap:8px;align-items:flex-end;background:
+      radial-gradient(120% 86% at 50% 108%, color-mix(in srgb,var(--gold) 16%, transparent), transparent 70%);
+      padding:18px 10px 0;border-bottom:1px solid var(--rule)}
+  .poses img{flex:1 1 0;min-width:0;height:auto;max-height:290px;object-fit:contain;object-position:bottom}
+  .posecap{display:flex;gap:8px;margin:8px 0 0}
+  .posecap span{flex:1 1 0;text-align:center}
+
+  table.slots{width:100%;border-collapse:collapse;font-size:.95rem}
+  table.slots th{text-align:left;font-family:var(--mono);font-size:.68rem;letter-spacing:.13em;
+      text-transform:uppercase;color:var(--gold);padding:0 10px 9px 0;border-bottom:1px solid var(--rule);font-weight:400}
+  table.slots td{padding:8px 10px 8px 0;border-bottom:1px solid color-mix(in srgb,var(--rule) 50%, transparent);vertical-align:top}
+  table.slots td:first-child{font-family:'Storyboo',var(--body);font-size:1.05rem;white-space:nowrap}
+  table.slots td.num{font-family:var(--mono);font-size:.82rem;color:var(--dim);
+      font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  table.slots td.what{color:var(--dim);font-size:.93rem}
+  .scroller{overflow-x:auto}
+
+  .lex{margin:30px 0 0;padding:22px 24px;background:var(--panel);border:1px solid var(--rule);border-radius:12px}
+  .lex dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 16px;margin:14px 0 0}
+  .lex dt{font-family:'Storyboo',var(--body);color:var(--gold);white-space:nowrap}
+  .lex dd{margin:0;color:var(--dim);font-size:.95rem}
+
+  /* ── cards ────────────────────────────────────────────────── */
+  .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:14px;overflow:hidden;
+        display:flex;flex-direction:column}
+  .card .bleed{height:4px;background:var(--acc)}
+  .plate{background:
+      radial-gradient(118% 80% at 50% 104%, color-mix(in srgb,var(--acc) 26%, transparent), transparent 72%),
+      var(--panel2);
+      display:flex;align-items:flex-end;justify-content:center;padding:20px 20px 0;min-height:214px}
+  .plate img{max-width:100%;max-height:230px;height:auto;width:auto;display:block}
+  .foe .plate{min-height:168px}
+  .foe .plate img{max-height:150px}
+  .card .body{padding:18px 20px 22px;display:flex;flex-direction:column;gap:9px;flex:1}
+  .card h3{font-family:'Storyboo',var(--body);font-weight:400;font-size:1.5rem;margin:0;line-height:1.08}
+  .where{font-family:var(--mono);font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+  /* The stage number was on the character's own bleed colour, and measuring the
+     contrast killed that idea: those are hues, not text colours. The Wisp's pale
+     #96ebff came out at 2.23:1 on the light ground, the Groom's dark #c3162a at
+     3.93:1 on the dark one, and mixing toward the text colour only moved them a
+     little. Gold is the page's label colour and is tuned for both grounds, so
+     the number sits on that. The accent still identifies the card twice over —
+     the bar at the top and the swatch below, both of which ARE colour samples
+     rather than text. */
+  .where b{color:var(--gold);font-weight:400}
+  .stats{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 0}
+  .chip{font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;padding:4px 9px;border-radius:999px;
+        background:var(--panel2);border:1px solid var(--rule);color:var(--dim);white-space:nowrap}
+  .chip.hp{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 36%, var(--rule))}
+  .chip.air{color:#7fd4ff;border-color:#2f5a72}
+  .chip.dot::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;
+        background:var(--acc);margin-right:7px;vertical-align:-1px}
+  .card p{margin:0;font-size:.97rem;color:color-mix(in srgb,var(--cream) 82%, var(--dim))}
+  .card p.aura{font-style:italic;color:var(--dim);font-size:.93rem}
+
+  /* ── the fix callout ──────────────────────────────────────── */
+  .fix{margin:34px 0 0;background:var(--panel);border:1px solid var(--rule);
+       border-left:4px solid var(--blood);border-radius:0 12px 12px 0;padding:24px 26px}
+  .fix h3{font-family:'Storyboo',var(--body);font-weight:400;font-size:1.6rem;margin:6px 0 10px}
+  .fix p{margin:0 0 12px;max-width:72ch}
+  .fix p:last-child{margin-bottom:0}
+  .fix .num{color:var(--gold);font-family:var(--mono);font-size:.9em}
+
+  footer{margin-top:76px;padding-top:26px;border-top:1px solid var(--rule);color:var(--dim);font-size:.93rem}
+  footer p{max-width:72ch}
+
+  @media (max-width:880px){
+    .hero{grid-template-columns:minmax(0,1fr);gap:30px}
+    header{padding:44px 0 30px}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .card{transition:border-color .18s ease, transform .18s ease}
+    .card:hover{border-color:color-mix(in srgb,var(--acc) 55%, var(--rule));transform:translateY(-2px)}
+  }
+
+  /* ── print ────────────────────────────────────────────────────
+     Keeps the ink ground (this is the game's own look, and the cut-out
+     portraits are lit for a dark plate), pins the dark tokens so a printer
+     in light mode does not invert it, and stops cards and the hero block
+     from being torn across a page break. */
+  @page{size:A4 portrait;margin:14mm 12mm}
+  @media print{
+    :root{--ink:#15111c;--panel:#1f1829;--panel2:#271e34;--rule:#3d3350;
+          --cream:#ece4d4;--dim:#a79ab6;--gold:#ffd978;--blood:#d8384f}
+    body{font-size:11.5pt}
+    .wrap{max-width:none;padding:0}
+    .card,.lex,.fix,.poses,.tally li{break-inside:avoid;page-break-inside:avoid}
+    table.slots tr{break-inside:avoid}
+    section{break-before:page;page-break-before:always;padding-top:0}
+    header{padding-top:0}
+    .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .hero{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:22px}
+    .card:hover{transform:none}
+    .scroller{overflow:visible}
+    h1.display{font-size:52pt}
+    h2.display{font-size:26pt}
+    /* The 13 slots spilled four rows onto a near-empty page. Tightening the
+       rows and the hero gap pulls the whole table back onto one. */
+    table.slots{font-size:9.6pt}
+    table.slots td{padding:3.5px 8px 3.5px 0}
+    table.slots td:first-child{font-size:10.5pt}
+    table.slots td.num{font-size:8.6pt}
+    table.slots td.what{font-size:9pt}
+    .lex{padding:16px 18px;margin-top:20px}
+    .lex dl{gap:4px 14px}
+    .poses img{max-height:200px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Jandé &middot; Once Upon A Time &middot; Action RPG</p>
+  <h1 class="display">The Cast</h1>
+  <p class="tagline">Every character that ships in the RPG, pulled straight out of the game&rsquo;s own atlases.</p>
+  <p class="standfirst">Nothing on this page was redrawn or described from memory. Each figure is the shipped sprite, cut from the
+     file the game loads at runtime, and every number beside it was read out of the source or measured off the pixels.</p>
+  <ul class="tally">
+    <li><b>1</b><span>Heroine</span></li>
+    <li><b>6</b><span>Foe types</span></li>
+    <li><b>9</b><span>Bosses</span></li>
+    <li><b>150</b><span>Hero frames</span></li>
+    <li><b>117</b><span>Villain cells</span></li>
+  </ul>
+</header>
+
+<!-- ════════════ JANDÉ ════════════ -->
+<section>
+  <div class="sechead">
+    <p class="eyebrow">The heroine</p>
+    <h2 class="display">Jand&eacute;</h2>
+    <p>Thirteen rendered animation sheets &mdash; ten side-view for the RPG, three back-view for Royal Runner.
+       The side art faces <strong>right</strong>; left is a mirror. She fights with her voice, so every verb in the
+       game is a musical one.</p>
+  </div>
+
+  <div class="hero">
+    <div>
+      <div class="poses">
+        <img src="jande-idle.png" alt="Jandé standing">
+        <img src="jande-attack.png" alt="Jandé mid Mic Strike">
+        <img src="jande-belt.png" alt="Jandé belting">
+        <img src="jande-dance.png" alt="Jandé dancing">
+      </div>
+      <div class="posecap mono">
+        <span>idle</span><span>attack</span><span>belt</span><span>dance</span>
+      </div>
+
+      <div class="lex">
+        <p class="eyebrow">Her vocabulary</p>
+        <dl>
+          <dt>Resonance</dt><dd>the resource everything spends</dd>
+          <dt>Grace Notes</dt><dd>the collectibles strung across every jump</dd>
+          <dt>Mic Strike</dt><dd>the melee</dd>
+          <dt>Sound Wave</dt><dd>the projectile</dd>
+          <dt>Hold Note</dt><dd>the block</dd>
+          <dt>Refrain</dt><dd>she heals by singing</dd>
+          <dt>Belt</dt><dd>the magic strike</dd>
+          <dt>Downbeat</dt><dd>the aerial pogo</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="scroller">
+      <table class="slots">
+        <thead><tr><th>Slot</th><th class="num">Frames</th><th class="num">Rate</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td>idle</td><td class="num">6</td><td class="num">6.7 fps</td><td class="what">Breath and shift</td></tr>
+          <tr><td>run</td><td class="num">8</td><td class="num">15 fps</td><td class="what">2.36 body-heights per cycle</td></tr>
+          <tr><td>jump</td><td class="num">6</td><td class="num">8.6 fps</td><td class="what">Held 7 each across 44 frames of airtime</td></tr>
+          <tr><td>attack</td><td class="num">8</td><td class="num">30 fps</td><td class="what">Mic Strike &mdash; the fastest sheet in the game</td></tr>
+          <tr><td>dash</td><td class="num">5</td><td class="num">15 fps</td><td class="what">Ground dash, on a cooldown</td></tr>
+          <tr><td>block</td><td class="num">3</td><td class="num">10 fps</td><td class="what">Hold Note &mdash; the guard</td></tr>
+          <tr><td>dance</td><td class="num">6</td><td class="num">10 fps</td><td class="what">Idle flourish and the victory beat</td></tr>
+          <tr><td>refrain</td><td class="num">6</td><td class="num">10 fps</td><td class="what">Refrain &mdash; the heal</td></tr>
+          <tr><td>belt</td><td class="num">5</td><td class="num">15 fps</td><td class="what">Belt &mdash; the magic strike</td></tr>
+          <tr><td>downstrike</td><td class="num">4</td><td class="num">15 fps</td><td class="what">Downbeat &mdash; the aerial pogo</td></tr>
+          <tr><td>bkrun</td><td class="num">25</td><td class="num">&mdash;</td><td class="what">Back view, Royal Runner</td></tr>
+          <tr><td>bkjump</td><td class="num">25</td><td class="num">&mdash;</td><td class="what">Back view, Royal Runner</td></tr>
+          <tr><td>bkslide</td><td class="num">25</td><td class="num">&mdash;</td><td class="what">Back view, Royal Runner</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ FOES ════════════ -->
+<section>
+  <div class="sechead">
+    <p class="eyebrow">Six types &middot; 36 painted cells</p>
+    <h2 class="display">The Foe Roster</h2>
+    <p>They are introduced on a schedule, not all at once &mdash; the stage you first meet one is the real
+       information here. All six share a single 52&times;58 collider anchored at the feet; the drawn size differs per type
+       so the painting reads at speed. Each bleeds what it is made of, and only flesh bleeds red.</p>
+  </div>
+  <div class="grid" id="foes"></div>
+</section>
+
+<!-- ════════════ BOSSES ════════════ -->
+<section>
+  <div class="sechead">
+    <p class="eyebrow">Nine stages, nine villains</p>
+    <h2 class="display">The Nine</h2>
+    <p>Each stage ends the same way: a locked gate, a sealed arena, and a villain that belongs to nowhere else.
+       Four idle frames cycle through the fight; five defeat frames play on the kill, under slow motion, a KO
+       spotlight and a push-in. HP is shown at normal difficulty &mdash; &times;1.4 on Hard, &times;0.7 on Easy.</p>
+  </div>
+  <div class="grid" id="bosses"></div>
+
+  <div class="fix">
+    <p class="eyebrow">Found while making this page</p>
+    <h3>The Groom was dying backwards</h3>
+    <p>Laying all 81 villain cells out side by side made something visible that playing never did. Across every
+       other boss, the defeat run drops its weight down the cell and loses substance &mdash; the centre of mass
+       travels <span class="num">+14.6px</span> on the Ink Warden and <span class="num">+111.4px</span> on the
+       Storm Titan, shedding up to <span class="num">43</span> points of coverage.</p>
+    <p>Row nine alone travelled the other way: <span class="num">&minus;20.7px</span> upward, <span class="num">+4.9</span>
+       points <em>gained</em>. Measured a second way, by silhouette overlap against each villain&rsquo;s own standing pose,
+       the other eight finish least like themselves and the Groom finishes <em>most</em> like himself
+       (<span class="num">0.505</span>, the highest of his five).</p>
+    <p>So on the climax of the whole game, the Groom collapsed into frame and then stood back up. His five cells
+       were authored in reverse and it shipped that way. The art was always right; only the order was wrong, and
+       it now plays from the last cell to the first. He is struck, he burns, he falls.</p>
+  </div>
+</section>
+
+<footer>
+  <p><strong>How this was put together.</strong> Portraits are cut from <code>web/e3bc36ab1807.webp</code> (the foe atlas,
+     4896&times;152, cells 136&times;152) and <code>web/78f95835ae52.webp</code> (the boss atlas, 1800&times;2520, cells
+     200&times;280), both shipped with the game. Behaviour, speeds, hit boxes, HP and bleed colours were read out of
+     <code>index.html</code>. Coverage, centroids and silhouette overlap were measured off the pixels.</p>
+  <p style="margin-top:12px">An older enemy set &mdash; cupids, gargoyles, golems and the rest &mdash; is still in the file but is
+     never reached: the function that spawns it has no callers. It is not part of the cast and is not shown here.</p>
+</footer>
+
+</div>
+
+<script>
+const FOES = [
+  {k:'thorn-goblin', n:'Thorn Goblin', tp:0, acc:'#76a836', bleed:'green sap', size:'112&times;124', ground:true, stage:1, place:'Once Upon a Page',
+   d:'A troll on the floor. Patrols at 0.7, then accelerates to 1.9 the moment she is inside 340px. Ledge-guarded, so it stops at the brink of a pit rather than gliding across it.'},
+  {k:'cursed-raven', n:'Cursed Raven', tp:1, acc:'#6a6288', bleed:'smoke', size:'100&times;110', ground:false, stage:2, place:'First Light Meadow',
+   d:'Bobs on a slow sine at its hover line, then dives to her exact height the moment she is inside 170px. Closes at 1.6.'},
+  {k:'nightshade-sprite', n:'Nightshade Sprite', tp:2, acc:'#e296ff', bleed:'violet ichor', size:'100&times;110', ground:false, stage:4, place:'The Rose Waltz',
+   d:'Hovers wide and out of reach on a 46px swing, then darts. The dash window is 40 frames in every 150 and it crosses at 3.4 &mdash; more than double the raven.'},
+  {k:'bramble-knight', n:'Bramble Knight', tp:3, acc:'#609634', bleed:'green sap', size:'138&times;152', ground:true, stage:5, place:'The Mirror Lake',
+   d:'The heaviest thing on the floor and the largest sprite in the set. Tops out at 1.15 with 0.92 inertia, so it accelerates and turns slowly and every approach is telegraphed.'},
+  {k:'wisp-swarm', n:'Wisp Swarm', tp:4, acc:'#96ebff', bleed:'pale light', size:'88&times;96', ground:false, stage:6, place:'The Wishing Glade',
+   d:'The smallest, and the quickest to change its mind. Weaves on a 0.09 sine while closing, and inside 150px it swarms her head outright.'},
+  {k:'rose-wraith', n:'Rose Wraith', tp:5, acc:'#c41a40', bleed:'red', size:'124&times;138', ground:false, stage:8, place:'The Sky Gardens',
+   d:'The elite. Homes from 420px away, further than anything else in the game can see, and never stops &mdash; but only at 1.05. It is the one flyer that bleeds red.'},
+];
+
+const BOSSES = [
+  {k:'ink-warden', n:'Ink Warden', stage:1, place:'Once Upon a Page', hp:7, air:false, acc:'#6a5a86', bleed:'ink',
+   aura:'Torn pages drift upward while ink motes fall through them.',
+   d:'The library&rsquo;s keeper, and the first thing that tells her this story has a guard.'},
+  {k:'thistle-ogre', n:'Thistle Ogre', stage:2, place:'First Light Meadow', hp:9, air:false, acc:'#78aa3c', bleed:'sap',
+   aura:'Kicked-up dust and floating thistle seed.',
+   d:'A meadow brute. Blunt, heavy, and the first boss that really hits back.'},
+  {k:'blossom-revenant', n:'Blossom Revenant', stage:3, place:'The Petal Mile', hp:11, air:true, acc:'#ff96cd', bleed:'petals',
+   aura:'A wraith&rsquo;s veil of petals, all held in orbit.',
+   d:'Never touches the ground, so it drifts and shoots where the others jump and slam.'},
+  {k:'thorn-queen', n:'Thorn Queen', stage:4, place:'The Rose Waltz', hp:13, air:false, acc:'#c81437', bleed:'red',
+   aura:'Rose-and-thorn motes coiling counter-clockwise.',
+   d:'Humanoid, and she bleeds red &mdash; the rule across the whole cast is that only flesh does.'},
+  {k:'lake-wraith', n:'Lake Wraith', stage:5, place:'The Mirror Lake', hp:15, air:true, acc:'#6ec8ff', bleed:'water',
+   aura:'Water beads trailing the serpentine glide, head to tail.',
+   d:'Airborne and serpentine: a 58px vertical sway that couples into its horizontal glide.'},
+  {k:'toadstool-warlock', n:'Toadstool Warlock', stage:6, place:'The Wishing Glade', hp:17, air:false, acc:'#c882ff', bleed:'spores',
+   aura:'A low fog bank with a spore cloud rising out of it.',
+   d:'The glade&rsquo;s caster. Everything it throws at her is alive.'},
+  {k:'scarecrow-king', n:'Scarecrow King', stage:7, place:'The Golden Hour', hp:19, air:false, acc:'#d6ac5c', bleed:'straw',
+   aura:'Crows wheel overhead as straw scatters off him.',
+   d:'Stuffed and crowned. The only boss whose atmosphere is other animals.'},
+  {k:'storm-titan', n:'Storm Titan', stage:8, place:'The Sky Gardens', hp:21, air:false, acc:'#aad2ff', bleed:'storm-light',
+   aura:'Churning cloud haze with lightning strobing inside it.',
+   d:'Has its own attack table, charge-heavy, because the gusts carry it across the arena.'},
+  {k:'the-groom-who-lied', n:'The Groom Who Lied', stage:9, place:'Her Encore', hp:28, air:false, acc:'#c3162a', bleed:'red',
+   aura:'Dark embers rising off a broken vow.',
+   d:'The finale. 28 HP, a third again the Storm Titan. The story&rsquo;s real antagonist &mdash; and he bleeds red.'},
+];
+
+function chip(txt, cls){ return `<span class="chip ${cls||''}">${txt}</span>`; }
+
+document.getElementById('foes').innerHTML = FOES.map(f => `
+  <article class="card foe" style="--acc:${f.acc}">
+    <div class="bleed"></div>
+    <div class="plate"><img src="foe-${f.k}.png" alt="${f.n}"></div>
+    <div class="body">
+      <p class="where">Enters <b>stage ${f.stage}</b> &middot; ${f.place}</p>
+      <h3>${f.n}</h3>
+      <div class="stats">
+        ${chip(f.ground ? 'Ground, ledge-guarded' : 'Flyer')}
+        ${chip(f.size + ' px')}
+        ${chip('bleeds ' + f.bleed, 'dot')}
+      </div>
+      <p>${f.d}</p>
+    </div>
+  </article>`).join('');
+
+document.getElementById('bosses').innerHTML = BOSSES.map(b => `
+  <article class="card" style="--acc:${b.acc}">
+    <div class="bleed"></div>
+    <div class="plate"><img src="boss-${b.k}.png" alt="${b.n}"></div>
+    <div class="body">
+      <p class="where"><b>Stage ${b.stage}</b> &middot; ${b.place}</p>
+      <h3>${b.n}</h3>
+      <div class="stats">
+        ${chip(b.hp + ' HP', 'hp')}
+        ${b.air ? chip('Airborne', 'air') : ''}
+        ${chip('bleeds ' + b.bleed, 'dot')}
+      </div>
+      <p>${b.d}</p>
+      <p class="aura">${b.aura}</p>
+    </div>
+  </article>`).join('');
+</script>
+</body>
+</html>
