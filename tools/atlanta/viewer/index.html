@@ -486,11 +486,21 @@ function placeRpgCamera() {
   // so she runs to the RIGHT exactly as the RPG's art is drawn.
   const cx = p.x + r.nx * RPG.side + r.dx * RPG.lead;
   const cy = p.y + r.ny * RPG.side + r.dy * RPG.lead;
-  camera.position.set(cx, heightAt(world.elevation, cx, cy) + RPG.camH, -cy);
+  // BOTH HEIGHTS HANG OFF HER GROUND, NOT OFF THE GROUND UNDER THE CAMERA.
+  // Sampling the terrain beneath the camera looks reasonable and breaks on real
+  // ground: at Cobb Stadium the land falls ~24 m right beside the route, the
+  // camera's own 14 m offset lands it down in that drop, and 5.4 m above the
+  // bottom of a dip is still metres BELOW the road she is on — so the shot
+  // became her road slab seen from underneath with sky behind it. A side-on
+  // camera is defined relative to the SUBJECT; the only ground that matters is
+  // the ground she is standing on.
+  // Her own ground, not p.z, so the frame does not bob every time she jumps.
+  const gh = heightAt(world.elevation, p.x, p.y);
+  camera.position.set(cx, gh + RPG.camH, -cy);
   // Aim ahead of her, BELOW the camera. Aiming ahead keeps the road open to the
   // right (the read-ahead); aiming low pitches the view down onto the ground.
   const ax = p.x + r.dx * RPG.lead, ay = p.y + r.dy * RPG.lead;
-  camera.lookAt(ax, heightAt(world.elevation, ax, ay) + RPG.aimH, -ay);
+  camera.lookAt(ax, gh + RPG.aimH, -ay);
 }
 
 function placePlayCamera() {

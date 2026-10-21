@@ -696,7 +696,15 @@ export function buildCity(world, opts = {}) {
       const m = matTerr.map;
       m.wrapS = m.wrapT = THREE.ClampToEdgeWrapping;
       m.repeat.set(1, 1);
-      m.anisotropy = 8;
+      // 16, not 8. One image over the whole extract means the ground is viewed
+      // at a steep slant for most of the frame from any play-height camera, and
+      // anisotropy is the only thing keeping a slanted texture off its
+      // blurriest mip. 16 is the cap the hardware reports here (measured via
+      // EXT_texture_filter_anisotropic) and is the universal WebGL maximum, so
+      // it is written as a constant rather than plumbed through from the
+      // renderer, which this module has no handle on. A driver that offers less
+      // clamps silently.
+      m.anisotropy = 16;
     }
     const t = new THREE.Mesh(terrainGeometry(E, world.areas, 3, 2.2,
                                              { buildings: buildingsIn, aerial }), matTerr);

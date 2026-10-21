@@ -773,3 +773,26 @@ up with no road textures and no photo.
 
 Renderer: `tools/atlanta/present/rpg.cjs`, 10 s per location at 960×540/24fps,
 same three-worker ceiling as `render.cjs`.
+
+### 10-21, later — two fixes the first six renders forced
+
+**The camera's height must hang off HER ground, not the ground under the
+camera.** Sampling the terrain beneath the camera reads as the obvious thing and
+breaks on real land. At Cobb Stadium the ground falls ~24 m right beside the
+route; the camera's own 14 m side offset drops it into that fall, and 5.4 m
+above the bottom of a dip is still metres BELOW the road she is running on. The
+render came out as her road slab seen **from underneath, with sky behind it** —
+she appeared to be running along a bridge in the air. A side-on camera is
+defined relative to its subject: the only ground that matters is the ground she
+stands on. Her ground height, not `pose().z`, so the frame does not bob when she
+jumps.
+
+**Terrain anisotropy raised 8 → 16.** One image over the whole extract means the
+ground is slanted away from any play-height camera across most of the frame, and
+anisotropy is the only thing keeping a slanted texture off its blurriest mip. 16
+is what the hardware reports (`EXT_texture_filter_anisotropic`) and is the
+universal WebGL cap; a driver offering less clamps silently. It is a constant
+rather than a plumbed-through `renderer.capabilities.getMaxAnisotropy()` because
+`city.js` has no renderer handle — the first attempt at that threw a
+ReferenceError and would have cost an hour of rendering had it not been caught
+on a load check first.
