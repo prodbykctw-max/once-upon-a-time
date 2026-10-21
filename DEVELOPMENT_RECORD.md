@@ -1495,8 +1495,34 @@ callers — the live RPG spawns only through `buildRunner` → `genAhead` →
 `addFoe`, so those creatures are not part of the cast. A shareable web version
 of the same material was published as an artifact for Jandé and Frédéric.
 
+
+**RPG view in the Atlanta world, and the aerial's blind spot (Oct 21).** A third
+camera mode, `rpg`, that looks ACROSS the route rather than down it, driving the
+shipped RPG's own side-view sheets (run/jump/dash — the side cells are tightly
+cropped, body 150 of 154 rows, unlike the back cells' 182–227 of 256, and are
+not equal width, so the quad rebuilds per sheet). She is never mirrored: the
+camera stands on the route's right-hand normal, which makes screen-right the
+travel direction. Framing measured against the RPG's own rules — hero 9.5% of
+frame height against the shipped ~9%, feet at 0.60 against `GROUNDF` 0.65,
+positioned 0.33 across.
+
+Building it exposed a regression shipped on Oct 8. Making the aerial photo the
+ground also switched the OSM road ribbons off, on the reasoning that the photo
+already contains the roads. True from the air, wrong on the ground: the aerial
+is one 2048 px image over a 1540 m extract (0.75 m/texel), so from the play
+camera the ground runs away from the lens, the photo resolves down its mip chain
+to an average colour, and the frame goes featureless beige — with no road under
+her at all. It had only ever been viewed from the overview, where it works;
+every committed still predates it. Diagnosed by A/B-ing the same run point
+through both the new rpg camera and the existing play camera: both blank, which
+cleared the new camera and pointed at the world. The texture was never broken —
+200 OK, 2048×2048, UVs a clean 0…1, anisotropy 8 of 16 — the resolution simply
+is not there at that angle. Both are on now: the photo carries colour and land
+use at distance, the ribbon carries the surface she runs on. Standing rule
+added: never judge the ground from the overview.
+
 ---
 
 *Jandé — "Once Upon A Time"*
-*Complete development record · PRODBYKCTW · assembled July 25, updated October 13, 2026*
+*Complete development record · PRODBYKCTW · assembled July 25, updated October 21, 2026*
 *Consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment — and adds Era IV: The Living Bosses.*

@@ -393,6 +393,33 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## ✅ 10-21 (cloud session) — RPG VIEW IN ATLANTA + the aerial ground's blind spot
+Client: *"Present me the environment i made in 3d so far"* → *"a vid of each
+location"* → *"RPG view with these environments i created."*
+
+**New `rpg` camera mode** in the Atlanta viewer: looks ACROSS the route, uses the
+shipped RPG's own side sheets (run/jump/dash), never mirrors her. Measured
+framing — hero 9.5% of frame height (the RPG's own figure is ~9%), feet at 0.60
+(`GROUNDF` is 0.65), positioned 0.33 across with read-ahead to the right.
+
+**⛔ AND IT EXPOSED A SHIPPED REGRESSION.** The 10-08 aerial commit switched the
+OSM road ribbons off because "the photo already has the roads". True from the
+air; wrong on the ground. The aerial is one 2048px image over 1540 m = 0.75 m per
+texel, so at play height it mips to an average colour and the frame goes
+featureless beige — with no road under her, because the ribbons were off.
+
+**It had only ever been looked at from the overview**, where it works; every
+committed still predates it. A/B'd the same run point through BOTH the new rpg
+camera and the existing play camera — both blank, which is what cleared the new
+camera. Ribbons are back on; photo carries distance, ribbon carries her surface.
+
+**Rule going in `docs/GAME_II_ATLANTA.md`: never judge the ground from the
+overview.** Check it from the play camera, 1.5 m off the deck.
+
+**Container note:** `art/aerial/*.jpg` and `art/pbr/` are gitignored, so a fresh
+session has neither. Run `fetch_aerial.mjs` and `fetch_pbr.mjs` before rendering
+or the world comes up untextured.
+
 ## ✅ 10-13 (cloud session) — THE GROOM WAS DYING BACKWARDS, and the RPG cast sheet
 Client: *"PRESENT TO ME ALL CHARACTERS FROM RPG."*
 

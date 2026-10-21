@@ -327,7 +327,10 @@ function setMode(m) {
   mode = m;
   bOver.classList.toggle('on', m === 'overview');
   bRun.classList.toggle('on', m === 'runner');
-  const playing = m === 'play';
+  // 'rpg' is a playing mode too — same run, same hero, different camera. It has
+  // to be grouped here or it inherits the overview's chrome: the hero hidden,
+  // the diagnostic turn posts drawn, and no control pad.
+  const playing = (m === 'play' || m === 'rpg');
   document.body.classList.toggle('playing', playing);
   if (hero) hero.group.visible = playing;
   // The corner posts are a DIAGNOSTIC, not set dressing: 5 m cylinders that sit
@@ -443,6 +446,53 @@ function startPlay() {
   setMode('play');
 }
 
+// ── RPG CAMERA — the side-scroll framing, in the 3D city ──────────────────
+// Looks ACROSS the route instead of down it, which is what makes the city read
+// as a backdrop she runs past rather than a tunnel she runs into.
+//
+// The numbers come from the shipped RPG's own framing rules in CLAUDE.md
+// rather than from taste:
+//
+//  * READ-AHEAD IS THE LIMIT, not her size. The RPG shows 9.3 tiles ahead in
+//    portrait — 298 world px against a hero 86 px tall, so 3.5 body-heights of
+//    warning. At 1.70 m that is 5.9 m, and SIDE/LEAD below are set to clear it:
+//    measured in frame, she sits around a third of the way in with ~8 m of road
+//    visible ahead of her.
+//  * HER FEET SIT AT ~0.65 OF FRAME HEIGHT (`GROUNDF`), not on the centre line
+//    and not at the NES 0.87 — the RPG note is explicit that the reference is
+//    Mario ON A PHONE, and quoting the raw NES figure drives the ground line
+//    back down. AIM_LIFT is what buys that: aiming ABOVE her feet pushes them
+//    down the frame.
+//  * The camera rides at her own eye height, not above her. A raised camera
+//    looks down and turns the backdrop into pavement, which is the same trap
+//    the runner camera hit at 3.1 m.
+//  * THE CAMERA MUST LOOK SLIGHTLY DOWN, and that is not a style choice — it is
+//    what makes the ground exist. The first pass put the camera at eye height
+//    (2.65 m) aiming ABOVE her head, which is a grazing view across the ground
+//    plane: the aerial photo compresses to a few texels per screen row, mips to
+//    its own average, and the whole frame goes flat beige with the city floating
+//    on it. Nothing was broken — the texture was loaded, bound and correctly
+//    UV'd the whole time, and the same world from the overview is full of
+//    parking bays, streets and tree canopy. Raising the camera to 5.4 m and
+//    aiming BELOW it at 1.1 m fixes both problems at once: it pitches the view
+//    down so the photo reads, and it drops her feet to GROUNDF in the frame.
+const RPG = { side: 14.0, camH: 5.4, lead: 5.0, aimH: 1.1 };
+
+function placeRpgCamera() {
+  const p = run.pose();
+  const r = run.at(run.s);
+  // Stand off along the route's right-hand normal. That side is not arbitrary:
+  // with the camera there, screen-right works out to be the travel direction,
+  // so she runs to the RIGHT exactly as the RPG's art is drawn.
+  const cx = p.x + r.nx * RPG.side + r.dx * RPG.lead;
+  const cy = p.y + r.ny * RPG.side + r.dy * RPG.lead;
+  camera.position.set(cx, heightAt(world.elevation, cx, cy) + RPG.camH, -cy);
+  // Aim ahead of her, BELOW the camera. Aiming ahead keeps the road open to the
+  // right (the read-ahead); aiming low pitches the view down onto the ground.
+  const ax = p.x + r.dx * RPG.lead, ay = p.y + r.dy * RPG.lead;
+  camera.lookAt(ax, heightAt(world.elevation, ax, ay) + RPG.aimH, -ay);
+}
+
 function placePlayCamera() {
   const p = run.pose();
   // CHASE FRAMING IS MEASURED AGAINST THE CONTROL PAD, not judged by eye. At
@@ -486,10 +536,14 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min(0.05, (now - _prev) / 1000);
   _prev = now;
   if (life) life.update(dt);
-  if (mode === 'play' && run) {
+  if ((mode === 'play' || mode === 'rpg') && run) {
     run.update(dt, edge());
-    if (hero) hero.update(dt, run, camera);
-    placePlayCamera();
+    // Set the view BEFORE the hero updates: `setView` swaps the quad's geometry
+    // and material, and `update` is what writes the frame offset into the map
+    // it has just been handed. The other order shows one stale frame on the
+    // switch, which on a 24 fps capture is a visible pop.
+    if (hero) { hero.setView(mode === 'rpg' ? 'side' : 'back'); hero.update(dt, run, camera); }
+    if (mode === 'rpg') placeRpgCamera(); else placePlayCamera();
     runHud();
   }
   renderer.render(scene, camera);

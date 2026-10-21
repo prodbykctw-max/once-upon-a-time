@@ -40,6 +40,47 @@ const SHEETS = {
 };
 const COLS = 5, ROWS = 5, FRAMES = 25;
 
+// ── THE SIDE VIEW — the RPG's own sheets, in the 3D city ───────────────────
+// The RPG camera looks ACROSS the route rather than down it, so the back sheets
+// are the wrong art: it needs her profile. The shipped Action RPG already has
+// it, and these are those exact files — never a re-render, never a mirror of
+// the back view.
+//
+// MEASURED, like the back sheets were, and they turn out to be a different
+// animal. The back sheets are 256 px cells with her floating inside them (body
+// 182-227 px, foot gaps 13-35 px), which is why each needed its own offset.
+// The side sheets are tightly cropped: body 150 of 154 rows, foot gap 2-3 px,
+// top gap 2 px, on all three. So one scale covers them and the foot offset is
+// almost nothing — but it is still derived rather than dropped.
+//
+// The cells are NOT square and NOT the same width (run 145, jump 102, dash
+// 159), so the quad has to be rebuilt per sheet or she stretches. That is the
+// whole reason this set is handled separately instead of being bolted onto the
+// table above.
+//
+// Scale reference is the same as the back view's: 150 px of body = 1.70 m,
+// which makes a 154 px cell 1.745 m tall.
+const SIDE_CELL_M = (154 / 150) * 1.70;
+const SIDE = {
+  run:  { src: 'web/36be4ed7efc3.png', n: 8, cw: 145, footPx: 2.5, fps: 15 },
+  jump: { src: 'web/9f32be555c97.png', n: 6, cw: 102, footPx: 2,   fps: 8.6 },
+  // There is no side-view SLIDE sheet in the shipped game — the RPG has no
+  // slide. `dash` is the low, fast, committed pose and is what a slide reads
+  // as from the side, so the slide state borrows it rather than inventing art.
+  slide:{ src: 'web/e803235545ba.png', n: 5, cw: 159, footPx: 2,   fps: 15 },
+};
+
+function sideTexture(url, n) {
+  const t = new THREE.TextureLoader().load(url);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.magFilter = THREE.NearestFilter;
+  t.minFilter = THREE.LinearMipmapLinearFilter;
+  t.generateMipmaps = true;
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  t.repeat.set(1 / n, 1);          // one row, n columns
+  return t;
+}
+
 // Animation rate. The shipped convention is game-frames PER animation frame, so
 // SMALLER IS FASTER (run/dash 4 = 15 fps). 25 frames at 15 fps is a 1.67 s
 // cycle; against a 4.8 m/s run that is 8.0 m per cycle, and her stride in the
@@ -83,17 +124,76 @@ export function createHero(asset) {
     });
   }
 
+  // Side-view materials and their per-sheet quads. Built up front so switching
+  // view costs nothing mid-render; the geometries differ because the cells do.
+  const sideMats = {}, sideGeo = {};
+  for (const k of Object.keys(SIDE)) {
+    const S = SIDE[k];
+    sideMats[k] = new THREE.MeshBasicMaterial({
+      map: sideTexture(asset(S.src), S.n),
+      transparent: true, alphaTest: 0.35, depthWrite: true,
+      toneMapped: true, side: THREE.DoubleSide,
+    });
+    sideGeo[k] = new THREE.PlaneGeometry((S.cw / 154) * SIDE_CELL_M, SIDE_CELL_M);
+  }
+
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(CELL_M, CELL_M), mats.run);
   quad.name = 'jande_quad';
   quad.castShadow = false;       // a billboard casts a cardboard shadow
   group.add(quad);
 
-  let state = 'run', frame = 0, clock = 0;
+  let state = 'run', frame = 0, clock = 0, view = 'back';
+
+  /**
+   * 'back' is the Royal Runner billboard that faces the camera.
+   * 'side' is the RPG profile: the quad's normal points at the camera and its
+   * RIGHT edge points along travel, so she faces the way she is running — the
+   * shipped art faces right, so nothing is ever mirrored.
+   */
+  function setView(v) {
+    if (v === view) return;
+    view = v; frame = 0; clock = 0;
+    quad.geometry = view === 'side' ? sideGeo[state] : new THREE.PlaneGeometry(CELL_M, CELL_M);
+    quad.material = view === 'side' ? sideMats[state] : mats[state];
+  }
 
   /** @param st the run state from play.js · @param cam the camera to face */
   function update(dt, st, cam) {
     const want = st.slide > 0 ? 'slide' : (st.y > 0.02 ? 'jump' : 'run');
-    if (want !== state) { state = want; quad.material = mats[state]; frame = 0; clock = 0; }
+    if (want !== state) {
+      state = want; frame = 0; clock = 0;
+      if (view === 'side') { quad.material = sideMats[state]; quad.geometry = sideGeo[state]; }
+      else quad.material = mats[state];
+    }
+
+    if (view === 'side') {
+      const S = SIDE[state];
+      if (state === 'jump') {
+        // Same rule as the back view: the frame tracks WHERE SHE IS IN THE ARC,
+        // not a timer, or a 6-frame sheet finishes early and holds the landing
+        // pose in mid-air.
+        const V0 = 6.57;
+        const peak = st.vy > 0 ? 0.5 * (1 - st.vy / V0)
+                               : 0.5 + 0.5 * Math.min(1, -st.vy / V0);
+        frame = Math.max(0, Math.min(S.n - 1, Math.round(peak * (S.n - 1))));
+      } else {
+        clock += dt;
+        frame = Math.floor(clock * S.fps) % S.n;
+      }
+      const sm = quad.material.map;
+      if (sm) sm.offset.set(frame / S.n, 0);
+
+      const p = st.pose();
+      const foot = (S.footPx / 154) * SIDE_CELL_M;
+      group.position.set(p.x, p.z + SIDE_CELL_M / 2 - foot, -p.y);
+
+      // Normal at the camera, right edge along travel. With the route's normal
+      // (nx, ny) and three.js mapping (x, h, -y), yaw = atan2(nx, -ny) sends
+      // the quad's +Z to (nx, 0, -ny) and its +X to the forward direction.
+      const r = st.at(st.s);
+      group.rotation.set(0, Math.atan2(r.nx, -r.ny), 0);
+      return;
+    }
 
     if (state === 'jump') {
       // Map the frame to WHERE SHE IS IN THE ARC, not to a timer. Playing a
@@ -126,5 +226,5 @@ export function createHero(asset) {
                                      cam.position.z - group.position.z), 0);
   }
 
-  return { group, update, CELL_M };
+  return { group, update, setView, CELL_M, SIDE_CELL_M };
 }

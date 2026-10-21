@@ -697,3 +697,79 @@ Worth a look before it is called final.
 | Old Apache Kafe | not in OSM (venue closed) — needs photo reference |
 | Church | needs the client to name it |
 | the ninth | client said one is coming |
+
+---
+
+## 10-21 — THE RPG VIEW, and the aerial ground's ground-level failure
+
+Client: *"RPG view with these environments i created."*
+
+### The camera
+A third mode, `rpg`, beside `overview` and `play`. It looks **across** the route
+instead of down it, which is what turns the city into a backdrop she runs past
+rather than a tunnel she runs into. `placeRpgCamera` in the viewer; the hero
+switches to a `side` view in `hero.js`.
+
+**It uses the shipped RPG's own side sheets** — `run` (8 frames), `jump` (6) and
+`dash` (5, standing in for a slide, because the RPG has no slide) — not a
+mirrored back view and not new art. Those sheets measure differently from the
+back ones and that difference is why they are a separate table: the back cells
+are 256 px with her floating inside them (body 182–227 px, foot gaps 13–35 px,
+each needing its own offset), while the side cells are tightly cropped — body
+150 of 154 rows, foot gap 2–3 px, top gap 2 px, on all three. One scale covers
+them, but the cells are **not square and not equal width** (145 / 102 / 159), so
+the quad is rebuilt per sheet or she stretches.
+
+**She is never mirrored.** The art faces right; the camera stands on the route's
+right-hand normal, which works out so that screen-right *is* the travel
+direction. Yaw is `atan2(nx, -ny)`, which points the quad's normal at the camera
+and its right edge along the route.
+
+**Framing measured against the RPG's own rules, not judged by eye:**
+
+| | measured | the RPG's figure |
+|---|---|---|
+| hero height in frame | 9.5% | ~9% (portrait) |
+| feet down the frame | 0.60 | `GROUNDF` 0.65 |
+| position across frame | 0.33 | left of centre, read-ahead to the right |
+
+### ⛔ THE AERIAL GROUND IS BROKEN AT PLAY HEIGHT — fixed, and worth remembering
+The 10-08 commit made the aerial photo the ground and **switched the OSM road
+ribbons off**, reasoning that the photo already contains the roads and a ribbon
+drawn over it is a misregistered second road.
+
+**That is true from the air and wrong on the ground, and it shipped a worse
+frame than the one it replaced.** The aerial is ONE 2048 px image stretched over
+the whole 1540 m extract — 0.75 m per texel. From the overview that is plenty.
+From the play camera the ground runs away from the lens, the photo resolves down
+its mip chain to an average colour, and the frame becomes **featureless beige
+with the city floating on it** — and because the ribbons were off, there was no
+road under her at all.
+
+**It was never checked at ground level.** The committed stills all predate the
+aerial, so the only view it had ever been seen from was the one where it works.
+
+Diagnosed by A/B: the same point of the same run, rendered from the `rpg` camera
+and the existing `play` camera. **Both were blank**, which is what ruled out the
+new camera and pointed at the world. Confirmed by disabling the terrain's vertex
+colours (the photo appeared, smeared) and by checking the texture was genuinely
+bound — it was: 200 OK, 2048×2048, UVs a clean 0…1, anisotropy 8 of a possible
+16. Nothing was broken; the resolution simply is not there at that angle.
+
+Both are on now, each doing what it is good at: **the photo carries colour and
+land use at distance, the ribbon carries the surface she is running on.** The
+misregistration is real, but it is a seam between two road-coloured things,
+which costs far less than having no road.
+
+**Rule:** never judge the ground from the overview. Any change to terrain
+material, texture or ribbons gets checked from the play camera, a metre and a
+half off the deck, which is where the game is actually seen from.
+
+### Housekeeping
+`tools/atlanta/art/aerial/*.jpg` and `tools/atlanta/art/pbr/` are gitignored and
+regenerable, so a fresh container has neither — `fetch_aerial.mjs` and
+`fetch_pbr.mjs` both have to be run before anything renders, or the world comes
+up with no road textures and no photo.
+
+Renderer: `tools/atlanta/present/rpg.cjs`, 10 s per location at 960×540/24fps,
+same three-worker ceiling as `render.cjs`.

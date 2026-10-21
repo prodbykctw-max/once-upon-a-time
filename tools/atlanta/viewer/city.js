@@ -729,10 +729,24 @@ export function buildCity(world, opts = {}) {
   // constant-width extrusion of a centreline while the photo shows the actual
   // carriageway with its bays, turn lanes and kerb radii. The result reads as a
   // misregistered overlay, which is worse than either alone.
-  if (!world.aerial) {
-    addMesh(ribbonsGeometry(carriage, () => 0.18, widthOf, E), matRoad, 'roads');
-    addMesh(ribbonsGeometry(foot, () => 0.26, widthOf, E), matFoot, 'footways');
-  }
+  // …THAT ARGUMENT IS TRUE FROM THE AIR AND WRONG ON THE GROUND, and switching
+  // the ribbons off on the strength of it shipped a worse frame than the one it
+  // replaced. The aerial is ONE 2048 px image stretched over the whole 1540 m
+  // extract — 0.75 m per texel. From the overview that is plenty and the
+  // misregistration argument holds. From the play camera, a metre and a half
+  // off the deck, the ground runs away from the lens and the photo resolves
+  // down its mip chain to an average colour: the frame becomes featureless
+  // beige with the city floating on it, and because the ribbons were off there
+  // was no road under her at all. Verified by rendering the same point of the
+  // same run from both cameras — the overview is full of parking bays and tree
+  // canopy, the play camera is blank.
+  //
+  // So BOTH, each doing the job it is good at: the photo carries the colour and
+  // the land use at distance, the ribbon carries the surface she is actually
+  // running on. The misregistration is real but it is a seam between two
+  // road-coloured things, which costs far less than having no road.
+  addMesh(ribbonsGeometry(carriage, () => 0.18, widthOf, E), matRoad, 'roads');
+  addMesh(ribbonsGeometry(foot, () => 0.26, widthOf, E), matFoot, 'footways');
 
   // ── FACADES: one draw call per style, chosen by height ───────────────────
   // Low-rise brick, mid-rise concrete, tall glass. Three wall meshes and one
