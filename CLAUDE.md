@@ -34,6 +34,13 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
 - **Publish the preview with `tools/build_overhaul.py`, adding only `overhaul/index.html` on top of the
   live gh-pages tree.** **Never run `tools/deploy.sh` from this branch.** It would put the preview at the
   public root.
+- **Never use `setTimeout` for anything that changes game state** (story beats, heals, saves).
+  Count down on the game clock inside `update()`. A timer kept running after the player quit
+  to the title, played the ending there, and saved the game as beaten (review, 11-01).
+- **An overlay that advances on `pointerdown` must eat the follow-up click** (`ST.eatUntil`).
+  Otherwise the tap that closes it presses whatever is underneath. **Key repeats never advance a cut,
+  and keys held through a cut stay dead until they are released.**
+- **The story save only moves forward** (`v2SaveAt`). Replays and bookmarks use `RUN_BM`.
 - Overhaul saves live in `localStorage['ouat2']`, separate from `jande_*`. All of the account's Pages
   projects share one origin.
 
