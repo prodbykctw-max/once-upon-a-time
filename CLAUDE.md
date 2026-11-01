@@ -19,6 +19,24 @@ Two modes, nine themed stages each:
 
 Live: https://prodbykctw-max.github.io/once-upon-a-time/
 
+## Game I overhaul (branch `claude/overhaul-bible-2.5`, preview at `/overhaul/`)
+BASILICA's Production Bible 2.5 turns this into **Once Upon a Time, Game I** (Princess,
+Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
+**`docs/OVERHAUL_BIBLE_2_5.md`**. Rules that bite:
+- **`GS.ch` is the CHAPTER; `GS.ai` is still the painted WORLD** (`CH[ch].env`). Every art
+  table keeps indexing by `GS.ai`. **`initGS(n)` takes a chapter.** Progression, bosses, script,
+  music key and the HUD read `GS.ch`.
+- **Story beats run through `storyRun(steps)`.** `GS.cut` pauses `update()`, and the world still
+  draws. Lines in `SCRIPT[]` are the Narrative Bible verbatim. Never paraphrase them, and never restore §8A's
+  cut lines.
+- **A boss can die outside the melee block** (Soundwave, Full Voice), so the second defeat check
+  after `v2Tick` must stay.
+- **Publish the preview with `tools/build_overhaul.py`, adding only `overhaul/index.html` on top of the
+  live gh-pages tree.** **Never run `tools/deploy.sh` from this branch.** It would put the preview at the
+  public root.
+- Overhaul saves live in `localStorage['ouat2']`, separate from `jande_*`. All of the account's Pages
+  projects share one origin.
+
 ## Stack — ONE self-contained file
 The shipped game is **`index.html`** (~0.33 MB). No framework, no bundler, no
 build step, no server.

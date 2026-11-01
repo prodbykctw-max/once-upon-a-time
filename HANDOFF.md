@@ -15,7 +15,20 @@
 > THE BOUTIQUE in portrait). Item 3 is the 47-site glyph sweep. Everything is
 > already root-caused with line numbers — no investigation needed.
 
-> ## 🛑 ACTIVE 09-16 — CLIENT NOTES IN, NO WORK UNTIL THE WALKTHROUGH
+> ## ▶ ACTIVE 11-01 — GAME I OVERHAUL PREVIEW (BASILICA Production Bible 2.5)
+> **`docs/OVERHAUL_BIBLE_2_5.md`.** Frédéric's Oct 30 handoff (Production Bible 2.5 +
+> Narrative Bible v2) replaces the 09-16 notes below. On Nov 1 the client chose to
+> build four parts of it: rename & recast, story cuts + VS cards, free Bookmarks,
+> and controls + Guard. They are on branch **`claude/overhaul-bible-2.5`** and publish ONLY to
+> **`/overhaul/`** via `tools/build_overhaul.py`. The public Jandé game at the root
+> is untouched. **Never run `tools/deploy.sh` from the overhaul branch.** It
+> rebuilds gh-pages as an orphan from this branch's `index.html`, which would replace
+> the public game with the preview AND delete `/overhaul/`. Likewise, the next
+> `deploy.sh` from the dev branch will delete `/overhaul/` (it stages a fixed list),
+> so republish the preview afterwards. Open decisions for BASILICA are at the
+> bottom of the spec.
+
+> ## ⏸ SUPERSEDED 11-01 — CLIENT NOTES IN, NO WORK UNTIL THE WALKTHROUGH (09-16)
 > **`docs/CLIENT_NOTES_FREDERIC.md`.** Frédéric De Jesus (BASILICA) sent full
 > notes on the whole game. He asked explicitly: *"Before any additional work or
 > changes are made, I'd like for us to connect and walk through these notes

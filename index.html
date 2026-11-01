@@ -1281,7 +1281,9 @@ var GS={};
 function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
   setZoom(BASEZ);   // never inherit a cinematic zoom into a new/restarted stage
   try{var _sm=location.search.match(/stage=(\d+)/);if(_sm)ai=Math.min(CH.length-1,+_sm[1]);}catch(_e){}
-  var _ch=Math.max(0,Math.min(CH.length-1,ai|0));ai=CH[_ch].env;   // chapter -> world
+  var _ch=Math.max(0,Math.min(CH.length-1,ai|0));
+  if(typeof BGVIEW!=='undefined'&&BGVIEW){var _w=Math.max(0,Math.min(8,ai|0));for(var _ci=0;_ci<CH.length;_ci++)if(CH[_ci].env===_w){_ch=_ci;break;}}   // viewer steps WORLDS
+  ai=CH[_ch].env;   // chapter -> world
   // dev: ?fin=1 on the last chapter jumps straight to the finale run-in
   var _fin=false;try{_fin=/[?&]fin=1/.test(location.search);}catch(_e2){}
   var sc=GS.score||0, gn=GS.totalNotes||0, lvl=GS.level||1, xp=GS.xp||0, mm=GS.permMax||MASKS, dmg=GS.dmg||1;
@@ -1871,7 +1873,7 @@ function update(){
       GS.p.faceL=_away>0;GS.p.vx=0;
     }
     tickFx();
-    if(GS.bossDeadT===0){V2S.clears[GS.ch]=1;v2Persist();GS.bossKO=0;   // remember this stage as beaten (stage select)
+    if(GS.bossDeadT===0){V2S.clears[GS.ch]=1;v2Persist();if(GS.ch<CH.length-1)v2SaveAt(GS.ch+1,0);GS.bossKO=0;   // remember this stage as beaten (stage select)
       if(GS.ch>=CH.length-1){GS.won=true;}
       else{GS.levelClear=true;GS.clearT=0;}}      // NOT auto-advance — she holds the stage, then the tally
     return;}
@@ -6523,7 +6525,8 @@ function syncAbilityBar(){var p=GS.p;
   setCd('cd3',p.dashCd,32);setCd('cd4',GS.blocking?1:0,1);setCd('cd5',p.atkT,14);}
 function setCd(id,v,mx){var el=document.getElementById(id);if(el)el.style.height=(Math.max(0,Math.min(1,v/mx))*100)+'%';}
 
-function showLevelCard(ai,cb){var _c=CH[Math.max(0,Math.min(CH.length-1,ai|0))],st=STAGES[_c.env];document.getElementById('lcR').textContent='CHAPTER '+toRoman((ai|0)+1);
+function showLevelCard(ai,cb){if(MODE==='temple'){var _s=STAGES[ai]||STAGES[0];document.getElementById('lcR').textContent='STAGE '+toRoman(ai+1);var _t=document.getElementById('lcT');_t.textContent=_s.n;_t.style.color='#'+_s.ac.slice(1);document.getElementById('lcL').textContent=_s.lyr;var _l=document.getElementById('lvlCard');_l.classList.add('on');setTimeout(function(){_l.classList.remove('on');if(cb)cb();},2200);return;}
+  var _c=CH[Math.max(0,Math.min(CH.length-1,ai|0))],st=STAGES[_c.env];document.getElementById('lcR').textContent='CHAPTER '+toRoman((ai|0)+1);
   var t=document.getElementById('lcT');t.textContent=_c.n;t.style.color='#'+st.ac.slice(1);
   document.getElementById('lcDiv').style.background='linear-gradient(90deg,transparent,#'+st.ac.slice(1)+',transparent)';
   document.getElementById('lcL').textContent='';var lc=document.getElementById('lvlCard');lc.classList.add('on');setTimeout(function(){lc.classList.remove('on');if(cb)cb();},2200);}
@@ -7109,10 +7112,10 @@ function startGame(){
         var el=document.getElementById(id);if(el)el.classList.toggle('hit',!!on);
         if(id==='mLeft')TC.l=on?1:0;
         else if(id==='mRight')TC.r=on?1:0;
-        if(on){if(_lastPad[id]&&Date.now()-_lastPad[id]<260)TC.dq=3;}else _lastPad[id]=Date.now();   // double-tap = dash
+        if(on){if(_lastPad.rel===id&&_lastPad.last===id&&Date.now()-_lastPad.t<260)TC.dq=3;_lastPad.last=id;}else{_lastPad.rel=id;_lastPad.t=Date.now();}   // double-tap the SAME pad = dash
       }
       var PADS=['mLeft','mRight'];
-      function clearAll(){PADS.forEach(function(i){set(i,false);});held={};}
+      function clearAll(){PADS.forEach(function(i){set(i,false);});held={};_lastPad={};}
       function idAt(x,y){
         var e=document.elementFromPoint(x,y);
         while(e&&e!==document.body){if(PADS.indexOf(e.id)>=0)return e.id;e=e.parentElement;}
@@ -7167,7 +7170,7 @@ function startGame(){
   resize();
   var lm=document.getElementById('loadMsg');
   try{localStorage.setItem('jande_mode_'+MODE,'1');}catch(x){} // for BOTH WORLDS trophy
-  function begin(){if(lm)lm.style.display='none';GS={};var _ss=(MODE==='side')?START_STAGE:0;CHECKPOINT=_ss;CHECKPOINT_X=0;RUN_CONTINUES=0;RUN_T0=Date.now();initGS(_ss);
+  function begin(){if(lm)lm.style.display='none';var _pb=document.getElementById('pmBm');if(_pb)_pb.style.display=(MODE==='side')?'':'none';GS={};var _ss=(MODE==='side')?START_STAGE:0;CHECKPOINT=_ss;CHECKPOINT_X=0;RUN_CONTINUES=0;RUN_T0=Date.now();initGS(_ss);
     GS.adaptEarly=adaptGet().early||0;
     var stk=streakTick();
     if(stk.g>0){var w3=wallet();w3.gems+=stk.g;setWallet(w3);GS.gemsLive=w3.gems;}
@@ -7344,7 +7347,7 @@ function drawSK(c,cx,footY,h,o){o=o||{};var s=h/100,t=(o.t||0);
 // One overlay drives every narrative beat: story cuts (control pauses), first-
 // foe reveals, VS cards, prologue/epilogue pages. Gameplay dialogue (control kept)
 // is the separate TALK bubble. Every cut is tap-to-advance and skippable.
-var ST={on:false,steps:null,i:0,done:null,bg:null,bgT:0,timer:0,typing:0,full:'',line:0,raf:0,auto:0};
+var ST={on:false,steps:null,i:0,done:null,bg:null,bgT:0,timer:0,typing:0,full:'',line:0,raf:0,auto:0,down:{},block:{},eatUntil:0,gp:{}};
 function $i(id){return document.getElementById(id);}
 function stResize(){var cv=$i('stPage');if(!cv)return;var d=Math.min(2,window.devicePixelRatio||1);
   cv.width=Math.round(innerWidth*d);cv.height=Math.round(innerHeight*d);cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';}
@@ -7352,8 +7355,13 @@ function stFrame(){if(!ST.on){ST.raf=0;return;}
   var cv=$i('stPage'),c=cv.getContext('2d'),d=cv.width/Math.max(1,innerWidth);
   c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv.width,cv.height);
   if(ST.bg){c.setTransform(d,0,0,d,0,0);ST.bgT++;try{ST.bg(c,innerWidth,innerHeight,ST.bgT);}catch(e){console.error('story bg',e);}}
+  stPad();
   if(ST.typing&&ST.full){var n=Math.min(ST.full.length,Math.floor(ST.line+=1.6));$i('stLine').textContent=ST.full.slice(0,n);if(n>=ST.full.length)ST.typing=0;}
   ST.raf=requestAnimationFrame(stFrame);}
+// controller: A / X advance, B / Start skip (edge-triggered) — update() is paused, so poll here
+function stPad(){if(!navigator.getGamepads)return;var gs=navigator.getGamepads(),g=null;for(var i=0;i<gs.length;i++)if(gs[i]&&gs[i].connected){g=gs[i];break;}
+  if(!g)return;var bt=function(n){return !!(g.buttons[n]&&g.buttons[n].pressed);},a=bt(0)||bt(2),sk=bt(1)||bt(9);
+  if(a&&!ST.gp.a)stTap();if(sk&&!ST.gp.s)stSkip();ST.gp.a=a;ST.gp.s=sk;}
 function speaker(k){var ch=chOf();
   if(k==='P')return {nm:'PRINCESS',side:'l',por:function(c,w,h){drawPrincessFig(c,w*0.5,h*1.62,h*1.6,{});}};
   if(k==='O')return {nm:'PRINCESS',side:'r',por:function(c,w,h){drawPrincessFig(c,w*0.5,h*1.62,h*1.6,{flip:true,filter:OTHER_FILTER});}};
@@ -7400,7 +7408,9 @@ function storyRun(steps,done,opt){opt=opt||{};
 function storyEnd(){ST.on=false;clearTimeout(ST.timer);var d=ST.done;ST.done=null;ST.bg=null;
   document.body.classList.remove('stOn');$i('story').classList.remove('on','bars','dim');$i('stBox').classList.remove('on');stCard(null);
   var cv=$i('stPage');if(cv){var c=cv.getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv.width,cv.height);}
-  for(var k in K)K[k]=0;TC.jb=0;TC.a=0;TC.u=0;TC.mr=0;TC.v=0;TC.fv=0;TC.sw=0;
+  for(var k in K)K[k]=0;TC.jb=0;TC.a=0;TC.u=0;TC.mr=0;TC.v=0;TC.fv=0;TC.sw=0;TC.dq=-1;TC.d=0;TC.bd=0;lV=0;lFV=0;
+  ST.block={};for(var kd in ST.down)ST.block[kd]=1;   // keys held through the cut stay dead until released
+  ST.eatUntil=Date.now()+450;                          // the tap that closed the cut must not click what is underneath
   if(GS){GS.cut=false;if(GS.p){GS.p.vT=0;}}
   if(d)d();}
 // Gameplay dialogue — control stays with the player.
@@ -7551,7 +7561,11 @@ function v2ChapterBuilt(gs){var ch=gs.ch;
   // when the arena is built). Partial-heal on touch; autosave on touch.
   var marks=[0.34,0.68];for(var i=0;i<marks.length;i++)gs.bms.push({x:Math.round(gs.stageEnd*marks[i])*T,on:false});
   SKW.on=0;GS&&(GS.crown=null);}
-function v2Save(x){V2S.save={ch:chOf(),x:x||0,t:Date.now()};v2Persist();}
+var RUN_BM=null;   // this run's last bookmark (continue-from-bookmark); the persisted save is the STORY position
+function v2SaveAt(ch,x){if(typeof BGVIEW!=='undefined'&&BGVIEW)return;RUN_BM={ch:ch,x:x||0};
+  if(V2S.save&&V2S.save.ch>ch)return;              // replaying an earlier chapter never rewinds the story
+  V2S.save={ch:ch,x:x||0,t:Date.now()};v2Persist();}
+function v2Save(x){v2SaveAt(chOf(),x);}
 function v2BossArena(gs){gs.bms.push({x:(gs.gateCol-3)*T,on:false,gate:1});}
 function bookmarkTouch(bm){bm.on=true;v2Save(bm.x);var p=GS.p;
   if(GS.masks<GS.maxMasks){GS.masks=Math.min(GS.maxMasks,GS.masks+1);updateHUD();}
@@ -7568,7 +7582,7 @@ function abilityHow(a,tch){
   return {mic:'Z OR J',wave:'TAP C',guard:'HOLD C · TIME IT FOR A PERFECT NOTE',bass:'IN THE AIR: DOWN + Z',second:'HOLD Q',voice:'E'}[a];}
 function revealCut(tp){V2S.revealed[tp]=1;v2Persist();var sc=SCRIPT[chOf()];if(!sc.reveal)return;
   sfx('pw');storyRun(sc.reveal,null,{bg:revealCard(tp),noBars:true});}
-function v2BossEngage(bs){var ch=chOf();v2Save((GS.gateCol-3)*T);
+function v2BossEngage(bs){if(typeof BGVIEW!=='undefined'&&BGVIEW)return;var ch=chOf();v2Save((GS.gateCol-3)*T);
   if(seen(ch,'boss')){if(CH[ch].her)v2HerStart(bs);return;}
   var steps=(SCRIPT[ch].boss||[]).slice();var vc=vsCard(ch);steps.push({bg:vc.bg,ms:vc.ms});steps.push({bg:null});
   storyRun(steps,function(){if(CH[ch].her)v2HerStart(bs);});}
@@ -7594,9 +7608,10 @@ function v2Prologue(done){PRO={sk:1,book:1,note:0};
 // ════════════════════════ PER-TICK (side mode) ════════════════════════
 var lFV=0,lV=0;
 function v2Input(){if(TC.dq>0){TC.d=1;TC.dq--;}else if(TC.dq===0){TC.d=0;TC.dq=-1;}if(TC.bd>0)TC.bd--;}
-function v2Tick(p){if(GS.ch==null)return;var ch=GS.ch;
+function v2Tick(p){if(GS.ch==null)return;var ch=GS.ch;var _bv=(typeof BGVIEW!=='undefined'&&BGVIEW);
   if(GS.xform>0)GS.xform--;
   // chapter intro cut once she has a few steps of control
+  if(_bv){GS.introDone=1;GS.revealDone=1;}
   if(!GS.introDone&&p.x>GS.introAt){GS.introDone=1;introCut();if(GS.cut)return;}
   // first-ever appearance of this chapter's new foe: full-screen reveal
   if(!GS.revealDone){var rv=CH[ch].rev;for(var i=0;i<GS.foes.length;i++){var f=GS.foes[i];
@@ -7608,8 +7623,9 @@ function v2Tick(p){if(GS.ch==null)return;var ch=GS.ch;
   if(p.waveCd>0)p.waveCd--;
   if(vk&&!lV){p.vT=0;p.guardT=0;p.blockedSome=false;
     if(!learned('guard')&&learned('wave'))fireWave(p);}
+  if(p.guardBroken>0)p.guardBroken--;if(p.gStrain>0&&GS.tick%90===0)p.gStrain--;
   if(vk){p.vT=(p.vT||0)+1;
-    if(learned('guard')&&!p.dashing&&p.atkT<=0){GS.blocking=true;p.guardT=(p.guardT||0)+1;p.vx*=0.35;}}
+    if(learned('guard')&&!p.dashing&&p.atkT<=0&&!(p.guardBroken>0)){GS.blocking=true;p.guardT=(p.guardT||0)+1;p.vx*=0.35;}}
   else{if(lV&&learned('guard')&&learned('wave')&&(p.vT||0)<=12&&!p.blockedSome)fireWave(p);GS.blocking=false;}
   lV=vk?1:0;
   // FULL VOICE (high-cost special), deliberate — never automatic
@@ -7638,6 +7654,10 @@ function stepWaves(){var ws=GS.waves;if(!ws)return;
 // Guard / Perfect Note. Returns true when the hit was absorbed.
 function v2Guard(src){var p=GS.p;if(!GS.blocking)return false;
   var perfect=(p.guardT||0)<=10;p.blockedSome=true;p.inv=Math.max(p.inv,perfect?40:28);
+  // Guard costs nothing (Bible §6) but cannot be held forever: three ordinary blocks in quick
+  // succession break it — she is shoved back and cannot raise it for a second. Perfect Notes never strain.
+  if(!perfect){p.gStrain=(p.gStrain||0)+1;if(p.gStrain>=3){p.gStrain=0;p.guardBroken=70;GS.blocking=false;p.vx=(src&&src.x>p.x)?-7:7;p.vy=-4;
+    GS.toasts.push({txt:'GUARD BROKEN',sub:'',t:80,max:80});tone(160,0.18,'sawtooth',0.07);return true;}}
   if(perfect){GS.res=Math.min(GS.resMax,GS.res+15);GS.hitstop=Math.max(GS.hitstop,6);sfx('pw');
     for(var i=0;i<10;i++)ptcl(p.x+PW/2,p.y+PH*0.45,'gbk');GS.pnT=36;
     // stagger the attacker
@@ -7697,6 +7717,8 @@ function v2BossHitFilter(b){var p=GS.p;
 // ── PRINCESS vs PRINCESS — mirror toolkit + the false-victory loop (protected) ──
 function princessTick(b,dx){var p=GS.p,ST2=++b.stateT,dir=dx>0?1:-1,ad=Math.abs(dx);
   if(b.merging){b.vx=0;return true;}
+  if(b.healT>0&&--b.healT===0){b.hp=b.mhp;document.getElementById('bbF').style.width='100%';sfx('revive');}
+  if(b.finalT>0){b.vx=0;b.anim='idle';if(--b.finalT===0)storyRun(SCRIPT[10].final,v2HerComplete);return true;}
   if(b.lowered){b.vx*=0.8;b.anim='idle';return true;}
   if(b.stun>0){b.stun--;b.vx*=0.85;return true;}
   // threshold dialogue (cycle one only)
@@ -7730,11 +7752,11 @@ function bNext(b){var opts=['WALK','WALK','WAVE','BASS','GUARD','MIC'];if(b.cycl
 function v2PrincessKO(b){   // zero health is not victory
   if(b.finalPending)return;b.hurtCd=95;b.hp=0;b.cycle++;b.bullets=[];GS.hitstop=10;
   for(var i=0;i<16;i++)ptcl(bcxOf(b),b.y+PH*0.5,'gbk');
-  if(b.cycle>=2){b.finalPending=1;GS.cuesChanged=1;b.hp=b.mhp;b.state='RISE';b.stateT=0;
-    document.getElementById('bbF').style.width='100%';
-    setTimeout(function(){storyRun(SCRIPT[10].final,v2HerComplete);},900);return;}
-  b.state='RISE';b.stateT=0;b.healed=0;
-  setTimeout(function(){if(GS.boss===b){b.hp=b.mhp;document.getElementById('bbF').style.width='100%';sfx('revive');}},700);}
+  // GAME-CLOCK countdowns, not setTimeout: a timer kept firing after the player
+  // paused out to the title and could end (and save) a game nobody was playing.
+  if(b.cycle>=2){b.finalPending=1;GS.cuesChanged=1;b.hp=b.mhp;b.state='RISE';b.stateT=0;b.finalT=54;
+    document.getElementById('bbF').style.width='100%';return;}
+  b.state='RISE';b.stateT=0;b.healed=0;b.healT=42;}
 function v2HerStart(b){}
 function v2HerComplete(){var b=GS.boss;GS.bossActive=false;if(b){b.alive=false;b.merging=1;}
   document.getElementById('bossBar').classList.remove('on');
@@ -7789,7 +7811,9 @@ function drawPrincessBoss(b){var p0={x:b.x,y:b.y,anim:SPRITES[b.anim]?b.anim:'id
     if(GS.mergeT===60){for(var i=0;i<24;i++)ptcl(pp.x+PW/2,pp.y+PH/2,i%2?'gbk':'note');}}
   var g=FX.createRadialGradient(b.x+b.W/2,b.y+b.H/2,4,b.x+b.W/2,b.y+b.H/2,PH);g.addColorStop(0,'rgba(120,70,170,0.35)');g.addColorStop(1,'rgba(120,70,170,0)');
   FX.fillStyle=g;FX.fillRect(b.x-PH,b.y-PH*0.5,PH*2+b.W,PH*2);
+  var _sh=GS.shieldT,_dm=GS.dmgT;GS.shieldT=0;GS.dmgT=0;   // drawHero reads the PLAYER's shield/x2 state
   FX.save();FX.filter=GS.cuesChanged?'saturate(0.3) brightness(0.95) contrast(1.05)':OTHER_FILTER;drawHero(p0);FX.restore();FX.globalAlpha=1;
+  GS.shieldT=_sh;GS.dmgT=_dm;
   if(b.guard){FX.strokeStyle='rgba(190,150,255,0.7)';FX.lineWidth=2.5;FX.beginPath();FX.arc(b.x+b.W/2,b.y+b.H*0.5,PH*0.62,0,6.28);FX.stroke();}}
 function v2DrawScreen(){if(GS.ch==null)return;var c=CH[GS.ch],t=GS.tick;
   if(c.storm){FX.fillStyle='rgba(18,24,48,0.34)';FX.fillRect(0,0,W,H);
@@ -7801,10 +7825,10 @@ function v2DrawScreen(){if(GS.ch==null)return;var c=CH[GS.ch],t=GS.tick;
 
 // ════════════════════════ DEATH → STORY INTERRUPTED ════════════════════════
 function v2Interrupted(){running=false;applyTouchMode();talkClear();
-  var s=V2S.save,el=$i('sInt');var has=s&&s.ch===chOf()&&s.x>0;
+  var s=RUN_BM||V2S.save,el=$i('sInt');var has=s&&s.ch===chOf()&&s.x>0;
   $i('siCont').style.display=has?'':'none';
   el.classList.add('on');}
-function v2ContinueBookmark(){var s=V2S.save;$i('sInt').classList.remove('on');
+function v2ContinueBookmark(){var s=RUN_BM||V2S.save;$i('sInt').classList.remove('on');
   var ch=chOf();initGS(ch);
   if(s&&s.ch===ch&&s.x>8*T)respawnAt(s.x);
   GS.introDone=1;GS.masks=Math.max(2,Math.ceil(GS.maxMasks*0.6));GS.p.inv=120;
@@ -7817,8 +7841,8 @@ function v2Storybook(){$i('sInt').classList.remove('on');toTitle();openStorybook
 // ════════════════════════ TITLE · STORYBOOK ════════════════════════
 function titleMenuSync(){var s=V2S.save,c=$i('tCont');if(c)c.style.display=(s&&s.ch!=null)?'':'none';
   if(c&&s&&s.ch!=null)c.textContent='CONTINUE — CHAPTER '+toRoman(s.ch+1);}
-function v2NewStory(){SEEN={};V2S.save={ch:0,x:0,t:Date.now()};v2Persist();MODE='side';START_STAGE=0;V2_PRO=true;startGame();}
-function v2ContinueStory(){var s=V2S.save;if(!s)return v2NewStory();MODE='side';START_STAGE=s.ch;V2_RESUME=s.x||0;startGame();}
+function v2NewStory(){SEEN={};RUN_BM={ch:0,x:0};V2S.save={ch:0,x:0,t:Date.now()};v2Persist();MODE='side';START_STAGE=0;V2_PRO=true;startGame();}
+function v2ContinueStory(){var s=V2S.save;if(!s)return v2NewStory();RUN_BM={ch:s.ch,x:s.x||0};MODE='side';START_STAGE=s.ch;V2_RESUME=s.x||0;startGame();}
 var V2_PRO=false,V2_RESUME=0;
 function openStorybook(){var scr=$i('stageSelScr'),rows=$i('ssRows');if(!scr||!rows)return;
   var h='';for(var i=0;i<CH.length;i++){var ok=(i===0)||!!V2S.clears[i-1]||!!V2S.clears[i]||(V2S.save&&V2S.save.ch>=i);
@@ -7847,9 +7871,12 @@ function v2Wire(){
   var st=$i('story');
   st.addEventListener('pointerdown',function(e){if(e.target&&e.target.id==='stSkip')return;e.preventDefault();stTap();});
   $i('stSkip').addEventListener('pointerdown',function(e){e.stopPropagation();e.preventDefault();stSkip();});
-  window.addEventListener('keydown',function(e){if(!ST.on)return;var c=e.code;
-    if(c==='Escape')stSkip();else if(c==='Space'||c==='Enter'||c==='KeyZ'||c==='KeyJ'||c==='KeyX'||c==='ArrowRight')stTap();
-    e.preventDefault();e.stopPropagation();},true);
+  window.addEventListener('keydown',function(e){
+    if(!ST.on){if(ST.block[e.code]){e.preventDefault();e.stopPropagation();return;}ST.down[e.code]=1;return;}
+    ST.down[e.code]=1;e.preventDefault();e.stopPropagation();if(e.repeat)return;   // a held key never skips a whole scene
+    var c=e.code;if(c==='Escape')stSkip();else if(c==='Space'||c==='Enter'||c==='KeyZ'||c==='KeyJ'||c==='KeyX'||c==='ArrowRight')stTap();},true);
+  window.addEventListener('keyup',function(e){delete ST.down[e.code];delete ST.block[e.code];},true);
+  document.addEventListener('click',function(e){if(Date.now()<ST.eatUntil){e.preventDefault();e.stopPropagation();}},true);
   window.addEventListener('resize',function(){if(ST.on)stResize();});
   $i('siCont').onclick=function(){sfx('ui');v2ContinueBookmark();};
   $i('siRestart').onclick=function(){sfx('ui');v2RestartChapter();};
@@ -7962,7 +7989,7 @@ function wire(){applyMotionClass();titleEntrance();titleParallax();
       if(v==='on')sfx('ui');syncSet();});
     pick('setMotion',function(v){setSetting('reduceMotion',v==='on'?1:0);applyMotionClass();sfx('ui');});
   })();
-  document.getElementById('pmRestart').onclick=function(){var _pc=(MODE==='side'&&GS&&GS.ch!=null)?GS.ch:0;GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=_pc;CHECKPOINT_X=0;RUN_CONTINUES=0;RUN_T0=Date.now();initGS(_pc);updateHUD();showLevelCard(_pc,function(){if(!running){running=true;applyTouchMode();loop();}});};
+  document.getElementById('pmRestart').onclick=function(){var _pc=(MODE==='side'&&GS&&GS.ch!=null)?GS.ch:0;GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=_pc;CHECKPOINT_X=0;RUN_CONTINUES=0;RUN_T0=Date.now();initGS(_pc);if(MODE==='side')v2Save(0);updateHUD();showLevelCard(_pc,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('pmMenu').onclick=function(){GS.paused=false;syncPauseMenu();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('btnPause').onclick=function(){GS.paused=!GS.paused;syncPauseMenu();};
   document.getElementById('btnMap').onclick=function(){GS.mapOpen=!GS.mapOpen;};

@@ -468,8 +468,9 @@ pre-deploy gate to stop the glyph rule regressing a third time.
 | `dance` animation | RESOLVED | Now bound to the STAGE CLEAR victory emote |
 | Dress → tuxedo swap | OPEN | Story beat ~stage 3; needs a tuxedo sheet |
 | Actual song lyrics | OPEN | Client to supply. The five lines in `drawLyric` are PLACEHOLDER taglines on a 15s rotation, not the song. Frédéric's 09-16 notes ask the same question ("What are the words at bottom during gameplay?") and his "Determine copy" item covers it |
-| **Frédéric's full notes (09-16)** | **ACTIVE — review only** | `docs/CLIENT_NOTES_FREDERIC.md`. Notes on the whole game from Frédéric De Jesus (BASILICA). **He asked to walk through them before any work starts**, and the client confirmed no changes until then (expected after Sunday). Triaged, with four claims checked: stage-8 silence does NOT reproduce (but stages 8/9 reuse keys 3/4 and there are no per-stage compositions); checkpoints already exist as a gem-priced continue; the bottom words are placeholder taglines; and "widen line of sight" conflicts with the earlier zoom-in directive. Story cuts need a cutscene framework that does not exist; the Game II Atlanta redesign is a phase of its own |
-| Cutscene / story framework | OPEN (new system) | Frédéric asks for story cuts at the start and end of both games plus boss beats. There is no sequencer for text/art/timing/skip — it has to be built before any of that content can land. Same system would serve the VS-style minion and Purple Guy intro sequences, so build it once |
+| **Frédéric's full notes (09-16)** | **SUPERSEDED 11-01** by Production Bible 2.5. See `docs/OVERHAUL_BIBLE_2_5.md` | `docs/CLIENT_NOTES_FREDERIC.md`. Notes on the whole game from Frédéric De Jesus (BASILICA). **He asked to walk through them before any work starts**, and the client confirmed no changes until then (expected after Sunday). Triaged, with four claims checked: stage-8 silence does NOT reproduce (but stages 8/9 reuse keys 3/4 and there are no per-stage compositions); checkpoints already exist as a gem-priced continue; the bottom words are placeholder taglines; and "widen line of sight" conflicts with the earlier zoom-in directive. Story cuts need a cutscene framework that does not exist; the Game II Atlanta redesign is a phase of its own |
+| Cutscene / story framework | RESOLVED 11-01 (preview) | `storyRun` sequencer on the overhaul branch: story cuts, reveals, VS cards, prologue and epilogue. See `docs/OVERHAUL_BIBLE_2_5.md` |
+| ~~Cutscene / story framework~~ | was OPEN (new system) | Frédéric asks for story cuts at the start and end of both games plus boss beats. There is no sequencer for text/art/timing/skip — it has to be built before any of that content can land. Same system would serve the VS-style minion and Purple Guy intro sequences, so build it once |
 | Game II real-world redesign | OPEN (phase) | Frédéric: set Royal Runner in Atlanta, obstacles as the "proverbial male versions of the Kanker sisters". Royal Runner is the hand-written GLWORLD engine with nine themed stages plus obstacle, chaser and prop art — re-theming means new environment art for all nine. Should be scoped and priced separately, not folded into the notes pass |
 | AutoSprite-animated blood | OPEN | The canvas droplets are an explicit stopgap; blocked on the key above, nothing else |
 | Wishing Glade / Sky Gardens depth | OPEN (design) | Both proved FLAT by measurement (median motif area per band is level) and left flat on purpose. If depth is wanted there it has to be per-MOTIF cards — one per toadstool cluster, one per floating island — not bands. Different and much larger job. **Re-tested 09-15 with the depth+SAM cutter: neither is rescued.** Four approaches on Sky Gardens all split the islands at six bands; only ~15 per-island cards would hold, roughly the asset cost of all six carded stages combined. Glade leaves 33% of the frame unowned by any mask, Golden Hour 48%, and unowned pixels fall back to raw depth — the gradient that shreds objects. Recommendation stands: leave both flat |
@@ -1521,8 +1522,45 @@ is not there at that angle. Both are on now: the photo carries colour and land
 use at distance, the ribbon carries the surface she runs on. Standing rule
 added: never judge the ground from the overview.
 
+
+### Era VII — the BASILICA overhaul, preview (November 1, 2026)
+
+Frédéric De Jesus (BASILICA) handed over two documents on Oct 30:
+- *Master Production Bible 2.5 – Developer Handoff*
+- *Narrative Bible – Master Script v2*
+
+Together they turn the Jandé promo into **Once Upon a Time, Game I**. Its heroine is Princess, with a
+Storykeeper guide. It has eleven chapters, each a confrontation with one of her own patterns, and it ends
+in Princess vs. Princess. The client picked four parts to build on Nov 1. All four are on
+`claude/overhaul-bible-2.5` and publish to `/overhaul/` only.
+
+**The architectural move was to split CHAPTER from WORLD.** `GS.ai` had always meant both "stage" and
+"which painting". Every art table in the file (backdrops, cards, undercroft, foreground, recipes, par times)
+is indexed by it. Re-indexing all of them to eleven would have touched thousands of lines and broken the
+measured art rules in CLAUDE.md. Instead `GS.ch` is the chapter and `GS.ai` stays the painting
+(`CH[ch].env`), so six chapters can reuse paintings until BASILICA's environments exist, without one art
+table changing.
+
+**The story system is a sequencer, not scenes.**
+- Each beat is a list of steps (dialogue, timed card, act) played over the live world. `GS.cut` pauses
+  `update()` while `draw()` keeps running.
+- The canonical script is transcribed verbatim, and §8A's cut lines are kept out.
+- A skip still runs the state-changing acts, so skipping the final cut still merges the two Princesses.
+- Held keys and touches are cleared when a cut ends. Otherwise the tap that closed a cut also jumped.
+
+**A latent bug surfaced: the defeat flow only started for melee kills.** `if(!bs.alive)` lived inside
+`if(GS.boss&&GS.boss.alive)`. A boss killed by anything outside that block (the new Soundwave, Full Voice,
+the old Belt) stayed dead with the arena sealed and no tally. A second check now runs after `v2Tick`.
+
+**Placeholders, on purpose and listed in the spec:**
+- the heroine sprites, a code-drawn Storykeeper, and tinted stand-in rows for Doubt and Grey Area;
+- the painted Prince and storybook Princess for the wordless prologue reel.
+
+Verified headless: the prologue, all eleven chapters' bosses through their defeat cuts, the false-victory
+loop and the Encore, the bookmark continue, and portrait touch.
+
 ---
 
 *Jandé — "Once Upon A Time"*
-*Complete development record · PRODBYKCTW · assembled July 25, updated October 21, 2026*
+*Complete development record · PRODBYKCTW · assembled July 25, updated November 1, 2026*
 *Consolidates the CHANGELOG, the Development History & Technical Record, the Ultimate Development Record, and the PRODBYKCTW Build Assessment — and adds Era IV: The Living Bosses.*

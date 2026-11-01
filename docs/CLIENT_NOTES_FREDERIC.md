@@ -1,6 +1,12 @@
 # CLIENT NOTES — Frédéric De Jesus (BASILICA), received 2026-09-16
 
-> **STATUS: REVIEW ONLY. NO IMPLEMENTATION.** Frédéric: *"Before any additional
+> **SUPERSEDED 2026-11-01** by BASILICA's Production Bible 2.5. See `docs/OVERHAUL_BIBLE_2_5.md`.
+> The preview build answers these notes: free Bookmarks replace the paid continue, swipe up jumps,
+> the button layout is MIC / JUMP / VOICE, story cuts and VS remarks are in, the bottom-of-screen
+> words are gone, and each chapter has its own key. Still open: the idle dance and the load-screen hero
+> image (both need art), line of sight, and the registry copy.
+>
+> *Original status:* **STATUS: REVIEW ONLY. NO IMPLEMENTATION.** Frédéric: *"Before any additional
 > work or changes are made, I'd like for us to connect and walk through these
 > notes together."* Client: *"we're not making any changes until then… we're
 > gonna start making changes when he's available hopefully sometime next week."*
