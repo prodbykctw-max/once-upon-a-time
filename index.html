@@ -7085,6 +7085,7 @@ function bgViewer(){
   bgGo(st);
 }
 function startGame(){
+  storyAbort();
   // WIPE BOTH CANVASES FIRST. #fxC is cleared to transparent every frame, so
   // whatever is still sitting on #glC underneath shows through — entering a run,
   // that was the PREVIOUS WebGL frame (an old world), flashing for a beat before
@@ -7767,7 +7768,8 @@ function herCard(c,w,h,t){c.fillStyle='rgba(8,4,12,'+Math.min(0.94,t/30)+')';c.f
   var fz=Math.round(Math.max(30,Math.min(84,w*0.1)));c.fillStyle='#fff3d6';c.font='800 '+fz+'px Storyboo,serif';c.fillText('HER',w/2,h*0.44);
   var flick=t>120?(t>150?1:((t>>1)&1)):0;c.font='700 '+Math.round(fz*0.42)+'px system-ui,sans-serif';c.fillStyle='#d9b45a';
   c.fillText(flick?'CONTINUE.':'COMPLETE.',w/2,h*0.44+fz*0.75);}
-function toTitle(){['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=$i(id);if(el)el.classList.remove('on');});
+function storyAbort(){if(ST.on){ST.done=null;storyEnd();}talkClear();}   // leaving a run never carries a scene into the next one
+function toTitle(){storyAbort();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=$i(id);if(el)el.classList.remove('on');});
   $i('gameWrap').classList.remove('on');$i('topBtns').style.display='none';running=false;talkClear();titleMenuSync();show('titleScreen');}
 
 // ════════════════════════ WORLD + SCREEN DRAWING ════════════════════════
@@ -7990,7 +7992,7 @@ function wire(){applyMotionClass();titleEntrance();titleParallax();
     pick('setMotion',function(v){setSetting('reduceMotion',v==='on'?1:0);applyMotionClass();sfx('ui');});
   })();
   document.getElementById('pmRestart').onclick=function(){var _pc=(MODE==='side'&&GS&&GS.ch!=null)?GS.ch:0;GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=_pc;CHECKPOINT_X=0;RUN_CONTINUES=0;RUN_T0=Date.now();initGS(_pc);if(MODE==='side')v2Save(0);updateHUD();showLevelCard(_pc,function(){if(!running){running=true;applyTouchMode();loop();}});};
-  document.getElementById('pmMenu').onclick=function(){GS.paused=false;syncPauseMenu();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
+  document.getElementById('pmMenu').onclick=function(){storyAbort();GS.paused=false;syncPauseMenu();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('btnPause').onclick=function(){GS.paused=!GS.paused;syncPauseMenu();};
   document.getElementById('btnMap').onclick=function(){GS.mapOpen=!GS.mapOpen;};
   var _sb=document.getElementById('btnSnd');var _sbi='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABDUlEQVR4nO3bMQrCQBBA0SgewNJa9AYpg+fIET2HWHoDxdrSG2ifzIfBDdmA/5UhkPBZhmWjTSNJkiT9g1WtBx+2u8/w2uP9qvY+Q+vaL7BUhgGGAYYBswy7aNBeb+fRfV3bj65lB/LUw9wVAwwDDAMMAzbZG6PhlhUN2hLRu9wv+9F9x1Pz80B2xQDDAMMAw4Bw+GZ3qnPID9rnpM91xQDDAMMAw4D0zreWaKca7WgjJbthVwwwDDAMMAwwDDAMMAwwDDAMWPzOt+TYIbrmmW8hwwDDAMOAcPhGA6pr+yof3LLHDlOfA7tigGGAYYBhgD81A64YYBhgGGAY4J8sgCsGGAYYBhhGkiRJ+mtf9QhQ1vnMbtkAAAAASUVORK5CYII=',_sbo='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABGUlEQVR4nO3bMQ6CQBBAUTUewNLSwiNQWFByCI7oISwtKDyCBaWlN9Ae5ieTbMKS8F9JRMnPZkIW3O0kSZKkLdjX+uHr6fybHnt/P9WuZ+pQ+wLWyjDAMMAwYJFhFw3a5+s++1zb9Knvyw7pkgHvigGGAYYBhgHH7AejQZYVDdqsx+U2O9aNQ+pasudGA9kVAwwDDAMMA8Lhm71TXUI3DrNj0VDNnuudbyHDAMMAwwDDAMMAwwDDAMOA9LZDLbB1UHKu2w4lDAMMAwwDVj98S7YOsoM24ooBhgGGAYYB6bcdlnjgFr3tUOv1M1cMMAwwDDAMSN/5lgzBtulX8wAvyxUDDAMMAwwD/JMFcMUAwwDDAMNIkiRJm/YHTUhObo+kFgUAAAAASUVORK5CYII=';_sb.innerHTML='<img src="'+(AUD.muted?_sbo:_sbi)+'" style="height:22px;image-rendering:pixelated" alt="sound">';

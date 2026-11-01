@@ -195,6 +195,8 @@ A second-model review found 13 defects, 7 of them reproduced by running the game
 - the mirror Princess wore the player's power-ups;
 - Royal Runner showed Game I labels and a dead pause button.
 
+Found afterwards while recording the walkthrough video: leaving a run while a story scene was playing carried the scene into the next run. Fixed: `storyAbort()` runs on title, new run and pause → exit.
+
 ## Verification (2026-11-01, headless Chromium, 1280×720 and iPhone 13)
 
 - **Full prologue:** 15 vignettes, then the blank-page dialogue, then the transformation, then control.
