@@ -1617,6 +1617,14 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
     - matched on skin gain to the cross-frame mean (skin RGB within about 103-115 red across all 9 frames).
 
     Idle frame-to-frame change is 0.044-0.098, against 0.040-0.091 in the original, so there is no new flicker.
+- **Preview published (11-02 23:12Z):** the client merged PR #9 (`5a51ae7`), and the pages build succeeded.
+  - Live `/overhaul/` matches the build byte for byte.
+  - All 131 referenced assets return 200.
+  - The root game is byte-identical to before the merge.
+  - The live Warlock and VS card were checked headless.
+- **Still open** (both blocked outside this session):
+  - Storykeeper face and grooming: needs Frédéric's reference photo.
+  - Princess gameplay sprite (still the Jandé sheets): needs the AutoSprite key or Higgsfield credits for new run, jump and attack sheets.
   - Left as is: the man in the memories, who was already drawn as a Black man; the monsters; and The Groom
     Who Lied (row 8), which Game I never uses.
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a

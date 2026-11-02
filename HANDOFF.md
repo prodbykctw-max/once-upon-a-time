@@ -27,6 +27,13 @@
 > `deploy.sh` from the dev branch will delete `/overhaul/` (it stages a fixed list),
 > so republish the preview afterwards. Open decisions for BASILICA are at the
 > bottom of the spec.
+> **LIVE 11-02 23:12Z:** the client merged PR #9 (merge `5a51ae7`), and the Pages build succeeded. Verified:
+> - `/overhaul/` returns 200 and is byte-identical to the build;
+> - all 131 `web/` files it references return 200;
+> - the root `index.html` is byte-identical to before the merge;
+> - the Warlock and VS card render on the live URL.
+>
+> Future preview updates go through a new PR from `claude/overhaul-preview-ghpages` into `gh-pages`.
 > **11-02 — story presentation rebuilt** (client: the first pass "looks horrible"). The cuts now use
 > painted panels, large expression portraits and anime-style VS, reveal and HER cards. All of it is in the
 > spec's "Cinematic layer". The remaining art gap is the Princess *gameplay* sprite (still the Jandé sheets).
