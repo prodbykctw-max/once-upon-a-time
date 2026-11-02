@@ -49,6 +49,9 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   (Frédéric's board).** Every image prompt for her says so explicitly. "Golden-tan" lightened her once and all
   27 images had to be redone (client, 11-02). Before shipping any new Princess art, put it side by side with
   Jandé's sprite.
+- **Never invent a complexion for a character based on a real person.** The bible models the Storykeeper on
+  Frédéric (face, complexion, grooming). No reference photo was supplied, and the 11-02 art prompts called him
+  "light-skinned", which was a guess. Until Frédéric sends a reference, his look is OPEN.
 - **The story save only moves forward** (`v2SaveAt`). Replays and bookmarks use `RUN_BM`.
 - Overhaul saves live in `localStorage['ouat2']`, separate from `jande_*`. All of the account's Pages
   projects share one origin.

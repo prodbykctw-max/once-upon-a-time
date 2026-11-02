@@ -155,7 +155,9 @@ Ability behaviour:
   new sheets. The transformation is played as a page/ink/notes burst on the existing sprite.
 - **Storykeeper** ~~is drawn in code~~. **Done 11-02:** painted portraits (8 expressions), a standing cutout and
   a pointing cutout, generated to the bible's description (§2): young, contemporary, hooded, page-texture
-  coat, gold thread, fountain pen. **Still open:** a likeness to Frédéric's own reference, if he wants one.
+  coat, gold thread, fountain pen. **Still open:** the bible (§2) says to model his face, complexion and grooming on Frédéric. No reference
+  was supplied, and the prompts guessed "light-skinned". His complexion and likeness wait on a photo from
+  Frédéric.
 - **Princess's look (client, 11-02):** she is a Black woman with rich deep-brown skin, matching Jandé, and
   platinum-white hair as on Frédéric's board. The first art pass came out light golden-tan, because the
   prompt said "golden-tan" and lightened the board. All 27 Princess images were regenerated. **Every Princess
