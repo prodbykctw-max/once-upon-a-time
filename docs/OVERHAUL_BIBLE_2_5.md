@@ -162,9 +162,10 @@ Ability behaviour:
 - **All human characters are Black (client, 11-02).** The man in the memories was already drawn as a Black man
   and was left as he is. In the boss atlas the Thorn Queen (row 3) and the Blossom Revenant (row 2, also used by
   The Doubt and The Spark) had their pale skin recoloured to deep brown on all 9 frames. The Toadstool Warlock
-  (row 5, The In-Between and The Grey Area) followed on client request: face, beard and hands are all deep brown
-  ("brown everywhere", client 11-02; the first pass kept a white beard that read as patchy). Pupils, the red
-  eyes and the moss collar keep their colour, and the mushroom stalk stays white. The Grey Area still shows him in black and white, because that chapter's `tint` is
+  (row 5, The In-Between and The Grey Area) followed on client request: only his face and hands are deep brown.
+  His white beard, grey side hair, eyes, moss collar and the mushroom stalk stay exactly as drawn. The client
+  said "brown everywhere" meaning the brown was bleeding where it didn't belong. A pass that browned the beard
+  too was wrong and was reverted. The Grey Area still shows him in black and white, because that chapter's `tint` is
   `grayscale(1)` on purpose. Row 8, The Groom Who
   Lied, is not used by Game I and was left alone; it is the live game's finale boss.
 - **Princess's look (client, 11-02):** she is a Black woman with rich deep-brown skin, matching Jandé, and

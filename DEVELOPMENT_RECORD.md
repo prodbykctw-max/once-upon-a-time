@@ -1595,11 +1595,16 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
     to her head and hands, because pale robe tatters touched her skin and turned brown on the first pass.
   - Toadstool Warlock (row 5): added after the client asked, "isn't he humanoid?" He is. His skin, white beard
     and robe are all the same grey-beige, so colour alone could not separate them. Face and hands are boxed
-    per frame (9 frames). The first pass kept the beard white, and the client asked to "clean up the eyes and
-    beard, brown everywhere". The second pass traces the head with per-frame polygons that stop where the stalk
-    narrows, feathers the edges, and tests skin by chroma and hue instead of HSL saturation. HSL saturation
-    called light beige "saturated" and left white specks. Pupils (Y <= 0.10), the red eyes and the green moss
-    are left as drawn.
+    per frame (9 frames). The first pass let brown streak into the beard. The client said "clean up the eyes and
+    beard. Brown everywhere", meaning the brown was everywhere in a bad way. **Misread:** the second pass browned
+    the beard too, and the client said it was worse. That is now a CLAUDE.md rule: ask before rebuilding on
+    ambiguous feedback. The third pass (kept) browns skin only:
+    - Standing frames: a face polygon that stops at the beard line. Light neighbourhoods (smoothed luma > 0.44)
+      are treated as beard and left as drawn.
+    - Falling frames: the face is hand-traced around the eye and nose, because there the face is as pale as the
+      beard and lightness cannot split them.
+    - Skin is tested by chroma and hue, not HSL saturation, which calls light beige "saturated".
+    - Pupils, eye glints, red eyes, moss and the stalk are left as drawn.
   - Left as is: the man in the memories, who was already drawn as a Black man; the monsters; and The Groom
     Who Lied (row 8), which Game I never uses.
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
