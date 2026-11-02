@@ -1570,6 +1570,17 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
   Card time is now real time, so a 120 Hz phone no longer plays every card at double speed.
 - The preview video is captured frame by frame on Playwright's fake clock. The game's own Web Audio is
   rendered offline on the same clock, through an OfflineAudioContext standing in for AudioContext.
+- **The duplicate-frame check paid for itself.** It found five real stills, all fixed:
+  - the first frame of every crossfade repeated the outgoing frame;
+  - the page turn stood still at both ends;
+  - the world froze for 0.9 s during the transformation burst, because the cut paused `update()`;
+  - THE END and the credits sat motionless for 3 to 4 s.
+- An independent review then caught more, also fixed:
+  - reduce-motion gaps;
+  - a text-baseline leak from herCard into THE END;
+  - art that only began loading at the first cut.
+- What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
+  16/17 ms clock, not a capture defect.
 
 ---
 
