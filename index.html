@@ -7288,7 +7288,7 @@ var SCRIPT=[
   final:[['O','Again?'],{act:'raiseMic'},{beat:900},{act:'lowerMic'},['P','No.'],['O','No?'],['P',"I'm tired."],['O','Of losing?'],['P','Of fighting you.'],{act:'oLower'},['O','Then stop.'],['P','I loved him.'],['O','I know.'],['P','And I hurt him.'],['O','I know.'],['P','He hurt me too.'],['O','I know.'],['P','I thought I had more time.'],['P','More time to figure it out.'],['P','More time to get it right.'],['P',"I thought he'd still be there."],['P',"I'm sorry."],{act:'merge'},{wait:1100},{bg:panelBG('p_merge',{fx0:0.3,fx1:0.72,z0:1.0,z1:1.14,dur:230,flash:30,noCast:1,mn:40}),ms:3900,xf:30}]}
 ];
 var PROLOGUE_TALK=[['P',"That's it?"],['S','Seems so.'],['P','Who are you?'],['S','Storykeeper.'],['P','Okay... where is he?'],{act:'closeBook'},['S',"You'll find what you're looking for at the end."],['P','And how exactly am I supposed to get there?'],['S','Forward usually works.'],{act:'graceNote'},['S','Oh—and keep your voice.']];
-var TRANSFORM_TALK=[{act:'transform'},{wait:900},['P','Oh.'],['P','You did this?'],['S','No.'],{act:'skGesture'},{wait:500}];
+var TRANSFORM_TALK=[{act:'transform'},{fn:function(){if(GS)GS.cut=false;}},{wait:900},{fn:function(){if(GS)GS.cut=true;}},['P','Oh.'],['P','You did this?'],['S','No.'],{act:'skGesture'},{wait:500}];
 var ENCORE_TALK=[['P',"He's not here."],['S','No.'],['P',"You said I'd find what I was looking for."],['S','You did.'],['P',"You could've just told me."],['S','Would you have listened?'],['P','No.'],['S','I know.'],{act:'offerBook'},{wait:1800},['P','So what happens now?'],['S',"I don't know."],['P',"You don't know?"],['S',"It's your story."]];
 
 // ════════════════════════ FIGURES (portraits + world) ════════════════════════
@@ -7505,7 +7505,7 @@ function castThumb(c,w,h,ck){if(!ck)return false;var im=castImg(ck.k);if(!im)ret
 // ── crossfade: the outgoing frame is kept and dissolved over the incoming one ──
 function stSnap(n){var cv=$i('stPage');if(!cv||!cv.width)return;if(!ST.prev)ST.prev=document.createElement('canvas');
   if(ST.prev.width!==cv.width||ST.prev.height!==cv.height){ST.prev.width=cv.width;ST.prev.height=cv.height;}
-  var p=ST.prev.getContext('2d');p.setTransform(1,0,0,1,0,0);p.clearRect(0,0,cv.width,cv.height);p.drawImage(cv,0,0);ST.xf=1;ST.xfN=n||16;}
+  var p=ST.prev.getContext('2d');p.setTransform(1,0,0,1,0,0);p.clearRect(0,0,cv.width,cv.height);p.drawImage(cv,0,0);ST.xfN=n||16;ST.xf=1-1/ST.xfN;}   // the first frame already blends: no repeated frame at a cut
 
 // ── anime speed lines (horizontal) and focus lines (radial) ──
 function speedLines(c,w,h,t,dir,col,n){var rm=RM();n=n||34;c.save();c.globalCompositeOperation='lighter';
@@ -7647,7 +7647,7 @@ var PRO_NOTE=[0,2,4,7,10,13];
 var APART_END=panelBG('p_apart',{fx0:0.9,fx1:0.9,z0:1.03,z1:1.03,motes:0});
 function flipCard(c,w,h,t){var rm=RM();APART_END(c,w,h,999);
   if(rm){c.fillStyle='rgba(243,230,204,'+Math.min(1,t/30).toFixed(3)+')';c.fillRect(0,0,w,h);return;}   // reduce motion: the page fades, it does not sweep
-  var k=eio(t/52),ex=w*1.08-(w*1.16)*k;
+  var k=eio(t/64),ex=w*1.08-(w*1.16)*k;
   var pg=c.createLinearGradient(ex,0,w,0);pg.addColorStop(0,'#f6ead0');pg.addColorStop(0.5,'#efdfbd');pg.addColorStop(1,'#e2cfa6');c.fillStyle=pg;c.fillRect(Math.max(0,ex),0,w,h);
   var sw=Math.min(90,w*0.12),sg=c.createLinearGradient(ex-sw,0,ex,0);sg.addColorStop(0,'rgba(0,0,0,0)');sg.addColorStop(1,'rgba(20,10,4,0.55)');c.fillStyle=sg;c.fillRect(ex-sw,0,sw,h);
   var hl=c.createLinearGradient(ex,0,ex+sw*0.7,0);hl.addColorStop(0,'rgba(255,255,255,0.65)');hl.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=hl;c.fillRect(ex,0,sw*0.7,h);}
@@ -7787,6 +7787,7 @@ function encoreBook(c,w,h,t){c.textBaseline='alphabetic';c.fillStyle='#fffdf8';c
     var sk=Math.max(0,Math.min(1,(ENC.endT-55)/35));
     if(sk>0){var tw=c.measureText('THE END').width;c.strokeStyle='#3a1f2a';c.lineWidth=Math.max(3,fz*0.09);c.lineCap='round';
       c.beginPath();c.moveTo(cx-tw*0.58,cy-fz*0.22);var x2=cx-tw*0.58+tw*1.16*sk;c.quadraticCurveTo((cx-tw*0.58+x2)/2,cy-fz*0.42,x2,cy-fz*0.3+Math.sin(sk*6)*2);c.stroke();}}}
+creditsCard.noCast=1;
 function creditsCard(c,w,h,t){c.textBaseline='alphabetic';c.fillStyle='#000';c.fillRect(0,0,w,h);c.textAlign='center';var a=Math.min(1,t/40);c.globalAlpha=a;
   c.fillStyle='#d9b45a';c.font='700 '+Math.round(Math.min(w*0.07,46))+'px Storyboo,serif';c.fillText('ONCE UPON A TIME',w/2,h*0.42);
   c.fillStyle='#efe1c2';c.font='600 '+Math.round(Math.min(w*0.035,18))+'px system-ui,sans-serif';c.fillText('BASILICA',w/2,h*0.52);c.fillText('PRODBYKCTW',w/2,h*0.57);c.globalAlpha=1;}
@@ -8021,7 +8022,7 @@ function v2HerStart(b){}
 function v2HerComplete(){var b=GS.boss;GS.bossActive=false;if(b){b.alive=false;b.merging=1;}
   document.getElementById('bossBar').classList.remove('on');
   V2S.clears[10]=1;V2S.done=1;V2S.save=null;v2Persist();ENC={open:0,end:0,endT:0};
-  storyRun([{bg:herCard,ms:4200},{bg:encorePage},{wait:600}].concat(ENCORE_TALK).concat([{fn:function(){ENC.end=1;ENC.endT=0;},keep:1},{wait:4200},{bg:creditsCard,ms:4200}]),
+  storyRun([{bg:herCard,ms:4200},{bg:encorePage},{wait:600}].concat(ENCORE_TALK).concat([{fn:function(){ENC.end=1;ENC.endT=0;stSnap(30);castReset();},keep:1},{wait:4200},{bg:creditsCard,ms:4200}]),
     function(){toTitle();});}
 function storyAbort(){if(ST.on){ST.done=null;storyEnd();}talkClear();}   // leaving a run never carries a scene into the next one
 function toTitle(){storyAbort();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=$i(id);if(el)el.classList.remove('on');});
