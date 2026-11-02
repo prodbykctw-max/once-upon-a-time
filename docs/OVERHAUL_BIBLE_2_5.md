@@ -162,7 +162,10 @@ Ability behaviour:
 - **All human characters are Black (client, 11-02).** The man in the memories was already drawn as a Black man
   and was left as he is. In the boss atlas the Thorn Queen (row 3) and the Blossom Revenant (row 2, also used by
   The Doubt and The Spark) had their pale skin recoloured to deep brown on all 9 frames. The Toadstool Warlock
-  (row 5, The In-Between and The Grey Area) followed on client request: only his face and hands are deep brown.
+  (row 5, The In-Between and The Grey Area) followed on client request: **OPEN (11-02):** the original
+  art is back in the preview (client's call) until an image-model edit is done through Figma Weave, which the client chose.
+  Three mask recolours were rejected as not clean, and an independent review agreed. The last attempt was this one:
+  only his face and hands were deep brown.
   His white beard, grey side hair, eyes, moss collar and the mushroom stalk stay exactly as drawn. The client
   said "brown everywhere" meaning the brown was bleeding where it didn't belong. A pass that browned the beard
   too was wrong and was reverted. The Grey Area still shows him in black and white, because that chapter's `tint` is

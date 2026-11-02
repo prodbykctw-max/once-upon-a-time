@@ -51,7 +51,7 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   Jandé's sprite.
 - **Every human character is Black. It's Atlanta** (client, 11-02). Princess, her other self, the Storykeeper
   and the man in the memories all have rich deep-brown skin, and so do the human bosses (Thorn Queen, Blossom
-  Revenant, Toadstool Warlock). Every prompt for a human character says "Black" and "rich deep-brown skin" explicitly. Monsters
+  Revenant; the Toadstool Warlock is OPEN: original art is back until an image-model edit lands). Every prompt for a human character says "Black" and "rich deep-brown skin" explicitly. Monsters
   stay creatures. The boss skin was recoloured in the atlas itself (per-row masks grown from the palest
   pixels, with the Revenant held to the head and hands; the Warlock by per-frame face polygons, skin only. His white beard and hair stay
   as drawn. Skin is tested by chroma and hue, not HSL saturation, which calls light beige "saturated".)

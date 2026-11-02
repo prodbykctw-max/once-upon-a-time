@@ -1605,6 +1605,11 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
       beard and lightness cannot split them.
     - Skin is tested by chroma and hue, not HSL saturation, which calls light beige "saturated".
     - Pupils, eye glints, red eyes, moss and the stalk are left as drawn.
+  - **Third pass also rejected ("still not clean").** An independent review found seams, a pale nose tip, a dead
+    eye glow, brown bleeding into hair and sleeves, and defeat frames lighter than idle. Its verdict: mask
+    recolouring cannot get this clean. At the client's call, the Warlock row is back to the original art. The
+    fix is an image-model inpaint of face and hands per frame through Figma Weave (client's choice), with the
+    original alpha reused. **Open thread.**
   - Left as is: the man in the memories, who was already drawn as a Black man; the monsters; and The Groom
     Who Lied (row 8), which Game I never uses.
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
