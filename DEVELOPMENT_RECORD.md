@@ -1595,7 +1595,11 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
     to her head and hands, because pale robe tatters touched her skin and turned brown on the first pass.
   - Toadstool Warlock (row 5): added after the client asked, "isn't he humanoid?" He is. His skin, white beard
     and robe are all the same grey-beige, so colour alone could not separate them. Face and hands are boxed
-    per frame (9 frames), and the beard's highlights are kept white.
+    per frame (9 frames). The first pass kept the beard white, and the client asked to "clean up the eyes and
+    beard, brown everywhere". The second pass traces the head with per-frame polygons that stop where the stalk
+    narrows, feathers the edges, and tests skin by chroma and hue instead of HSL saturation. HSL saturation
+    called light beige "saturated" and left white specks. Pupils (Y <= 0.10), the red eyes and the green moss
+    are left as drawn.
   - Left as is: the man in the memories, who was already drawn as a Black man; the monsters; and The Groom
     Who Lied (row 8), which Game I never uses.
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
