@@ -7645,7 +7645,7 @@ var PRO_PANELS=[
   ['p_apart',  {fx0:0.36,fx1:0.9,z0:1.16,z1:1.03,motes:'cool'}]];
 var PRO_NOTE=[0,2,4,7,10,13];
 var APART_END=panelBG('p_apart',{fx0:0.9,fx1:0.9,z0:1.03,z1:1.03,motes:'cool'});
-function flipCard(c,w,h,t){var rm=RM();APART_END(c,w,h,999);
+function flipCard(c,w,h,t){var rm=RM();APART_END(c,w,h,999+t);   // the held panel's motes keep drifting under the turn
   if(rm){c.fillStyle='rgba(243,230,204,'+Math.min(1,t/30).toFixed(3)+')';c.fillRect(0,0,w,h);return;}   // reduce motion: the page fades, it does not sweep
   var k=eio(t/70),ex=w*1.08-(w*1.16)*k;
   var pg=c.createLinearGradient(ex,0,w,0);pg.addColorStop(0,'#f6ead0');pg.addColorStop(0.5,'#efdfbd');pg.addColorStop(1,'#e2cfa6');c.fillStyle=pg;c.fillRect(Math.max(0,ex),0,w,h);
