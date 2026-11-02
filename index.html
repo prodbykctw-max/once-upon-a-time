@@ -7858,7 +7858,7 @@ function v2Proceed(go){var ch=chOf(),sc=SCRIPT[ch];
 
 // ── the PROLOGUE: storybook → blank page → into the world, no loading screen ──
 function v2Prologue(done){PRO={sk:1,book:1,note:0,pre:1};artLoad();
-  var steps=prologueSteps().concat([{bg:makePageBG(),xf:28}]).concat(PROLOGUE_TALK).concat([{wait:700},{fn:xformSfx},{bg:XFORM_BG,ms:2900,xf:14},{bg:null,xf:22},{wait:380}]);
+  var steps=prologueSteps().concat([{bg:makePageBG(),xf:28,ms:700}]).concat(PROLOGUE_TALK).concat([{wait:700},{fn:xformSfx},{bg:XFORM_BG,ms:2900,xf:14},{bg:null,xf:22},{wait:380}]);
   storyRun(steps,function(){
     var p=GS.p;skAt(p.x+150);SKW.alpha=1;
     storyRun(TRANSFORM_TALK,function(){SKW.fade=1;
