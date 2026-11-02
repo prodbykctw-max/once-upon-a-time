@@ -55,6 +55,12 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   stay creatures. The boss skin was recoloured in the atlas itself (per-row masks grown from the palest
   pixels, with the Revenant held to the head and hands; the Warlock by per-frame face polygons, skin only. His white beard and hair stay
   as drawn. Skin is tested by chroma and hue, not HSL saturation, which calls light beige "saturated".)
+- **Painted sprites cannot be recoloured cleanly by pixel masks when skin shares a value range with hair or
+  beard** (Toadstool Warlock, 11-02: three mask passes, all "not clean"; an independent review found seams,
+  bleed, dead eye glints and idle/defeat tone drift). Use an image-model edit per frame: an inpaint of face and
+  hands only, the original frame plus an approved master as references, generated on chroma green, the
+  original alpha reused, the skin RGB measured across frames. Mask recolours are fine only where skin is
+  clearly separated (Thorn Queen, Blossom Revenant).
 - **When client feedback could mean "do more of X" or "X is the problem", ask one short question before
   rebuilding.** "Brown everywhere" (11-02) meant the brown was bleeding into the beard. It was read as "make
   the beard brown too", and the client said it was worse., so every frame keeps its exact animation.
