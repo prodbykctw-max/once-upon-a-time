@@ -7644,10 +7644,10 @@ var PRO_PANELS=[
   ['p_bench',  {fx0:0.32,fx1:0.74,z0:1.05,z1:1.05,motes:'cool'}],
   ['p_apart',  {fx0:0.36,fx1:0.9,z0:1.16,z1:1.03,motes:'cool'}]];
 var PRO_NOTE=[0,2,4,7,10,13];
-var APART_END=panelBG('p_apart',{fx0:0.9,fx1:0.9,z0:1.03,z1:1.03,motes:0});
+var APART_END=panelBG('p_apart',{fx0:0.9,fx1:0.9,z0:1.03,z1:1.03,motes:'cool'});
 function flipCard(c,w,h,t){var rm=RM();APART_END(c,w,h,999);
   if(rm){c.fillStyle='rgba(243,230,204,'+Math.min(1,t/30).toFixed(3)+')';c.fillRect(0,0,w,h);return;}   // reduce motion: the page fades, it does not sweep
-  var k=eio(t/64),ex=w*1.08-(w*1.16)*k;
+  var k=eio(t/70),ex=w*1.08-(w*1.16)*k;
   var pg=c.createLinearGradient(ex,0,w,0);pg.addColorStop(0,'#f6ead0');pg.addColorStop(0.5,'#efdfbd');pg.addColorStop(1,'#e2cfa6');c.fillStyle=pg;c.fillRect(Math.max(0,ex),0,w,h);
   var sw=Math.min(90,w*0.12),sg=c.createLinearGradient(ex-sw,0,ex,0);sg.addColorStop(0,'rgba(0,0,0,0)');sg.addColorStop(1,'rgba(20,10,4,0.55)');c.fillStyle=sg;c.fillRect(ex-sw,0,sw,h);
   var hl=c.createLinearGradient(ex,0,ex+sw*0.7,0);hl.addColorStop(0,'rgba(255,255,255,0.65)');hl.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=hl;c.fillRect(ex,0,sw*0.7,h);}
@@ -7786,11 +7786,12 @@ function encoreBook(c,w,h,t){c.textBaseline='alphabetic';c.fillStyle='#fffdf8';c
     c.textAlign='center';c.fillStyle='#b0863a';c.globalAlpha=Math.min(1,ENC.endT/30);c.font='700 '+fz+'px Storyboo,serif';c.fillText('THE END',cx,cy);c.globalAlpha=1;
     var sk=Math.max(0,Math.min(1,(ENC.endT-55)/35));
     if(sk>0){var tw=c.measureText('THE END').width;c.strokeStyle='#3a1f2a';c.lineWidth=Math.max(3,fz*0.09);c.lineCap='round';
-      c.beginPath();c.moveTo(cx-tw*0.58,cy-fz*0.22);var x2=cx-tw*0.58+tw*1.16*sk;c.quadraticCurveTo((cx-tw*0.58+x2)/2,cy-fz*0.42,x2,cy-fz*0.3+Math.sin(sk*6)*2);c.stroke();}}}
+      c.beginPath();c.moveTo(cx-tw*0.58,cy-fz*0.22);var x2=cx-tw*0.58+tw*1.16*sk;c.quadraticCurveTo((cx-tw*0.58+x2)/2,cy-fz*0.42,x2,cy-fz*0.3+Math.sin(sk*6)*2);c.stroke();}}
+  if(!RM())motes(c,w,h,t,'gold',16);}   // the page never sits perfectly still
 creditsCard.noCast=1;
 function creditsCard(c,w,h,t){c.textBaseline='alphabetic';c.fillStyle='#000';c.fillRect(0,0,w,h);c.textAlign='center';var a=Math.min(1,t/40);c.globalAlpha=a;
   c.fillStyle='#d9b45a';c.font='700 '+Math.round(Math.min(w*0.07,46))+'px Storyboo,serif';c.fillText('ONCE UPON A TIME',w/2,h*0.42);
-  c.fillStyle='#efe1c2';c.font='600 '+Math.round(Math.min(w*0.035,18))+'px system-ui,sans-serif';c.fillText('BASILICA',w/2,h*0.52);c.fillText('PRODBYKCTW',w/2,h*0.57);c.globalAlpha=1;}
+  c.fillStyle='#efe1c2';c.font='600 '+Math.round(Math.min(w*0.035,18))+'px system-ui,sans-serif';c.fillText('BASILICA',w/2,h*0.52);c.fillText('PRODBYKCTW',w/2,h*0.57);c.globalAlpha=1;if(!RM())motes(c,w,h,t,'gold',22);}
 
 // ════════════════════════ ACTS (stage directions that change the world) ════════════════════════
 var SKW={on:0,x:0,y:0,alpha:0,g:0,fade:0};      // Storykeeper standing in the world
