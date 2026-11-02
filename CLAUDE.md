@@ -51,9 +51,10 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   Jandé's sprite.
 - **Every human character is Black. It's Atlanta** (client, 11-02). Princess, her other self, the Storykeeper
   and the man in the memories all have rich deep-brown skin, and so do the human bosses (Thorn Queen, Blossom
-  Revenant). Every prompt for a human character says "Black" and "rich deep-brown skin" explicitly. Monsters
+  Revenant, Toadstool Warlock). Every prompt for a human character says "Black" and "rich deep-brown skin" explicitly. Monsters
   stay creatures. The boss skin was recoloured in the atlas itself (per-row masks grown from the palest
-  pixels, with the Revenant held to the head and hands), so all 18 frames keep their exact animation.
+  pixels, with the Revenant held to the head and hands; the Warlock by per-frame face/hand boxes, because his skin,
+  beard and robe share one colour), so every frame keeps its exact animation.
 - **Never invent a complexion for a character based on a real person.** The bible models the Storykeeper on
   Frédéric (face and grooming). The client set his skin on 11-02: a Black man with rich deep-brown skin. His
   FACE and grooming are still a guess until Frédéric sends a reference photo.

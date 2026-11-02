@@ -1593,6 +1593,9 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
   - Bosses: the Thorn Queen (atlas row 3) and the Blossom Revenant (row 2, also The Doubt and The Spark) were
     recoloured in the atlas on all 9 frames. Masks are grown from the palest pixels. The Revenant mask is held
     to her head and hands, because pale robe tatters touched her skin and turned brown on the first pass.
+  - Toadstool Warlock (row 5): added after the client asked, "isn't he humanoid?" He is. His skin, white beard
+    and robe are all the same grey-beige, so colour alone could not separate them. Face and hands are boxed
+    per frame (9 frames), and the beard's highlights are kept white.
   - Left as is: the man in the memories, who was already drawn as a Black man; the monsters; and The Groom
     Who Lied (row 8), which Game I never uses.
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
