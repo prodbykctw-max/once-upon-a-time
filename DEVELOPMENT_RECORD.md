@@ -1559,6 +1559,18 @@ the old Belt) stayed dead with the arena sealed and no tally. A second check now
 Verified headless: the prologue, all eleven chapters' bosses through their defeat cuts, the false-victory
 loop and the Encore, the bookmark continue, and portrait touch.
 
+**11-02: the story presentation was rebuilt.** The client called the first pass horrible: code-drawn figures,
+a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws from painted art made for it:
+- 10 panels, 24 expression portraits, a battle pose, and the Storykeeper standing and pointing. The art was
+  generated in Figma in the style of Frédéric's board and cut out with rembg.
+- A cinematic layer: Ken Burns panels with crossfades, and a cast that stands behind a glass dialogue box.
+- A split-screen VS card with slam-in, flash, shake and a stamped VS. A glitch reveal for each first-ever foe.
+  A kinetic HER card that glitches from COMPLETE. to CONTINUE.
+- **Two mechanisms changed with it.** The sequencer's timed beats moved off `setTimeout` onto the story clock.
+  Card time is now real time, so a 120 Hz phone no longer plays every card at double speed.
+- The preview video is captured frame by frame on Playwright's fake clock. The game's own Web Audio is
+  rendered offline on the same clock, through an OfflineAudioContext standing in for AudioContext.
+
 ---
 
 *Jandé — "Once Upon A Time"*

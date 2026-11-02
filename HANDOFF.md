@@ -27,6 +27,9 @@
 > `deploy.sh` from the dev branch will delete `/overhaul/` (it stages a fixed list),
 > so republish the preview afterwards. Open decisions for BASILICA are at the
 > bottom of the spec.
+> **11-02 — story presentation rebuilt** (client: the first pass "looks horrible"). The cuts now use
+> painted panels, large expression portraits and anime-style VS, reveal and HER cards. All of it is in the
+> spec's "Cinematic layer". The remaining art gap is the Princess *gameplay* sprite (still the Jandé sheets).
 
 > ## ⏸ SUPERSEDED 11-01 — CLIENT NOTES IN, NO WORK UNTIL THE WALKTHROUGH (09-16)
 > **`docs/CLIENT_NOTES_FREDERIC.md`.** Frédéric De Jesus (BASILICA) sent full

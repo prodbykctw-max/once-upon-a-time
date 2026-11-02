@@ -40,6 +40,11 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
 - **An overlay that advances on `pointerdown` must eat the follow-up click** (`ST.eatUntil`).
   Otherwise the tap that closes it presses whatever is underneath. **Key repeats never advance a cut,
   and keys held through a cut stay dead until they are released.**
+- **Cut presentation is the CINEMATIC LAYER** (`panelBG`, the cast, `vsCard` / `revealCard` / `herCard`;
+  art in `ART_SRC`). A card's `t` is the story clock (60ths of a second, real-time scaled), never a count
+  of rAF calls. A card that shows full-screen people sets `.noCast`. Princess portraits switch from gown to
+  adventurer on the `transform` act (`PRO.pre`). Spec: the "Cinematic layer" section of
+  `docs/OVERHAUL_BIBLE_2_5.md`.
 - **The story save only moves forward** (`v2SaveAt`). Replays and bookmarks use `RUN_BM`.
 - Overhaul saves live in `localStorage['ouat2']`, separate from `jande_*`. All of the account's Pages
   projects share one origin.

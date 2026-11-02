@@ -33,6 +33,29 @@ Everything else in the bible is listed below as **NOT BUILT**.
   - `{bg, ms}`: a full-screen card drawn on `#stPage`.
   - `{wait}` / `{beat}`: a timed pause.
 
+  - `{bg, ms, xf}`: `xf` is the crossfade length in frames. The outgoing frame is snapshotted and dissolved.
+
+  Timed beats count down on the **story clock** inside `stFrame` (`ST.waitMs`, and `t` for every card is
+  `ST.bgT` in 60ths of a second, scaled by real frame time). They never use `setTimeout`, and they never
+  count raw rAF calls, which would double every animation on a 120 Hz phone.
+- **Cinematic layer (11-02).** Everything the player sees during a cut is drawn by one block in front of
+  the sequencer:
+  - `panelBG(key, o)` draws a painted panel with a slow push and pan toward a focal point (`fx/fy` in image
+    space), motes and a vignette. On a tall screen the 16:9 plate becomes a cinema band over a blurred copy of
+    itself, so the subject is never cropped away.
+  - The **cast** (`castKey`, `castSet`, `castDraw`) puts large portraits behind the dialogue box: Princess on
+    the left and S/O/B/F on the right. The speaker is lit and lifted, the listener dims, and each line gets a
+    small hop. The expression comes from the line itself (`exprP` / `exprS`). Princess wears the storybook
+    gown (`pb_*`) until the `transform` act clears `PRO.pre`, then the adventurer (`pr_*`).
+  - The cards are `coverCard`, the six `PRO_PANELS`, `flipCard`, `makePageBG`, `XFORM_BG`, `vsCard`,
+    `revealCard`, the `p_merge` panel in `SCRIPT[10].final`, `herCard` and `ENCORE_BG`.
+    A card that shows full-screen people sets `.noCast`, and `revealCard` sets `.noCastR`.
+  - The in-world Storykeeper is the painted cutout (`drawSKWorld`). He stands front-facing, and on
+    `skGesture` he becomes the pointing pose aimed forward. `drawSK` (code-drawn) is only the fallback.
+  - Art lives in `ART_SRC`, 37 files in `web/`. The images were generated in Figma, in the style of Frédéric's
+    reference board, and cut out with rembg (`isnet-anime`). Busts are baked once with a faded bottom edge
+    (`castImg`).
+
   `GS.cut = true` pauses `update()` while the world keeps drawing. `storyEnd()` clears held keys and touches,
   so nothing leaks into play. Every cut has SKIP, and Escape also skips. `{act}` steps listed in
   `V2ACT_SKIPSAFE` still run on skip, so a skip never leaves the world half-told.
@@ -130,10 +153,15 @@ Ability behaviour:
 
 - **Princess** is still the existing heroine sprite set (Jandé likeness). The Adventurer Princess (§5) needs
   new sheets. The transformation is played as a page/ink/notes burst on the existing sprite.
-- **Storykeeper** is drawn in code as a hooded, gold-thread figure holding a book with a pen. It stands in
-  until the concept art and pose sheet exist.
-- **Prologue memories** use the painted Prince (`TEX.prince`) and storybook Princess (`TEX.reunion`).
-  Fifteen wordless vignettes go from warm to cold, then apart.
+- **Storykeeper** ~~is drawn in code~~. **Done 11-02:** painted portraits (8 expressions), a standing cutout and
+  a pointing cutout, generated to the bible's description (§2): young, contemporary, hooded, page-texture
+  coat, gold thread, fountain pen. **Still open:** a likeness to Frédéric's own reference, if he wants one.
+- **Princess portraits and cards. Done 11-02:** 8 adventurer expressions, 8 storybook-gown expressions and a
+  full-body battle pose for the VS card. **Still open:** her *gameplay* sprite is still the Jandé sheet set,
+  so the world figure does not yet match the portraits. This needs new run, jump and attack sheets.
+- **Prologue memories. Done 11-02:** six painted panels (together, the dance, an ordinary morning, the balcony,
+  the bench, apart on the bridge), the blank page, the transformation, the merge and the Encore. They replace
+  the fifteen code-composed vignettes.
 - **Doubt and Grey Area** run on tinted stand-in atlas rows.
 - **Worlds V, VI, VII, IX, X and XI** reuse existing paintings (see the map above).
 - **Credits** list BASILICA and PRODBYKCTW only. Full credits are BASILICA's call.
