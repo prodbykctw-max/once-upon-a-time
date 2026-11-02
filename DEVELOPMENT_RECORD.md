@@ -1579,6 +1579,13 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
   - reduce-motion gaps;
   - a text-baseline leak from herCard into THE END;
   - art that only began loading at the first cut.
+- **Skin tone, corrected (client, 11-02):** *"Jandé is a black woman from Atlanta."*
+  - What went wrong: the art prompt locked her as "warm golden-tan", lighter than Frédéric's board and lighter
+    than Jandé.
+  - The fix: all 27 Princess images were regenerated with rich deep-brown skin. The 8 adventurer and 8 gown
+    expressions, the VS pose and the 10 panels were each redone. The hair stays platinum, the client's pick.
+  - Related change: the dimmed portrait variant was lightened so deep skin stays readable when she is the
+    listener.
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
   16/17 ms clock, not a capture defect.
 

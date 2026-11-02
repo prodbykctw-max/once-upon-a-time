@@ -156,6 +156,10 @@ Ability behaviour:
 - **Storykeeper** ~~is drawn in code~~. **Done 11-02:** painted portraits (8 expressions), a standing cutout and
   a pointing cutout, generated to the bible's description (§2): young, contemporary, hooded, page-texture
   coat, gold thread, fountain pen. **Still open:** a likeness to Frédéric's own reference, if he wants one.
+- **Princess's look (client, 11-02):** she is a Black woman with rich deep-brown skin, matching Jandé, and
+  platinum-white hair as on Frédéric's board. The first art pass came out light golden-tan, because the
+  prompt said "golden-tan" and lightened the board. All 27 Princess images were regenerated. **Every Princess
+  prompt must state the skin explicitly** ("rich deep-brown skin, clearly deep brown, not tan").
 - **Princess portraits and cards. Done 11-02:** 8 adventurer expressions, 8 storybook-gown expressions and a
   full-body battle pose for the VS card. **Still open:** her *gameplay* sprite is still the Jandé sheet set,
   so the world figure does not yet match the portraits. This needs new run, jump and attack sheets.

@@ -45,6 +45,10 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   of rAF calls. A card that shows full-screen people sets `.noCast`. Princess portraits switch from gown to
   adventurer on the `transform` act (`PRO.pre`). Spec: the "Cinematic layer" section of
   `docs/OVERHAUL_BIBLE_2_5.md`.
+- **Princess is a Black woman with rich deep-brown skin (she matches Jandé), with platinum-white hair
+  (Frédéric's board).** Every image prompt for her says so explicitly. "Golden-tan" lightened her once and all
+  27 images had to be redone (client, 11-02). Before shipping any new Princess art, put it side by side with
+  Jandé's sprite.
 - **The story save only moves forward** (`v2SaveAt`). Replays and bookmarks use `RUN_BM`.
 - Overhaul saves live in `localStorage['ouat2']`, separate from `jande_*`. All of the account's Pages
   projects share one origin.
