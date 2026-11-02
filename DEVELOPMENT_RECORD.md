@@ -1586,6 +1586,15 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
     expressions, the VS pose and the 10 panels were each redone. The hair stays platinum, the client's pick.
   - Related change: the dimmed portrait variant was lightened so deep skin stays readable when she is the
     listener.
+- **All human characters Black (client, 11-02):** *"Can all characters be black? It's Atlanta."*
+  - Storykeeper: redrawn as a Black man with rich deep-brown skin, in Princess's anime style. A first,
+    semi-realistic sheet was discarded because it didn't match her. That makes 12 images: 8 busts, the
+    front and pointing cutouts, `p_page` and `p_encore`.
+  - Bosses: the Thorn Queen (atlas row 3) and the Blossom Revenant (row 2, also The Doubt and The Spark) were
+    recoloured in the atlas on all 9 frames. Masks are grown from the palest pixels. The Revenant mask is held
+    to her head and hands, because pale robe tatters touched her skin and turned brown on the first pass.
+  - Left as is: the man in the memories, who was already drawn as a Black man; the monsters; and The Groom
+    Who Lied (row 8), which Game I never uses.
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
   16/17 ms clock, not a capture defect.
 

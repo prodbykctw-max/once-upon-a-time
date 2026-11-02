@@ -30,6 +30,9 @@
 > **11-02 — story presentation rebuilt** (client: the first pass "looks horrible"). The cuts now use
 > painted panels, large expression portraits and anime-style VS, reveal and HER cards. All of it is in the
 > spec's "Cinematic layer". The remaining art gap is the Princess *gameplay* sprite (still the Jandé sheets).
+> **11-02 — every human character is Black** (client: "It's Atlanta"). The Storykeeper was redrawn (12 images),
+> and the Thorn Queen and Blossom Revenant were recoloured in the boss atlas. The rule is in CLAUDE.md. The
+> Storykeeper's face still waits on Frédéric's reference photo.
 
 > ## ⏸ SUPERSEDED 11-01 — CLIENT NOTES IN, NO WORK UNTIL THE WALKTHROUGH (09-16)
 > **`docs/CLIENT_NOTES_FREDERIC.md`.** Frédéric De Jesus (BASILICA) sent full

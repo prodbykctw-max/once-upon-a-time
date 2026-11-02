@@ -49,9 +49,14 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   (Frédéric's board).** Every image prompt for her says so explicitly. "Golden-tan" lightened her once and all
   27 images had to be redone (client, 11-02). Before shipping any new Princess art, put it side by side with
   Jandé's sprite.
+- **Every human character is Black. It's Atlanta** (client, 11-02). Princess, her other self, the Storykeeper
+  and the man in the memories all have rich deep-brown skin, and so do the human bosses (Thorn Queen, Blossom
+  Revenant). Every prompt for a human character says "Black" and "rich deep-brown skin" explicitly. Monsters
+  stay creatures. The boss skin was recoloured in the atlas itself (per-row masks grown from the palest
+  pixels, with the Revenant held to the head and hands), so all 18 frames keep their exact animation.
 - **Never invent a complexion for a character based on a real person.** The bible models the Storykeeper on
-  Frédéric (face, complexion, grooming). No reference photo was supplied, and the 11-02 art prompts called him
-  "light-skinned", which was a guess. Until Frédéric sends a reference, his look is OPEN.
+  Frédéric (face and grooming). The client set his skin on 11-02: a Black man with rich deep-brown skin. His
+  FACE and grooming are still a guess until Frédéric sends a reference photo.
 - **The story save only moves forward** (`v2SaveAt`). Replays and bookmarks use `RUN_BM`.
 - Overhaul saves live in `localStorage['ouat2']`, separate from `jande_*`. All of the account's Pages
   projects share one origin.

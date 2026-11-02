@@ -155,9 +155,14 @@ Ability behaviour:
   new sheets. The transformation is played as a page/ink/notes burst on the existing sprite.
 - **Storykeeper** ~~is drawn in code~~. **Done 11-02:** painted portraits (8 expressions), a standing cutout and
   a pointing cutout, generated to the bible's description (§2): young, contemporary, hooded, page-texture
-  coat, gold thread, fountain pen. **Still open:** the bible (§2) says to model his face, complexion and grooming on Frédéric. No reference
-  was supplied, and the prompts guessed "light-skinned". His complexion and likeness wait on a photo from
-  Frédéric.
+  coat, gold thread, fountain pen. **Redrawn 11-02 (client: "all characters Black, it's Atlanta"):** a Black
+  man with rich deep-brown skin, in the same anime style as Princess. 12 images: 8 busts, 2 world cutouts, the
+  blank-page panel and the Encore panel. **Still open:** the bible (§2) models his face and grooming on Frédéric,
+  and no reference photo has been supplied yet.
+- **All human characters are Black (client, 11-02).** The man in the memories was already drawn as a Black man
+  and was left as he is. In the boss atlas the Thorn Queen (row 3) and the Blossom Revenant (row 2, also used by
+  The Doubt and The Spark) had their pale skin recoloured to deep brown on all 9 frames. Row 8, The Groom Who
+  Lied, is not used by Game I and was left alone; it is the live game's finale boss.
 - **Princess's look (client, 11-02):** she is a Black woman with rich deep-brown skin, matching Jandé, and
   platinum-white hair as on Frédéric's board. The first art pass came out light golden-tan, because the
   prompt said "golden-tan" and lightened the board. All 27 Princess images were regenerated. **Every Princess
