@@ -31,8 +31,8 @@
 > painted panels, large expression portraits and anime-style VS, reveal and HER cards. All of it is in the
 > spec's "Cinematic layer". The remaining art gap is the Princess *gameplay* sprite (still the Jandé sheets).
 > **11-02 — every human character is Black** (client: "It's Atlanta"). The Storykeeper was redrawn (12 images),
-> and the Thorn Queen and Blossom Revenant were recoloured in the boss atlas. **OPEN:** the Toadstool Warlock is back to
-> its original art until an image-model edit is done through Figma Weave, which the client chose. Mask recolours were rejected. The rule is in CLAUDE.md. The
+> and the Thorn Queen and Blossom Revenant were recoloured in the boss atlas. The Toadstool Warlock was redone
+> with a Figma Weave image edit (all 9 frames in one run, original outline kept). Mask recolours had been rejected. The rule is in CLAUDE.md. The
 > Storykeeper's face still waits on Frédéric's reference photo.
 
 > ## ⏸ SUPERSEDED 11-01 — CLIENT NOTES IN, NO WORK UNTIL THE WALKTHROUGH (09-16)

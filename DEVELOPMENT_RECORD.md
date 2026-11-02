@@ -1609,7 +1609,14 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
     eye glow, brown bleeding into hair and sleeves, and defeat frames lighter than idle. Its verdict: mask
     recolouring cannot get this clean. At the client's call, the Warlock row is back to the original art. The
     fix is an image-model inpaint of face and hands per frame through Figma Weave (client's choice), with the
-    original alpha reused. **Open thread.**
+    original alpha reused. **Closed 11-02:** the client linked Weave. All 9 frames went on one 3x3 green sheet,
+    and one Nano Banana Pro 4K edit (23 credits) gave every frame the same skin. Then each panel was:
+    - aligned back to its original by an offset search (max 8 px at 4x scale);
+    - composited inside the original alpha;
+    - green-despilled, from 300-530 greenish edge pixels per frame down to 0;
+    - matched on skin gain to the cross-frame mean (skin RGB within about 103-115 red across all 9 frames).
+
+    Idle frame-to-frame change is 0.044-0.098, against 0.040-0.091 in the original, so there is no new flicker.
   - Left as is: the man in the memories, who was already drawn as a Black man; the monsters; and The Groom
     Who Lied (row 8), which Game I never uses.
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a

@@ -51,7 +51,7 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   Jandé's sprite.
 - **Every human character is Black. It's Atlanta** (client, 11-02). Princess, her other self, the Storykeeper
   and the man in the memories all have rich deep-brown skin, and so do the human bosses (Thorn Queen, Blossom
-  Revenant; the Toadstool Warlock is OPEN: original art is back until an image-model edit lands). Every prompt for a human character says "Black" and "rich deep-brown skin" explicitly. Monsters
+  Revenant, Toadstool Warlock: the Warlock via a Figma Weave image edit, 11-02). Every prompt for a human character says "Black" and "rich deep-brown skin" explicitly. Monsters
   stay creatures. The boss skin was recoloured in the atlas itself (per-row masks grown from the palest
   pixels, with the Revenant held to the head and hands; the Warlock by per-frame face polygons, skin only. His white beard and hair stay
   as drawn. Skin is tested by chroma and hue, not HSL saturation, which calls light beige "saturated".)
@@ -60,7 +60,12 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   bleed, dead eye glints and idle/defeat tone drift). Use an image-model edit per frame: an inpaint of face and
   hands only, the original frame plus an approved master as references, generated on chroma green, the
   original alpha reused, the skin RGB measured across frames. Mask recolours are fine only where skin is
-  clearly separated (Thorn Queen, Blossom Revenant).
+  clearly separated (Thorn Queen, Blossom Revenant). **Done this way for the Warlock (11-02):** all 9 frames
+  were laid out as one 3x3 sheet on #00FF00 (`tools/weave/warlock_sheet_green.png`, 4x) and edited in ONE Nano
+  Banana Pro run (23 Weave credits), so every frame got the same edit. Each panel was then aligned back to its
+  original by a small offset search and composited inside the ORIGINAL alpha. Green spill was clamped
+  (G <= max(R,B)), and the skin gain was matched to the cross-frame mean. Idle frame-to-frame change stays within
+  ~10% of the original, so no new flicker.
 - **When client feedback could mean "do more of X" or "X is the problem", ask one short question before
   rebuilding.** "Brown everywhere" (11-02) meant the brown was bleeding into the beard. It was read as "make
   the beard brown too", and the client said it was worse., so every frame keeps its exact animation.
