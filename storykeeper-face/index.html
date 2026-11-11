@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1a0a2e">
+<meta name="robots" content="noindex">
+<title>Storykeeper Face Capture</title>
+<style>
+@font-face{font-family:'Storyboo';src:url('../web/435323e92ad8.ttf') format('truetype');font-display:swap}
+:root{
+  --bg:#1a0a2e;--gold:#e7c46a;--cream:#f6ecd8;
+  --ink2:rgba(246,236,216,.74);--ink3:rgba(246,236,216,.5);
+  --card:rgba(255,255,255,.06);--line:rgba(231,196,106,.38);
+  --ok:#e7c46a;--bad:#ff9d8a;
+  --serif:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+  --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#1a0a2e;color:var(--cream);font-family:var(--serif);font-size:17px;line-height:1.45;-webkit-text-size-adjust:100%}
+body{background:#1a0a2e radial-gradient(ellipse 90% 60% at 50% 0%,rgba(120,60,170,.38),rgba(26,10,46,0) 70%);background-attachment:fixed;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+svg{display:block}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.screen{display:none;min-height:100dvh;padding:calc(var(--sat) + 22px) calc(var(--sar) + 18px) calc(var(--sab) + 28px) calc(var(--sal) + 18px);max-width:640px;margin:0 auto}
+.screen.on{display:block}
+#s-cap.screen{max-width:none;margin:0;padding:0}
+#s-cap.on{display:grid}
+
+.eyebrow{letter-spacing:.22em;font-size:12px;color:var(--gold);text-transform:uppercase;margin:6px 0 14px}
+h1.title{font-family:'Storyboo',var(--serif);font-weight:400;font-size:clamp(34px,10vw,50px);line-height:1.04;margin:0 0 14px;color:var(--cream);text-shadow:0 2px 24px rgba(231,196,106,.25)}
+h2{font-weight:600;font-size:22px;margin:0 0 6px}
+p{margin:0 0 14px}
+.lead{color:var(--ink2);font-size:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 16px}
+.checks{list-style:none;margin:18px 0;padding:0;display:grid;gap:12px}
+.checks li{display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;font-size:16.5px}
+.checks svg{margin-top:2px}
+.privacy{display:grid;grid-template-columns:28px 1fr;gap:12px;color:var(--cream);font-size:16px;margin:20px 0}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:54px;padding:12px 20px;border-radius:14px;border:1.5px solid var(--gold);background:var(--gold);color:#2a1440;font-weight:700;font-size:18px;letter-spacing:.02em;text-decoration:none}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;color:var(--cream);border-color:var(--line)}
+.btn.small{min-height:48px;font-size:15px;width:auto;padding:8px 16px}
+.btn[disabled]{opacity:.45;cursor:default}
+.stack{display:grid;gap:12px;margin-top:8px}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.note{font-size:14.5px;color:var(--ink3)}
+.err{color:var(--bad)}
+
+/* capture */
+#s-cap{position:fixed;inset:0;background:#0d0518;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"head" "stage" "foot";overflow:hidden}
+#cHead,#cFoot,#stage{min-width:0}
+#cHead{grid-area:head;padding:calc(var(--sat) + 8px) calc(var(--sar) + 12px) 8px calc(var(--sal) + 8px);display:grid;grid-template-columns:48px 1fr 64px;grid-template-areas:"back step diag" "back inst diag";column-gap:8px;align-items:center;background:linear-gradient(#1a0a2e,#140824)}
+#bBack{grid-area:back;width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:transparent;display:grid;place-items:center}
+#cStep{grid-area:step;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+#cInst{grid-area:inst}
+#cInst b{display:block;font-size:18px;line-height:1.2;font-weight:600}
+#cInst span{display:block;font-size:14px;color:var(--ink2);line-height:1.3;margin-top:2px}
+#cDiag{grid-area:diag;width:64px;height:64px}
+#stage{grid-area:stage;position:relative;min-height:0;display:grid;place-items:center;background:#0d0518;overflow:hidden}
+#vbox{container-type:size;position:relative;width:100%;height:100%;overflow:hidden;background:#000}
+#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;background:#000}
+#vid.mir{transform:scaleX(-1)}
+#oval{position:absolute;left:50%;top:46%;width:min(46cqw,58cqh);aspect-ratio:3/4;transform:translate(-50%,-50%);border:3px dashed rgba(246,236,216,.7);border-radius:50%;transition:border-color .2s,width .3s;pointer-events:none;box-shadow:0 0 0 2000px rgba(13,5,24,.28)}
+#oval.hair{width:min(68cqw,58cqh)}
+#oval.good{border-color:var(--gold);border-style:solid}
+#oval.off{opacity:.35}
+#chip{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);max-width:92%;padding:9px 18px;border-radius:999px;background:rgba(26,10,46,.88);border:1px solid var(--line);font-size:16px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#chip.good{background:var(--gold);color:#2a1440;border-color:var(--gold);font-weight:700}
+#pose{position:absolute;right:10px;top:10px;width:64px;height:64px;border-radius:12px;background:rgba(26,10,46,.7);border:1px solid var(--line)}
+#cd{position:absolute;inset:0;display:none;place-items:center;pointer-events:none}
+#cd.on{display:grid}
+#cd .num{font-family:'Storyboo',var(--serif);font-size:110px;color:var(--cream);text-shadow:0 4px 30px rgba(0,0,0,.6);grid-area:1/1}
+#cd svg{grid-area:1/1;width:200px;height:200px;transform:rotate(-90deg)}
+#cd circle.ring{fill:none;stroke:var(--gold);stroke-width:6;stroke-linecap:round;stroke-dasharray:289;stroke-dashoffset:0}
+#cd.tick circle.ring{animation:ring 1s linear forwards}
+@keyframes ring{from{stroke-dashoffset:289}to{stroke-dashoffset:0}}
+#cd .hint{grid-area:1/1;align-self:end;margin-bottom:64px;font-size:20px;text-shadow:0 2px 12px #000}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#flash.go{animation:fl .32s ease-out}
+@keyframes fl{0%{opacity:.9}100%{opacity:0}}
+#cFoot{grid-area:foot;padding:8px calc(var(--sar) + 12px) calc(var(--sab) + 10px) calc(var(--sal) + 12px);background:linear-gradient(#140824,#1a0a2e)}
+#thumbs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}
+#thumbs::-webkit-scrollbar{display:none}
+.th{flex:0 0 34px;height:44px;border-radius:7px;border:1.5px solid var(--line);background:rgba(255,255,255,.05);overflow:hidden;position:relative;font-size:11px;color:var(--ink3);display:grid;place-items:center}
+.th img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.th.cur{border-color:var(--gold);box-shadow:0 0 0 1.5px var(--gold)}
+.th.skip{border-style:dashed;opacity:.6}
+.ctrls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.ctrls .l{display:flex;gap:8px;align-items:center}
+.ctrls .r{display:flex;justify-content:flex-end}
+.ib{min-width:48px;height:48px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05);display:grid;place-items:center;padding:0 12px}
+.ib.txt{font-size:15px;letter-spacing:.04em}
+#shutter{width:78px;height:78px;border-radius:50%;border:4px solid var(--cream);background:transparent;padding:0;display:grid;place-items:center}
+#shutter span{width:58px;height:58px;border-radius:50%;background:var(--gold);transition:transform .1s}
+#shutter:active span{transform:scale(.88)}
+#shutter[disabled]{opacity:.5}
+#toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(26,10,46,.92);border:1px solid var(--line);padding:8px 14px;border-radius:12px;font-size:14.5px;max-width:86%;text-align:center;display:none;z-index:3}
+#toast.on{display:block}
+
+@media (orientation:landscape) and (max-height:540px){
+  #s-cap{grid-template-columns:minmax(190px,26%) minmax(0,1fr) minmax(150px,24%);grid-template-rows:1fr;grid-template-areas:"head stage foot"}
+  #cHead{grid-template-columns:48px 1fr;grid-template-areas:"back step" "inst inst" "diag diag";align-content:start;row-gap:6px;padding-left:calc(var(--sal) + 10px)}
+  #cDiag{justify-self:start}
+  #cFoot{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;padding-right:calc(var(--sar) + 10px)}
+  #thumbs{flex-wrap:wrap;overflow:visible}
+  .th{flex:0 0 30px;height:38px}
+  .ctrls{grid-template-columns:1fr;justify-items:center;gap:8px}
+  .ctrls .l,.ctrls .r{justify-content:center}
+}
+
+/* review */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:14px 0 18px}
+@media(min-width:560px){.grid{grid-template-columns:repeat(3,1fr)}}
+.shot{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.shot .im{position:relative;aspect-ratio:3/4;background:#0d0518;border:0;padding:0;display:block;width:100%}
+.shot .im img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.shot .im .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink3);font-size:14px;padding:8px;text-align:center}
+.shot .bd{padding:8px 10px 10px;display:grid;gap:6px}
+.shot .nm{font-size:14.5px;font-weight:600;line-height:1.2}
+.badge{font-size:12.5px;color:var(--ink2);background:rgba(231,196,106,.12);border:1px solid var(--line);border-radius:999px;padding:2px 9px;justify-self:start}
+.shot .btn{min-height:48px;font-size:15px}
+#viewer{position:fixed;inset:0;background:rgba(10,3,20,.96);display:none;z-index:20;grid-template-rows:1fr auto;padding:calc(var(--sat) + 8px) 12px calc(var(--sab) + 12px)}
+#viewer.on{display:grid}
+#viewer img{width:100%;height:100%;object-fit:contain;min-height:0}
+#viewer .vb{display:flex;gap:10px;justify-content:center;padding-top:10px}
+.zoomwrap{min-height:0;position:relative}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  #cd.tick circle.ring{stroke-dashoffset:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 1. WELCOME ============ -->
+<main class="screen on" id="s-welcome">
+  <div class="eyebrow">Once Upon a Time &middot; BASILICA</div>
+  <h1 class="title">Storykeeper Face Capture</h1>
+  <p class="lead">We&rsquo;re painting the Storykeeper with your face. It takes about 3 minutes and 12 photos.</p>
+  <ul class="checks" id="checks"></ul>
+  <div class="privacy">
+    <span id="privIcon"></span>
+    <span>Your photos stay on this phone. Nothing is uploaded. You choose how to send them.</span>
+  </div>
+  <div class="card" id="resumeBox" hidden style="margin-bottom:14px">
+    <h2>Welcome back</h2>
+    <p id="resumeTxt" class="note" style="margin:0"></p>
+  </div>
+  <div class="stack">
+    <button class="btn" id="bStart" type="button"><span id="icoCam"></span>Start camera</button>
+    <button class="btn" id="bResume" type="button" hidden>Continue where you left off</button>
+    <button class="btn ghost" id="bFresh" type="button" hidden>Start over</button>
+  </div>
+  <p class="note" id="trkNote" style="margin-top:16px"></p>
+</main>
+
+<!-- ============ 2. CAPTURE ============ -->
+<section class="screen" id="s-cap" aria-label="Camera">
+  <header id="cHead">
+    <button id="bBack" type="button" aria-label="Back"></button>
+    <div id="cStep">Step 1 of 12</div>
+    <div id="cInst"><b></b><span></span></div>
+    <div id="cDiag" aria-hidden="true"></div>
+  </header>
+  <div id="stage">
+    <div id="vbox">
+      <video id="vid" playsinline muted autoplay></video>
+      <div id="oval"></div>
+      <div id="pose"></div>
+      <div id="chip" role="status" aria-live="polite">Starting camera</div>
+      <div id="cd"><svg viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="46"/></svg><div class="num"></div><div class="hint"></div></div>
+      <div id="flash"></div>
+    </div>
+    <div id="toast" role="status"></div>
+  </div>
+  <footer id="cFoot">
+    <div id="thumbs" aria-label="Captured photos"></div>
+    <div class="ctrls">
+      <div class="l">
+        <button class="ib" id="bSound" type="button" aria-label="Sound on"></button>
+        <button class="ib txt" id="bSkip" type="button">Skip</button>
+      </div>
+      <button id="shutter" type="button" aria-label="Take photo"><span></span></button>
+      <div class="r"><button class="ib" id="bSwitch" type="button" aria-label="Switch camera"></button></div>
+    </div>
+  </footer>
+</section>
+
+<!-- ============ CAMERA ERROR ============ -->
+<main class="screen" id="s-err">
+  <div class="eyebrow">Once Upon a Time &middot; BASILICA</div>
+  <h1 class="title" style="font-size:clamp(30px,8.5vw,42px)">We can&rsquo;t reach the camera</h1>
+  <p class="lead" id="errMsg"></p>
+  <div class="card" style="margin-bottom:16px">
+    <h2>How to allow it</h2>
+    <p><b>iPhone or iPad:</b> open Settings, then Safari, then Camera, and choose Allow. Come back here and tap Try again.</p>
+    <p style="margin-bottom:0"><b>Android (Chrome):</b> tap the lock icon in the address bar, then Permissions, then Camera, and choose Allow.</p>
+  </div>
+  <div class="stack">
+    <button class="btn" id="bRetry" type="button">Try again</button>
+    <button class="btn ghost" id="bErrBack" type="button">Back</button>
+  </div>
+</main>
+
+<!-- ============ 3. REVIEW ============ -->
+<main class="screen" id="s-review">
+  <div class="eyebrow">Once Upon a Time &middot; BASILICA</div>
+  <h1 class="title" style="font-size:clamp(30px,8.5vw,42px)">Look them over</h1>
+  <p class="lead" id="revLead" style="font-size:16.5px"></p>
+  <div class="grid" id="grid"></div>
+  <div class="stack">
+    <button class="btn" id="bGood" type="button"><span id="icoCheck"></span>Looks good</button>
+  </div>
+</main>
+<div id="viewer" role="dialog" aria-modal="true" aria-label="Photo">
+  <div class="zoomwrap"><img id="vimg" alt="Captured photo"></div>
+  <div class="vb">
+    <button class="btn small ghost" id="vRetake" type="button">Retake</button>
+    <button class="btn small" id="vClose" type="button">Close</button>
+  </div>
+</div>
+
+<!-- ============ 4. SEND ============ -->
+<main class="screen" id="s-send">
+  <div class="eyebrow">Once Upon a Time &middot; BASILICA</div>
+  <h1 class="title" style="font-size:clamp(30px,8.5vw,42px)">Send them over</h1>
+  <p class="lead" id="sendLead"></p>
+  <p>Send them to Melvin however is easiest: Messages, email or AirDrop.</p>
+  <div class="stack">
+    <button class="btn" id="bShare" type="button" hidden><span id="icoShare"></span>Send to Melvin</button>
+    <button class="btn" id="bZip" type="button"><span id="icoDl"></span>Download all (ZIP)</button>
+    <button class="btn ghost" id="bBackRev" type="button">Back to photos</button>
+    <button class="btn ghost" id="bOver" type="button">Start over</button>
+  </div>
+  <p class="note" id="sendNote" style="margin-top:14px" aria-live="polite"></p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer onerror="window.__zipFail=true"></script>
+<script>
+(function(){
+'use strict';
+
+/* =====================================================================
+   POSE SIGN CONVENTION  (one place to flip)
+   ---------------------------------------------------------------------
+   MediaPipe's facial transformation matrix is 4x4, column-major, mapping the
+   canonical face into camera space (x right, y up, z toward the viewer, as seen
+   in the RAW, unmirrored camera image). Column 2 = the direction the face is
+   pointing ("nose vector") f = (d[8], d[9], d[10]).
+
+   A camera always faces the person it is photographing, so in the raw image the
+   person's LEFT side is on the image's RIGHT (like facing someone: their left
+   hand is on your right). This is true for the front camera AND for the back
+   camera held by a helper who stands facing him. Mirroring only ever changes
+   the on-screen preview of the front camera, never the raw frame we analyse.
+   So there is ONE rule for both cameras:
+       head turned toward raw-image RIGHT  =  turned to the subject's LEFT
+       yawL  = atan2(f.x, f.z)           positive = turned to YOUR LEFT
+       pitch = atan2(f.y, hypot(f.x,f.z)) positive = chin UP
+   The two constants below multiply those angles; flip one to flip a sign.
+   At run time the sign of yaw is also cross-checked against the nose-tip
+   position between the two cheek-edge landmarks (unambiguous in image space)
+   and the pitch sign against the nose/eye/chin ratio, and auto-corrected if the
+   matrix disagrees consistently.
+   Only the on-screen dot differs by camera: the front preview is mirrored, so
+   turning to your left moves the dot LEFT; on the unmirrored back camera it
+   moves RIGHT.
+   ===================================================================== */
+const POSE_SIGN = { yaw: +1, pitch: +1 };
+
+const $ = s => document.querySelector(s);
+const SVGNS = 'http://www.w3.org/2000/svg';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const deg = r => r * 180 / Math.PI;
+
+/* ------------------------------ icons ------------------------------ */
+const I = {
+  check:  (c='#e7c46a',s=26)=>`<svg width="${s}" height="${s}" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="12.5" stroke="${c}" stroke-width="1.6"/><path d="M8.5 14.5l3.8 3.8 7.4-8" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  lock:   (c='#e7c46a')=>`<svg width="26" height="26" viewBox="0 0 28 28" fill="none"><rect x="5.5" y="12.5" width="17" height="11.5" rx="3" stroke="${c}" stroke-width="1.8"/><path d="M9.5 12.5V9.5a4.5 4.5 0 019 0v3" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/><circle cx="14" cy="18" r="1.7" fill="${c}"/></svg>`,
+  cam:    ()=>`<svg width="26" height="26" viewBox="0 0 28 28" fill="none" stroke="#2a1440" stroke-width="2" stroke-linejoin="round"><path d="M3.5 9.5a2 2 0 012-2h3l1.6-2.5h7.8l1.6 2.5h3a2 2 0 012 2v11a2 2 0 01-2 2h-17a2 2 0 01-2-2z"/><circle cx="14" cy="15" r="4.5"/></svg>`,
+  back:   ()=>`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f6ecd8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>`,
+  switchc:()=>`<svg width="26" height="26" viewBox="0 0 28 28" fill="none" stroke="#f6ecd8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12a8.5 8.5 0 0114.2-4.3L22 9.5"/><path d="M22 4.5v5h-5"/><path d="M22 16a8.5 8.5 0 01-14.2 4.3L6 18.5"/><path d="M6 23.5v-5h5"/></svg>`,
+  snd:    ()=>`<svg width="26" height="26" viewBox="0 0 28 28" fill="none" stroke="#f6ecd8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11h4l6-5v16l-6-5H5z"/><path d="M19 10.5a5 5 0 010 7"/><path d="M21.5 7.5a9 9 0 010 13"/></svg>`,
+  mute:   ()=>`<svg width="26" height="26" viewBox="0 0 28 28" fill="none" stroke="#f6ecd8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11h4l6-5v16l-6-5H5z"/><path d="M19.5 10.5l5 7M24.5 10.5l-5 7"/></svg>`,
+  retake: ()=>`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 112.4 5.5"/><path d="M4 18.5v-5h5"/></svg>`,
+  share:  ()=>`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2a1440" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3.5"/><path d="M7.5 8L12 3.5 16.5 8"/><path d="M5 12.5V19a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 19v-6.5"/></svg>`,
+  dl:     ()=>`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2a1440" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5V15"/><path d="M7.5 11L12 15.5 16.5 11"/><path d="M5 19.5h14"/></svg>`
+};
+
+/* Head-direction diagrams: top-down view with the camera at the top; the
+   nose points toward where you should look. Top-down + facing the camera means
+   your left is the diagram's left. Side view for chin up/down. */
+function cameraGlyph(x,y,s){
+  return `<g transform="translate(${x} ${y}) scale(${s})" fill="none" stroke="#f6ecd8" stroke-width="1.6" stroke-linejoin="round"><rect x="-7" y="-4.5" width="14" height="9" rx="2"/><circle cx="0" cy="0" r="2.6"/></g>`;
+}
+function diagTop(yaw){
+  const a = -yaw; // SVG rotate: positive = clockwise; turning to your left = counter-clockwise
+  let arrow = '';
+  if (Math.abs(yaw) > 5){
+    const sgn = yaw > 0 ? -1 : 1; // diagram x direction
+    const r = 22, ang = Math.min(Math.abs(yaw), 80), th = ang*Math.PI/180;
+    const ex = 32 + sgn*r*Math.sin(th), ey = 34 - r*Math.cos(th);
+    const sx = 32, sy = 34 - r;
+    const sweep = sgn < 0 ? 0 : 1;
+    const dx = ex - 32, dy = ey - 34;
+    const ta = Math.atan2(dy,dx) + (sgn<0 ? -Math.PI/2 : Math.PI/2);
+    const hx = ex, hy = ey, c = Math.cos(ta), s2 = Math.sin(ta);
+    arrow = `<path d="M${sx} ${sy} A${r} ${r} 0 0 ${sweep} ${ex.toFixed(1)} ${ey.toFixed(1)}" fill="none" stroke="#e7c46a" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 3.4"/>`+
+      `<path d="M${hx.toFixed(1)} ${hy.toFixed(1)} l${(c*-5+s2*3.2).toFixed(1)} ${(s2*-5-c*3.2).toFixed(1)} M${hx.toFixed(1)} ${hy.toFixed(1)} l${(c*-5-s2*3.2).toFixed(1)} ${(s2*-5+c*3.2).toFixed(1)}" stroke="#e7c46a" stroke-width="2.2" stroke-linecap="round" fill="none"/>`;
+  }
+  return `<svg viewBox="0 0 64 64" width="64" height="64" fill="none">`+
+    `<ellipse cx="32" cy="50" rx="21" ry="7" stroke="#f6ecd8" stroke-opacity=".55" stroke-width="1.6"/>`+
+    `<g transform="rotate(${a} 32 36)"><circle cx="32" cy="36" r="11.5" fill="rgba(231,196,106,.14)" stroke="#e7c46a" stroke-width="2"/><path d="M32 21.5l-4 5.6h8z" fill="#e7c46a"/></g>`+
+    arrow + cameraGlyph(32,6.5,.75)+`</svg>`;
+}
+function diagSide(pitch, close){
+  const a = -pitch; // chin up = nose rotates counter-clockwise
+  const cx = close ? 30 : 26;
+  return `<svg viewBox="0 0 64 64" width="64" height="64" fill="none">`+
+    `<path d="M10 58c2-9 8-13 16-13" stroke="#f6ecd8" stroke-opacity=".55" stroke-width="1.6" stroke-linecap="round"/>`+
+    `<g transform="rotate(${a} ${cx} 30)"><circle cx="${cx}" cy="30" r="12" fill="rgba(231,196,106,.14)" stroke="#e7c46a" stroke-width="2"/><path d="M${cx+12.5} 30l5.6 -4v8z" fill="#e7c46a"/></g>`+
+    cameraGlyph(close?54:56,30,.8)+
+    (pitch>5?`<path d="M${cx+4} 10 q8 -2 12 6" stroke="#e7c46a" stroke-width="2" stroke-linecap="round"/><path d="M${cx+14} 10.5 l2.2 5.5 -5.6 -.6" stroke="#e7c46a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`:'')+
+    (pitch<-5?`<path d="M${cx+4} 50 q8 2 12 -6" stroke="#e7c46a" stroke-width="2" stroke-linecap="round"/><path d="M${cx+14} 49.5 l2.2 -5.5 -5.6 .6" stroke="#e7c46a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`:'')+
+    `</svg>`;
+}
+function diagFace(kind){
+  const mouths = {
+    smile:'M19 38q13 12 26 0',
+    smirk:'M21 41q8 3 14 0t10 -6',
+    serious:'M21 41h22',
+    laugh:'M17 36h30q-2 15-15 15t-15-15z'
+  };
+  const brows = kind==='serious' ? '<path d="M17 22l11 4M47 22l-11 4" stroke="#e7c46a" stroke-width="2.4" stroke-linecap="round"/>' : '<path d="M18 23q5-3 10 0M36 23q5-3 10 0" stroke="#e7c46a" stroke-width="2" stroke-linecap="round" fill="none"/>';
+  const fill = kind==='laugh' ? ' fill="rgba(231,196,106,.35)"' : ' fill="none"';
+  return `<svg viewBox="0 0 64 64" width="64" height="64" fill="none"><circle cx="32" cy="32" r="26" fill="rgba(231,196,106,.1)" stroke="#e7c46a" stroke-width="2"/>${brows}<circle cx="23" cy="29" r="2.4" fill="#f6ecd8"/><circle cx="41" cy="29" r="2.4" fill="#f6ecd8"/><path d="${mouths[kind]}" stroke="#e7c46a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"${fill}/></svg>`;
+}
+
+/* ------------------------------ steps ------------------------------ */
+// yaw: [lo,hi] in degrees, positive = toward YOUR LEFT.  pitch: [lo,hi], positive = chin up.
+const FRONT = { yaw:[-8,8], pitch:[-10,10] };
+const STEPS = [
+ { id:'01-front-neutral', title:'Face the camera', cue:'Relaxed, mouth closed', voice:'Face the camera. Relax, mouth closed.', ...FRONT, diag:diagTop(0) },
+ { id:'02-front-smile', title:'Natural smile', cue:'Face the camera and smile', voice:'Now a natural smile.', ...FRONT, expr:'smile', diag:diagFace('smile') },
+ { id:'03-three-quarter-left', title:'Turn to your left', cue:'About 35 degrees, eyes on the camera', voice:'Turn your head a little to your left.', yaw:[25,45], pitch:[-15,15], diag:diagTop(35), side:+1 },
+ { id:'04-three-quarter-right', title:'Turn to your right', cue:'About 35 degrees, eyes on the camera', voice:'Turn your head a little to your right.', yaw:[-45,-25], pitch:[-15,15], diag:diagTop(-35), side:-1 },
+ { id:'05-profile-left', title:'Profile, left side', cue:'Turn fully to your left so we see your side', voice:'Turn your head fully to your left.', yaw:[50,95], pitch:[-20,20], profile:true, side:+1, diag:diagTop(85), min:0 },
+ { id:'06-profile-right', title:'Profile, right side', cue:'Turn fully to your right so we see your side', voice:'Turn your head fully to your right.', yaw:[-95,-50], pitch:[-20,20], profile:true, side:-1, diag:diagTop(-85), min:0 },
+ { id:'07-chin-up', title:'Chin up a little', cue:'Lift your chin, eyes on the camera', voice:'Lift your chin a little. Eyes on the camera.', yaw:[-12,12], pitch:[12,30], diag:diagSide(22) },
+ { id:'08-chin-down', title:'Chin down a little', cue:'Lower your chin, eyes on the camera', voice:'Lower your chin a little. Eyes on the camera.', yaw:[-12,12], pitch:[-30,-12], diag:diagSide(-22) },
+ { id:'09-smirk', title:'Sly half-smile', cue:'Face the camera with a smirk', voice:'Give me a sly half smile.', ...FRONT, expr:'smirk', diag:diagFace('smirk') },
+ { id:'10-serious', title:'Serious, stern', cue:'Face the camera, stern look', voice:'Now serious. Stern look.', ...FRONT, expr:'serious', diag:diagFace('serious') },
+ { id:'11-laugh', title:'Big laugh', cue:'A big laugh or grin', voice:'Big laugh. Big grin.', yaw:[-12,12], pitch:[-15,15], expr:'laugh', diag:diagFace('laugh') },
+ { id:'12-hair-closeup', title:'Hair close-up', cue:'Phone closer, tilt your head slightly down', voice:'Bring the phone closer and tilt your head slightly down, so we see your hairline.', yaw:[-15,15], pitch:[-30,-5], minW:.55, hair:true, diag:diagSide(-18,true) }
+];
+const N = STEPS.length;
+const MIN_W = 0.35, MIN_LUMA = 70, HOLD_MS = 600;
+
+/* ------------------------------ state ------------------------------ */
+const shots = {};          // id -> {id,blob,url,width,height,yaw,pitch,camera,ts,mode}
+const skipped = new Set();
+let idx = 0, retaking = false;
+let screen = 'welcome';
+let cam = 'front';
+let sound = true;
+let stream = null, running = false;
+let phase = 'live';        // live | count | saving
+let cdToken = 0, armedAt = 0;
+const T = { status:'idle', delegate:null, lm:null, error:null, errs:0 };
+let lastPose = null;       // {yaw,pitch,t,fresh}
+let lastSeen = null;
+let obsNow = null;
+const sign = { yaw:POSE_SIGN.yaw, pitch:POSE_SIGN.pitch, yv:0, pv:0, r0:null, r0n:0 };
+
+/* ------------------------------ storage ------------------------------ */
+const DB = {
+  db:null, ok:false,
+  open(){ return new Promise(res=>{ try{
+    if(!window.indexedDB){ res(false); return; }
+    const r = indexedDB.open('sk-face-capture',1);
+    r.onupgradeneeded = ()=>{ try{ r.result.createObjectStore('shots',{keyPath:'id'}); r.result.createObjectStore('meta',{keyPath:'k'}); }catch(e){} };
+    r.onsuccess = ()=>{ DB.db=r.result; DB.ok=true; res(true); };
+    r.onerror = r.onblocked = ()=>res(false);
+  }catch(e){ res(false); } }); },
+  run(store, mode, fn){ return new Promise(res=>{ try{
+    if(!DB.ok){ res(null); return; }
+    const tx = DB.db.transaction(store, mode), os = tx.objectStore(store);
+    const rq = fn(os); let out = null;
+    if(rq) rq.onsuccess = ()=>{ out = rq.result; };
+    tx.oncomplete = ()=>res(out); tx.onerror = tx.onabort = ()=>res(null);
+  }catch(e){ res(null); } }); },
+  putShot(s){ return DB.run('shots','readwrite',os=>os.put({id:s.id,blob:s.blob,width:s.width,height:s.height,yaw:s.yaw,pitch:s.pitch,camera:s.camera,ts:s.ts,mode:s.mode})); },
+  allShots(){ return DB.run('shots','readonly',os=>os.getAll()); },
+  clear(){ return DB.run('shots','readwrite',os=>os.clear()).then(()=>DB.run('meta','readwrite',os=>os.clear())); },
+  saveSkips(){ return DB.run('meta','readwrite',os=>os.put({k:'skipped',v:[...skipped]})); },
+  getSkips(){ return DB.run('meta','readonly',os=>os.get('skipped')); }
+};
+
+/* ------------------------------ audio ------------------------------ */
+let actx = null;
+function audio(){ try{ if(!actx){ const C = window.AudioContext||window.webkitAudioContext; if(C) actx = new C(); } if(actx && actx.state==='suspended') actx.resume(); }catch(e){} return actx; }
+function beep(freq=880, dur=.12, vol=.25){
+  if(!sound) return; try{ const c = audio(); if(!c) return;
+    const o = c.createOscillator(), g = c.createGain(); o.type='sine'; o.frequency.value=freq;
+    const t = c.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+.02); }catch(e){}
+}
+function clickSound(){
+  if(!sound) return; try{ const c = audio(); if(!c) return;
+    const len = Math.floor(c.sampleRate*.05), b = c.createBuffer(1,len,c.sampleRate), d = b.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/len,3);
+    const s = c.createBufferSource(); s.buffer=b; const f = c.createBiquadFilter(); f.type='highpass'; f.frequency.value=1200;
+    const g = c.createGain(); g.gain.value=.6; s.connect(f); f.connect(g); g.connect(c.destination); s.start(); }catch(e){}
+}
+function speak(t){ if(!sound||!t) return; try{ if(!window.speechSynthesis) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.rate=1; u.pitch=1; speechSynthesis.speak(u); }catch(e){} }
+function warmSpeech(){ try{ if(window.speechSynthesis){ const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } }catch(e){} }
+
+/* ------------------------------ ui helpers ------------------------------ */
+function show(name){
+  screen = name;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id==='s-'+name));
+  document.getElementById('viewer').classList.remove('on');
+  window.scrollTo(0,0);
+  if(name!=='cap') stopCamera();
+}
+function toast(msg, ms=3200){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),ms); }
+const count = () => Object.keys(shots).length;
+function setChip(msg, good){ const c=$('#chip'); if(c.textContent!==msg) c.textContent=msg; c.classList.toggle('good', !!good); $('#oval').classList.toggle('good', !!good); }
+
+/* ------------------------------ welcome ------------------------------ */
+function buildWelcome(){
+  const items = [
+    'Face a window or bright light.',
+    'Plain wall behind you.',
+    'Hair the way you normally wear it.',
+    'No hat, and take your glasses off for this set.',
+    'Hold the phone at eye level, an arm’s length away (or ask someone to hold it and switch to the back camera).'
+  ];
+  $('#checks').innerHTML = items.map(t=>`<li>${I.check()}<span>${t}</span></li>`).join('');
+  $('#privIcon').innerHTML = I.lock();
+  $('#icoCam').innerHTML = I.cam();
+  $('#icoCheck').innerHTML = I.check('#2a1440',24);
+  $('#icoShare').innerHTML = I.share();
+  $('#icoDl').innerHTML = I.dl();
+  $('#bBack').innerHTML = I.back();
+  $('#bSwitch').innerHTML = I.switchc();
+  refreshSound();
+}
+function refreshWelcome(){
+  const n = count();
+  const has = n>0;
+  $('#resumeBox').hidden = !has;
+  $('#bResume').hidden = !has;
+  $('#bFresh').hidden = !has;
+  $('#bStart').hidden = has;
+  if(has) $('#resumeTxt').textContent = `${n} of ${N} photos are saved on this phone. Pick up where you left off, or start over.`;
+}
+
+/* ------------------------------ tracker ------------------------------ */
+const VISION = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+const WASM   = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+async function loadTracker(){
+  if(T.status==='loading' || T.status==='ready') return;
+  T.status = 'loading'; T.error = null;
+  // MediaPipe prints an informational line through console.error; demote it.
+  const ce = console.error;
+  console.error = function(...a){ if(typeof a[0]==='string' && /^(INFO|WARNING):/.test(a[0])) return console.info(...a); return ce.apply(console,a); };
+  try{
+    const mod = await import(VISION);
+    const fileset = await mod.FilesetResolver.forVisionTasks(WASM);
+    const make = d => mod.FaceLandmarker.createFromOptions(fileset,{
+      baseOptions:{ modelAssetPath:'./face_landmarker.task', delegate:d },
+      runningMode:'VIDEO', numFaces:2, outputFaceBlendshapes:true, outputFacialTransformationMatrixes:true
+    });
+    try{ T.lm = await make('GPU'); T.delegate='GPU'; }
+    catch(e){ T.lm = await make('CPU'); T.delegate='CPU'; }
+    T.status = 'ready';
+  }catch(e){
+    T.status = 'failed'; T.error = String(e && e.message || e); T.lm = null;
+    console.warn('Face tracking unavailable, using manual mode:', T.error);
+  }finally{ setTimeout(()=>{ console.error = ce; }, 4000); }
+  $('#trkNote').textContent = '';
+}
+
+/* pose from a 16-number column-major matrix (pure; raw image space) */
+function poseFromMatrix(d){
+  const fx=d[8], fy=d[9], fz=d[10];
+  return { yaw: deg(Math.atan2(fx,fz)) * sign.yaw, pitch: deg(Math.atan2(fy, Math.hypot(fx,fz))) * sign.pitch, rawYaw: deg(Math.atan2(fx,fz)), rawPitch: deg(Math.atan2(fy, Math.hypot(fx,fz))) };
+}
+function crossCheck(lm, p){
+  try{
+    const nose=lm[1], a=lm[234], b=lm[454];
+    const mid=(a.x+b.x)/2, half=Math.abs(b.x-a.x)/2;
+    if(half>.02){
+      const off=(nose.x-mid)/half;               // >0: nose toward raw-image right = subject's left
+      if(Math.abs(off)>.25 && Math.abs(p.rawYaw)>10){
+        sign.yv = clamp(sign.yv + ((off>0)===(p.rawYaw>0)?1:-1), -30, 30);
+        sign.yaw = sign.yv < -6 ? -POSE_SIGN.yaw : (sign.yv > 6 ? POSE_SIGN.yaw : sign.yaw);
+      }
+    }
+    const eyeY=(lm[33].y+lm[263].y)/2, chinY=lm[152].y, den=chinY-eyeY;
+    if(den>.02){
+      const r=(lm[1].y-eyeY)/den;
+      if(Math.abs(p.rawPitch)<6 && Math.abs(p.rawYaw)<10){ sign.r0 = sign.r0==null ? r : sign.r0*.95+r*.05; sign.r0n++; }
+      else if(sign.r0n>10 && Math.abs(p.rawPitch)>14 && Math.abs(r-sign.r0)>.02){
+        const expectUp = r < sign.r0;            // chin up shortens nose-to-eye share
+        sign.pv = clamp(sign.pv + ((expectUp)===(p.rawPitch>0)?1:-1), -30, 30);
+        sign.pitch = sign.pv < -6 ? -POSE_SIGN.pitch : (sign.pv > 6 ? POSE_SIGN.pitch : sign.pitch);
+      }
+    }
+  }catch(e){}
+}
+
+const lumaC = document.createElement('canvas'); let lumaCtx = null, lastLuma = 0, lumaVal = 0;
+function faceLuma(video, box, now){
+  if(now - lastLuma < 120) return lumaVal; lastLuma = now;
+  try{
+    const w=120, h=Math.max(8,Math.round(w*video.videoHeight/video.videoWidth)); lumaC.width=w; lumaC.height=h;
+    lumaCtx = lumaCtx || lumaC.getContext('2d',{willReadFrequently:true});
+    lumaCtx.drawImage(video,0,0,w,h);
+    const x0=clamp(Math.floor(box.x*w),0,w-1), y0=clamp(Math.floor(box.y*h),0,h-1);
+    const x1=clamp(Math.ceil((box.x+box.w)*w),x0+1,w), y1=clamp(Math.ceil((box.y+box.h)*h),y0+1,h);
+    const d=lumaCtx.getImageData(x0,y0,x1-x0,y1-y0).data; let s=0,n=0;
+    for(let i=0;i<d.length;i+=4){ s+=.2126*d[i]+.7152*d[i+1]+.0722*d[i+2]; n++; }
+    lumaVal = n? s/n : 0;
+  }catch(e){ lumaVal = 255; }
+  return lumaVal;
+}
+
+let lastVT = -1, lastDet = 0, lastTs = 0;
+function detect(video, now){
+  if(T.status!=='ready' || !T.lm) return;
+  if(video.readyState<2 || video.currentTime===lastVT || now-lastDet<60) return;
+  lastVT = video.currentTime; lastDet = now;
+  try{
+    let ts = Math.round(now); if(ts<=lastTs) ts = lastTs+1; lastTs = ts;
+    const res = T.lm.detectForVideo(video, ts);
+    const faces = res.faceLandmarks || [];
+    if(!faces.length){ obsNow = { t:now, n:0 }; return; }
+    // largest face
+    let bi=0, ba=-1, boxes=faces.map(lm=>{ let x0=1,y0=1,x1=0,y1=0; for(const p of lm){ if(p.x<x0)x0=p.x; if(p.x>x1)x1=p.x; if(p.y<y0)y0=p.y; if(p.y>y1)y1=p.y; } return {x:x0,y:y0,w:x1-x0,h:y1-y0}; });
+    boxes.forEach((b,i)=>{ if(b.w*b.h>ba){ba=b.w*b.h;bi=i;} });
+    const box = boxes[bi];
+    const o = { t:now, n:faces.length, box };
+    const m = res.facialTransformationMatrixes && res.facialTransformationMatrixes[bi];
+    if(m && m.data){ const p = poseFromMatrix(m.data); crossCheck(faces[bi], p); const q = poseFromMatrix(m.data); o.yaw=q.yaw; o.pitch=q.pitch; }
+    const bsl = res.faceBlendshapes && res.faceBlendshapes[bi];
+    o.bs = {}; if(bsl) for(const c of bsl.categories) o.bs[c.categoryName]=c.score;
+    o.luma = faceLuma(video, box, now);
+    obsNow = o;
+    if(o.yaw!=null){ lastPose = { yaw:o.yaw, pitch:o.pitch, t:now }; }
+    lastSeen = o;
+    T.errs = 0;
+  }catch(e){ if(++T.errs>8){ T.status='failed'; T.error=String(e&&e.message||e); console.warn('Tracker stopped:', T.error); } }
+}
+
+/* ------------------------------ camera ------------------------------ */
+async function startCamera(){
+  stopCamera();
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    showErr(window.isSecureContext===false ? 'This page needs a secure (https) connection to use the camera.' : 'This browser can’t open the camera.');
+    return false;
+  }
+  const portrait = innerHeight > innerWidth;
+  const size = portrait ? {width:{ideal:1080},height:{ideal:1440}} : {width:{ideal:1920},height:{ideal:1080}};
+  const fm = cam==='front' ? 'user' : 'environment';
+  const tries = [ {video:{facingMode:fm,...size},audio:false}, {video:{facingMode:fm},audio:false}, {video:true,audio:false} ];
+  let err = null, s = null;
+  for(const c of tries){
+    try{ s = await navigator.mediaDevices.getUserMedia(c); break; }
+    catch(e){ err = e; if(e && (e.name==='NotAllowedError'||e.name==='SecurityError'||e.name==='PermissionDeniedError')) break; }
+  }
+  if(!s){
+    const n = err && err.name;
+    if(n==='NotAllowedError'||n==='PermissionDeniedError'||n==='SecurityError') showErr('Camera permission was blocked. Allow it and try again.');
+    else if(n==='NotFoundError'||n==='OverconstrainedError') showErr('No camera was found on this device.');
+    else showErr('The camera could not start. Close other apps that may be using it and try again.');
+    return false;
+  }
+  stream = s;
+  const tr = s.getVideoTracks()[0], st = (tr && tr.getSettings && tr.getSettings()) || {};
+  if(st.facingMode==='user') cam='front'; else if(st.facingMode==='environment') cam='back';
+  else if(cam==='back'){
+    let n=0; try{ n=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput').length; }catch(e){}
+    if(n<=1){ cam='front'; toast('Only one camera found.'); }
+  }
+  const v = $('#vid'); v.srcObject = s; v.classList.toggle('mir', cam==='front');
+  try{ await v.play(); }catch(e){}
+  await new Promise(r=>{ if(v.videoWidth) r(); else v.onloadedmetadata=()=>r(); setTimeout(r,2500); });
+  fitBox(); running = true; lastVT=-1;
+  tr.addEventListener('ended', ()=>{ if(screen==='cap' && running) startCamera(); });
+  return true;
+}
+function stopCamera(){
+  running = false; cdToken++; phase='live';
+  try{ if(stream) stream.getTracks().forEach(t=>t.stop()); }catch(e){}
+  stream = null;
+  try{ const v=$('#vid'); v.srcObject=null; }catch(e){}
+  $('#cd').classList.remove('on','tick');
+  try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
+}
+function fitBox(){
+  const v=$('#vid'), st=$('#stage'), b=$('#vbox');
+  const vw=v.videoWidth||4, vh=v.videoHeight||3, W=st.clientWidth, H=st.clientHeight;
+  const s=Math.min(W/vw,H/vh); b.style.width=(vw*s)+'px'; b.style.height=(vh*s)+'px';
+}
+function showErr(msg){ $('#errMsg').textContent=msg; show('err'); }
+
+/* ------------------------------ capture screen ------------------------------ */
+function curStep(){ return STEPS[idx]; }
+function nextIndex(from){
+  for(let i=1;i<=N;i++){ const j=(from+i)%N; const id=STEPS[j].id; if(!shots[id] && !skipped.has(id)) return j; }
+  return -1;
+}
+function firstOpen(){ for(let i=0;i<N;i++){ const id=STEPS[i].id; if(!shots[id] && !skipped.has(id)) return i; } return -1; }
+async function enterCapture(i, isRetake){
+  idx = i; retaking = !!isRetake;
+  show('cap');
+  paintStep();
+  setChip('Starting camera', false);
+  const ok = await startCamera();
+  if(!ok) return;
+  armedAt = performance.now() + 1800;
+  speak(curStep().voice);
+  if(!loopOn){ loopOn=true; requestAnimationFrame(loop); }
+}
+function paintStep(){
+  const S = curStep();
+  $('#cStep').textContent = retaking ? `Retake, step ${idx+1} of ${N}` : `Step ${idx+1} of ${N}`;
+  $('#cInst b').textContent = S.title;
+  $('#cInst span').textContent = S.cue;
+  $('#cDiag').innerHTML = S.diag;
+  $('#oval').classList.toggle('hair', !!S.hair);
+  $('#oval').classList.toggle('off', !!S.profile);
+  $('#bSkip').textContent = retaking ? 'Cancel' : 'Skip';
+  $('#bSkip').setAttribute('aria-label', retaking ? 'Cancel retake' : 'Skip this step');
+  paintThumbs(); paintPoseBox(); okSince = null; frontSince = null; obsNow = null; lastSeen = null; lastPose = null;
+}
+function paintThumbs(){
+  $('#thumbs').innerHTML = STEPS.map((s,i)=>{
+    const sh = shots[s.id]; const cls = 'th'+(i===idx?' cur':'')+(skipped.has(s.id)&&!sh?' skip':'');
+    return `<div class="${cls}">${sh?`<img alt="Step ${i+1}" src="${sh.url}">`:`<span>${i+1}</span>`}</div>`;
+  }).join('');
+  const cur = $('#thumbs .cur'); if(cur && cur.scrollIntoView) { try{ cur.scrollIntoView({inline:'center',block:'nearest'}); }catch(e){} }
+}
+const POSE_YR = 90, POSE_PR = 45;
+function px(yawL){ const sx = cam==='front' ? -1 : 1; return 30 + clamp(yawL*sx,-POSE_YR,POSE_YR)/POSE_YR*25; }
+function py(p){ return 30 - clamp(p,-POSE_PR,POSE_PR)/POSE_PR*25; }
+function paintPoseBox(){
+  const S = curStep();
+  const x1 = px(S.yaw[0]), x2 = px(S.yaw[1]), y1 = py(S.pitch[1]), y2 = py(S.pitch[0]);
+  const x = Math.min(x1,x2), w = Math.abs(x2-x1)+0.001, y = Math.min(y1,y2), h = Math.abs(y2-y1);
+  $('#pose').innerHTML = `<svg viewBox="0 0 60 60" width="64" height="64"><line x1="30" y1="4" x2="30" y2="56" stroke="rgba(246,236,216,.35)" stroke-width="1"/><line x1="4" y1="30" x2="56" y2="30" stroke="rgba(246,236,216,.35)" stroke-width="1"/><rect id="pz" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(w,2).toFixed(1)}" height="${Math.max(h,2).toFixed(1)}" rx="2" fill="rgba(231,196,106,.22)" stroke="#e7c46a" stroke-width="1.4"/><circle id="pd" cx="30" cy="30" r="4" fill="#f6ecd8" opacity=".25"/></svg>`;
+}
+function paintDot(ok){
+  const d = $('#pd'); if(!d) return;
+  if(lastPose && performance.now()-lastPose.t < 700){
+    d.setAttribute('cx', px(lastPose.yaw).toFixed(1)); d.setAttribute('cy', py(lastPose.pitch).toFixed(1));
+    d.setAttribute('opacity','1'); d.setAttribute('fill', ok?'#e7c46a':'#f6ecd8');
+  } else d.setAttribute('opacity','.25');
+}
+
+/* ----- evaluation of the live frame against the current step ----- */
+let okSince = null, frontSince = null, loopOn = false, badSince = null;
+function between(v,[a,b]){ return v>=a && v<=b; }
+function sideName(s){ return s>0 ? 'left' : 'right'; }
+function evaluate(now){
+  const S = curStep();
+  const o = (testObs && testObs.t) ? testObs : obsNow;
+  const trackerOn = T.status==='ready' || !!testObs;
+  const fresh = o && (now - o.t) < 400;
+  let msg = '', ok = false;
+
+  if(!trackerOn){
+    msg = T.status==='loading' ? 'Loading face tracking. You can use the shutter now.' : 'Tracker off: use the shutter';
+    okSince = null; frontSince = null;
+  } else if(S.profile){
+    const side = S.side;
+    if(fresh && o.n>1){ msg='Only you in the frame'; okSince=null; }
+    else if(fresh && o.n===1 && o.yaw!=null){
+      const ys = o.yaw*side;
+      if(ys >= 50){ ok = true; msg = 'Hold it'; }
+      else if(ys >= 25) msg = 'A little more to your '+sideName(side);
+      else msg = 'Turn your head to your '+sideName(side);
+    } else {
+      // tracker often loses a face in pure profile: if we just saw a strong turn, count it as reached
+      if(lastSeen && lastSeen.yaw!=null && lastSeen.yaw*side >= 40 && now-lastSeen.t > 400 && now-lastSeen.t < 2500){ ok = true; msg = 'Hold it'; }
+      else msg = 'Turn your head to your '+sideName(side);
+    }
+    if(!ok) okSince = null;
+  } else {
+    let pre = true;
+    if(!fresh || o.n===0){ msg='Center your face'; pre=false; }
+    else if(o.n>1){ msg='Only you in the frame'; pre=false; }
+    else {
+      const b = o.box, minW = S.minW || MIN_W;
+      const cx = b.x+b.w/2, cy = b.y+b.h/2;
+      if(b.w < minW){ msg='Move closer'; pre=false; }
+      else if(o.luma < MIN_LUMA){ msg='Too dark: face a light'; pre=false; }
+      else if(Math.abs(cx-.5) > .16 || Math.abs(cy-(S.hair?.42:.5)) > (S.hair?.3:.22)){ msg='Center your face'; pre=false; }
+      else if(o.yaw==null){ msg='Center your face'; pre=false; }
+      else if(!between(o.yaw,S.yaw)){ msg = o.yaw < S.yaw[0] ? 'Turn more to your left' : 'Turn more to your right'; pre=false; }
+      else if(!between(o.pitch,S.pitch)){ msg = o.pitch < S.pitch[0] ? 'Lift your chin' : 'Lower your chin'; pre=false; }
+    }
+    // frontal-pose-held timer (for the "allow after 2 s" expression rules)
+    if(pre){ if(frontSince==null) frontSince = now; } else frontSince = null;
+    if(pre){
+      const bs = o.bs || {}, sm = ((bs.mouthSmileLeft||0)+(bs.mouthSmileRight||0))/2;
+      const asym = Math.abs((bs.mouthSmileLeft||0)-(bs.mouthSmileRight||0));
+      const brow = ((bs.browDownLeft||0)+(bs.browDownRight||0))/2, jaw = bs.jawOpen||0;
+      const held = now - frontSince;
+      let ex = true, hint = '';
+      if(S.expr==='smile'){ ex = sm >= .4; hint='Give a natural smile'; }
+      else if(S.expr==='smirk'){ ex = asym >= .15 || held >= 2000; hint='Sly half-smile'; }
+      else if(S.expr==='serious'){ ex = brow >= .2 || held >= 2000; hint='Stern, serious look'; }
+      else if(S.expr==='laugh'){ ex = jaw >= .25 && sm >= .4; hint='Big laugh or grin'; }
+      if(ex) ok = true; else msg = hint;
+    }
+    if(!ok) okSince = null;
+  }
+
+  // timing
+  if(ok){ if(okSince==null) okSince = now; }
+  const need = S.profile ? 250 : HOLD_MS;
+  const held = ok && (now - okSince) >= need;
+  if(phase==='live'){
+    if(ok) msg = held ? 'Perfect' : 'Hold still';
+    setChip(msg, ok && held);
+    if(held && now > armedAt && trackerOn) runCountdown('auto');
+  } else if(phase==='count'){
+    setChip('Perfect', true);
+    // cancel an auto countdown if the pose is lost for a while (not for profile: the face is expected to vanish)
+    if(countMode==='auto' && !S.profile){
+      if(!ok){ if(badSince==null) badSince = now; else if(now-badSince > 500){ cancelCount(); armedAt = now+800; } }
+      else badSince = null;
+    }
+  }
+  if(trackerOn && fresh && o.yaw!=null){ lastPose = { yaw:o.yaw, pitch:o.pitch, t:o.t }; lastSeen = o; }
+  paintDot(ok);
+}
+function loop(){
+  if(screen!=='cap' || !running){ loopOn = false; return; }
+  const now = performance.now();
+  try{ const v=$('#vid'); detect(v, now); evaluate(now); }catch(e){ console.warn('loop', e); }
+  requestAnimationFrame(loop);
+}
+
+/* ----- countdown + capture ----- */
+let countMode = 'manual';
+function cancelCount(){ cdToken++; phase='live'; badSince=null; $('#cd').classList.remove('on','tick'); }
+async function runCountdown(mode){
+  if(phase!=='live' || !running) return;
+  phase = 'count'; countMode = mode; badSince = null;
+  const my = ++cdToken, S = curStep(), cd = $('#cd'), num = cd.querySelector('.num'), hint = cd.querySelector('.hint');
+  const alive = () => my===cdToken;
+  cd.classList.add('on');
+  if(S.profile && mode==='manual'){
+    num.textContent = ''; hint.textContent = 'Turn your head to your '+sideName(S.side);
+    speak(S.voice); beep(660,.1,.2);
+    await sleep(1800); if(!alive()) return;
+    hint.textContent = '';
+  } else if(mode==='manual'){ hint.textContent = ''; }
+  hint.textContent = '';
+  for(let n=3;n>=1;n--){
+    num.textContent = String(n);
+    cd.classList.remove('tick'); void cd.offsetWidth; cd.classList.add('tick');
+    beep(n===1?1040:820,.13,.28);
+    if(S.profile && n===2) speak('Hold it');
+    await sleep(1000); if(!alive()) return;
+  }
+  cd.classList.remove('on','tick'); num.textContent='';
+  await doCapture(mode);
+}
+async function doCapture(mode){
+  if(phase==='saving') return; phase = 'saving';
+  const S = curStep(), v = $('#vid');
+  try{
+    const w = v.videoWidth, h = v.videoHeight;
+    if(!w || !h) throw new Error('no video frame');
+    const c = document.createElement('canvas'); c.width=w; c.height=h;
+    c.getContext('2d').drawImage(v,0,0,w,h);          // raw frame: never mirrored
+    const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+    clickSound(); try{ navigator.vibrate && navigator.vibrate(30); }catch(e){}
+    const blob = await new Promise(r=>c.toBlob(r,'image/jpeg',.92));
+    if(!blob) throw new Error('encode failed');
+    const now = performance.now();
+    const p = (lastPose && now - lastPose.t < 2500) ? lastPose : null;
+    if(shots[S.id]) { try{ URL.revokeObjectURL(shots[S.id].url); }catch(e){} }
+    const sh = { id:S.id, blob, url:URL.createObjectURL(blob), width:w, height:h,
+      yaw: p ? Math.round(p.yaw*10)/10 : null, pitch: p ? Math.round(p.pitch*10)/10 : null,
+      camera:cam, ts:new Date().toISOString(), mode };
+    shots[S.id] = sh; skipped.delete(S.id);
+    DB.putShot(sh); DB.saveSkips();
+    paintThumbs(); setChip('Saved', true);
+    speak('Got it.');
+    await sleep(900);
+  }catch(e){
+    console.warn('capture failed', e); toast('That one did not save. Try again.');
+    phase='live'; return;
+  }
+  phase = 'live';
+  advance();
+}
+function advance(){
+  if(retaking){ retaking=false; openReview(); return; }
+  const n = nextIndex(idx);
+  if(n<0){ openReview(); return; }
+  idx = n; paintStep(); armedAt = performance.now()+1800; speak(curStep().voice);
+}
+
+/* ------------------------------ review ------------------------------ */
+let viewerId = null;
+function openReview(){
+  show('review');
+  const n = count();
+  $('#revLead').textContent = n===N ? 'All 12 photos are in. Tap a photo to see it full-screen, or retake any that you don’t like.' : `${n} of ${N} photos taken. Tap a photo to see it full-screen. Skipped steps can be taken from here.`;
+  $('#grid').innerHTML = STEPS.map((s,i)=>{
+    const sh = shots[s.id];
+    const badge = sh ? (sh.yaw==null ? 'pose not measured' : `yaw ${fmt(sh.yaw)}° · pitch ${fmt(sh.pitch)}°`) : '';
+    return `<div class="shot" data-i="${i}">
+      <button class="im" type="button" ${sh?`data-view="${i}" aria-label="View ${s.title}"`:'disabled'}>${sh?`<img alt="${s.title}" src="${sh.url}">`:`<span class="ph">Skipped</span>`}</button>
+      <div class="bd"><div class="nm">${i+1}. ${s.title}</div>${sh?`<span class="badge">${badge}</span>`:''}
+      <button class="btn small ghost" type="button" data-retake="${i}">${sh?I.retake()+'Retake':'Take this shot'}</button></div></div>`;
+  }).join('');
+  $('#bGood').disabled = n===0;
+}
+const fmt = v => (v>0?'+':'')+Math.round(v);
+function openViewer(i){ const sh=shots[STEPS[i].id]; if(!sh) return; viewerId=i; $('#vimg').src=sh.url; $('#viewer').classList.add('on'); $('#vClose').focus(); }
+
+/* ------------------------------ send ------------------------------ */
+function filesForShare(){
+  return STEPS.filter(s=>shots[s.id]).map(s=>new File([shots[s.id].blob], s.id+'.jpg', {type:'image/jpeg'}));
+}
+function openSend(){
+  show('send');
+  const n = count();
+  $('#sendLead').textContent = `${n} photo${n===1?'':'s'} ready. They are still only on this phone.`;
+  let can = false;
+  try{ const f = filesForShare(); can = !!(navigator.share && navigator.canShare && navigator.canShare({files:f})); }catch(e){}
+  $('#bShare').hidden = !can;
+  $('#sendNote').textContent = can ? '' : 'Your browser can’t share photos directly, so use the ZIP download and send that file.';
+}
+function captureInfo(){
+  return { app:'storykeeper-face-capture', created:new Date().toISOString(), shots: STEPS.filter(s=>shots[s.id]).map(s=>{ const h=shots[s.id]; return {id:s.id,file:s.id+'.jpg',width:h.width,height:h.height,yaw:h.yaw,pitch:h.pitch,camera:h.camera,captured:h.ts,mode:h.mode}; }) };
+}
+function saveBlob(blob, name){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+}
+async function loadJSZip(){
+  if(window.JSZip) return window.JSZip;
+  await new Promise(res=>{ const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; s.onload=res; s.onerror=res; document.head.appendChild(s); });
+  return window.JSZip || null;
+}
+async function downloadZip(){
+  const note = $('#sendNote'); note.textContent = 'Building the ZIP...';
+  try{
+    const Z = await loadJSZip();
+    if(!Z){
+      note.textContent = 'The ZIP tool could not load. Downloading the photos one by one instead.';
+      for(const s of STEPS){ if(shots[s.id]){ saveBlob(shots[s.id].blob, s.id+'.jpg'); await sleep(500); } }
+      return;
+    }
+    const z = new Z();
+    for(const s of STEPS) if(shots[s.id]) z.file(s.id+'.jpg', shots[s.id].blob);
+    z.file('capture-info.json', JSON.stringify(captureInfo(),null,2));
+    const out = await z.generateAsync({type:'blob',compression:'STORE'});
+    saveBlob(out, 'Frederic-Storykeeper-Reference.zip');
+    note.textContent = 'Downloaded Frederic-Storykeeper-Reference.zip. Check your Files or Downloads. Then send it to Melvin.';
+  }catch(e){ note.textContent = 'Something went wrong making the ZIP. Try again.'; console.warn(e); }
+}
+async function doShare(){
+  try{
+    await navigator.share({ files:filesForShare(), title:'Storykeeper face photos', text:'Frédéric — Storykeeper reference photos' });
+  }catch(e){ if(!e || e.name!=='AbortError') $('#sendNote').textContent = 'Sharing did not work. Use the ZIP download instead.'; }
+}
+
+/* ------------------------------ start over ------------------------------ */
+async function wipe(){
+  for(const k of Object.keys(shots)){ try{ URL.revokeObjectURL(shots[k].url); }catch(e){} delete shots[k]; }
+  skipped.clear(); await DB.clear();
+}
+function twoTap(btn, label, fn){
+  let armed = false, t = null; const orig = btn.textContent;
+  btn.addEventListener('click', ()=>{
+    if(!armed){ armed = true; btn.textContent = label; clearTimeout(t); t = setTimeout(()=>{ armed=false; btn.textContent=orig; }, 3500); return; }
+    armed = false; clearTimeout(t); btn.textContent = orig; fn();
+  });
+}
+
+/* ------------------------------ sound toggle ------------------------------ */
+function refreshSound(){ const b=$('#bSound'); b.innerHTML = sound ? I.snd() : I.mute(); b.setAttribute('aria-label', sound?'Sound on':'Sound off'); b.setAttribute('aria-pressed', String(sound)); }
+
+/* ------------------------------ wiring ------------------------------ */
+function wire(){
+  $('#bStart').onclick = ()=>{ audio(); warmSpeech(); loadTracker(); enterCapture(firstOpen()<0?0:firstOpen(), false); };
+  $('#bResume').onclick = ()=>{ audio(); warmSpeech(); loadTracker(); const f=firstOpen(); if(f<0) openReview(); else enterCapture(f,false); };
+  twoTap($('#bFresh'), 'Tap again to erase photos', async ()=>{ await wipe(); refreshWelcome(); });
+  $('#bRetry').onclick = ()=>{ audio(); loadTracker(); enterCapture(idx, retaking); };
+  $('#bErrBack').onclick = ()=>{ show('welcome'); refreshWelcome(); };
+  $('#bBack').onclick = ()=>{ retaking=false; if(count()>0) openReview(); else { show('welcome'); refreshWelcome(); } };
+  $('#shutter').onclick = ()=>{ audio(); if(phase==='live' && running) runCountdown('manual'); else if(phase==='count'){ cancelCount(); } };
+  $('#bSkip').onclick = ()=>{
+    if(phase!=='live' && phase!=='count') return; cancelCount();
+    if(retaking){ retaking=false; openReview(); return; }
+    skipped.add(curStep().id); DB.saveSkips();
+    const n = nextIndex(idx); if(n<0){ openReview(); return; }
+    idx = n; paintStep(); armedAt = performance.now()+1800; speak(curStep().voice);
+  };
+  $('#bSwitch').onclick = async ()=>{
+    if(phase!=='live') cancelCount();
+    cam = cam==='front' ? 'back' : 'front';
+    setChip('Switching camera', false);
+    const ok = await startCamera();
+    if(ok){ paintPoseBox(); armedAt = performance.now()+1800;
+      toast(cam==='back' ? 'Back camera: ask someone to hold the phone facing you.' : 'Front camera.'); }
+  };
+  $('#bSound').onclick = ()=>{ sound = !sound; if(!sound){ try{ speechSynthesis.cancel(); }catch(e){} } else audio(); refreshSound(); };
+  $('#grid').addEventListener('click', e=>{
+    const v = e.target.closest('[data-view]'); if(v){ openViewer(+v.dataset.view); return; }
+    const r = e.target.closest('[data-retake]'); if(r){ audio(); loadTracker(); enterCapture(+r.dataset.retake, true); }
+  });
+  $('#vClose').onclick = ()=>$('#viewer').classList.remove('on');
+  $('#vRetake').onclick = ()=>{ const i=viewerId; $('#viewer').classList.remove('on'); audio(); loadTracker(); enterCapture(i,true); };
+  $('#bGood').onclick = openSend;
+  $('#bShare').onclick = doShare;
+  $('#bZip').onclick = downloadZip;
+  $('#bBackRev').onclick = openReview;
+  twoTap($('#bOver'), 'Tap again to erase photos', async ()=>{ await wipe(); show('welcome'); refreshWelcome(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') $('#viewer').classList.remove('on'); });
+  window.addEventListener('resize', ()=>{ if(screen==='cap'){ fitBox(); paintPoseBox(); } });
+  window.addEventListener('orientationchange', ()=>setTimeout(()=>{ if(screen==='cap'){ fitBox(); } }, 300));
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState==='visible' && screen==='cap' && (!stream || stream.getVideoTracks().every(t=>t.readyState==='ended'))) { enterCapture(idx, retaking); }
+  });
+}
+
+/* ------------------------------ test hook (only with #test in the URL) ------------------------------ */
+let testObs = null;
+if(/test/.test(location.hash)){
+  window.__capTest = { feed(o){ testObs = o ? Object.assign({t:performance.now()}, o) : null; }, keep(o){ testObs = Object.assign({t:performance.now()}, o); clearInterval(window.__capTest._iv); window.__capTest._iv = setInterval(()=>{ if(testObs) testObs.t = performance.now(); }, 50); }, stop(){ clearInterval(window.__capTest._iv); testObs = null; } };
+}
+
+/* ------------------------------ public read-only state ------------------------------ */
+Object.defineProperty(window,'__cap',{ value: Object.freeze(Object.defineProperties({}, {
+  screen:  { get:()=>screen, enumerable:true },
+  step:    { get:()=>idx, enumerable:true },
+  stepId:  { get:()=>STEPS[idx].id, enumerable:true },
+  shots:   { get:()=>count(), enumerable:true },
+  shotIds: { get:()=>Object.keys(shots).sort(), enumerable:true },
+  skipped: { get:()=>[...skipped], enumerable:true },
+  tracker: { get:()=>T.status, enumerable:true },
+  delegate:{ get:()=>T.delegate, enumerable:true },
+  trackerError:{ get:()=>T.error, enumerable:true },
+  lastPose:{ get:()=>lastPose ? {yaw:lastPose.yaw,pitch:lastPose.pitch} : null, enumerable:true },
+  camera:  { get:()=>cam, enumerable:true },
+  phase:   { get:()=>phase, enumerable:true },
+  idb:     { get:()=>DB.ok, enumerable:true },
+  signs:   { get:()=>({yaw:sign.yaw,pitch:sign.pitch}), enumerable:true },
+  poseFromMatrix: { value:(d)=>{ const p=poseFromMatrix(d); return {yaw:p.yaw,pitch:p.pitch}; }, enumerable:true }
+})), writable:false, enumerable:false });
+
+/* ------------------------------ boot ------------------------------ */
+async function boot(){
+  buildWelcome(); wire();
+  try{
+    if(await DB.open()){
+      const rows = await DB.allShots();
+      for(const r of (rows||[])){
+        if(!r || !r.blob || !STEPS.some(s=>s.id===r.id)) continue;
+        shots[r.id] = { id:r.id, blob:r.blob, url:URL.createObjectURL(r.blob), width:r.width, height:r.height, yaw:r.yaw, pitch:r.pitch, camera:r.camera, ts:r.ts, mode:r.mode };
+      }
+      const sk = await DB.getSkips(); if(sk && sk.v) sk.v.forEach(id=>{ if(!shots[id]) skipped.add(id); });
+    }
+  }catch(e){}
+  refreshWelcome();
+}
+boot();
+})();
+</script>
+</body>
+</html>
