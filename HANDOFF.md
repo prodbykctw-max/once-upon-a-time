@@ -46,7 +46,9 @@
 > in this branch's `index.html`.
 > **11-11 — Storykeeper redrawn from Frédéric's photos.** All 12 images were replaced: 8 busts, 2 cutouts and
 > 2 panels. Skin is halfway between deep brown and his photo tone (client: "a mix between both"). Pipeline and
-> masters: CLAUDE.md, `tools/weave/storykeeper_fred/`.
+> masters: CLAUDE.md, `tools/weave/storykeeper_fred/`. **LIVE:** the client merged PR #11 (`dfcf488`). Live
+> `/overhaul/` is byte-identical to the build, all 12 new assets return 200, the root game is unchanged, and the
+> prologue plays on the live URL with no errors.
 
 > ## ⏸ SUPERSEDED 11-01 — CLIENT NOTES IN, NO WORK UNTIL THE WALKTHROUGH (09-16)
 > **`docs/CLIENT_NOTES_FREDERIC.md`.** Frédéric De Jesus (BASILICA) sent full

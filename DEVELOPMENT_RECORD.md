@@ -1641,6 +1641,8 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
     - **Checks:** web/ references show 0 missing and 0 orphans, and the prologue cinematic runs with no errors.
     - **Clean-up:** the photos were never committed. The temporary Drive copy was deleted forever, and its link
       returns 404.
+    - **Live:** the client merged PR #11 (`dfcf488`). Live `/overhaul/` matches the build, the 12 assets return
+      200, the root is unchanged, and the live prologue was checked headless.
   - Princess gameplay sprite (still the Jandé sheets): needs the AutoSprite key or Higgsfield credits for new run, jump and attack sheets.
   - Left as is: the man in the memories, who was already drawn as a Black man; the monsters; and The Groom
     Who Lied (row 8), which Game I never uses.
