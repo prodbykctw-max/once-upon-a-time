@@ -1623,7 +1623,13 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
   - The root game is byte-identical to before the merge.
   - The live Warlock and VS card were checked headless.
 - **Still open** (both blocked outside this session):
-  - Storykeeper face and grooming: needs Frédéric's reference photo.
+  - Storykeeper face and grooming: needs Frédéric's reference photo. **11-11:** a capture page for him is live at
+    `/storykeeper-face/` (the client merged PR #10 into `gh-pages`, merge `a4aa7a1`). It walks him through 12
+    guided angles and expressions, using MediaPipe FaceLandmarker for head pose and smile checks, then zips
+    the shots for him to send. Verified live: the page is byte-identical to the build, the model (3,758,596 bytes)
+    and the font return 200, the root game and `/overhaul/` are unchanged, and a synthetic-face headless run
+    tracks the face and auto-captures step 1. Not yet tried on a real phone by a real person. The face stays
+    open until his photos arrive.
   - Princess gameplay sprite (still the Jandé sheets): needs the AutoSprite key or Higgsfield credits for new run, jump and attack sheets.
   - Left as is: the man in the memories, who was already drawn as a Black man; the monsters; and The Groom
     Who Lied (row 8), which Game I never uses.

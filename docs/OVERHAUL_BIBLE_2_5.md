@@ -158,7 +158,8 @@ Ability behaviour:
   coat, gold thread, fountain pen. **Redrawn 11-02 (client: "all characters Black, it's Atlanta"):** a Black
   man with rich deep-brown skin, in the same anime style as Princess. 12 images: 8 busts, 2 world cutouts, the
   blank-page panel and the Encore panel. **Still open:** the bible (§2) models his face and grooming on Frédéric,
-  and no reference photo has been supplied yet.
+  and no reference photo has been supplied yet. **11-11:** the capture page that collects it is live at
+  `/storykeeper-face/` (PR #10, `a4aa7a1`). Waiting on Frédéric to use it.
 - **All human characters are Black (client, 11-02).** The man in the memories was already drawn as a Black man
   and was left as he is. In the boss atlas the Thorn Queen (row 3) and the Blossom Revenant (row 2, also used by
   The Doubt and The Spark) had their pale skin recoloured to deep brown on all 9 frames. The Toadstool Warlock

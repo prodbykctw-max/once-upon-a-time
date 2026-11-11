@@ -41,6 +41,9 @@
 > and the Thorn Queen and Blossom Revenant were recoloured in the boss atlas. The Toadstool Warlock was redone
 > with a Figma Weave image edit (all 9 frames in one run, original outline kept). Mask recolours had been rejected. The rule is in CLAUDE.md. The
 > Storykeeper's face still waits on Frédéric's reference photo.
+> **11-11 — face-capture page LIVE** at `/storykeeper-face/` (PR #10, merge `a4aa7a1`): 12 guided angles,
+> zipped for Frédéric to send. Source is only on `gh-pages` (from `claude/storykeeper-face-ghpages`). It is not
+> in this branch's `index.html`. Once his photos arrive, redraw the Storykeeper's face and grooming from them.
 
 > ## ⏸ SUPERSEDED 11-01 — CLIENT NOTES IN, NO WORK UNTIL THE WALKTHROUGH (09-16)
 > **`docs/CLIENT_NOTES_FREDERIC.md`.** Frédéric De Jesus (BASILICA) sent full
