@@ -1628,8 +1628,19 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
     guided angles and expressions, using MediaPipe FaceLandmarker for head pose and smile checks, then zips
     the shots for him to send. Verified live: the page is byte-identical to the build, the model (3,758,596 bytes)
     and the font return 200, the root game and `/overhaul/` are unchanged, and a synthetic-face headless run
-    tracks the face and auto-captures step 1. Not yet tried on a real phone by a real person. The face stays
-    open until his photos arrive.
+    tracks the face and auto-captures step 1. Not yet tried on a real phone by a real person.
+    **Closed 11-11:** Frédéric's 12 photos arrived.
+    - **Weave:** the one Nano Banana Pro pass that ran came out as a thick-outline cartoon, with flattened
+      expressions, three winks and too much grey, so it was rejected. The other three runs were refused because
+      Weave's 2 free model runs were used up, and no credits were spent on them.
+    - **ChatGPT in the client's Edge:** it redrew all 12 images in the right style, with eight distinct expressions.
+      It would not lighten the skin when asked, so tone was set by a head- and hand-limited skin mask.
+    - **Skin tone:** the client chose *"a mix between both"*, which landed at lit-skin luma 130, halfway between
+      102 and 158.
+    - **Princess:** her pixels in both panels are unchanged (diff 0).
+    - **Checks:** web/ references show 0 missing and 0 orphans, and the prologue cinematic runs with no errors.
+    - **Clean-up:** the photos were never committed. The temporary Drive copy was deleted forever, and its link
+      returns 404.
   - Princess gameplay sprite (still the Jandé sheets): needs the AutoSprite key or Higgsfield credits for new run, jump and attack sheets.
   - Left as is: the man in the memories, who was already drawn as a Black man; the monsters; and The Groom
     Who Lied (row 8), which Game I never uses.

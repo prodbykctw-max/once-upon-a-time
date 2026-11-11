@@ -43,7 +43,10 @@
 > Storykeeper's face still waits on Frédéric's reference photo.
 > **11-11 — face-capture page LIVE** at `/storykeeper-face/` (PR #10, merge `a4aa7a1`): 12 guided angles,
 > zipped for Frédéric to send. Source is only on `gh-pages` (from `claude/storykeeper-face-ghpages`). It is not
-> in this branch's `index.html`. Once his photos arrive, redraw the Storykeeper's face and grooming from them.
+> in this branch's `index.html`.
+> **11-11 — Storykeeper redrawn from Frédéric's photos.** All 12 images were replaced: 8 busts, 2 cutouts and
+> 2 panels. Skin is halfway between deep brown and his photo tone (client: "a mix between both"). Pipeline and
+> masters: CLAUDE.md, `tools/weave/storykeeper_fred/`.
 
 > ## ⏸ SUPERSEDED 11-01 — CLIENT NOTES IN, NO WORK UNTIL THE WALKTHROUGH (09-16)
 > **`docs/CLIENT_NOTES_FREDERIC.md`.** Frédéric De Jesus (BASILICA) sent full

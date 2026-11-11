@@ -70,8 +70,17 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   rebuilding.** "Brown everywhere" (11-02) meant the brown was bleeding into the beard. It was read as "make
   the beard brown too", and the client said it was worse., so every frame keeps its exact animation.
 - **Never invent a complexion for a character based on a real person.** The bible models the Storykeeper on
-  Frédéric (face and grooming). The client set his skin on 11-02: a Black man with rich deep-brown skin. His
-  FACE and grooming are still a guess until Frédéric sends a reference photo.
+  Frédéric (face and grooming). **Done 11-11 from his 12 reference photos.** His face, curls, short dark
+  beard (faint grey at the chin) and silver hoop come from those photos. His skin was set by the client after
+  two previews: *"a mix between both"*. It sits halfway between the 11-02 deep brown and his photographed tone, so
+  he is the one human character who is NOT rich deep brown. Lit-skin luma is about 130 on the busts; keep new
+  Storykeeper art there. The photos are never committed: they are a real person's face, as with Jandé.
+- **Image-edit pipeline for likeness work (11-11):** ChatGPT in the client's Edge edited the current art with the
+  photos attached, reliably keeping style, layout and expression. Weave's free model runs are capped at 2, and the
+  one Weave pass drifted into a thick-outline cartoon. ChatGPT would NOT move skin tone on request (two tries,
+  luma 77 to 87 to 83), so tone was set afterwards by a skin mask limited to head and hand boxes (hue 8-28,
+  saturation over 0.40), checked clean at the beard, hair and eyes. Anything else in the frame, such as Princess,
+  is proved untouched by a pixel diff of 0. Masters: `tools/weave/storykeeper_fred/`.
 - **The story save only moves forward** (`v2SaveAt`). Replays and bookmarks use `RUN_BM`.
 - Overhaul saves live in `localStorage['ouat2']`, separate from `jande_*`. All of the account's Pages
   projects share one origin.
