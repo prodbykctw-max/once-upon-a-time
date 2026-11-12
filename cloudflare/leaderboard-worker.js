@@ -4,6 +4,8 @@
  * Endpoints:
  *   GET  /top?mode=all|side|temple&n=20   → { ok, mode, runs:[{n,d,s,m,t}] }
  *   POST /submit  { name, dist, score, mode, dur }  → { ok, rank }
+ *   POST /registry { name?, email }                → { ok }   (Queen's Registry sign-up)
+ *   GET  /registry/export  (Authorization: Bearer <REGISTRY_EXPORT_KEY>) → { ok, count, signups }
  *
  * CORS is granted only to the game's own origin (ALLOWED_ORIGIN). A POST
  * /submit from any other Origin (or with none) is refused with 403.
@@ -14,6 +16,13 @@
  * Storage: one KV blob per board ("lb:all"/"lb:side"/"lb:temple"), each a JSON
  * array sorted by distance then score, deduped to each name's best, capped 100.
  * Bind the KV namespace as `LB` (see wrangler.toml).
+ *
+ * Registry sign-ups live in the same namespace under "registry:<lowercased
+ * email>" (so a repeat sign-up overwrites instead of duplicating). The record
+ * is also stored as KV metadata so the export needs one list() call per 1000
+ * sign-ups, not one get() each. No IP address or location is stored.
+ * GET /registry/export answers 404 unless the Worker secret REGISTRY_EXPORT_KEY
+ * is set AND the request carries it as a Bearer token.
  */
 const ALLOWED_ORIGIN = 'https://prodbykctw-max.github.io';
 const MODES = ['side', 'temple'];
@@ -98,6 +107,27 @@ const cleanName = (n) => {
   return s || 'JANDÉ FAN';
 };
 
+// ── Queen's Registry (fan email sign-ups) ────────────────────────────────────
+// Deliberately loose: never refuse a real fan. Only "has an @" and sane maxima.
+const REG_MAX_BODY = 2048;
+const REG_MAX_EMAIL = 254;
+const REG_MAX_NAME = 80;
+const regKey = (email) => 'registry:' + email.toLowerCase();
+const cleanText = (v, max) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max);
+
+/** Constant-time string compare (digests are equal length, XOR-accumulated). */
+async function safeEqual(a, b) {
+  const enc = new TextEncoder();
+  const [da, db] = await Promise.all([
+    crypto.subtle.digest('SHA-256', enc.encode(String(a))),
+    crypto.subtle.digest('SHA-256', enc.encode(String(b))),
+  ]);
+  const x = new Uint8Array(da), y = new Uint8Array(db);
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
 const sortRuns = (a, b) => b.d - a.d || b.s - a.s || a.t - b.t;
 
 function dedupeTrim(list) {
@@ -161,6 +191,43 @@ export default {
           }
         }
         return json(req, { ok: true, rank });
+      }
+
+      if (url.pathname === '/registry' && req.method === 'POST') {
+        if (req.headers.get('Origin') !== ALLOWED_ORIGIN) return json(req, { ok: false, err: 'forbidden' }, 403);
+        const declared = Number(req.headers.get('Content-Length') || 0);
+        if (declared > REG_MAX_BODY) return json(req, { ok: false, err: 'too large' }, 413);
+        const raw = await req.text();
+        if (raw.length > REG_MAX_BODY) return json(req, { ok: false, err: 'too large' }, 413);
+        let b = {};
+        try { b = JSON.parse(raw); } catch (e) { b = {}; }
+        const email = cleanText(b && b.email, REG_MAX_EMAIL + 1);
+        if (!email || email.length > REG_MAX_EMAIL || email.indexOf('@') < 1) {
+          return json(req, { ok: false, err: 'rejected' }, 400);
+        }
+        const rec = { n: cleanText(b && b.name, REG_MAX_NAME), e: email, t: new Date().toISOString() };
+        await env.LB.put(regKey(email), JSON.stringify(rec), { metadata: rec });
+        return json(req, { ok: true });
+      }
+
+      if (url.pathname === '/registry/export' && req.method === 'GET') {
+        const secret = env.REGISTRY_EXPORT_KEY;
+        const m = /^Bearer (.+)$/.exec(req.headers.get('Authorization') || '');
+        // Same 404 for "no secret configured", "no header" and "wrong key".
+        if (!secret || !m || !(await safeEqual(m[1], secret))) return json(req, { ok: false, err: 'not found' }, 404);
+        const signups = [];
+        let cursor;
+        do {
+          const page = await env.LB.list({ prefix: 'registry:', cursor });
+          for (const k of page.keys) {
+            let r = k.metadata;
+            if (!r || !r.e) { const v = await env.LB.get(k.name); r = v ? JSON.parse(v) : null; }
+            if (r && r.e) signups.push({ name: r.n, email: r.e, time: r.t });
+          }
+          cursor = page.list_complete ? undefined : page.cursor;
+        } while (cursor);
+        signups.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+        return json(req, { ok: true, count: signups.length, signups });
       }
 
       return json(req, { ok: false, err: 'not found' }, 404);
