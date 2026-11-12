@@ -54,5 +54,26 @@ curl -s "$BASE/top?mode=all&n=10"
 
 - `GET /top?mode=all|side|temple&n=20` → `{ ok, mode, runs:[{n,d,s,m,t}] }`
 - `POST /submit` `{ name, dist, score, mode, dur }` → `{ ok, rank }`
+- `POST /registry` `{ name?, email }` → `{ ok }` — Queen's Registry sign-up. Same
+  Origin rule as `/submit` (403 otherwise). Stored in the same KV under
+  `registry:<lowercased email>` (a repeat sign-up overwrites). Stores name, email
+  and a server timestamp only — no IP, no location. Body capped at 2 KB.
+- `GET /registry/export` → `{ ok, count, signups:[{name,email,time}] }`. Returns
+  404 (same as an unknown route) unless the request has
+  `Authorization: Bearer <REGISTRY_EXPORT_KEY>`.
 
 Runs are sorted by distance then score, deduped to each name's best, capped at 100.
+
+## Registry export key (one-time, owner)
+
+```bash
+cd cloudflare
+npx wrangler secret put REGISTRY_EXPORT_KEY   # paste a long random string
+npx wrangler deploy
+# export the list:
+curl -s -H "Authorization: Bearer <that string>" https://jande-leaderboard.prodbykctw.workers.dev/registry/export
+```
+
+Until the secret is set, `/registry/export` is a 404 for everyone. Sign-ups are
+still being saved. Deploy order: the Worker first (so `POST /registry` exists),
+then the game page.
