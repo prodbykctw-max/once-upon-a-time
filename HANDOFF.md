@@ -1310,8 +1310,11 @@ bash tools/deploy.sh
 - ✅ Gameplay: hitstop, instant retry, adaptive difficulty, near-miss, streak — **DONE**
 - ✅ Store: spend Grace Notes on power-up upgrades — **DONE** (The Boutique)
 - ✅ Global leaderboard (Cloudflare Worker) — **DONE + live**
-- ⬜ Custom domain + EmailJS keys for registration — **still open** (placeholders
-  unfilled; signups fall back to `localStorage`)
+- ✅ Registration sign-ups now POST to the leaderboard Worker (`POST /registry`,
+  KV prefix `registry:`); EmailJS was removed. Export: `GET /registry/export` with
+  the `REGISTRY_EXPORT_KEY` Worker secret (see `cloudflare/README.md`). Deploy the
+  Worker BEFORE the page. Failed sends stay in localStorage and retry next visit.
+- ⬜ Custom domain — still open
 
 ## Cross-session log
 - RESOLVED (laptop session): RESONANCE/LV meters vs #topBtns overlap. Fixed by dropping .hud-r below the 40px top-button row (vertical clearance), not horizontal padding (the map button makes #topBtns too wide to reserve). Verified no overlap desktop+mobile.

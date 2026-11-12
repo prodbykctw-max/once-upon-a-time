@@ -974,10 +974,30 @@ var SPRITES={
 (function(){
 'use strict';
 
-// ---------- EmailJS (optional) ----------
-var EJ_KEY='YOUR_EMAILJS_PUBLIC_KEY', EJ_S='YOUR_SERVICE_ID', EJ_T='YOUR_TEMPLATE_ID';
-var EJ_LIVE=EJ_KEY!=='YOUR_EMAILJS_PUBLIC_KEY';
+// ---------- Queen's Registry sign-ups ----------
+// Every sign-up is kept in localStorage ('jande_signups') AND POSTed to the
+// leaderboard Worker (POST /registry). An entry gets sent:1 once the Worker has
+// confirmed it; regFlush() re-sends any entry still unsent (failed earlier, or
+// saved before this existed) quietly on a later visit. Never blocks play.
 function saveLocal(n,e){try{var k='jande_signups',a=JSON.parse(localStorage.getItem(k)||'[]');a.push({name:n,email:e,time:new Date().toISOString()});localStorage.setItem(k,JSON.stringify(a));}catch(x){}}
+function regPost(n,e,cb){   // cb(true) only when the Worker answers {ok:true}
+  var done=false,ctl=null,to=0;
+  function fin(ok){if(done)return;done=true;clearTimeout(to);try{if(ctl)ctl.abort();}catch(x){}cb(ok);}
+  try{
+    if(typeof AbortController!=='undefined')ctl=new AbortController();
+    to=setTimeout(function(){fin(false);},5000);
+    fetch(LB_URL+'/registry',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:n||'',email:e}),signal:ctl?ctl.signal:undefined})
+      .then(function(r){return r.json();}).then(function(j){fin(!!(j&&j.ok));}).catch(function(){fin(false);});
+  }catch(x){fin(false);}}
+function regMarkSent(e){try{var k='jande_signups',a=JSON.parse(localStorage.getItem(k)||'[]'),m=String(e).toLowerCase();
+  for(var i=0;i<a.length;i++)if(a[i]&&a[i].email&&String(a[i].email).toLowerCase()===m)a[i].sent=1;
+  localStorage.setItem(k,JSON.stringify(a));}catch(x){}}
+function regFlush(){try{var a=JSON.parse(localStorage.getItem('jande_signups')||'[]'),seen={},todo=[];
+  for(var i=a.length-1;i>=0&&todo.length<10;i--){var x=a[i];if(!x||!x.email)continue;
+    var k=String(x.email).toLowerCase();if(seen[k])continue;seen[k]=1;if(x.sent)continue;todo.push(x);}
+  (function next(){var x=todo.shift();if(!x)return;
+    regPost(x.name,x.email,function(ok){if(ok){regMarkSent(x.email);next();}});})();}catch(x){}}
 function show(id){if(id==='titleScreen')titleMenuSync();var s=document.querySelectorAll('.screen');for(var i=0;i<s.length;i++)s[i].classList.remove('active');var el=document.getElementById(id);if(el)el.classList.add('active');}
 
 // ---------- 9 STAGES ----------
@@ -8165,12 +8185,15 @@ function v2Wire(){
   }catch(e){return 'err '+e.message;}};}
 
 // ---------- wire UI ----------
-function wire(){applyMotionClass();titleEntrance();titleParallax();
+var lBusy=false;
+function wire(){applyMotionClass();setTimeout(regFlush,2500);titleEntrance();titleParallax();
   document.getElementById('tPress').onclick=function(){audInit();sfx('ui');V2_AFTER='new';if(V2S.reg)v2NewStory();else show('loginScreen');};
   document.getElementById('lBtn').onclick=function(){var nm=document.getElementById('lName').value.trim(),em=document.getElementById('lEmail').value.trim(),msg=document.getElementById('lMsg');
     if(!em||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){msg.style.color='rgba(255,50,80,.9)';msg.textContent='Valid email required!';return;}
-    saveLocal(nm,em);msg.style.color='rgba(0,255,238,.8)';msg.textContent=EJ_LIVE?'Entering...':'Saved! Loading...';
-    if(EJ_LIVE&&window.emailjs){emailjs.send(EJ_S,EJ_T,{from_name:nm||'Anonymous',from_email:em,reply_to:em,message:'Signup: '+nm+' | '+em}).then(function(){setTimeout(v2AfterReg,800);}).catch(function(){setTimeout(v2AfterReg,800);});}else setTimeout(v2AfterReg,800);};
+    if(lBusy)return;lBusy=true;
+    saveLocal(nm,em);msg.style.color='rgba(0,255,238,.8)';msg.textContent='Entering...';
+    regPost(nm,em,function(ok){if(ok){regMarkSent(em);msg.textContent='Saved! Loading...';}else{msg.textContent='Loading...';}
+      lBusy=false;setTimeout(v2AfterReg,800);});};
   document.getElementById('lSkip').onclick=v2AfterReg;
   document.getElementById('htGo').onclick=function(){audInit();sfx('ui');startGame();};
   (function(){var hb=document.getElementById('htShop');   // Boutique, per mode, after mode select
