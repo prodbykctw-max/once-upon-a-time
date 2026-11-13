@@ -81,6 +81,11 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   luma 77 to 87 to 83), so tone was set afterwards by a skin mask limited to head and hand boxes (hue 8-28,
   saturation over 0.40), checked clean at the beard, hair and eyes. Anything else in the frame, such as Princess,
   is proved untouched by a pixel diff of 0. Masters: `tools/weave/storykeeper_fred/`.
+- **Settings (Bible §10) have one source each; keep it that way.** Every vibration goes through `buzz()`, every
+  card jitter through `shkMul()`, every full-screen flash alpha through `flashA()` or `RF()`, every Resonance gain
+  through `resGain()`. Music uses `AUD.mbus` (set `AUD._mus` around score code), everything else `AUD.fbus`: a raw
+  `g.connect(AUD.master)` bypasses the volume setting. Assists (`aDmg aRes aParry aBm`) must never be read by
+  completion, tally, Perfect Pitch or 100% code. The world has no camera shake; do not add one without `shkMul()`.
 - **The story save only moves forward** (`v2SaveAt`). Replays and bookmarks use `RUN_BM`.
 - Overhaul saves live in `localStorage['ouat2']`, separate from `jande_*`. All of the account's Pages
   projects share one origin.

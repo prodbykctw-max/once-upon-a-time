@@ -15,6 +15,13 @@
 > THE BOUTIQUE in portrait). Item 3 is the 47-site glyph sweep. Everything is
 > already root-caused with line numbers — no investigation needed.
 
+> ## ✔ BUILT 11-13 — SETTINGS / ACCESSIBILITY / ASSIST (Bible §10), branch `claude/overhaul-settings-a11y`, `95f1d87`
+> Pushed, not merged or deployed. Spec table: "Settings, accessibility and assists" in `docs/OVERHAUL_BIBLE_2_5.md`.
+> Volume buses, shake, reduced flashing, text size, captions, vibration, touch-pad size/opacity/sides/height and four
+> assists. Not built: dialogue volume (not voiced). To publish, merge the branch into
+> `claude/overhaul-bible-2.5`, then run `tools/build_overhaul.py`; never `tools/deploy.sh`.
+> Also fixed: `CTRL_TOP` stayed 1e9 after a story start (now measured in `applyTouchMode`).
+
 > ## ▶ ACTIVE 11-01 — GAME I OVERHAUL PREVIEW (BASILICA Production Bible 2.5)
 > **`docs/OVERHAUL_BIBLE_2_5.md`.** Frédéric's Oct 30 handoff (Production Bible 2.5 +
 > Narrative Bible v2) replaces the 09-16 notes below. On Nov 1 the client chose to

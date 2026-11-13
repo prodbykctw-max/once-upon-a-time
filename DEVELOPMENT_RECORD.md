@@ -1649,6 +1649,15 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
   16/17 ms clock, not a capture defect.
 
+- **11-13 — Settings / Accessibility / Assist (Bible §10), `95f1d87`, branch `claude/overhaul-settings-a11y`.**
+  Settings screen regrouped (AUDIO / DISPLAY / CONTROLS / ACCESSIBILITY / ASSIST). Music and effects got separate
+  gain buses so volume is real; screen shake, reduced flashing, text size, sound captions, vibration and touch-pad
+  size/opacity/sides/height were added, plus four assists that nothing in completion reads. The world camera has no
+  shake, so Shake scales only the card jitter. Headless checks: every option persists across reload, each assist
+  moves its number (10 hits cost 10 hearts, 5 with the assist; Resonance +38 becomes +57; Perfect Note at tick 15
+  only with the wider window; 2 bookmarks become 5), flash alpha is capped at 0.15, pads respond in portrait and
+  landscape at every size. Also fixed a stale `CTRL_TOP` (1e9) after a story start.
+
 ---
 
 *Jandé — "Once Upon A Time"*
