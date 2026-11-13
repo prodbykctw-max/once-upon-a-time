@@ -120,6 +120,11 @@ and **hard-aborts if anything sensitive is staged**.
 - `assets/` stays git-ignored — real photos live there locally only, never committed.
 - Develop on `claude/hand-painted-architecture-bg-0MAiy`; `gh-pages` is deploy-only.
 - `git fetch` before starting — the laptop session pushes here too.
+- **Check the clone's fetch refspec first** (`git config --get-all remote.origin.fetch`). Cloud clones are made with
+  per-branch refspecs, so a plain `git fetch` silently skips `gh-pages` and every other branch. On 11-13 that made
+  an audit report the dev branch above as missing and read a gh-pages 10 days stale. Set
+  `+refs/heads/*:refs/remotes/origin/*`, or confirm with `git ls-remote --heads origin`, before saying a branch
+  does or doesn't exist.
 
 ## Where things live in index.html
 - **RPG level gen:** `buildRunner` / `genAhead` (streaming; despite the name this
