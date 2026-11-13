@@ -206,12 +206,44 @@ Ability behaviour:
 - **Storybook UI (§9).** Missing: spreads, Grace Note counts per chapter, Hidden Page / Perfect Pitch flags,
   completion %. Today "Storybook" is a chapter list.
 - **Hidden Pages:** all 11 (§4). **Postgame:** Her Encore unlocks, Dress playable, The Archive, Boss Rush.
-- **Settings and accessibility (§10):** control size/position, assists, text size, reduced flashing as its
-  own toggle. The storm lightning is off under Reduce Motion today.
+- ~~**Settings and accessibility (§10)**~~ **BUILT 11-13 (`95f1d87`, branch `claude/overhaul-settings-a11y`).**
+  See "Settings, accessibility and assists" below. Not built from §10: dialogue volume (the game is not voiced).
 - **Art direction:** environment and platform art direction (§19), and the Adventurer Princess and other
   new art (§5, §21).
 - **Game feel (§11):** hit-pause tuning and a unique Perfect Note sound beyond the current burst.
 - **Game II.** Out of the bible's scope.
+
+## Settings, accessibility and assists (§10) — built 11-13, `95f1d87`
+
+One screen (`#settingsScr`), reachable from the title, mode select and Pause. Every change is written to
+`localStorage['jande_settings']` at once (autosave on settings change). Older stored values still load.
+
+| Section | Option | Values | Hook |
+|---|---|---|---|
+| AUDIO | Music / Sound FX volume | 25 / 50 / 75 / 100 | `AUD.mbus` / `AUD.fbus` gain nodes, `audVol()`. `tone()` and `hiss()` route through `audDst()`; `musTick` and `pianoNote` set `AUD._mus` |
+| DISPLAY | Text size | Normal / Large 1.2 / Larger 1.4 | `--ts` CSS variable on story, dialogue, HUD, menus, toasts (`TXS()`) |
+| DISPLAY | Screen shake | Full / Reduced 40% / Off | `shkMul()`: VS-card jitter, reveal-card jitter and glitch, HER-card chroma split. Reduce Motion still forces 0 |
+| DISPLAY | Subtitles | Off / On | `capSay()` and `#caps`: captions for sound cues only (see below) |
+| CONTROLS | Vibration | On / Off | `buzz()` wraps every `navigator.vibrate`; row hidden when the API is absent |
+| CONTROLS | Size / Opacity / Sides / Height | S 0.85, M, L 1.15 / 40-100 / Standard, Swapped / Standard, Raised +36px | `--cs`, `--co`, `#mCtrl.swap`, `--clift`; `applyA11y()` re-measures `CTRL_TOP` |
+| ACCESSIBILITY | Reduce Motion | unchanged | |
+| ACCESSIBILITY | Reduced flashing | Off / On | `RF()`, `flashA()` cap 0.15, plus the list below |
+| ASSIST | Reduced Enemy Damage | Off / On | `assistSpare()`: every second heart-costing enemy hit is absorbed (4 hit sites) |
+| ASSIST | Extra Resonance | Off / On | `resGain(n)` x1.5 on all six Resonance gains |
+| ASSIST | Extended Parry Window | Off / On | `parryWin()`: Perfect Note window 10 to 20 ticks (also the gold guard ring) |
+| ASSIST | Additional Bookmarks | Off / On | `bmMarks()`: 5 marks (17/34/51/68/85%) instead of 2; `bmSync()` adds or removes them live |
+
+Reduced flashing changes: storm-chapter lightning (two 0.22 flashes 6 ticks apart become one slow swell, max 0.07);
+VS-card white flash, transformation flash and HER-card letter flashes (alpha capped at 0.15; only the first HER
+flash stays); HER-card CONTINUE/COMPLETE text flicker (held steady); Storm Titan's lightning bolt (alpha 0.95 to
+0.35); the Princess's invulnerability flicker (steady 0.7); the Runner's chase vignette pulse (steady); the
+blinking boss-phase and loading text (CSS, `body.rf`); the reveal-card glitch slices.
+
+Rules: assists are read only by their own hooks, never by completion, the tally, Perfect Pitch or 100% code.
+The world camera has **no shake** (hit-pause only), so "shake" means the card jitter above. Subtitles: nothing is
+voiced, so captions cover non-speech audio cues that carry information (`[Sharp hit]`, `[Sorrowful notes]`,
+`[Triumphant fanfare]`, `[Rising chime]`, `[A bright chord rings]`, `[Music darkens]`); they show even when
+sound is muted.
 
 ## Open decisions for BASILICA
 
