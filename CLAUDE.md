@@ -161,6 +161,11 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   auth — **the only thing that ever blocks a session is the key**, which lives in
   `$AUTOSPRITE_KEY` and nowhere else (never a file, never a commit, gone after
   every container reset). `python3 tools/autosprite.py ping` says whether it's set.
+  **Since Nov 2026 the endpoint wants the key on EVERY call** (initialize and tools/list answer 401
+  without it); the script now sends it whenever it is set. Keys are shown in full only once, at creation
+  (the key page masks the rest), so a new session needs a new key: Developers > API Keys > Create Key, with
+  the client's OK each time. Usable credits on 11-12: 35 (1,888 frozen until the plan is renewed);
+  turbo animations cost 5 each.
 
 ## Conventions / guardrails
 - Keep the artist's name accented everywhere: **Jandé / JANDÉ**.

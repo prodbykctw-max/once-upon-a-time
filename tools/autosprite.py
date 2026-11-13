@@ -16,7 +16,7 @@ it on a command line (it lands in shell history and `ps`), never commit it.
     export AUTOSPRITE_KEY=vspk_...
     python3 tools/autosprite.py tools                       # list tool schemas
     python3 tools/autosprite.py call list_characters '{"limit":5}'
-    python3 tools/autosprite.py ping                         # transport check, no key needed
+    python3 tools/autosprite.py ping                         # transport + key check
 
 Exit codes: 0 ok · 1 tool returned isError · 2 transport/JSON-RPC error · 3 no key.
 """
@@ -71,18 +71,19 @@ def main(argv):
     cmd = argv[1] if len(argv) > 1 else 'ping'
     key = os.environ.get('AUTOSPRITE_KEY') or os.environ.get('AUTOSPRITE_API_KEY')
 
-    # `initialize` and `tools/list` are open; only tools/call needs the key.
+    # Since Nov 2026 the endpoint wants the key on EVERY call (initialize and
+    # tools/list answer 401 without it), so send it whenever it is set.
     if cmd == 'ping':
         info = rpc('initialize', {
             'protocolVersion': PROTOCOL, 'capabilities': {},
             'clientInfo': {'name': 'jande-cli', 'version': '1'},
-        })
+        }, key=key)
         print(json.dumps(info.get('serverInfo', {}), indent=2))
         print('key in environment:', 'yes' if key else 'NO')
         return 0
 
     if cmd == 'tools':
-        for t in rpc('tools/list').get('tools', []):
+        for t in rpc('tools/list', key=key).get('tools', []):
             print('%-22s %s' % (t['name'], t.get('description', '').split('\n')[0]))
         return 0
 
