@@ -43,6 +43,22 @@ security audit 2026-10-06). Changing the Worker URL means editing `LB_URL`.
 - Deploy order: publish the game (it sends `dur`) BEFORE the Worker, or
   submissions from the old page are rejected until it updates.
 
+## Security (2026-11-15)
+
+Merged as PR #15 into `fix/registry-live` (`d5e77ea`, merge `06fc6ba`); deployed as
+`jande-leaderboard` version `03a67349` on 2026-11-15. Tests: 22/22.
+
+- `POST /registry` is rate limited: 5 per minute per `CF-Connecting-IP`, on its own
+  key (`reg:<ip>`) of `SUBMIT_LIMIT`, so score submits and sign-ups never share a count.
+  Over the limit returns 429 `slow down`. Skipped if the binding is absent.
+- Board names are NFKC-normalised (fullwidth, math-styled and superscript letters become
+  the plain letters), cut by code point, whitespace collapsed. The de-dup key (`nameKey`)
+  also folds Cyrillic and Greek lookalike letters to Latin, so lookalikes of one name are one
+  row; display keeps what the fan typed and any script is still allowed.
+- Registry email and name: control, zero-width and direction-override characters are dropped,
+  so `a<U+200B>b@x.com` is not a second sign-up for the same inbox.
+- Registry email is capped in bytes (254), not characters, because KV keys are capped at 512 bytes.
+
 ## Test the API directly
 
 ```bash

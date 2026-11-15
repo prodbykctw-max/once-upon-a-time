@@ -300,6 +300,10 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   open item is the **flower garland swag** (`drawMansionBG`, screen space, top of
   frame): drawn unconditionally on all nine RPG stages including the library, and
   the only ambience element that is not stage-themed. Left as-is pending a call.
+- **Glide ("nothing just appears"):** a menu opened by a button grows out of that button and
+  shrinks back into it; a tapped card morphs into the page it opens and back. Use
+  `glideOpenScr`/`glideCloseScr`/`glideIn`/`glideOut`/`glideNav` (after `show()`), never gate game
+  state on the animation, and `glideOff()` (body.rm) means instant. Spec: `docs/GLIDE_TRANSITIONS.md`.
 - **Jelly UI:** all UI motion lives in the JELLY UI CSS block, gated by
   `body.rm` (reduce-motion setting + OS preference via `applyMotionClass()`).
   New buttons/cards get the existing classes; never animate under `body.rm`.

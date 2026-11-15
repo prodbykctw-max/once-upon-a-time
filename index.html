@@ -339,6 +339,19 @@ body:not(.rm) #overlay.on .ov-m{animation-delay:.04s}
 body:not(.rm) #overlay.on #ovBoard{animation-delay:.08s}
 body:not(.rm) #overlay.on #ovName{animation-delay:.10s}
 body:not(.rm) #overlay.on .ov-btns{animation-delay:.12s}
+/* ══ GLIDE (client-directed): nothing just appears ══ A menu grows out of the
+   button that opened it and shrinks back into it; a card grows into the page it
+   opens and back. MOTION ONLY — end states are untouched. JS (glideIn/glideOut/
+   glideNav) skips all of it under body.rm. `.closing` keeps a just-closed menu
+   painted (and untouchable) while it shrinks into its button; the game state has
+   already changed by then. */
+#pauseMenu.closing,#shopScr.closing,#settingsScr.closing,#stageSelScr.closing{display:flex;pointer-events:none}
+.sh-box[data-gl]{animation:none!important}
+body.glide-nav .screen.active .ht-wrap,body.glide-nav .screen.active .lb,
+body.glide-nav #modeScreen.active .ms-card{animation:none!important}
+::view-transition-group(glide-card){animation-duration:.32s;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+:root.glide-back::view-transition-group(glide-card){animation-timing-function:cubic-bezier(.4,0,.2,1)}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.28s}
 .pip{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.5px solid rgba(240,200,105,.6);margin:0 2px;vertical-align:middle}
 .pip.on{background:#f2c75c;border-color:#f2c75c}
 .ss-b.cleared::after{content:"";display:inline-block;width:6px;height:11px;border-right:2.5px solid #8ce8a0;border-bottom:2.5px solid #8ce8a0;transform:rotate(43deg);margin-left:8px;vertical-align:1px}
@@ -934,6 +947,58 @@ function regFlush(){try{var a=JSON.parse(localStorage.getItem('jande_signups')||
   (function next(){var x=todo.shift();if(!x)return;
     regPost(x.name,x.email,function(ok){if(ok){regMarkSent(x.email);next();}});})();}catch(x){}}
 function show(id){var s=document.querySelectorAll('.screen');for(var i=0;i<s.length;i++)s[i].classList.remove('active');var el=document.getElementById(id);if(el)el.classList.add('active');}
+// ── GLIDE: "nothing just appears" (client directive) ───────────────────────
+// MOTION ONLY. Every state change below has ALREADY happened (pause, resume,
+// screen swap) before any of this runs; nothing waits for an animation and the
+// end state of every screen is exactly what it was. Under body.rm (reduce-motion
+// setting + OS preference, via applyMotionClass) none of it plays.
+//  - glideIn/glideOut : a menu/overlay opened by a button grows out of that
+//    button (transform-origin at the button, scale + opacity) and shrinks back.
+//  - glideNav         : a card/button that opens a page morphs into it and back
+//    (View Transitions API; instant where it is missing).
+var GL_OUT='cubic-bezier(.2,.8,.2,1)',GL_BACK='cubic-bezier(.4,0,.2,1)',_glVT=null;
+function glideOff(){return document.body.classList.contains('rm')||!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);}
+function glideKill(scr){
+  if(scr._gl){scr._gl.forEach(function(a){try{a.cancel();}catch(e){}});scr._gl=null;}
+  scr.classList.remove('closing');}
+function glideOrigin(box,btn){        // button centre, in the box's own (unscaled) pixels
+  var br=box.getBoundingClientRect(),r=btn.getBoundingClientRect();
+  var kx=br.width?box.offsetWidth/br.width:1,ky=br.height?box.offsetHeight/br.height:1;
+  return ((r.left+r.width/2-br.left)*kx)+'px '+((r.top+r.height/2-br.top)*ky)+'px';}
+function glidePlay(scr,box,btn,out){
+  if(glideOff()||!btn||!box||!box.animate)return;
+  try{
+    var r=btn.getBoundingClientRect();if(!r.width||!r.height)return;
+    if(out)scr.classList.add('closing');
+    var o=glideOrigin(box,btn),dur=out?190:240,ease=out?GL_BACK:GL_OUT,list=[];
+    function fin(){if(scr._gl!==list)return;scr._gl=null;box.style.transformOrigin='';if(out)scr.classList.remove('closing');list.forEach(function(x){try{x.cancel();}catch(e){}});}
+    box.style.transformOrigin=o;
+    var A={opacity:0,transform:'scale(.55)'},B={opacity:1,transform:'none'};
+    var a=box.animate(out?[B,A]:[A,B],{duration:dur,easing:ease,fill:out?'forwards':'none'});
+    list.push(a);
+    if(scr!==box)list.push(scr.animate(out?[{opacity:1},{opacity:0}]:[{opacity:0},{opacity:1}],{duration:dur,easing:ease,fill:out?'forwards':'none'}));
+    scr._gl=list;a.onfinish=fin;a.oncancel=function(){if(scr._gl===list){scr._gl=null;box.style.transformOrigin='';}};
+  }catch(e){}}
+function glideIn(scr,box,btn){glideKill(scr);scr._glBtn=btn;glidePlay(scr,box,btn,false);}
+function glideOut(scr,box,btn){glideKill(scr);glidePlay(scr,box,btn||scr._glBtn,true);}
+// modal screens (.on toggled): Boutique, Stage Select, Settings
+function glideOpenScr(scr,btn,prep){scr.classList.add('on');if(prep)prep();glideIn(scr,scr.querySelector('.sh-box'),btn);}
+function glideCloseScr(scr){scr.classList.remove('on');glideOut(scr,scr.querySelector('.sh-box'));}
+// card <-> page: src is named in the old state, getDst() in the new one
+function glideNav(src,getDst,update,back){
+  if(glideOff()||!document.startViewTransition||!src||!src.getBoundingClientRect().width){update();return;}
+  var dst=null,vt,de=document.documentElement,b=document.body;
+  function clear(){src.style.viewTransitionName='';if(dst)dst.style.viewTransitionName='';
+    b.classList.remove('glide-nav');de.classList.remove('glide-back');if(_glVT===vt)_glVT=null;}
+  try{
+    if(_glVT){try{_glVT.skipTransition();}catch(e){}}
+    b.classList.add('glide-nav');de.classList.toggle('glide-back',!!back);
+    src.style.viewTransitionName='glide-card';
+    vt=document.startViewTransition(function(){
+      src.style.viewTransitionName='';update();
+      dst=getDst&&getDst();if(dst)dst.style.viewTransitionName='glide-card';});
+    _glVT=vt;vt.finished.then(clear,clear);
+  }catch(e){clear();if(!vt)update();}}
 
 // ---------- 9 STAGES ----------
 var STAGES=[
@@ -6349,8 +6414,9 @@ function syncPauseMenu(){
   if(want!==el.classList.contains('on')){
     el.classList[want?'add':'remove']('on');
     if(want){document.getElementById('pmHint').textContent=MODE==='side'?'P / ESC — RESUME · M / TAB — MAP':'P / ESC — RESUME';
-      renderChapters();}   // refresh on open: the stage may have changed since
-  }}
+      renderChapters();    // refresh on open: the stage may have changed since
+      glideIn(el,el,document.getElementById('btnPause'));}   // grows out of the pause button
+    else if(running)glideOut(el,el,document.getElementById('btnPause'));}}   // shrinks back into it
 function drawPause(){FX.fillStyle='rgba(8,0,18,0.85)';FX.fillRect(0,0,W,H);FX.font='900 52px Storyboo,sans-serif';FX.fillStyle='rgba(255,215,0,0.9)';FX.textAlign='center';FX.fillText('PAUSED',W/2,H*0.42);FX.font='10px Storyboo,sans-serif';FX.fillStyle='rgba(200,150,255,0.7)';FX.fillText('P / ESC — RESUME',W/2,H*0.42+50);FX.fillText('M / TAB — MAP',W/2,H*0.42+72);FX.font='300 italic 14px Storyboo,sans-serif';FX.fillStyle='rgba(255,255,255,0.5)';FX.fillText('Level '+GS.level+'  ·  Score '+GS.score.toLocaleString()+'  ·  Notes '+GS.totalNotes,W/2,H*0.42+104);}
 function drawMap(ac){var st=STAGES[GS.ai];FX.fillStyle='rgba(8,0,18,0.92)';FX.fillRect(0,0,W,H);FX.font='900 30px Storyboo,sans-serif';FX.fillStyle='rgba(255,215,0,0.9)';FX.textAlign='center';FX.fillText(st.n+' — MAP',W/2,60);FX.font='8px Storyboo,sans-serif';FX.fillStyle='rgba(200,150,255,0.6)';FX.fillText('M / TAB to close',W/2,84);
   var mw=W*0.8,mh=H*0.5,mx=(W-mw)/2,my=H*0.22,sc=Math.min(mw/(GS.LW*T),mh/(GS.LH*T));FX.save();FX.translate(mx,my);
@@ -6814,7 +6880,7 @@ function initTitleBG(){var bc=document.getElementById('bgC'),c2=bc.getContext('2
 // ---------- loop ----------
 var running=false;
 var MODE='side'; // 'side' = side-scroll runner · 'temple' = behind-the-back corridor
-function showHowTo(){var side=MODE==='side';
+function showHowTo(from,pre){var side=MODE==='side';
   document.getElementById('htSub').textContent=side?
     'Free-run the enchanted halls \u2014 strike down the Groom\u2019s minions, grab every Grace Note, and dash your way to the finale.':
     'The Groom Who Lied is chasing her. Run, leap and slide through the enchanted halls \u2014 and don\u2019t get caught.';
@@ -6825,7 +6891,8 @@ function showHowTo(){var side=MODE==='side';
   var _hs=document.getElementById('htStage');
   if(_hs){var _cl=clearsOwned(),_any=false;for(var _k in _cl)if(_cl[_k]){_any=true;break;}
     _hs.style.display=(side&&_any)?'':'none';}
-  show('howToScreen');}
+  // the card / button that was tapped grows into the how-to page (visual only)
+  glideNav(from,function(){return document.querySelector('#howToScreen .ht-wrap');},function(){if(pre)pre();show('howToScreen');});}
 function shopRender(){
   var sp=shop(),w=wallet(),rows=document.getElementById('shRows'),h='';
   document.getElementById('shBal').textContent=''+(w.notes||0)+' GRACE NOTES BANKED · '+(w.gems||0)+' GEMS';
@@ -6860,8 +6927,8 @@ function refreshModeStats(){
     document.getElementById('msStats').innerHTML=(b>0?'BEST '+b+'m &nbsp;·&nbsp; ':'')+'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABOElEQVR4nO3bMWoCQRSAYZUUliklTYK417DyIB4gB0i5ZQ6QA3gQK6+hSGxCypSpTA4w74dl57mK/F85yKA/w2PRcTSSJA1unL3h4nH2l71nX4ef796fb5L5Ru6JYYBhgGFA1fCNBu3+871my1TNy1ux1nUge2KAYYBhgGFA5+EbDdrtZlq87nn+VPmW8pyOX8Xaav1brEUD2RMDDAMMAwwD8p98d/OaLVM1y2Ox5pNvJcMAwwDDAMMAwwDDAMMAwwDDAMMAwwDDAMOAq912iL4v7ir63jbibYcLMAwwDDAMeMjeMBp4Q1w/qxm0EU8MMAwwDDAMGOTJd4gf4Wp+XIt4YoBhgGGAYYBhgGGAYYBhgGFA+lWzj/Z2Wr+252LNq2aVDAMMAwwD/Hsx8MQAwwDDAMNIkm7HP2EbPCge4W34AAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""> '+Object.keys(ACH_GOT).length+'/'+ACH.length+' &nbsp;·&nbsp; ×'+misMult().toFixed(1)+' &nbsp;·&nbsp; <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABHElEQVR4nO3bsYkCURRG4dEKDDUzsBBDC7AUC5gCLMUCDC3EwExDO9AC5h648B7vjXi+cFmZ5XD5EXGHQZLU3KLXg3er9Sfze/f3q8vfuOzx0F9gGGAYYBjQZNiiob2Mz9Rrj+Nm8rMWg+zFAMMAwwDDgOojlh3a7WH62sc194wWg+zFAMMAwwDDgKLBajG0WbUH2YsBhgGGAYYB6XEq+eigl5JB9mKAYYBhgGFAOETR0J738x7arNMtN8heDDAMMAwwDCh65zv3Qc4ObcSLAYYBhgGGAdU/8+01yCVDG/FigGGAYYBhQJNvO9Qe5NpDG/FigGGAYYBhQLfv+WYHucXQRrwYYBhgGGAY4H+4AS8GGAYYBhhGkiRJ+mtf3/JLZAjCijQAAAAASUVORK5CYII=" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""> '+wallet().gems+' &nbsp;·&nbsp; '+(wallet().notes||0)+' NOTES'+(stv.n>1?' &nbsp;·&nbsp; <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABHUlEQVR4nO3bsQnCQBhA4VMcIFhZWZkdnCyFA1g4WXbQyspKsoG2YvLgMOf9Cu8rg5LjcRw/0aQkSapuEb2AV7tm83i/dhluIWtcRtz0HxgGGAYYBqyibjx10J5P69Hn2i6FHMjuGGAYYBhgGFBlqsw9aHO13X10rfSB7I4BhgGGAYYBhgGGAYYBhgGGAcUn39JTbq7S07A7BhgGGAYYBsw6fKMO2lxzDmR3DDAMMAwwDAj7wS3tm8+/2w+lVoHcMcAwwDDAMCB78i0+5QYdvrnTsDsGGAYYBhgGxE2+U7bH8bXrof46kjsGGQYYBhgGxD3zrTD5+sz3CwwDDAMMA/y3A3DHAMMAwwDDgLCXLErzJYtKDAMMAwwjSfodT8i5QYhCBXeCAAAAAElFTkSuQmCC" style="height:1em;image-rendering:pixelated;vertical-align:-0.12em" alt=""> '+stv.n:'');}catch(x){}
   var msh=document.getElementById('msShop');
   if(msh&&!msh._wired){msh._wired=true;
-    msh.onclick=function(){audInit();sfx('ui');document.getElementById('shopScr').classList.add('on');shopRender();};
-    document.getElementById('shClose').onclick=function(){sfx('ui');document.getElementById('shopScr').classList.remove('on');refreshModeStats();};}}
+    msh.onclick=function(){audInit();sfx('ui');glideOpenScr(document.getElementById('shopScr'),msh,shopRender);};
+    document.getElementById('shClose').onclick=function(){sfx('ui');glideCloseScr(document.getElementById('shopScr'));refreshModeStats();};}}
 function showModeSel(){
   refreshModeStats();
   // Mode-specific entries (Stage Select, Boutique) now live on the per-mode how-to
@@ -7104,7 +7171,8 @@ function startGame(){
 // ---------- wire UI ----------
 var lBusy=false;
 function wire(){applyMotionClass();setTimeout(regFlush,2500);titleEntrance();titleParallax();
-  document.getElementById('tPress').onclick=function(){audInit();sfx('ui');show('loginScreen');};
+  document.getElementById('tPress').onclick=function(){audInit();sfx('ui');
+    glideNav(this,function(){return document.querySelector('#loginScreen .lb');},function(){show('loginScreen');});};
   document.getElementById('lBtn').onclick=function(){var nm=document.getElementById('lName').value.trim(),em=document.getElementById('lEmail').value.trim(),msg=document.getElementById('lMsg');
     if(!em||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){msg.style.color='rgba(255,50,80,.9)';msg.textContent='Valid email required!';return;}
     if(lBusy)return;lBusy=true;
@@ -7114,10 +7182,12 @@ function wire(){applyMotionClass();setTimeout(regFlush,2500);titleEntrance();tit
   document.getElementById('lSkip').onclick=showModeSel;
   document.getElementById('htGo').onclick=function(){audInit();sfx('ui');startGame();};
   (function(){var hb=document.getElementById('htShop');   // Boutique, per mode, after mode select
-    if(hb)hb.onclick=function(){audInit();sfx('ui');document.getElementById('shopScr').classList.add('on');shopRender();};
+    if(hb)hb.onclick=function(){audInit();sfx('ui');glideOpenScr(document.getElementById('shopScr'),hb,shopRender);};
     var sc=document.getElementById('shClose');
-    if(sc)sc.onclick=function(){sfx('ui');document.getElementById('shopScr').classList.remove('on');};})();
-  document.getElementById('htBack').onclick=function(){sfx('ui');showModeSel();};
+    if(sc)sc.onclick=function(){sfx('ui');glideCloseScr(document.getElementById('shopScr'));};})();
+  document.getElementById('htBack').onclick=function(){sfx('ui');
+    // the how-to page shrinks back into the mode card it came from
+    glideNav(document.querySelector('#howToScreen .ht-wrap'),function(){return document.getElementById(MODE==='side'?'msSide':'msTemple');},showModeSel,true);};
   (function(){var inp=document.getElementById('ovNameInput'),btn=document.getElementById('ovNameSave'),ok=document.getElementById('ovNameOk');
     if(!inp||!btn)return;
     function save(){var v=setLbName(inp.value);inp.value=v;
@@ -7126,8 +7196,8 @@ function wire(){applyMotionClass();setTimeout(regFlush,2500);titleEntrance();tit
       inp.blur();sfx('ui');}
     btn.onclick=save;
     inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();save();}});})();
-  document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';START_STAGE=0;showHowTo();};
-  document.getElementById('msTemple').onclick=function(){audInit();sfx('ui');MODE='temple';showHowTo();};
+  document.getElementById('msSide').onclick=function(){audInit();sfx('ui');MODE='side';START_STAGE=0;showHowTo(this);};
+  document.getElementById('msTemple').onclick=function(){audInit();sfx('ui');MODE='temple';showHowTo(this);};
   // ── STAGE SELECT: start a fresh run from any stage whose boss you've beaten ──
   (function(){
     var scr=document.getElementById('stageSelScr'),rows=document.getElementById('ssRows'),
@@ -7142,12 +7212,12 @@ function wire(){applyMotionClass();setTimeout(regFlush,2500);titleEntrance();tit
       rows.innerHTML=h;
       [].forEach.call(rows.querySelectorAll('.ss-b'),function(b){b.onclick=function(){
         if(b.disabled)return;START_STAGE=+b.getAttribute('data-ai');MODE='side';sfx('ui');
-        scr.classList.remove('on');showHowTo();};});
+        showHowTo(b,function(){scr.classList.remove('on');});};});   // the stage button grows into the how-to page
     }
-    if(openB)openB.onclick=function(){audInit();sfx('ui');render();scr.classList.add('on');};
+    if(openB)openB.onclick=function(){audInit();sfx('ui');glideOpenScr(scr,openB,render);};
     var htS=document.getElementById('htStage');   // the per-mode entry (after mode select)
-    if(htS)htS.onclick=function(){audInit();sfx('ui');render();scr.classList.add('on');};
-    if(closeB)closeB.onclick=function(){sfx('ui');scr.classList.remove('on');};
+    if(htS)htS.onclick=function(){audInit();sfx('ui');glideOpenScr(scr,htS,render);};
+    if(closeB)closeB.onclick=function(){sfx('ui');glideCloseScr(scr);};
   })();
   document.getElementById('ovR').onclick=function(){sfx('ui');
     if(GS&&GS.ovMode==='clear'){                               // STAGE CLEAR → advance
@@ -7168,12 +7238,12 @@ function wire(){applyMotionClass();setTimeout(regFlush,2500);titleEntrance();tit
       segSel('setMusic',(AUD.muted||AUD.musOff)?'off':'on');
       segSel('setFx',(AUD.muted||AUD.fxOff)?'off':'on');
       segSel('setMotion',SET.reduceMotion?'on':'off');}
-    function openSet(){syncSet();document.getElementById('settingsScr').classList.add('on');}
+    function openSet(btn){glideOpenScr(document.getElementById('settingsScr'),btn,syncSet);}
     function pick(id,cb){var el=document.getElementById(id);if(el)el.onclick=function(e){var v=e.target&&e.target.getAttribute&&e.target.getAttribute('data-v');if(!v)return;cb(v);segSel(id,v);};}
     var msSet=document.getElementById('msSettings'),pmSet=document.getElementById('pmSettings');
-    if(msSet)msSet.onclick=function(){audInit();sfx('ui');openSet();};
-    if(pmSet)pmSet.onclick=function(){sfx('ui');openSet();};
-    var sc=document.getElementById('setClose');if(sc)sc.onclick=function(){sfx('ui');document.getElementById('settingsScr').classList.remove('on');};
+    if(msSet)msSet.onclick=function(){audInit();sfx('ui');openSet(msSet);};
+    if(pmSet)pmSet.onclick=function(){sfx('ui');openSet(pmSet);};
+    var sc=document.getElementById('setClose');if(sc)sc.onclick=function(){sfx('ui');glideCloseScr(document.getElementById('settingsScr'));};
     pick('setDiff',function(v){setSetting('diff',v);sfx('ui');});
     pick('setSound',function(v){audInit();audMute(v==='off');syncSet();});
     // Independent channels. Turning either one ON also lifts the master mute, so
@@ -7188,7 +7258,7 @@ function wire(){applyMotionClass();setTimeout(regFlush,2500);titleEntrance();tit
     pick('setMotion',function(v){setSetting('reduceMotion',v==='on'?1:0);applyMotionClass();sfx('ui');});
   })();
   document.getElementById('pmRestart').onclick=function(){GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=0;CHECKPOINT_X=0;RUN_CONTINUES=0;RUN_T0=Date.now();initGS(0);updateHUD();showLevelCard(0,function(){if(!running){running=true;applyTouchMode();loop();}});};
-  document.getElementById('pmMenu').onclick=function(){GS.paused=false;syncPauseMenu();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
+  document.getElementById('pmMenu').onclick=function(){GS.paused=false;syncPauseMenu();glideKill(document.getElementById('pauseMenu'));['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('btnPause').onclick=function(){GS.paused=!GS.paused;syncPauseMenu();};
   document.getElementById('btnMap').onclick=function(){GS.mapOpen=!GS.mapOpen;};
   var _sb=document.getElementById('btnSnd');var _sbi='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABDUlEQVR4nO3bMQrCQBBA0SgewNJa9AYpg+fIET2HWHoDxdrSG2ifzIfBDdmA/5UhkPBZhmWjTSNJkiT9g1WtBx+2u8/w2uP9qvY+Q+vaL7BUhgGGAYYBswy7aNBeb+fRfV3bj65lB/LUw9wVAwwDDAMMAzbZG6PhlhUN2hLRu9wv+9F9x1Pz80B2xQDDAMMAw4Bw+GZ3qnPID9rnpM91xQDDAMMAw4D0zreWaKca7WgjJbthVwwwDDAMMAwwDDAMMAwwDDAMWPzOt+TYIbrmmW8hwwDDAMOAcPhGA6pr+yof3LLHDlOfA7tigGGAYYBhgD81A64YYBhgGGAY4J8sgCsGGAYYBhhGkiRJ+mtf9QhQ1vnMbtkAAAAASUVORK5CYII=',_sbo='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAABGUlEQVR4nO3bMQ6CQBBAUTUewNLSwiNQWFByCI7oISwtKDyCBaWlN9Ae5ieTbMKS8F9JRMnPZkIW3O0kSZKkLdjX+uHr6fybHnt/P9WuZ+pQ+wLWyjDAMMAwYJFhFw3a5+s++1zb9Knvyw7pkgHvigGGAYYBhgHH7AejQZYVDdqsx+U2O9aNQ+pasudGA9kVAwwDDAMMA8Lhm71TXUI3DrNj0VDNnuudbyHDAMMAwwDDAMMAwwDDAMOA9LZDLbB1UHKu2w4lDAMMAwwDVj98S7YOsoM24ooBhgGGAYYB6bcdlnjgFr3tUOv1M1cMMAwwDDAMSN/5lgzBtulX8wAvyxUDDAMMAwwD/JMFcMUAwwDDAMNIkiRJm/YHTUhObo+kFgUAAAAASUVORK5CYII=';_sb.innerHTML='<img src="'+(AUD.muted?_sbo:_sbi)+'" style="height:22px;image-rendering:pixelated" alt="sound">';
