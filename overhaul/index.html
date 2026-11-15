@@ -7568,8 +7568,8 @@ function castKey(k,txt){var ch=chOf();
   if(k==='P'){var pre=!!PRO.pre;return {side:'L',k:(pre?'pb_':'pr_')+exprP(txt,pre)};}
   if(k==='O'||(k==='B'&&CH[ch].art<0)){var e=exprP(txt,false);return {side:'R',k:'pr_'+(e==='neutral'?'confident':e),flip:true,filt:OTHER_FILTER};}
   if(k==='S')return {side:'R',k:'sk_'+exprS(txt)};
-  if(k==='B')return {side:'R',k:'B:'+ch,full:1};
-  if(k==='F')return {side:'R',k:'F:'+CH[ch].rev,full:1};
+  if(k==='B')return {side:'R',k:'B:'+ch,full:1,flip:true};   // atlas art faces right: mirror so they face Princess (left)
+  if(k==='F')return {side:'R',k:'F:'+CH[ch].rev,full:1,flip:true};
   return null;}
 // baked once per key: the image with its bottom edge faded out (busts are cut flat)
 function castImg(k){if(ARTC[k])return ARTC[k];var src=null,sx=0,sy=0,sw=0,sh=0,tint='';
