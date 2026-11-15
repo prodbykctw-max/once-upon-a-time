@@ -1468,6 +1468,17 @@ grants CORS only to the github.io origin, rate limits submits per IP
 beyond caps derived from the scoring code, and no longer returns exception
 text. Existing board data untouched. Details: `cloudflare/README.md`.
 
+### 11-15 · Glide transitions — nothing just appears
+
+Three rules from the client: a tapped card grows into the page it opens, back shrinks it into
+exactly that card, and a menu grows out of the button that opened it and closes back into it.
+Built in `index.html` only (helpers after `show()`; CSS next to the Jelly UI block), motion only.
+Menus use `el.animate` from the button's centre (240 ms out, 190 ms back); card <-> page uses
+`document.startViewTransition` with a shared `glide-card` name. Everything is off under `body.rm`.
+The pause menu's state change is untouched: `GS.paused` and `.on` flip when they always did and a
+`.closing` class keeps the menu painted while it shrinks. End states match the previous build
+pixel for pixel. Spec and verification: `docs/GLIDE_TRANSITIONS.md`.
+
 ---
 
 *Jandé — "Once Upon A Time"*

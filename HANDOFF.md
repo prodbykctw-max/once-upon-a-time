@@ -393,6 +393,15 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## ✅ 11-15 — GLIDE TRANSITIONS: "nothing just appears" (`docs/GLIDE_TRANSITIONS.md`)
+Branch `feat/glide-transitions`, based on `origin/fix/registry-live` (its `index.html` is
+byte-identical to live `gh-pages`; `main` and the `hand-painted` branch differ). Motion
+only: menus grow out of the button that opened them (pause, Settings, Boutique, Stage
+Select) and shrink back into it; the mode card / Stage Select button / BEGIN morph into the
+page they open and back (View Transitions API). Under `body.rm` nothing plays. Game state
+(`GS.paused`) changes exactly when it did before; a `.closing` class only keeps the closed
+menu painted for ~190 ms. **Not deployed** — `bash tools/deploy.sh` is the lead's step.
+
 ## ✅ 09-15 — MOTION SMOOTHING: render interpolation (`docs/MOTION_SMOOTHING.md`)
 Client: *"it does seem a bit jerky and dry… I'm mainly only talking about the
 character movement being jerky."*
