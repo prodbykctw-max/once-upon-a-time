@@ -1649,7 +1649,7 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
   16/17 ms clock, not a capture defect.
 
-- **11-15 — Bosses and foes face Princess in conversation scenes.** Client: every boss and enemy in the cut scenes
+- **11-15 — Bosses and foes face Princess in conversation scenes (`9149f33`, LIVE in /overhaul/ via PR #14).** Client: every boss and enemy in the cut scenes
   faced away from her; only the Storykeeper faced her. Cause: the boss and foe atlases are drawn facing RIGHT and the
   cast puts the speaker on the RIGHT, but `castKey` never mirrored `B:`/`F:` (the Storykeeper portraits and the
   Other are already turned). Fix: `flip:true` on both; the in-play TALK thumbnail follows `ck.flip`. VS card, reveal
