@@ -407,7 +407,9 @@ only: menus grow out of the button that opened them (pause, Settings, Boutique, 
 Select) and shrink back into it; the mode card / Stage Select button / BEGIN morph into the
 page they open and back (View Transitions API). Under `body.rm` nothing plays. Game state
 (`GS.paused`) changes exactly when it did before; a `.closing` class only keeps the closed
-menu painted for ~190 ms. **Not deployed** — `bash tools/deploy.sh` is the lead's step.
+menu painted for ~190 ms. **Deployed 2026-11-15:** merged to `fix/registry-live` as PR #16
+(`40301f4`) and published with `bash tools/deploy.sh` (`gh-pages` `630c8e2`, 105 files; its
+`index.html` is byte-identical to `fix/registry-live`). Live check: the page serves `glideOpenScr`.
 
 ## ✅ 09-15 — MOTION SMOOTHING: render interpolation (`docs/MOTION_SMOOTHING.md`)
 Client: *"it does seem a bit jerky and dry… I'm mainly only talking about the
