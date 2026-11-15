@@ -86,6 +86,8 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   through `resGain()`. Music uses `AUD.mbus` (set `AUD._mus` around score code), everything else `AUD.fbus`: a raw
   `g.connect(AUD.master)` bypasses the volume setting. Assists (`aDmg aRes aParry aBm`) must never be read by
   completion, tally, Perfect Pitch or 100% code. The world has no camera shake; do not add one without `shkMul()`.
+- **Boss and foe atlas art faces RIGHT; anyone on the right of a scene must be mirrored to face Princess** (`flip:true`).
+  The conversation cast missed this for bosses and foes until 11-15 (client: "they're all facing away from her").
 - **The story save only moves forward** (`v2SaveAt`). Replays and bookmarks use `RUN_BM`.
 - Overhaul saves live in `localStorage['ouat2']`, separate from `jande_*`. All of the account's Pages
   projects share one origin.

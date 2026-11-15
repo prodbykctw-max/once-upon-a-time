@@ -1649,6 +1649,11 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
   16/17 ms clock, not a capture defect.
 
+- **11-15 — Bosses and foes face Princess in conversation scenes.** Client: every boss and enemy in the cut scenes
+  faced away from her; only the Storykeeper faced her. Cause: the boss and foe atlases are drawn facing RIGHT and the
+  cast puts the speaker on the RIGHT, but `castKey` never mirrored `B:`/`F:` (the Storykeeper portraits and the
+  Other are already turned). Fix: `flip:true` on both; the in-play TALK thumbnail follows `ck.flip`. VS card, reveal
+  card and TALK portraits were already mirrored.
 - **11-13 — Settings / Accessibility / Assist (Bible §10), `95f1d87`, branch `claude/overhaul-settings-a11y`. LIVE in /overhaul/ 11-15 via PR #13 (`e73f0a7`).**
   Settings screen regrouped (AUDIO / DISPLAY / CONTROLS / ACCESSIBILITY / ASSIST). Music and effects got separate
   gain buses so volume is real; screen shake, reduced flashing, text size, sound captions, vibration and touch-pad
