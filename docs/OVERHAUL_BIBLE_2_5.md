@@ -206,7 +206,7 @@ Ability behaviour:
 - **Storybook UI (§9).** Missing: spreads, Grace Note counts per chapter, Hidden Page / Perfect Pitch flags,
   completion %. Today "Storybook" is a chapter list.
 - **Hidden Pages:** all 11 (§4). **Postgame:** Her Encore unlocks, Dress playable, The Archive, Boss Rush.
-- ~~**Settings and accessibility (§10)**~~ **BUILT 11-13 (`95f1d87`, branch `claude/overhaul-settings-a11y`).**
+- ~~**Settings and accessibility (§10)**~~ **BUILT 11-13 (`95f1d87`), LIVE in /overhaul/ 11-15 (PR #13, `e73f0a7`).**
   See "Settings, accessibility and assists" below. Not built from §10: dialogue volume (the game is not voiced).
 - **Art direction:** environment and platform art direction (§19), and the Adventurer Princess and other
   new art (§5, §21).

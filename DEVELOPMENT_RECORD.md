@@ -1649,7 +1649,7 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
 - What remains: single repeated frames in live gameplay (5 in 7,709). That is the fixed-timestep loop on a
   16/17 ms clock, not a capture defect.
 
-- **11-13 — Settings / Accessibility / Assist (Bible §10), `95f1d87`, branch `claude/overhaul-settings-a11y`.**
+- **11-13 — Settings / Accessibility / Assist (Bible §10), `95f1d87`, branch `claude/overhaul-settings-a11y`. LIVE in /overhaul/ 11-15 via PR #13 (`e73f0a7`).**
   Settings screen regrouped (AUDIO / DISPLAY / CONTROLS / ACCESSIBILITY / ASSIST). Music and effects got separate
   gain buses so volume is real; screen shake, reduced flashing, text size, sound captions, vibration and touch-pad
   size/opacity/sides/height were added, plus four assists that nothing in completion reads. The world camera has no
