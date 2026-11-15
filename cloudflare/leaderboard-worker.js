@@ -102,10 +102,25 @@ const clampInt = (v, min, max) => {
 // Strict numeric parse: only JSON numbers (no strings), finite and >= 0, floored.
 const asInt = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : -1);
 
+// ⚠️ Security audit 2026-11-15 (Unicode names). NFKC first, so fullwidth, math-
+// styled and superscript letters ("ＪＡＮＤÉ", "ᴶᴬᴺᴰᴱ") become the plain letters
+// they imitate; then the old allow-list (any script, so fans everywhere keep
+// their names). Zero-width and direction-override characters were never allowed.
+// Cut by code point so a letter is never split in half.
 const cleanName = (n) => {
-  const s = String(n == null ? '' : n).replace(/[^\p{L}\p{N} .!'\-]/gu, '').trim().slice(0, 16);
+  const s = Array.from(
+    String(n == null ? '' : n).normalize('NFKC').replace(/[^\p{L}\p{N} .!'\-]/gu, '').replace(/\s+/g, ' ').trim(),
+  ).slice(0, 16).join('').trim();
   return s || 'JANDÉ FAN';
 };
+
+// Board de-duplication key: case-folded, with the Cyrillic and Greek letters
+// that look like Latin ones mapped to them, so "JАNDE" (Cyrillic А) and
+// "JANDE" count as ONE name instead of filling the board with lookalikes.
+// Display keeps exactly what the fan typed.
+const LOOKALIKE = { а: 'a', в: 'b', е: 'e', ё: 'e', к: 'k', м: 'm', н: 'h', о: 'o', р: 'p', с: 'c', т: 't', у: 'y', х: 'x', і: 'i', ї: 'i', ј: 'j', ѕ: 's', ԁ: 'd', ԛ: 'q', ԝ: 'w',
+  α: 'a', β: 'b', ε: 'e', η: 'n', ι: 'i', κ: 'k', μ: 'u', ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x', ζ: 'z' };
+const nameKey = (n) => Array.from(String(n).normalize('NFKC').toLowerCase(), (c) => LOOKALIKE[c] || c).join('');
 
 // ── Queen's Registry (fan email sign-ups) ────────────────────────────────────
 // Deliberately loose: never refuse a real fan. Only "has an @" and sane maxima.
@@ -113,7 +128,11 @@ const REG_MAX_BODY = 2048;
 const REG_MAX_EMAIL = 254;
 const REG_MAX_NAME = 80;
 const regKey = (email) => 'registry:' + email.toLowerCase();
-const cleanText = (v, max) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max);
+// Control, zero-width and direction-override characters are dropped (security audit 2026-11-15:
+// "a\u200Bb@x.com" would otherwise be a second sign-up for the same inbox).
+const cleanText = (v, max) => String(v == null ? '' : v)
+  .replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]/g, '')
+  .trim().slice(0, max);
 
 /** Constant-time string compare (digests are equal length, XOR-accumulated). */
 async function safeEqual(a, b) {
@@ -133,7 +152,7 @@ const sortRuns = (a, b) => b.d - a.d || b.s - a.s || a.t - b.t;
 function dedupeTrim(list) {
   const seen = new Set(), out = [];
   for (const r of list) {
-    const k = r.n.toLowerCase();
+    const k = nameKey(r.n);
     if (seen.has(k)) continue;
     seen.add(k);
     out.push(r);
@@ -195,6 +214,15 @@ export default {
 
       if (url.pathname === '/registry' && req.method === 'POST') {
         if (req.headers.get('Origin') !== ALLOWED_ORIGIN) return json(req, { ok: false, err: 'forbidden' }, 403);
+        // ⚠️ Security audit 2026-11-15: the Origin header is not authentication (a
+        // script can send any Origin), so without a limit one script could write
+        // unlimited fake sign-ups into the same KV namespace as the boards.
+        // Same per-IP limiter as /submit, its own key so the two don't share a count.
+        if (env.SUBMIT_LIMIT) {
+          const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
+          const { success } = await env.SUBMIT_LIMIT.limit({ key: 'reg:' + ip });
+          if (!success) return json(req, { ok: false, err: 'slow down' }, 429);
+        }
         const declared = Number(req.headers.get('Content-Length') || 0);
         if (declared > REG_MAX_BODY) return json(req, { ok: false, err: 'too large' }, 413);
         const raw = await req.text();
@@ -202,7 +230,8 @@ export default {
         let b = {};
         try { b = JSON.parse(raw); } catch (e) { b = {}; }
         const email = cleanText(b && b.email, REG_MAX_EMAIL + 1);
-        if (!email || email.length > REG_MAX_EMAIL || email.indexOf('@') < 1) {
+        // Bytes, not characters: KV keys are capped at 512 bytes.
+        if (!email || new TextEncoder().encode(email).length > REG_MAX_EMAIL || email.indexOf('@') < 1) {
           return json(req, { ok: false, err: 'rejected' }, 400);
         }
         const rec = { n: cleanText(b && b.name, REG_MAX_NAME), e: email, t: new Date().toISOString() };

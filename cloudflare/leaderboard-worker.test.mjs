@@ -125,6 +125,8 @@ const reg = (body, origin = ALLOWED_ORIGIN) =>
 const exp = (key) =>
   new Request(BASE + '/registry/export', { headers: key === undefined ? {} : { Authorization: 'Bearer ' + key } });
 const regKeys = (env) => [...env.LB.m.keys()].filter((k) => k.startsWith('registry:'));
+const regFrom = (body, ip) => new Request(BASE + '/registry', {
+  method: 'POST', headers: { 'Content-Type': 'application/json', Origin: ALLOWED_ORIGIN, 'CF-Connecting-IP': ip }, body: JSON.stringify(body) });
 
 test('registry: saves a sign-up with a server timestamp and echoes CORS', async () => {
   const env = { LB: kv(), REGISTRY_EXPORT_KEY: 'k1' };
@@ -227,7 +229,52 @@ test('registry does not touch the leaderboard: boards unchanged, board data not 
   assert.equal(top.runs.length, 1);
   const j = await (await worker.fetch(exp('k'), env)).json();
   assert.equal(j.count, 1);
-  // sign-ups never use the rate-limit binding that guards score submits
-  const tight = { LB: kv(), SUBMIT_LIMIT: limiter(0) };
-  assert.equal((await worker.fetch(reg({ email: 'a@b.test' }), tight)).status, 200);
+  // sign-ups never share the score-submit count: a player who used up their
+  // score submits can still sign up (separate per-IP key in the same binding,
+  // security audit 2026-11-15; the limiter counts per key, like Cloudflare's).
+  const counts = new Map();
+  const keyed = { limit: async ({ key }) => { const c = (counts.get(key) || 0) + 1; counts.set(key, c); return { success: c <= 5 }; } };
+  const tight = { LB: kv(), SUBMIT_LIMIT: keyed };
+  for (let i = 0; i < 5; i++) await worker.fetch(post({ ...good, dist: 1200 + i }, ALLOWED_ORIGIN, '7.7.7.7'), tight);
+  assert.equal((await worker.fetch(post(good, ALLOWED_ORIGIN, '7.7.7.7'), tight)).status, 429, 'score submits are used up');
+  assert.equal((await worker.fetch(regFrom({ email: 'a@b.test' }, '7.7.7.7'), tight)).status, 200, 'sign-up still works');
+});
+
+// ── Security audit 2026-11-15 (20-attack list) ──────────────────────────────
+
+test('registry: rate limited per IP (a spoofed Origin is not a credential)', async () => {
+  const env = { LB: kv(), SUBMIT_LIMIT: limiter(5) };
+  const codes = [];
+  for (let i = 0; i < 7; i++) codes.push((await worker.fetch(regFrom({ email: `f${i}@example.test` }, '9.9.9.9'), env)).status);
+  assert.deepEqual(codes, [200, 200, 200, 200, 200, 429, 429]);
+  assert.equal(regKeys(env).length, 5);
+});
+
+test('registry: zero-width characters do not make a second sign-up; byte cap protects the KV key', async () => {
+  const env = { LB: kv() };
+  await worker.fetch(reg({ email: 'fan@example.test' }), env);
+  await worker.fetch(reg({ email: 'f\u200Ban@example.test' }), env);
+  await worker.fetch(reg({ email: 'fan@example.test\u202E' }), env);
+  assert.deepEqual(regKeys(env), ['registry:fan@example.test']);
+  const r = await worker.fetch(reg({ email: '\u00e9'.repeat(130) + '@x.test' }), env);
+  assert.equal(r.status, 400, '260 bytes is refused even though it is 137 characters');
+});
+
+test('board: fullwidth, superscript and Cyrillic lookalikes of one name are one row', async () => {
+  const env = { LB: kv(), SUBMIT_LIMIT: limiter(100) };
+  for (const [i, name] of ['JANDE', 'ＪＡＮＤＥ', 'ᴶᴬᴺᴰᴱ', 'J\u0410NDE', 'jande'].entries())
+    assert.equal((await worker.fetch(post({ ...good, name, dist: 1000 + i * 10, score: 50000 + i * 500 }, ALLOWED_ORIGIN, '1.1.1.' + i), env)).status, 200);
+  const top = await (await worker.fetch(new Request(BASE + '/top?mode=temple&n=50'), env)).json();
+  assert.equal(top.runs.length, 1, JSON.stringify(top.runs.map((r) => r.n)));
+  assert.equal(top.runs[0].d, 1040, 'the best of them is kept');
+  assert.equal((await (await worker.fetch(new Request(BASE + '/top?mode=temple'), env)).json()).runs[0].n, 'jande');
+});
+
+test('board: names keep real letters from any script, and an astral letter is never split', async () => {
+  const env = { LB: kv(), SUBMIT_LIMIT: limiter(100) };
+  await worker.fetch(post({ ...good, name: 'Émilie 王' }), env);
+  await worker.fetch(post({ ...good, name: 'A'.repeat(15) + '𝐁𝐁', dist: 1300 }, ALLOWED_ORIGIN, '2.2.2.2'), env);
+  const names = (await (await worker.fetch(new Request(BASE + '/top?mode=temple'), env)).json()).runs.map((r) => r.n);
+  assert.ok(names.includes('Émilie 王'), names.join('|'));
+  assert.ok(names.every((n) => !/[\uD800-\uDFFF]/.test(n)), 'no lone surrogate');
 });
