@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sitemap for Jandé: Once Upon A Time.
+
+  One URL on purpose. The game is a single page; every screen (title, registry,
+  mode select, how-to, stages, boutique) is the SAME document switched by CSS,
+  so there is no second indexable URL to list.
+
+  /fred/ is DELIBERATELY EXCLUDED. It is a showcase edition generated from
+  index.html at deploy time and it inherits index.html's rel=canonical, which
+  points back here. Listing it would ask search engines to index a page we have
+  already told them is a duplicate.
+
+  lastmod is maintained by hand. Update it when index.html changes materially.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://prodbykctw-max.github.io/once-upon-a-time/</loc>
+    <lastmod>2026-10-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
