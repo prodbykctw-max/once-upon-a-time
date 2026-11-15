@@ -736,6 +736,51 @@ body.stOn #mCtrl,body.stOn #hint{visibility:hidden}
 #mVoice.off{opacity:.32}
 #ssRows .sbk{display:flex;gap:10px;align-items:center;min-width:min(250px,80vw);justify-content:flex-start;text-align:left}
 .sbk-r{font-weight:800;color:#d9b45a;min-width:34px}
+
+/* ══ SETTINGS / ACCESSIBILITY / ASSIST (Production Bible §10) ══
+   --ts text scale · --cs pad size · --co pad opacity · --clift pad raise.
+   All set from SET by applyA11y(); defaults here keep first paint identical. */
+:root{--ts:1;--cs:1;--co:1;--clift:0px}
+#settingsScr .sh-box{width:min(480px,94vw);text-align:left;padding:18px 18px 16px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#settingsScr .sh-h{text-align:center;margin-bottom:2px}
+.set-sec{font-family:Storyboo;font-size:10px;letter-spacing:3px;color:#FFD700;margin:18px 0 0;padding-bottom:6px;border-bottom:1.5px solid rgba(255,215,0,.35)}
+#settingsScr .set-row{flex-wrap:wrap;padding:11px 4px;font-size:calc(11px*var(--ts))}
+#settingsScr .set-row>span{flex:1 1 140px;min-width:0}
+#settingsScr .seg{flex-wrap:wrap;margin-left:auto;justify-content:flex-end}
+#settingsScr .seg button{font-size:calc(9px*var(--ts));padding:9px 11px;min-height:36px}
+.set-sub{display:block;font-family:var(--body),system-ui,sans-serif;font-size:calc(10.5px*var(--ts));font-weight:400;letter-spacing:0;line-height:1.4;color:rgba(205,180,136,.72);margin-top:3px}
+#setClose{display:block;margin:16px auto 0}
+/* text size (Normal 1 / Large 1.2 / Larger 1.4): story, talk, HUD, menus */
+#stLine{font-size:calc(clamp(16px,2.4vw,22px)*var(--ts))}
+.st-who,#stBox .st-who{font-size:calc(12px*var(--ts))}
+.st-skip{font-size:calc(12px*var(--ts))}
+#tkLine{font-size:calc(14px*var(--ts))}
+.ov-btn{font-size:calc(clamp(6px,1.1vw,8px)*var(--ts))}
+.set-note{font-size:calc(11px*var(--ts))}
+.tm-b{font-size:calc(13px*var(--ts))}
+.tm-l{font-size:calc(11px*var(--ts))}
+.hud-name{font-size:calc(clamp(12px,2.2vw,17px)*var(--ts))}
+body.mobile .hud-name{font-size:calc(14px*var(--ts))}
+.hud-act{font-size:calc(clamp(5px,.85vw,7px)*var(--ts))}
+.hud-r{font-size:calc(clamp(5px,.9vw,8px)*var(--ts))}
+.hud-sc{font-size:calc(clamp(16px,3.4vw,24px)*var(--ts))}
+/* touch pads: size, opacity, side, raise. CTRL_TOP is re-measured by applyA11y(). */
+#mCtrl{opacity:var(--co)}
+.mdiam{--ak:calc(clamp(62px,19vw,82px)*var(--cs))}
+.dpad{--dk:calc(clamp(48px,15.5vw,62px)*var(--cs))}
+body.mobile #mCtrl{bottom:calc(52px + env(safe-area-inset-bottom,0px) + var(--clift))}
+#mCtrl.swap{flex-direction:row-reverse}
+@media (orientation:landscape) and (max-height:560px){
+  body.mobile .mdiam{--ak:calc(clamp(52px,15vh,72px)*var(--cs))}
+  body.mobile .dpad{--dk:calc(clamp(52px,13vh,60px)*var(--cs))}
+  body.mobile #mCtrl{bottom:calc(28px + env(safe-area-inset-bottom,0px) + var(--clift))}
+}
+/* reduced flashing: no blinking HUD text either */
+body.rf .bb-ph,body.rf .lc-ld{animation:none}
+/* sound captions (Subtitles): no timers, the CSS animation ends and removes the node */
+#caps{position:fixed;left:50%;top:calc(118px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:57;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(92vw,520px)}
+.cap{font-family:var(--body),system-ui,sans-serif;font-weight:600;font-size:calc(14px*var(--ts));line-height:1.35;color:#fff7ea;background:rgba(16,9,22,.9);border:1px solid rgba(217,180,90,.6);border-radius:8px;padding:6px 12px;text-align:center;animation:capLife 2.8s linear forwards}
+@keyframes capLife{0%{opacity:0}8%{opacity:1}85%{opacity:1}100%{opacity:0}}
 </style>
 </head>
 <body>
@@ -897,20 +942,35 @@ body.stOn #mCtrl,body.stOn #hint{visibility:hidden}
   <div id="ssRows" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0"></div>
   <button class="ov-btn" id="ssClose" style="margin-top:8px">BACK</button>
 </div></div>
-<div id="settingsScr"><div class="sh-box">
+<div id="settingsScr" role="dialog" aria-label="Settings"><div class="sh-box">
   <div class="sh-h">SETTINGS</div>
-  <div class="set-row"><span>DIFFICULTY</span><div class="seg" id="setDiff">
-    <button data-v="easy">EASY</button><button data-v="normal">NORMAL</button><button data-v="hard">HARD</button></div></div>
-  <div class="set-row"><span>SOUND</span><div class="seg" id="setSound">
-    <button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
-  <div class="set-row"><span>MUSIC</span><div class="seg" id="setMusic">
-    <button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
-  <div class="set-row"><span>SOUND FX</span><div class="seg" id="setFx">
-    <button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
-  <div class="set-row"><span>REDUCE MOTION</span><div class="seg" id="setMotion">
-    <button data-v="off">OFF</button><button data-v="on">ON</button></div></div>
-  <div class="set-note" id="setNote">Harder = tougher bosses, more foes, tighter gaps.</div>
-  <button class="ov-btn" id="setClose" style="margin-top:14px">BACK</button>
+  <div class="set-sec">AUDIO</div>
+  <div class="set-row"><span>SOUND<small class="set-sub">Master switch.</small></span><div class="seg" id="setSound"><button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
+  <div class="set-row"><span>MUSIC</span><div class="seg" id="setMusic"><button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
+  <div class="set-row"><span>MUSIC VOLUME</span><div class="seg" id="setMusVol"><button data-v="25">25</button><button data-v="50">50</button><button data-v="75">75</button><button data-v="100">100</button></div></div>
+  <div class="set-row"><span>SOUND FX</span><div class="seg" id="setFx"><button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
+  <div class="set-row"><span>SOUND FX VOLUME</span><div class="seg" id="setFxVol"><button data-v="25">25</button><button data-v="50">50</button><button data-v="75">75</button><button data-v="100">100</button></div></div>
+  <div class="set-sec">DISPLAY</div>
+  <div class="set-row"><span>TEXT SIZE<small class="set-sub">Story, dialogue, HUD and menus.</small></span><div class="seg" id="setText"><button data-v="normal">NORMAL</button><button data-v="large">LARGE</button><button data-v="larger">LARGER</button></div></div>
+  <div class="set-row"><span>SCREEN SHAKE<small class="set-sub">Shake and jitter on story cards.</small></span><div class="seg" id="setShake"><button data-v="full">FULL</button><button data-v="reduced">REDUCED</button><button data-v="off">OFF</button></div></div>
+  <div class="set-row"><span>SUBTITLES<small class="set-sub">Captions for sound cues. Nothing is voiced.</small></span><div class="seg" id="setSubs"><button data-v="off">OFF</button><button data-v="on">ON</button></div></div>
+  <div class="set-sec">CONTROLS</div>
+  <div class="set-row" id="setVibRow"><span>VIBRATION</span><div class="seg" id="setVib"><button data-v="on">ON</button><button data-v="off">OFF</button></div></div>
+  <div class="set-row"><span>CONTROL SIZE<small class="set-sub">Touch pads.</small></span><div class="seg" id="setCSize"><button data-v="s">SMALL</button><button data-v="m">MEDIUM</button><button data-v="l">LARGE</button></div></div>
+  <div class="set-row"><span>CONTROL OPACITY</span><div class="seg" id="setCOp"><button data-v="40">40</button><button data-v="60">60</button><button data-v="80">80</button><button data-v="100">100</button></div></div>
+  <div class="set-row"><span>CONTROL SIDES<small class="set-sub">Swapped puts the move pads on the right.</small></span><div class="seg" id="setCSide"><button data-v="std">STANDARD</button><button data-v="swap">SWAPPED</button></div></div>
+  <div class="set-row"><span>CONTROL HEIGHT</span><div class="seg" id="setCLift"><button data-v="0">STANDARD</button><button data-v="1">RAISED</button></div></div>
+  <div class="set-sec">ACCESSIBILITY</div>
+  <div class="set-row"><span>REDUCE MOTION</span><div class="seg" id="setMotion"><button data-v="off">OFF</button><button data-v="on">ON</button></div></div>
+  <div class="set-row"><span>REDUCED FLASHING<small class="set-sub">Softens lightning, white flashes and flicker.</small></span><div class="seg" id="setFlash"><button data-v="off">OFF</button><button data-v="on">ON</button></div></div>
+  <div class="set-sec">ASSIST</div>
+  <div class="set-row"><span>DIFFICULTY</span><div class="seg" id="setDiff"><button data-v="easy">EASY</button><button data-v="normal">NORMAL</button><button data-v="hard">HARD</button></div></div>
+  <div class="set-row"><span>REDUCED ENEMY DAMAGE<small class="set-sub">Every second hit that would cost a heart is absorbed.</small></span><div class="seg" id="setADmg"><button data-v="off">OFF</button><button data-v="on">ON</button></div></div>
+  <div class="set-row"><span>EXTRA RESONANCE<small class="set-sub">Resonance fills 50% faster.</small></span><div class="seg" id="setARes"><button data-v="off">OFF</button><button data-v="on">ON</button></div></div>
+  <div class="set-row"><span>EXTENDED PARRY WINDOW<small class="set-sub">Perfect Note window doubles.</small></span><div class="seg" id="setAParry"><button data-v="off">OFF</button><button data-v="on">ON</button></div></div>
+  <div class="set-row"><span>ADDITIONAL BOOKMARKS<small class="set-sub">Five bookmarks per chapter instead of two.</small></span><div class="seg" id="setABm"><button data-v="off">OFF</button><button data-v="on">ON</button></div></div>
+  <div class="set-note" id="setNote">Assists never block story completion or 100%. Changes save as you make them.</div>
+  <button class="ov-btn" id="setClose">BACK</button>
 </div></div>
 
 <!-- GSAP 3.15.0, vendored under ../web/ like every other asset. Free for
@@ -921,6 +981,7 @@ body.stOn #mCtrl,body.stOn #hint{visibility:hidden}
 <div id="story" aria-live="polite"><canvas id="stPage"></canvas><div id="stCard"></div>
   <div id="stBox"><canvas id="stPor" width="144" height="180"></canvas><div class="st-txt"><div class="st-who" id="stWho"></div><div id="stLine"></div></div><div class="st-more" aria-hidden="true"></div></div>
   <button type="button" class="st-skip" id="stSkip">SKIP</button></div>
+<div id="caps" role="status" aria-live="polite"></div>
 <div id="talk"><canvas id="tkPor" width="96" height="120"></canvas><div><div class="st-who" id="tkWho"></div><div id="tkLine"></div></div></div>
 <div id="sInt"><div class="si-t">STORY INTERRUPTED</div>
   <button class="ov-btn prim" id="siCont">CONTINUE FROM BOOKMARK</button>
@@ -1216,6 +1277,7 @@ function applyTouchMode(){
   document.body.classList.toggle('mobile',t);
   var mc=document.getElementById('mCtrl');
   if(mc)mc.classList.toggle('on',t&&MODE==='side'&&running);
+  measureCtrlTop();   // the pads can only be measured once they are .on; was left stale (1e9) after a story start
 }
 // ── CTRL_TOP — where the touch pads start, in screen px ──────────────────────
 // The undercroft's usable window is floor line -> here; anything drawn below is
@@ -1729,12 +1791,17 @@ function audInit(){
     AUD.ctx=new AC();
     AUD.master=AUD.ctx.createGain();AUD.master.gain.value=AUD.muted?0:0.5;
     AUD.master.connect(AUD.ctx.destination);
+    AUD.mbus=AUD.ctx.createGain();AUD.fbus=AUD.ctx.createGain();   // music bus / effects bus -> master
+    AUD.mbus.connect(AUD.master);AUD.fbus.connect(AUD.master);audVol();
     var len=AUD.ctx.sampleRate*0.5,buf=AUD.ctx.createBuffer(1,len,AUD.ctx.sampleRate),d=buf.getChannelData(0);
     for(var i=0;i<len;i++)d[i]=Math.random()*2-1;
     AUD.noise=buf;
     MUS.next=AUD.ctx.currentTime+0.1;
   }catch(x){AUD.ctx=null;}
 }
+function audVol(){if(AUD.mbus)AUD.mbus.gain.value=Math.max(0,Math.min(1,(SET.musVol==null?100:SET.musVol)/100));
+  if(AUD.fbus)AUD.fbus.gain.value=Math.max(0,Math.min(1,(SET.fxVol==null?100:SET.fxVol)/100));}
+function audDst(){return (AUD._mus?AUD.mbus:AUD.fbus)||AUD.master;}   // score is routed to the music bus, everything else to effects
 function audMute(m){AUD.muted=m;try{localStorage.setItem('jande_mute',m?'1':'0');}catch(x){}
   if(AUD.master)AUD.master.gain.value=m?0:0.5;}
 function tone(f,dur,type,vol,att,rel,glide,when){
@@ -1745,7 +1812,7 @@ function tone(f,dur,type,vol,att,rel,glide,when){
   if(glide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+glide),t+dur);
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+att);
   g.gain.setTargetAtTime(0,t+Math.max(att,dur-rel),rel/3);
-  o.connect(g);g.connect(AUD.master);
+  o.connect(g);g.connect(audDst());
   o.start(t);o.stop(t+dur+rel+0.05);}
 function hiss(dur,vol,f0,f1,when){
   var c=AUD.ctx;if(!c||AUD.muted||!AUD.noise)return;
@@ -1754,11 +1821,12 @@ function hiss(dur,vol,f0,f1,when){
   s.buffer=AUD.noise;s.loop=true;bp.type='bandpass';bp.Q.value=0.9;
   bp.frequency.setValueAtTime(f0,t);bp.frequency.exponentialRampToValueAtTime(Math.max(60,f1),t+dur);
   g.gain.setValueAtTime(vol,t);g.gain.setTargetAtTime(0,t+dur*0.4,dur/4);
-  s.connect(bp);bp.connect(g);g.connect(AUD.master);
+  s.connect(bp);bp.connect(g);g.connect(audDst());
   s.start(t);s.stop(t+dur+0.1);}
 function rootHz(oct){var _k=(MODE==='side'&&GS&&GS.ch!=null)?CH[GS.ch].key:STAGE_KEYS[(GS.ai||0)%9];return 110*Math.pow(2,(_k/12))*(oct||1);}
 var PENT=[0,2,4,7,9,12,14,16,19,24];
 function sfx(n){
+  if(CAP_TXT[n])capSay(CAP_TXT[n]);   // captions show even when the sound is muted
   if(!AUD.ctx||AUD.muted||AUD.fxOff)return;   // FX channel
   var c=AUD.ctx,t=c.currentTime,r=rootHz(2);
   switch(n){
@@ -1784,7 +1852,8 @@ function sfx(n){
 // ── generative score: bright C–G–Am–F (I–V–vi–IV) major pad, reactive ──
 var MUS={step:0,next:0,cut:600};
 var MUS_CH=[[0,4,7],[-5,-1,2],[-3,0,4],[-7,-3,0]]; // major-key fairytale progression
-function musTick(){
+function musTick(){AUD._mus=1;try{musTick0();}finally{AUD._mus=0;}}
+function musTick0(){
   var c=AUD.ctx;if(!c||AUD.muted||AUD.musOff||!running||GS.paused||(GS&&GS.cuesChanged))return;   // MUSIC channel
   var sd=0.3261; // 8th notes @ 92 BPM
   if(MUS.next<c.currentTime-0.6)MUS.next=c.currentTime+0.05; // resync after tab-sleep
@@ -1883,7 +1952,7 @@ function update(){
   if(GS.shieldT>0){GS.shieldT--;p.inv=Math.max(p.inv,2);}
   if(GS.levelUpT>0)GS.levelUpT--;
   if(p.dead){
-    if(!p.noteGone){p.noteGone=true;sfx('death');noteBurst(p.x+PW/2,Math.min(p.y+PH/2,GS.LH*T-50),26);if(navigator.vibrate)navigator.vibrate([120,50,160]);}
+    if(!p.noteGone){p.noteGone=true;sfx('death');noteBurst(p.x+PW/2,Math.min(p.y+PH/2,GS.LH*T-50),26);buzz([120,50,160]);}
     p.deadT++;if(p.deadT>(MODE==='side'?55:110)){if(MODE==='side'){if(!p.intShown){p.intShown=1;v2Interrupted();}}else showOver(false);}return;}
   // boss defeated → brief victory beat, then next stage (or the finale ending)
   if(GS.bossDeadT>0){
@@ -1935,7 +2004,7 @@ function update(){
   // ── DASH (Shift/C or DASH button): burst + i-frames ──
   if((K.ShiftLeft||K.ShiftRight||TC.d)&&!lX&&!p.dashing&&p.dashCd<=0){
     p.dashing=true;p.dashT=13;p.dashVx=p.faceL?-13.5:13.5;p.dashCd=34;p.inv=Math.max(p.inv,14);
-    sfx('dash');ptcl(p.x+PW/2,p.y+PH/2,'dash');if(navigator.vibrate)navigator.vibrate(25);}
+    sfx('dash');ptcl(p.x+PW/2,p.y+PH/2,'dash');buzz(25);}
   lX=(K.ShiftLeft||K.ShiftRight||TC.d)?1:0;
 
   // ── JUMP (buffered + coyote time) + DOUBLE JUMP ──
@@ -1944,15 +2013,15 @@ function update(){
   var jc=(iU()||TC.hold>0)?1:0;
   if(iU()&&!lJ)TC.jb=12;
   if(TC.jb>0){
-    if(p.onGround||p.coyote>0){p.vy=-12.8;p.onGround=false;p.coyote=0;p.airJumps=1;TC.jb=0;TC.hold=Math.max(TC.hold,14);misAdd('jumps',1);sfx('jump');ptcl(p.x+PW/2,p.y+PH,'jdust');if(navigator.vibrate)navigator.vibrate(40);}
-    else if(p.airJumps>0){p.vy=-11.2;p.airJumps--;GS.stats.dj++;TC.jb=0;TC.hold=Math.max(TC.hold,12);sfx('jump2');ptcl(p.x+PW/2,p.y+PH/2,'wjump');if(navigator.vibrate)navigator.vibrate(30);}
+    if(p.onGround||p.coyote>0){p.vy=-12.8;p.onGround=false;p.coyote=0;p.airJumps=1;TC.jb=0;TC.hold=Math.max(TC.hold,14);misAdd('jumps',1);sfx('jump');ptcl(p.x+PW/2,p.y+PH,'jdust');buzz(40);}
+    else if(p.airJumps>0){p.vy=-11.2;p.airJumps--;GS.stats.dj++;TC.jb=0;TC.hold=Math.max(TC.hold,12);sfx('jump2');ptcl(p.x+PW/2,p.y+PH/2,'wjump');buzz(30);}
     else TC.jb--;
   }
   if(!jc&&p.vy<-4.5)p.vy=-4.5;lJ=iU()?1:0;
   if(TC.st>0)TC.st--;
 
   // ── SLIDE ──
-  if(iD()&&p.onGround&&!p.sliding&&Math.abs(p.vx)>1.5){p.sliding=true;p.slideT=0;GS.stats.sl++;misAdd('slides',1);sfx('slide');ptcl(p.x+PW/2,p.y+PH,'dash');if(navigator.vibrate)navigator.vibrate(20);}
+  if(iD()&&p.onGround&&!p.sliding&&Math.abs(p.vx)>1.5){p.sliding=true;p.slideT=0;GS.stats.sl++;misAdd('slides',1);sfx('slide');ptcl(p.x+PW/2,p.y+PH,'dash');buzz(20);}
   if(p.sliding){p.slideT++;if(!iD()&&p.slideT>16)p.sliding=false;if(!p.onGround&&p.vy>3)p.sliding=false;if(Math.abs(p.vx)<0.8)p.sliding=false;}
 
   // ── REFRAIN (heal): the dual-purpose of RESONANCE #1 — stand STILL + hold Down and
@@ -1962,7 +2031,7 @@ function update(){
     p.vx=0;p.refraining=true;GS.res=Math.max(0,GS.res-1.5);p.healBank=(p.healBank||0)+1.5;
     if(GS.tick%5===0)ptcl(p.x+PW/2+((GS.tick*7)%22-11),p.y+PH-10,'note');
     if(GS.tick%3===0)updateHUD();
-    if(p.healBank>=70){p.healBank=0;GS.masks++;updateHUD();sfx('note');GS.toasts.push({txt:'SECOND WIND',sub:'+1 HEART',t:150,max:150,ico:'heart'});if(navigator.vibrate)navigator.vibrate([20,40,20]);}
+    if(p.healBank>=70){p.healBank=0;GS.masks++;updateHUD();sfx('note');GS.toasts.push({txt:'SECOND WIND',sub:'+1 HEART',t:150,max:150,ico:'heart'});buzz([20,40,20]);}
   }else{p.refraining=false;p.healBank=0;}
 
   // ── MIC STRIKE (⚔ button / X / Z / J / swipe →): melee in her facing direction ──
@@ -1972,7 +2041,7 @@ function update(){
     p.downbeat=(!p.onGround&&(iD()||TC.bd>0)&&learned('bass'));        // Down + air-strike = DOWNBEAT (a downward hit that pogos)
     p.struck=false;                        // blowback/pogo fires once per swing
     p.vx+=p.downbeat?0:(p.faceL?-4:4);      // horizontal lunge (not on a downbeat)
-    sfx('strike');ptcl(p.x+(p.downbeat?PW/2:(p.faceL?-6:PW)),p.y+(p.downbeat?PH:30),'slash');if(navigator.vibrate)navigator.vibrate(30);
+    sfx('strike');ptcl(p.x+(p.downbeat?PW/2:(p.faceL?-6:PW)),p.y+(p.downbeat?PH:30),'slash');buzz(30);
     if(p.belt){GS.res=Math.max(0,GS.res-90);spawnBelt(p);GS.toasts.push({txt:'BELT',sub:'FULL VOICE',t:120,max:120,ico:'mic'});sfx('pw');updateHUD();}}
   lA=akey?1:0;TC.ml=0;if(TC.mr>1)TC.mr=1;
   if(p.atkT>0){p.atkT--;
@@ -2031,8 +2100,8 @@ function update(){
       if(p.vy>3&&p.y+PH<fo.y+28){killFoe(fo);p.vy=-10.5;p.airJumps=1;}       // stomp
       else if(p.atkT>0){killFoe(fo);strikeImpact(p);}                        // strike → blowback / pogo
       else if(p.dashing)killFoe(fo);                                        // dash through
-      else if(p.inv===0&&GS.shieldT<=0&&!v2Guard(fo)){GS.masks--;p.inv=75;p.vy=-6;p.vx=fdx>0?-7:7;updateHUD();
-        sfx('hurt');ptcl(p.x+PW/2,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);
+      else if(p.inv===0&&GS.shieldT<=0&&!v2Guard(fo)){if(!assistSpare())GS.masks--;p.inv=75;p.vy=-6;p.vx=fdx>0?-7:7;updateHUD();
+        sfx('hurt');ptcl(p.x+PW/2,p.y+30,'hurt');buzz([80,30,80]);
         if(GS.masks<=0){p.dead=true;p.vy=-10;return;}}
     }}
   if(GS.comboT>0){GS.comboT--;if(GS.comboT<=0)GS.combo=0;}
@@ -2049,7 +2118,7 @@ function update(){
       if(GS.gateOpen&&p.x>(GS.gateCol+1)*T){         // she steps in: engage + seal behind
         GS.bossActive=true;
         for(var _gr=4;_gr<FLOOR_R;_gr++)GS.solid[key(GS.gateCol,_gr)]='G';
-        sfx('strike');if(navigator.vibrate)navigator.vibrate([40,40,120]);v2BossEngage(bs);}
+        sfx('strike');buzz([40,40,120]);v2BossEngage(bs);}
     }else{
       updateBoss();
       var _bov=p.x<bs.x+bs.W&&p.x+PW>bs.x&&p.y<bs.y+bs.H&&p.y+PH>bs.y;
@@ -2073,12 +2142,12 @@ function update(){
   p.vy=Math.min(p.vy+GRAV,16);
   p.x+=p.vx;collideH(p,PW,PH);
   var _pvy=p.vy,_pg=p.onGround;p.y+=p.vy;collideV(p,PW,PH);
-  if(!_pg&&p.onGround){p.airJumps=1;if(_pvy>3){sfx('land');if(navigator.vibrate)navigator.vibrate(25);}}
+  if(!_pg&&p.onGround){p.airJumps=1;if(_pvy>3){sfx('land');buzz(25);}}
   p.x=Math.max((GS.pruneC||0)*T+T,p.x); // pruned world behind — no walking into the void
   if(p.y>GS.LH*T+150){
     if(BGVIEW){ // viewer: a pit lifts her back onto the floor instead of ending the look
       p.y=(FLOOR_R-3)*T; p.vy=0; return; }
-    p.dead=true;p.vy=-10;GS.masks=0;updateHUD();if(navigator.vibrate)navigator.vibrate([100,40,100]);return;}
+    p.dead=true;p.vy=-10;GS.masks=0;updateHUD();buzz([100,40,100]);return;}
   if(p.inv>0)p.inv--;
 
   // ── OBSTACLES (slide shrinks hitbox to bottom 46px) ──
@@ -2087,7 +2156,7 @@ function update(){
     if(p.x<o.x+o.w&&p.x+PW>o.x&&hbT<o.y+o.h&&hbT+hbH>o.y){
       o.hit=true;
       if(GS.shieldT>0||p.dashing){ptcl(o.x+o.w/2,o.y+o.h*0.7,'dash');}
-      else if(p.inv===0){GS.masks--;p.inv=75;p.vy=-6;sfx('hurt');ptcl(p.x+PW/2,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);updateHUD();
+      else if(p.inv===0){if(!assistSpare())GS.masks--;p.inv=75;p.vy=-6;sfx('hurt');ptcl(p.x+PW/2,p.y+30,'hurt');buzz([80,30,80]);updateHUD();
         if(GS.masks<=0){p.dead=true;p.vy=-10;return;}}
     }}
 
@@ -2227,7 +2296,7 @@ function update(){
 
   // ── GRACE NOTES + POWER-UPS ──
   for(var si=0;si<GS.notes.length;si++){var s=GS.notes[si];if(s.got)continue;s.anim++;
-    if(p.x<s.x+20&&p.x+PW>s.x-4&&p.y<s.y+20&&p.y+PH>s.y){s.got=true;GS.res=Math.min(GS.resMax,GS.res+8);GS.totalNotes++;misAdd('notes',1);GS.score+=Math.round(70*runMult());sfx('note');ptcl(s.x+4,s.y,'note');
+    if(p.x<s.x+20&&p.x+PW>s.x-4&&p.y<s.y+20&&p.y+PH>s.y){s.got=true;resGain(8);GS.totalNotes++;misAdd('notes',1);GS.score+=Math.round(70*runMult());sfx('note');ptcl(s.x+4,s.y,'note');
       if(s.map&&!GS.mapFound){GS.mapFound=true;markMapOwned(GS.ai);GS.toasts.push({txt:"THE WANDERER'S MAP",sub:'A HIDDEN CACHE IS REVEALED',t:210,max:210,ico:'crown'});sfx('pw');}
       updateHUD();}}
   for(var pwi=0;pwi<GS.pwr.length;pwi++){var pw=GS.pwr[pwi];if(pw.got)continue;pw.anim++;
@@ -2270,7 +2339,7 @@ function updateT(){
   if(p.dead){
     if(!p.noteGone){p.noteGone=true;
       noteBurst(W/2+t3.laneX*W*0.185*2.6,H*0.80,26);
-      if(navigator.vibrate)navigator.vibrate([120,50,160]);}
+      buzz([120,50,160]);}
     p.deadT++;if(p.deadT>90)showOver(false);return;}
 
   // ── speed + distance (boost runs hotter) ──
@@ -2296,11 +2365,11 @@ function updateT(){
     var sd=TC.ml>0?-1:1;TC.ml=TC.mr=0;
     if(sd===turn.dir){turn.done=true;t3.turnFx=TURN_LEN*turn.dir;sfx('turn');
       GS.score+=Math.round(150*mult);GS.stats.tn=(GS.stats.tn||0)+1;misAdd('turns',1);
-      if(navigator.vibrate)navigator.vibrate([15,15,45]);}
+      buzz([15,15,45]);}
     else stumbleT(); // wrong way into the corner wall
   }else{
-    if(TC.ml>0){TC.ml--;if(t3.lane>-1){t3.lane--;if(navigator.vibrate)navigator.vibrate(18);}}
-    if(TC.mr>0){TC.mr--;if(t3.lane<1){t3.lane++;if(navigator.vibrate)navigator.vibrate(18);}}
+    if(TC.ml>0){TC.ml--;if(t3.lane>-1){t3.lane--;buzz(18);}}
+    if(TC.mr>0){TC.mr--;if(t3.lane<1){t3.lane++;buzz(18);}}
   }
   t3.laneX+=(t3.lane-t3.laneX)*0.28;
   if(t3.turnFx>0)t3.turnFx--;else if(t3.turnFx<0)t3.turnFx++;
@@ -2315,12 +2384,12 @@ function updateT(){
   if(iU()&&!lJ)TC.jb=9;
   lJ=iU()?1:0;
   if(TC.jb>0){
-    if(t3.py<=0){t3.vy=13.5;t3.py=0.01;TC.jb=0;misAdd('jumps',1);sfx('jump');if(navigator.vibrate)navigator.vibrate(40);}
+    if(t3.py<=0){t3.vy=13.5;t3.py=0.01;TC.jb=0;misAdd('jumps',1);sfx('jump');buzz(40);}
     else TC.jb--;
   }
-  if(t3.py>0){t3.vy-=0.62;t3.py+=t3.vy;if(t3.py<=0){t3.py=0;t3.vy=0;sfx('land');if(navigator.vibrate)navigator.vibrate(25);}}
+  if(t3.py>0){t3.vy-=0.62;t3.py+=t3.vy;if(t3.py<=0){t3.py=0;t3.vy=0;sfx('land');buzz(25);}}
   if(TC.st>0)TC.st--;
-  if(iD()&&t3.py<=0&&t3.slid<=0){t3.slid=26;GS.stats.sl++;misAdd('slides',1);sfx('slide');if(navigator.vibrate)navigator.vibrate(20);}
+  if(iD()&&t3.py<=0&&t3.slid<=0){t3.slid=26;GS.stats.sl++;misAdd('slides',1);sfx('slide');buzz(20);}
   if(t3.slid>0)t3.slid--;
 
   // ── SPAWN table: obstacles · turns · power-ups · gems · tiered coin runs ──
@@ -2365,14 +2434,14 @@ function updateT(){
     if(o.tp==='pw'||o.tp==='gem'){
       if(!o.hit&&o.z<34&&o.z>-34&&Math.abs(t3.laneX-o.lane)<0.6&&t3.py<70){o.hit=true;
         if(o.tp==='gem'){var wg=wallet();wg.gems++;setWallet(wg);GS.gemsLive=wg.gems;misAdd('gems',1);
-          GS.score+=Math.round(200*mult);sfx('gem');if(navigator.vibrate)navigator.vibrate([10,10,30]);}
+          GS.score+=Math.round(200*mult);sfx('gem');buzz([10,10,30]);}
         else{misAdd('pws',1);GS.stats.pw=(GS.stats.pw||0)+1;
           if(o.kind===0){GS.magT=620+shop().mag*90;GS.fxMax.magT=GS.magT;GS.toasts.push({txt:'NOTE MAGNET',sub:'NOTES FLY TO YOU',t:170,max:170,ico:'magnet'});}
           else if(o.kind===1){GS.boostT=320+shop().bst*50;GS.fxMax.boostT=GS.boostT;p.inv=Math.max(p.inv,GS.boostT);GS.toasts.push({txt:'CRESCENDO',sub:'FULL SPRINT — UNSTOPPABLE',t:170,max:170,ico:'bolt'});}
           else if(o.kind===2){GS.x2T=640+shop().x2*100;GS.fxMax.x2T=GS.x2T;GS.toasts.push({txt:'×2 SCORE',sub:'EVERY POINT DOUBLED',t:170,max:170,ico:'x2'});}
           else if(o.kind===3){GS.shieldT=520+shop().shd*80;GS.fxMax.shieldT=GS.shieldT;GS.toasts.push({txt:'HIGH NOTE',sub:'SHIELDED',t:170,max:170,ico:'shield'});}
           else{var bn=15;GS.totalNotes+=bn;GS.res=GS.resMax;GS.score+=Math.round(70*bn*mult);misAdd('notes',bn);GS.toasts.push({txt:'ENCORE',sub:'+'+bn+' GRACE NOTES',t:170,max:170,ico:'crown'});}
-          updateHUD();sfx('pw');if(navigator.vibrate)navigator.vibrate([10,10,40]);}}
+          updateHUD();sfx('pw');buzz([10,10,40]);}}
       continue;}
     // hazards
     if(o.z<26&&o.z>-26&&!o.hit&&Math.round(t3.laneX)===o.lane){
@@ -2382,7 +2451,7 @@ function updateT(){
       else if(!o.nm){o.nm=true; // NEAR-MISS: grazed it clean — reward the thrill
         GS.score+=Math.round(25*mult);t3.nmT=26;
         if(AUD.ctx&&!AUD.muted){tone(1560,0.06,'triangle',0.09);tone(2080,0.05,'sine',0.05);}
-        if(navigator.vibrate)navigator.vibrate(8);}
+        buzz(8);}
     }
   }
   // coins (magnet pulls whole rows to her lane)
@@ -2392,7 +2461,7 @@ function updateT(){
     var grab=GS.magT>0?(cn.z<60&&cn.z>-60&&Math.abs(t3.laneX-cn.lane)<0.9)
                       :(cn.z<30&&cn.z>-30&&Math.abs(t3.laneX-cn.lane)<0.55&&t3.py<60);
     if(grab){var v=cn.v||1;t3.coins.splice(ci2,1);
-      GS.res=Math.min(GS.resMax,GS.res+6*v);GS.totalNotes+=v;misAdd('notes',v);sfx('note');
+      resGain(6*v);GS.totalNotes+=v;misAdd('notes',v);sfx('note');
       GS.score+=Math.round(70*v*mult);updateHUD();}
   }
   // chaser drifts toward her lane
@@ -3637,7 +3706,7 @@ function drawT(){
         FX.fillStyle=bg2;FX.fillRect(hx-dh*0.7,hy-dh*1.1+footPad,dh*1.4,dh*1.4);}
       FX.imageSmoothingEnabled=isBk;
       // i-frame feedback: soft alpha pulse, never fully invisible (no pulse under shield/boost)
-      if(p.inv>0&&GS.boostT<=0&&GS.shieldT<=0)FX.globalAlpha=0.55+0.3*Math.sin(GS.tick*0.7);
+      if(p.inv>0&&GS.boostT<=0&&GS.shieldT<=0)FX.globalAlpha=RF()?0.7:0.55+0.3*Math.sin(GS.tick*0.7);
       if(isBk&&!p.dead){
         // The behind-view sprite already animates a real gait, so the code
         // adds only a faint vertical bob. The old horizontal rSway compounded
@@ -3667,7 +3736,7 @@ function drawT(){
       FX.lineTo(vpX+Math.cos(la)*r1,vpY+Math.sin(la)*r1);FX.stroke();}}
   // chase danger vignette
   if(chI>0.03&&t3.grabT<=0){var vg=FX.createRadialGradient(vpX,H*0.55,H*0.30,vpX,H*0.55,H*0.85);
-    vg.addColorStop(0,'rgba(200,0,30,0)');vg.addColorStop(1,'rgba(200,0,30,'+(0.28*chI*(0.7+0.3*Math.sin(GS.tick*0.2)))+')');
+    vg.addColorStop(0,'rgba(200,0,30,0)');vg.addColorStop(1,'rgba(200,0,30,'+(0.28*chI*(RF()?0.85:0.7+0.3*Math.sin(GS.tick*0.2)))+')');
     FX.fillStyle=vg;FX.fillRect(0,0,W,H);}
   drawLyric(ac);drawPowerHUD(ac);drawDist(ac);drawToasts();
   // near-miss flash
@@ -3728,7 +3797,7 @@ function updateEnemies(){
     if((e.vy||0)>0&&(isSolid(feL,feR)||isSolid(feRt,feR))){e.y=feR*T-50;e.vy=0;}
     e.x=Math.max(T,Math.min(e.x,(GS.LW-1)*T-44));
     // FALL DEATH counts as kill
-    if(e.y>GS.LH*T+60){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);ptcl(e.x+22,(GS.LH-1)*T,'kill',goreOf(e));updateHUD();continue;}
+    if(e.y>GS.LH*T+60){e.alive=false;GS.score+=280;resGain(38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);ptcl(e.x+22,(GS.LH-1)*T,'kill',goreOf(e));updateHUD();continue;}
     for(var bi=e.bullets.length-1;bi>=0;bi--){var bl=e.bullets[bi];bl.x+=bl.vx;bl.y+=bl.vy;bl.life-=0.013;
       if(bl.life<=0){e.bullets.splice(bi,1);continue;}
       if(p.inv===0&&!p.dashing&&bl.x<p.x+PW&&bl.x+8>p.x&&bl.y<p.y+PH&&bl.y+8>p.y){hurtP(p);e.bullets.splice(bi,1);}}
@@ -3798,7 +3867,7 @@ function nextBoss(b){
 
 function hitE(e){e.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);GS.score+=120;
   gore(e.x+22+((GS.p.x<e.x)?22:-22),e.y+24,(GS.p.x<e.x)?1:-1,goreOf(e),6);
-  if(e.hp<=0){e.alive=false;GS.score+=280;GS.res=Math.min(GS.resMax,GS.res+38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);
+  if(e.hp<=0){e.alive=false;GS.score+=280;resGain(38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);
     // OUTWARD from the struck side, not a 22-blob burst dropped on the body
     gore(e.x+22+((GS.p.x<e.x)?26:-26),e.y+22,(GS.p.x<e.x)?1:-1,goreOf(e),14);updateHUD();}
   else{e.stg=true;e.stgT=20;e.vx*=-2;}}
@@ -3827,8 +3896,8 @@ function hurtP(p){if(p.inv>0||BGVIEW)return;   // viewer: nothing interrupts a l
   if(v2Guard(null))return;                    // Guard absorbs it (Perfect Note if timed)
   if(GS.shieldT>0){ptcl(p.x+14,p.y+30,'dash');p.inv=30;return;}
   GS.dmgTaken=(GS.dmgTaken||0)+1;   // per-stage damage, for the clear tally
-  if(GS.blocking){ptcl(p.x+(p.faceL?0:PW),p.y+30,'slash');GS.blockHits++;p.inv=45;p.vx=p.faceL?4:-4;if(GS.blockHits%2===0){GS.masks--;updateHUD();}}
-  else{GS.masks--;updateHUD();p.inv=90;p.vx=p.faceL?10:-10;p.vy=-8;ptcl(p.x+14,p.y+30,'hurt');if(navigator.vibrate)navigator.vibrate([80,30,80]);}
+  if(GS.blocking){ptcl(p.x+(p.faceL?0:PW),p.y+30,'slash');GS.blockHits++;p.inv=45;p.vx=p.faceL?4:-4;if(GS.blockHits%2===0){if(!assistSpare())GS.masks--;updateHUD();}}
+  else{if(!assistSpare())GS.masks--;updateHUD();p.inv=90;p.vx=p.faceL?10:-10;p.vy=-8;ptcl(p.x+14,p.y+30,'hurt');buzz([80,30,80]);}
   if(GS.masks<=0){p.dead=true;p.vy=-10;}}
 function gainXP(amt){GS.xp+=amt;
   if(GS.xp>=GS.xpNext){GS.xp-=GS.xpNext;GS.level++;GS.xpNext=Math.floor(GS.xpNext*1.4);
@@ -3935,7 +4004,7 @@ function themeShift(){
   GS.titleT=210;   // the title card announces the chapter; toast just scores it
   GS.toasts.push({txt:'+250',sub:'NEW CHAPTER',t:170,max:170});sfx('pw');
   GS.score+=250;updateHUD();
-  if(navigator.vibrate)navigator.vibrate([20,30,60]);}
+  buzz([20,30,60]);}
 // animated 2.5D pixel collectibles (8-frame thick-turntable spin, 48px cells,
 // black borders). heart = lives; note = the blue Grace Note collectible.
 var SPIN={heart:new Image(),note:new Image()};
@@ -3960,11 +4029,11 @@ function drawToasts(){
     var a=Math.max(0,Math.min(1,(tt.max-tt.t)/14,tt.t/40));if(a<=0)continue;
     var ic=tt.ico&&PXI[tt.ico]&&PXI[tt.ico].complete?PXI[tt.ico]:null;
     FX.textAlign='left';FX.textBaseline='alphabetic';
-    FX.font='700 9px Storyboo,sans-serif';var tw1=FX.measureText(tt.txt).width;
-    FX.font='7px Storyboo,sans-serif';var tw2=tt.sub?FX.measureText(tt.sub).width:0;
+    var _tx=TXS();FX.font='700 '+(9*_tx)+'px Storyboo,sans-serif';var tw1=FX.measureText(tt.txt).width;
+    FX.font=(7*_tx)+'px Storyboo,sans-serif';var tw2=tt.sub?FX.measureText(tt.sub).width:0;
     var icW=ic?15:0,pad=8,gap=5;
-    var cw=pad+icW+(icW?gap:0)+Math.min(Math.max(tw1,tw2),168)+pad;
-    var ch=tt.sub?28:20,r=ch/2;
+    var cw=pad+icW+(icW?gap:0)+Math.min(Math.max(tw1,tw2),168*_tx)+pad;
+    var ch=(tt.sub?28:20)*(1+(_tx-1)*0.8),r=ch/2;
     var cx=W-12-cw+(1-a)*16;                       // slide in from the right
     FX.globalAlpha=a;
     pillPath(cx,y,cw,ch,r);
@@ -3973,9 +4042,9 @@ function drawToasts(){
     var tx=cx+pad;
     if(ic){FX.imageSmoothingEnabled=false;FX.drawImage(ic,cx+pad,y+(ch-15)/2,15,15);FX.imageSmoothingEnabled=true;tx=cx+pad+icW+gap;}
     FX.textBaseline='middle';
-    FX.fillStyle='#ffd66e';FX.font='700 9px Storyboo,sans-serif';
-    FX.fillText(tt.txt,tx,tt.sub?y+10:y+ch/2+0.5);
-    if(tt.sub){FX.fillStyle='rgba(255,255,255,0.62)';FX.font='7px Storyboo,sans-serif';FX.fillText(tt.sub,tx,y+20);}
+    FX.fillStyle='#ffd66e';FX.font='700 '+(9*_tx)+'px Storyboo,sans-serif';
+    FX.fillText(tt.txt,tx,tt.sub?y+ch*0.36:y+ch/2+0.5);
+    if(tt.sub){FX.fillStyle='rgba(255,255,255,0.62)';FX.font=(7*_tx)+'px Storyboo,sans-serif';FX.fillText(tt.sub,tx,y+ch*0.71);}
     y+=ch+6;}
   FX.globalAlpha=1;FX.textAlign='center';FX.textBaseline='alphabetic';}
 function saveRun(){
@@ -4045,11 +4114,45 @@ function adaptSet(v){try{localStorage.setItem('jande_adapt',JSON.stringify(v));}
 function applyMotionClass(){try{
   var pr=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.body.classList.toggle('rm',!!(SET.reduceMotion||pr));}catch(_e){}}
-function settings(){try{return JSON.parse(localStorage.getItem('jande_settings')||'{"diff":"normal","reduceMotion":0}');}catch(x){return{diff:'normal',reduceMotion:0};}}
+// Defaults for every option. Stored values from older builds (diff, reduceMotion) keep working.
+var SET_DEF={diff:'normal',reduceMotion:0,musVol:100,fxVol:100,shake:'full',flash:0,vib:1,tsz:'normal',subs:0,
+  cSize:'m',cOp:100,cSide:'std',cLift:0,aDmg:0,aRes:0,aParry:0,aBm:0};
+function settings(){var o={};try{o=JSON.parse(localStorage.getItem('jande_settings')||'{}')||{};}catch(x){o={};}
+  for(var k in SET_DEF)if(o[k]==null)o[k]=SET_DEF[k];return o;}
 var SET=settings();
 var DIFFMUL={easy:1.55,normal:1.0,hard:0.70};   // scales spawn spacing/rate (higher=easier)
 function diffF(){return DIFFMUL[SET.diff]||1;}
-function setSetting(k,v){SET[k]=v;try{localStorage.setItem('jande_settings',JSON.stringify(SET));}catch(x){}}
+function setSetting(k,v){SET[k]=v;try{localStorage.setItem('jande_settings',JSON.stringify(SET));}catch(x){}}   // autosaves on every change (Bible §10)
+// ── ACCESSIBILITY helpers (Bible §10). Every one reads SET live, so a change takes effect at once. ──
+var SHK_MUL={full:1,reduced:0.4,off:0};
+function shkMul(){if(RM())return 0;var m=SHK_MUL[SET.shake];return m==null?1:m;}   // screen shake / jitter scale; Reduce Motion still means none
+function RF(){return !!SET.flash;}                                                   // reduced flashing
+var FLASH_CAP=0.15;
+function flashA(a){return RF()?Math.min(a,FLASH_CAP):a;}                              // full-screen flash alpha, capped when reduced
+var TS_MUL={normal:1,large:1.2,larger:1.4},CS_MUL={s:0.85,m:1,l:1.15};
+function TXS(){return TS_MUL[SET.tsz]||1;}
+function buzz(p){if(!SET.vib)return;try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}}   // every vibration goes through here
+// ASSISTS: none of these is read by completion, tally, Perfect Pitch or any 100% code.
+function assistSpare(){if(!SET.aDmg)return false;GS.aSpare=(GS.aSpare||0)+1;return GS.aSpare%2===0;}   // every 2nd heart-costing hit is absorbed
+function resGain(n){GS.res=Math.min(GS.resMax,GS.res+n*(SET.aRes?1.5:1));}
+function parryWin(){return SET.aParry?20:10;}                                          // Perfect Note window in ticks
+function bmMarks(){return SET.aBm?[0.17,0.34,0.51,0.68,0.85]:[0.34,0.68];}
+function bmSync(){if(typeof MODE==='undefined'||MODE!=='side'||!GS||!GS.bms||!GS.stageEnd||!GS.p)return;
+  var want={},m=bmMarks();for(var i=0;i<m.length;i++)want[Math.round(GS.stageEnd*m[i])*T]=1;
+  GS.bms=GS.bms.filter(function(b){return b.gate||b.on||want[b.x];});
+  var have={};GS.bms.forEach(function(b){have[b.x]=1;});
+  for(var x in want)if(!have[x]&&+x>GS.p.x)GS.bms.push({x:+x,on:false});}
+function applyA11y(){try{var d=document.documentElement,b=document.body;
+  d.style.setProperty('--ts',TXS());d.style.setProperty('--cs',CS_MUL[SET.cSize]||1);
+  d.style.setProperty('--co',(SET.cOp||100)/100);d.style.setProperty('--clift',SET.cLift?'36px':'0px');
+  var mc=document.getElementById('mCtrl');if(mc)mc.classList.toggle('swap',SET.cSide==='swap');
+  b.classList.toggle('rf',!!SET.flash);audVol();measureCtrlTop();}catch(_e){}}
+// sound captions: audio cues that carry information. No timers; the CSS animation ends and removes the node.
+var CAP_TXT={hurt:'[Sharp hit]',death:'[Sorrowful notes]',fanfare:'[Triumphant fanfare]',revive:'[Rising chime]',pw:'[A bright chord rings]'};
+function capSay(t){if(!SET.subs)return;var box=document.getElementById('caps');if(!box)return;
+  while(box.children.length>=2)box.removeChild(box.firstChild);
+  var e=document.createElement('div');e.className='cap';e.textContent=t;
+  e.addEventListener('animationend',function(){if(e.parentNode)e.parentNode.removeChild(e);});box.appendChild(e);}
 // difficulty folds into the adaptive factor: easy = more spacing + fewer foes.
 function adaptF(){var e=Math.min(3,(GS.adaptEarly||0));var f=1+e*0.15;if(GS.dist>800)f*=0.9;return f*diffF();}
 // ── THE WANDERER'S MAP: each stage hides a CACHE off the main path; its location
@@ -4104,10 +4207,10 @@ function stumbleT(){var t3=GS.t3,p=GS.p;
   if(GS.shieldT>0||GS.boostT>0||p.inv>0)return;
   if(t3.chase>90){caughtT();return;}
   t3.chase=480;GS.masks--;p.inv=60;GS.hitstop=4;updateHUD();sfx('hurt');
-  if(navigator.vibrate)navigator.vibrate([80,30,80]);
+  buzz([80,30,80]);
   if(GS.masks<=0)caughtT();}
 function caughtT(){var p=GS.p;sfx('death');p.dead=true;p.deadT=0;GS.t3.grabT=44;GS.masks=Math.min(GS.masks,0);updateHUD();
-  if(navigator.vibrate)navigator.vibrate([120,50,160]);}
+  buzz([120,50,160]);}
 
 // ── ACTION RPG (side mode): persistent level, combo kills, damage pops ──
 function rpgLoad(){try{return JSON.parse(localStorage.getItem('jande_rpg')||'{"lvl":1,"xp":0,"next":80}');}catch(x){return{lvl:1,xp:0,next:80};}}
@@ -4116,7 +4219,7 @@ function rpgXP(a){RPG.xp+=a;var up=false;
   while(RPG.xp>=RPG.next){RPG.xp-=RPG.next;RPG.lvl++;RPG.next=Math.floor(RPG.next*1.3);up=true;}
   if(up){sfx('fanfare');GS.toasts.push({txt:'LEVEL '+RPG.lvl,sub:'HER VOICE GROWS STRONGER',t:220,max:220,ico:'crown'});
     GS.masks=Math.min(GS.maxMasks,GS.masks+1);updateHUD();
-    if(navigator.vibrate)navigator.vibrate([20,20,50]);}
+    buzz([20,20,50]);}
   else updateHUD();   // refresh the XP bar on every gain, not only on level-up
   try{localStorage.setItem('jande_rpg',JSON.stringify(RPG));}catch(x){}}
 function addPop(x,y,txt){GS.pops.push({x:x,y:y,txt:''+txt,t:52});}
@@ -4132,14 +4235,14 @@ function killFoe(f){
   var sc=Math.round((f.tp?160:120)*runMult()*cm);
   GS.score+=sc;addPop(f.x+26,f.y-4,sc);rpgXP(f.tp?14:10);
   noteBurst(f.x+26,f.y+22,7);
-  GS.res=Math.min(GS.resMax,GS.res+12);updateHUD();
-  if(navigator.vibrate)navigator.vibrate(30);}
+  resGain(12);updateHUD();
+  buzz(30);}
 // Attack impact ("blowback"): a Mic Strike shoves her back on connect; a DOWNBEAT
 // (Down + air-strike) pogos her up off whatever she hit and refreshes the air-jump
 // so bounces can chain (off foes or spikes). Fires once per swing.
 function strikeImpact(p){ if(p.struck)return; p.struck=true;
   GS.hitstop=Math.max(GS.hitstop,5);
-  if(p.downbeat){ p.vy=-11.5; p.airJumps=1; if(navigator.vibrate)navigator.vibrate(35); }
+  if(p.downbeat){ p.vy=-11.5; p.airJumps=1; buzz(35); }
   else { p.vx+=(p.faceL?1:-1)*3.6; }
 }
 // BELT (RESONANCE magic): a FULL-voice Mic Strike releases a forward note-wave —
@@ -5497,6 +5600,7 @@ function draw(){
   var st=blendedStage(),ac=hexS(st.ac),pc=hexS(st.pc);
   FX.clearRect(0,0,W,H);
   GS.bossMood=(GS.bossMood||0)+(((GS.bossActive?1:0)-(GS.bossMood||0))*0.05); // Shadow of the Groom easing
+  if(GS.bossMood>0.5&&!GS._capDread){GS._capDread=1;capSay('[Music darkens]');}else if(GS.bossMood<0.1)GS._capDread=0;
   drawMansionBG(st);            // painted interior (parallax, screen-space)
   if(GS.bossMood>0.01)drawGroomShadowBg();  // the fairytale curdles behind the fighters
   FX.save();FX.scale(ZOOM,ZOOM);FX.translate(-GS.camX,-GS.camY);
@@ -5576,7 +5680,7 @@ function draw(){
       FX.fillStyle=st3%2?'rgba(255,224,130,'+al3+')':'rgba(255,255,255,'+al3+')';
       FX.fillRect(tx3-2,ty3-0.6,4,1.2);FX.fillRect(tx3-0.6,ty3-2,1.2,4);}}
   v2DrawWorld(true);
-  if(!p.noteGone){if(p.inv>0&&GS.shieldT<=0&&!(GS.bossDeadT>0||GS.levelClear))FX.globalAlpha=0.55+0.3*Math.sin(GS.tick*0.7);drawHero(p);FX.globalAlpha=1;}
+  if(!p.noteGone){if(p.inv>0&&GS.shieldT<=0&&!(GS.bossDeadT>0||GS.levelClear))FX.globalAlpha=RF()?0.7:0.55+0.3*Math.sin(GS.tick*0.7);drawHero(p);FX.globalAlpha=1;}
   v2DrawWorld(false);
   FX.restore();
   drawForeground(GS.ai,GS.camX,GS.tick,SET.reduceMotion?0:1);   // the plane IN FRONT of her
@@ -6218,7 +6322,7 @@ function drawBossAura(b,x,y,A){
     FX.globalAlpha=0.85;FX.strokeStyle='#0d0d12';FX.lineWidth=3;for(i=0;i<4;i++){ang=A*0.06+i*1.57;px=cx+Math.cos(ang)*92;py=y+Math.sin(ang)*38+b.H*0.18;var fw=Math.sin(A*0.4+i)*6;FX.beginPath();FX.moveTo(px-10,py+fw);FX.lineTo(px,py);FX.lineTo(px+10,py+fw);FX.stroke();}
   }else if(bi===7){ // STORM TITAN — churning cloud haze + strobing lightning
     FX.globalAlpha=0.3;FX.fillStyle='#8fa6c8';for(i=0;i<3;i++){FX.beginPath();FX.ellipse(cx+Math.sin(A*0.02+i*2)*38,y-10,56,18,0,0,6.28);FX.fill();}
-    if(((A*0.5)|0)%20<2){FX.globalAlpha=0.95;FX.strokeStyle='#eaf2ff';FX.lineWidth=2.6;FX.beginPath();var lx=cx+(((A*7)|0)%40-20),ly=y-16;FX.moveTo(lx,ly);for(i=0;i<5;i++){lx+=(i%2?1:-1)*11;ly+=(b.H+30)/5;FX.lineTo(lx,ly);}FX.stroke();}
+    if(((A*0.5)|0)%20<2){FX.globalAlpha=RF()?0.35:0.95;FX.strokeStyle='#eaf2ff';FX.lineWidth=2.6;FX.beginPath();var lx=cx+(((A*7)|0)%40-20),ly=y-16;FX.moveTo(lx,ly);for(i=0;i<5;i++){lx+=(i%2?1:-1)*11;ly+=(b.H+30)/5;FX.lineTo(lx,ly);}FX.stroke();}
   }else if(bi===8){ // THE GROOM — dark embers rise from a broken vow
     for(i=0;i<8;i++){var e=(A*1.1+i*30)%(b.H*1.5);FX.globalAlpha=0.7*(1-e/(b.H*1.5));FX.fillStyle=i%2?'#7a0020':'#2a0038';FX.beginPath();FX.arc(cx+Math.sin(i*1.9+A*0.03)*52,y+b.H-e,3.4,0,6.28);FX.fill();}
   }
@@ -6566,7 +6670,7 @@ function showEnding(){
   var el=document.getElementById('endCard');
   if(el)el.classList.add('on');
   sfx('revive');
-  if(navigator.vibrate)navigator.vibrate([30,60,30,60,120]);
+  buzz([30,60,30,60,120]);
   setTimeout(function(){
     if(el)el.classList.remove('on');
     showOver(true);
@@ -6645,7 +6749,7 @@ function continueRun(){
     t3.obs=t3.obs.filter(function(o){return o.z>700||(o.tp==='turn'&&o.done);});
     GS.toasts.push({txt:'SHE RISES AGAIN',sub:subT,t:200,max:200});
     sfx('revive');updateHUD();
-    if(navigator.vibrate)navigator.vibrate([20,30,80]);
+    buzz([20,30,80]);
     if(!running){running=true;applyTouchMode();loop();}
   }else{
     initGS(CHECKPOINT);              // preserves score/notes/level/xp/dmg from prior GS
@@ -6721,7 +6825,7 @@ function showLevelClear(){
   if(contBtn){contBtn.style.display='';contBtn.innerHTML='CONTINUE STORY';}
   if(reBtn){reBtn.style.display='';reBtn.textContent='REPLAY CHAPTER';}
   document.getElementById('overlay').classList.add('on');
-  sfx('revive');if(navigator.vibrate)navigator.vibrate([30,40,90]);
+  sfx('revive');buzz([30,40,90]);
   running=false;applyTouchMode();                            // freeze the field; she holds her pose
 }
 function showOver(won){
@@ -7432,7 +7536,7 @@ function panelBG(key,o){o=o||{};
     }else if(o.fb){o.fb(c,w,h,t);}
     vignette(c,w,h,o.vig==null?0.6:o.vig);
     if(!rm&&o.motes!==0)motes(c,w,h,t,o.motes||'gold',o.mn||24);
-    if(o.flash&&t<o.flash&&!rm){c.fillStyle='rgba(255,248,230,'+(1-t/o.flash).toFixed(3)+')';c.fillRect(0,0,w,h);}
+    if(o.flash&&t<o.flash&&!rm){c.fillStyle='rgba(255,248,230,'+flashA(1-t/o.flash).toFixed(3)+')';c.fillRect(0,0,w,h);}
     if(o.over)o.over(c,w,h,t);};
   fn.noCast=!!o.noCast;fn.panel=1;return fn;}
 
@@ -7564,7 +7668,7 @@ function vsCard(ch){var last=!!CH[ch].her,lt=-1;
       at(18,function(){tone(62,0.7,'sine',0.34,0.002,0.55,-28);hiss(0.4,0.22,3200,180);tone(130,0.3,'square',0.09,0.002,0.22,-60);});
       at(22,function(){var t0=AUD.ctx.currentTime;[0,7,12].forEach(function(iv,k){tone(196*Math.pow(2,iv/12),0.6,'sawtooth',0.045,0.004,0.5,0,t0+k*0.035);});});}
     lt=t;
-    var sh=(rm||t<18)?0:Math.max(0,1-(t-18)/18)*11,sx=sh*(hsh(Math.floor(t)*3.1)-0.5)*2,sy=sh*(hsh(Math.floor(t)*7.7)-0.5)*2;
+    var sh=(rm||t<18)?0:Math.max(0,1-(t-18)/18)*11*shkMul(),sx=sh*(hsh(Math.floor(t)*3.1)-0.5)*2,sy=sh*(hsh(Math.floor(t)*7.7)-0.5)*2;
     var col=VS_COL[ch]||'#6a2a7a',sl=w*0.1,open=eo3(t/10);
     c.fillStyle='#07030a';c.fillRect(0,0,w,h);c.save();c.translate(sx,sy);
     c.save();c.beginPath();c.moveTo(-30,-30);c.lineTo(w/2+sl,-30);c.lineTo(w/2-sl,h+30);c.lineTo(-30,h+30);c.closePath();c.clip();
@@ -7580,7 +7684,7 @@ function vsCard(ch){var last=!!CH[ch].her,lt=-1;
     c.globalAlpha=1;vsFigR(c,ch,w*1.5-(w*1.5-RX)*e1,fy,fh);vsFigL(c,-w*0.5+(LX+w*0.5)*e1,fy,fh);
     var dk=rm?1:eo3((t-8)/12);if(dk>0){c.save();c.shadowColor='rgba(255,210,120,0.9)';c.shadowBlur=18;c.strokeStyle='#f6d58a';c.lineWidth=4;
       c.beginPath();c.moveTo(w/2+sl,-30);c.lineTo(w/2+sl-(sl*2)*dk,-30+(h+60)*dk);c.stroke();c.restore();}
-    if(!rm&&t>=18&&t<32){c.fillStyle='rgba(255,250,236,'+(1-(t-18)/14).toFixed(3)+')';c.fillRect(-30,-30,w+60,h+60);}
+    if(!rm&&t>=18&&t<32){c.fillStyle='rgba(255,250,236,'+flashA(1-(t-18)/14).toFixed(3)+')';c.fillRect(-30,-30,w+60,h+60);}
     vsBanner(c,w,h,'PRINCESS','',-1,rm?1:(t-24)/14,h*0.1,'#f2c96a');
     vsBanner(c,w,h,last?'PRINCESS':CH[ch].boss,last?'HER':'',1,rm?1:(t-30)/14,h*0.1+Math.min(46,w*0.052)*2.1,'#f2c96a');
     if(!last&&t>44){var th=CH[ch].th,n=rm?th.length:Math.min(th.length,Math.floor((t-44)/2));
@@ -7603,15 +7707,15 @@ function revealCard(tp){var lt=-1;var fn=function(c,w,h,t){var rm=RM(),k=Math.mi
   var cy=h*0.5,rg=c.createRadialGradient(w/2,cy,10,w/2,cy,Math.max(w,h)*0.6);rg.addColorStop(0,'rgba(200,40,70,'+(0.42*k).toFixed(3)+')');rg.addColorStop(0.5,'rgba(90,20,60,'+(0.2*k).toFixed(3)+')');rg.addColorStop(1,'rgba(0,0,0,0)');
   c.fillStyle=rg;c.fillRect(0,0,w,h);
   c.globalAlpha=k;focusLines(c,w,h,t,w/2,cy,'255,220,230');c.globalAlpha=1;
-  var pk=rm?1:eob(Math.min(1,t/13)),sc=1.5-0.5*pk,fh=Math.min(h*0.5,w*0.72)*sc,j=rm||t>16?0:(hsh(t)-0.5)*8;
+  var pk=rm?1:eob(Math.min(1,t/13)),sc=1.5-0.5*pk,fh=Math.min(h*0.5,w*0.72)*sc,j=rm||t>16?0:(hsh(t)-0.5)*8*shkMul();
   c.save();c.globalAlpha=Math.min(1,t/6);drawFoeFig(c,tp,w/2+j,cy+fh*0.5,fh,{fr:rm?0:Math.floor(t/7),flip:true});c.restore();
   var fz=Math.round(Math.max(30,Math.min(78,w*0.085)));
   c.textAlign='center';c.textBaseline='alphabetic';
   var kk=eo3((t-6)/12);c.globalAlpha=kk;c.font='700 '+Math.round(fz*0.24)+'px '+BODYF;if('letterSpacing' in c)c.letterSpacing=Math.round(fz*0.12)+'px';
   c.fillStyle='#f2c96a';c.fillText('A NEW FOE',w/2,h*0.13);if('letterSpacing' in c)c.letterSpacing='0px';
-  c.font='800 '+fz+'px Storyboo,serif';c.fillStyle='#fff3d6';var dd=rm?0:Math.max(0,14*(1-t/22))+((Math.floor(t)%97)<4?6:0);
+  c.font='800 '+fz+'px Storyboo,serif';c.fillStyle='#fff3d6';var dd=rm?0:(Math.max(0,14*(1-t/22))+((Math.floor(t)%97)<4?6:0))*shkMul();
   c.shadowColor='rgba(0,0,0,0.7)';c.shadowBlur=14;chroma(c,FOE_NM[tp],w/2,h*0.13+fz*1.05,dd);c.shadowBlur=0;c.globalAlpha=1;
-  if(!rm&&(t<20||(Math.floor(t)%97)<4))glitch(c,w,t<20?40*(1-t/20)+6:14,Math.floor(t));
+  if(!rm&&shkMul()>0&&!RF()&&(t<20||(Math.floor(t)%97)<4))glitch(c,w,(t<20?40*(1-t/20)+6:14)*shkMul(),Math.floor(t));
   vignette(c,w,h,0.5);};
   fn.noCastR=1;return fn;}
 
@@ -7631,13 +7735,13 @@ function herCard(c,w,h,t){var rm=RM();c.save();c.fillStyle='#050208';c.fillRect(
       c.save();c.translate(x+ws[i]/2,y);c.scale(sc,sc);c.globalAlpha=Math.min(1,k*1.8);
       var gg=c.createLinearGradient(0,-fz*0.4,0,fz*0.4);gg.addColorStop(0,'#fff8e0');gg.addColorStop(0.55,'#f1c763');gg.addColorStop(1,'#9c6418');
       c.shadowColor='rgba(255,200,100,0.75)';c.shadowBlur=28;c.fillStyle=gg;c.fillText(L[i],0,0);c.restore();
-      if(k<0.35&&!rm){c.fillStyle='rgba(255,248,230,'+(0.5*(1-k/0.35)).toFixed(3)+')';c.fillRect(0,0,w,h);}}
+      if(k<0.35&&!rm&&(i===0||!RF())){c.fillStyle='rgba(255,248,230,'+flashA(0.5*(1-k/0.35)).toFixed(3)+')';c.fillRect(0,0,w,h);}}
     x+=ws[i]+gap;}
   herCard._t=t;
-  if(t>52){var flick=t>=168?1:(t>=140?((hsh(Math.floor(t/2))>0.5)?1:0):0),word=flick?'CONTINUE.':'COMPLETE.';
+  if(t>52){var flick=t>=168?1:(t>=140&&!RF()?((hsh(Math.floor(t/2))>0.5)?1:0):0),word=flick?'CONTINUE.':'COMPLETE.';
     var n=rm?word.length:(flick?word.length:Math.min(word.length,Math.floor((t-52)/3))),sz=Math.round(fz*0.22);
     c.font='700 '+sz+'px '+BODYF;if('letterSpacing' in c)c.letterSpacing=Math.round(sz*0.5)+'px';c.fillStyle=flick?'#bfe3ff':'#f2c96a';
-    var dd=(!rm&&t>=140&&t<172)?4+hsh(t)*8:0;chroma(c,word.slice(0,n),w/2,y+fz*0.78,dd);if('letterSpacing' in c)c.letterSpacing='0px';
+    var dd=(!rm&&t>=140&&t<172)?(4+hsh(t)*8)*shkMul():0;chroma(c,word.slice(0,n),w/2,y+fz*0.78,dd);if('letterSpacing' in c)c.letterSpacing='0px';
     if(dd&&!rm)glitch(c,w,24,Math.floor(t));}c.restore();}
 
 // ── PROLOGUE: title card, six painted memories warm to cold, a page turns ──
@@ -7796,7 +7900,7 @@ function bookFrame(c,w,h){var bw=Math.min(w*0.94,h*1.45),bh=bw*0.66,bx=(w-bw)/2,
   c.fillStyle=gt;c.fillRect(bx+bw/2-26,by,52,bh);return {x:bx,y:by,w:bw,h:bh};}
 var _pianoIx=[0,4,7,4,9,7,4,2,0,-1,-3,-5,-8,-10,-12,-12];
 function pianoNote(i){if(!AUD.ctx||AUD.muted||AUD.musOff)return;var f=261.6*Math.pow(2,(_pianoIx[i%_pianoIx.length])/12);
-  tone(f,1.4,'triangle',0.09,0.004,1.2);tone(f*2,0.9,'sine',0.025,0.004,0.8);}
+  AUD._mus=1;try{tone(f,1.4,'triangle',0.09,0.004,1.2);tone(f*2,0.9,'sine',0.025,0.004,0.8);}finally{AUD._mus=0;}}
 var PRO={sk:1,book:1,note:0};
 function encorePage(c,w,h,t){ENCORE_BG(c,w,h,t);}
 var ENC={open:0,end:0,endT:0};
@@ -7841,7 +7945,7 @@ function v2ChapterBuilt(gs){var ch=gs.ch;
   gs.waves=[];gs.bms=[];gs.introAt=10*T;gs.revealDone=(CH[ch].rev<0)||!!V2S.revealed[CH[ch].rev];
   // Bookmarks (Bible §10): two along the chapter, one at the boss entrance (added
   // when the arena is built). Partial-heal on touch; autosave on touch.
-  var marks=[0.34,0.68];for(var i=0;i<marks.length;i++)gs.bms.push({x:Math.round(gs.stageEnd*marks[i])*T,on:false});
+  var marks=bmMarks();for(var i=0;i<marks.length;i++)gs.bms.push({x:Math.round(gs.stageEnd*marks[i])*T,on:false});
   SKW.on=0;GS&&(GS.crown=null);}
 var RUN_BM=null;   // this run's last bookmark (continue-from-bookmark); the persisted save is the STORY position
 function v2SaveAt(ch,x){if(typeof BGVIEW!=='undefined'&&BGVIEW)return;RUN_BM={ch:ch,x:x||0};
@@ -7935,12 +8039,12 @@ function stepWaves(){var ws=GS.waves;if(!ws)return;
     if(hit){ptcl(w.x,w.y,'note');ws.splice(i,1);}}}
 // Guard / Perfect Note. Returns true when the hit was absorbed.
 function v2Guard(src){var p=GS.p;if(!GS.blocking)return false;
-  var perfect=(p.guardT||0)<=10;p.blockedSome=true;p.inv=Math.max(p.inv,perfect?40:28);
+  var perfect=(p.guardT||0)<=parryWin();p.blockedSome=true;p.inv=Math.max(p.inv,perfect?40:28);
   // Guard costs nothing (Bible §6) but cannot be held forever: three ordinary blocks in quick
   // succession break it — she is shoved back and cannot raise it for a second. Perfect Notes never strain.
   if(!perfect){p.gStrain=(p.gStrain||0)+1;if(p.gStrain>=3){p.gStrain=0;p.guardBroken=70;GS.blocking=false;p.vx=(src&&src.x>p.x)?-7:7;p.vy=-4;
     GS.toasts.push({txt:'GUARD BROKEN',sub:'',t:80,max:80});tone(160,0.18,'sawtooth',0.07);return true;}}
-  if(perfect){GS.res=Math.min(GS.resMax,GS.res+15);GS.hitstop=Math.max(GS.hitstop,6);sfx('pw');
+  if(perfect){resGain(15);GS.hitstop=Math.max(GS.hitstop,6);sfx('pw');
     for(var i=0;i<10;i++)ptcl(p.x+PW/2,p.y+PH*0.45,'gbk');GS.pnT=36;
     // stagger the attacker
     var bs=GS.boss;
@@ -8079,7 +8183,7 @@ function v2DrawWorld(behind){if(GS.ch==null)return;var t=GS.tick;
       for(var r=0;r<3;r++){FX.beginPath();FX.arc(wv.x-wv.d*r*9,wv.y,10+r*6,wv.d>0?-0.9:2.24,wv.d>0?0.9:4.04);FX.stroke();}
       FX.fillStyle='rgba(255,236,190,'+a+')';drawNoteShape(FX,wv.x+wv.d*4,wv.y+(Math.sin(wv.life*0.6)*4),5,false);}
     var p=GS.p;
-    if(GS.blocking&&!p.dead){var pr=GS.p.guardT<=10?1:0;FX.strokeStyle=pr?'rgba(255,230,140,0.95)':'rgba(170,220,255,0.75)';FX.lineWidth=pr?4:2.5;
+    if(GS.blocking&&!p.dead){var pr=GS.p.guardT<=parryWin()?1:0;FX.strokeStyle=pr?'rgba(255,230,140,0.95)':'rgba(170,220,255,0.75)';FX.lineWidth=pr?4:2.5;
       FX.beginPath();FX.arc(p.x+PW/2,p.y+PH*0.5,PH*0.62,0,6.28);FX.stroke();}
     if(GS.pnT>0){GS.pnT--;FX.strokeStyle='rgba(255,224,140,'+(GS.pnT/36)+')';FX.lineWidth=3;FX.beginPath();FX.arc(p.x+PW/2,p.y+PH*0.5,PH*(0.7+(36-GS.pnT)*0.04),0,6.28);FX.stroke();}
     if(GS.xform>0){var xa=GS.xform/90;FX.fillStyle='rgba(255,246,220,'+(0.55*Math.sin(xa*3.14))+')';FX.beginPath();FX.arc(p.x+PW/2,p.y+PH*0.5,PH*(1.4-xa*0.6),0,6.28);FX.fill();}
@@ -8098,7 +8202,9 @@ function v2DrawScreen(){if(GS.ch==null)return;var c=CH[GS.ch],t=GS.tick;
   if(c.storm){FX.fillStyle='rgba(18,24,48,0.34)';FX.fillRect(0,0,W,H);
     if(!SET.reduceMotion){FX.strokeStyle='rgba(190,210,255,0.28)';FX.lineWidth=1.2;FX.beginPath();
       for(var i=0;i<70;i++){var x=((i*97+t*13)%(W+120))-60,y=((i*53+t*21)%(H+80))-40;FX.moveTo(x,y);FX.lineTo(x-7,y+18);}FX.stroke();
-      var fl=(t%420);if(fl<6||(fl>12&&fl<16)){FX.fillStyle='rgba(230,236,255,0.22)';FX.fillRect(0,0,W,H);}}}
+      var fl=(t%420),_fa=0;   // storm lightning: two hard flashes ~0.1s apart; reduced flashing = one slow swell at <=0.07
+      if(RF()){if(fl<30)_fa=0.07*Math.sin(fl/30*Math.PI);}else if(fl<6||(fl>12&&fl<16))_fa=0.22;
+      if(_fa>0){FX.fillStyle='rgba(230,236,255,'+_fa.toFixed(3)+')';FX.fillRect(0,0,W,H);}}}
   if(c.her){var g=FX.createRadialGradient(W/2,H*0.45,Math.min(W,H)*0.25,W/2,H*0.45,Math.max(W,H)*0.75);
     g.addColorStop(0,'rgba(70,30,90,0)');g.addColorStop(1,'rgba(40,14,60,'+(GS.cuesChanged?0.62:0.42)+')');FX.fillStyle=g;FX.fillRect(0,0,W,H);}}
 
@@ -8246,15 +8352,23 @@ function wire(){applyMotionClass();setTimeout(regFlush,2500);titleEntrance();tit
    RUN_CONTINUES=0;RUN_T0=Date.now();GS={};var _rs=(MODE==='side')?START_STAGE:0;CHECKPOINT=_rs;CHECKPOINT_X=0;initGS(_rs);updateHUD();showLevelCard(_rs,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('ovM2').onclick=function(){START_STAGE=0;var _re=document.getElementById('ovRestart');if(_re)_re.style.display='';['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
   document.getElementById('pmResume').onclick=function(){GS.paused=false;syncPauseMenu();};
-  // ── SETTINGS menu (difficulty / sound / motion), reachable from mode-select + pause ──
+  // ── SETTINGS menu (Bible §10): reachable from the title, mode-select and pause ──
   (function(){
     function segSel(id,v){var el=document.getElementById(id);if(!el)return;[].forEach.call(el.children,function(b){b.classList.toggle('sel',b.getAttribute('data-v')===v);});}
     function syncSet(){segSel('setDiff',SET.diff);segSel('setSound',AUD.muted?'off':'on');
       segSel('setMusic',(AUD.muted||AUD.musOff)?'off':'on');
       segSel('setFx',(AUD.muted||AUD.fxOff)?'off':'on');
-      segSel('setMotion',SET.reduceMotion?'on':'off');}
-    function openSet(){syncSet();document.getElementById('settingsScr').classList.add('on');}
+      segSel('setMusVol',String(SET.musVol));segSel('setFxVol',String(SET.fxVol));
+      segSel('setMotion',SET.reduceMotion?'on':'off');
+      segSel('setText',SET.tsz);segSel('setShake',SET.shake);segSel('setFlash',SET.flash?'on':'off');
+      segSel('setSubs',SET.subs?'on':'off');segSel('setVib',SET.vib?'on':'off');
+      segSel('setCSize',SET.cSize);segSel('setCOp',String(SET.cOp));segSel('setCSide',SET.cSide);segSel('setCLift',SET.cLift?'1':'0');
+      segSel('setADmg',SET.aDmg?'on':'off');segSel('setARes',SET.aRes?'on':'off');
+      segSel('setAParry',SET.aParry?'on':'off');segSel('setABm',SET.aBm?'on':'off');
+      var vr=document.getElementById('setVibRow');if(vr)vr.style.display=(navigator.vibrate?'':'none');}   // iOS Safari has no vibration API: hide the row
+    function openSet(){syncSet();applyA11y();var sb=document.querySelector('#settingsScr .sh-box');if(sb)sb.scrollTop=0;document.getElementById('settingsScr').classList.add('on');}
     function pick(id,cb){var el=document.getElementById(id);if(el)el.onclick=function(e){var v=e.target&&e.target.getAttribute&&e.target.getAttribute('data-v');if(!v)return;cb(v);segSel(id,v);};}
+    function opt(id,key,conv,after){pick(id,function(v){setSetting(key,conv?conv(v):v);if(after)after(v);applyA11y();sfx('ui');});}
     var msSet=document.getElementById('msSettings'),pmSet=document.getElementById('pmSettings');
     if(msSet)msSet.onclick=function(){audInit();sfx('ui');openSet();};
     if(pmSet)pmSet.onclick=function(){sfx('ui');openSet();};
@@ -8271,6 +8385,23 @@ function wire(){applyMotionClass();setTimeout(regFlush,2500);titleEntrance();tit
       if(v==='on'&&AUD.muted)audMute(false);
       if(v==='on')sfx('ui');syncSet();});
     pick('setMotion',function(v){setSetting('reduceMotion',v==='on'?1:0);applyMotionClass();sfx('ui');});
+    function num(v){return +v;}
+    opt('setMusVol','musVol',num,function(){audInit();});
+    opt('setFxVol','fxVol',num,function(){audInit();});
+    opt('setText','tsz');
+    opt('setShake','shake');
+    opt('setFlash','flash',function(v){return v==='on'?1:0;});
+    opt('setSubs','subs',function(v){return v==='on'?1:0;},function(v){if(v==='on')capSay('[Captions on]');});
+    opt('setVib','vib',function(v){return v==='on'?1:0;},function(v){if(v==='on')buzz(30);});
+    opt('setCSize','cSize');
+    opt('setCOp','cOp',num);
+    opt('setCSide','cSide');
+    opt('setCLift','cLift',num);
+    opt('setADmg','aDmg',function(v){return v==='on'?1:0;});
+    opt('setARes','aRes',function(v){return v==='on'?1:0;});
+    opt('setAParry','aParry',function(v){return v==='on'?1:0;});
+    opt('setABm','aBm',function(v){return v==='on'?1:0;},function(){bmSync();});
+    applyA11y();
   })();
   document.getElementById('pmRestart').onclick=function(){var _pc=(MODE==='side'&&GS&&GS.ch!=null)?GS.ch:0;GS.paused=false;syncPauseMenu();GS={};CHECKPOINT=_pc;CHECKPOINT_X=0;RUN_CONTINUES=0;RUN_T0=Date.now();initGS(_pc);if(MODE==='side')v2Save(0);updateHUD();showLevelCard(_pc,function(){if(!running){running=true;applyTouchMode();loop();}});};
   document.getElementById('pmMenu').onclick=function(){storyAbort();GS.paused=false;syncPauseMenu();['overlay','bossBar','hint','abilityBar','mCtrl','pauseMenu'].forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('on');});document.getElementById('gameWrap').classList.remove('on');document.getElementById('topBtns').style.display='none';running=false;show('titleScreen');};
