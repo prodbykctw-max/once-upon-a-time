@@ -1468,6 +1468,16 @@ grants CORS only to the github.io origin, rate limits submits per IP
 beyond caps derived from the scoring code, and no longer returns exception
 text. Existing board data untouched. Details: `cloudflare/README.md`.
 
+### 11-15 · Leaderboard Worker security fix (PR #15)
+
+From the 2026-11-15 security audit. `POST /registry` had no rate limit and the Origin check is
+not authentication, so a script could write unlimited fake sign-ups into the boards' KV namespace:
+it now takes 5 per minute per IP on its own `SUBMIT_LIMIT` key. Board names are NFKC-normalised
+and the de-dup key folds Cyrillic and Greek lookalikes to Latin (one row per lookalike group;
+display unchanged). Registry email and name drop zero-width and direction-override characters,
+and the email is capped in bytes for the KV key. Merged into `fix/registry-live` (`06fc6ba`),
+deployed as `jande-leaderboard` version `03a67349` on 2026-11-15; 22/22 tests.
+
 ### 11-15 · Glide transitions — nothing just appears
 
 Three rules from the client: a tapped card grows into the page it opens, back shrinks it into

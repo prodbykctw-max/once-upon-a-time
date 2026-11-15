@@ -393,6 +393,13 @@
 > the existing eased `GS.bossMood` so the score darkens on the same curve as
 > the Shadow of the Groom visuals.
 
+## ✅ 11-15 — LEADERBOARD WORKER SECURITY FIX (PR #15, already merged and deployed)
+Merged into `fix/registry-live` (`d5e77ea`, merge `06fc6ba`); deployed as `jande-leaderboard`
+version `03a67349` on 2026-11-15; 22/22 tests (`node --test cloudflare/leaderboard-worker.test.mjs`).
+`/registry` rate limit 5/min per IP on its own `SUBMIT_LIMIT` key; board names NFKC plus
+Cyrillic/Greek lookalike folding in the de-dup key; invisible characters dropped from registry
+email/name; email capped in bytes. Details: `cloudflare/README.md` "Security (2026-11-15)".
+
 ## ✅ 11-15 — GLIDE TRANSITIONS: "nothing just appears" (`docs/GLIDE_TRANSITIONS.md`)
 Branch `feat/glide-transitions`, based on `origin/fix/registry-live` (its `index.html` is
 byte-identical to live `gh-pages`; `main` and the `hand-painted` branch differ). Motion
