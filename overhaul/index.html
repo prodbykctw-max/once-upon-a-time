@@ -312,6 +312,14 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000}
 .ht-opt:hover{border-color:rgba(255,215,0,.85);background:rgba(60,34,86,.72)}
 #stageSelScr{position:absolute;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(8,2,16,.88)}
 #stageSelScr.on{display:flex}
+#mbScr{position:absolute;inset:0;z-index:96;display:none;align-items:center;justify-content:center;background:rgba(8,2,16,.92)}
+#mbScr.on{display:flex}
+#mbScr .sh-box{text-align:left}
+#mbScr .sh-h,#mbScr .set-note{text-align:center}
+.mb-p{margin:12px 0;padding:11px 14px;border-radius:10px;border:1px solid rgba(217,180,90,.4);background:rgba(244,227,184,.08)}
+.mb-p.lock{opacity:.5;border-style:dashed}
+.mb-h{font-family:var(--body),system-ui,sans-serif;font-weight:800;font-size:calc(11px*var(--ts));letter-spacing:.16em;color:#d9b45a;margin-bottom:5px}
+.mb-t{font-family:var(--body),system-ui,sans-serif;font-size:calc(14px*var(--ts));line-height:1.5;color:#fff7ea;white-space:pre-line}
 /* ══ JELLY UI (client-directed) ══ One tasteful spring, not pudding. Buttons
    squash on press and overshoot back; cards pop in with a single bounce. All of
    it is disabled by body.rm (the reduce-motion setting + OS preference). */
@@ -428,10 +436,6 @@ body:not(.rm) #overlay.on .ov-btns{animation-delay:.12s}
    too wide to reserve without crushing the meters on mobile */
 .hud-r{text-align:right;font-family:Storyboo;font-size:clamp(5px,.9vw,8px);margin-top:42px}
 body.mobile .hud-r{margin-top:46px}
-/* XP track mirrors RESONANCE so the two read as one status block; gold
-   distinguishes progression from the pink resonance meter. */
-.xfil{height:100%;background:linear-gradient(90deg,#ffd36e,#fff3c9);border-radius:inherit;transition:width .2s ease}
-#lvlLbl{color:rgba(255,215,0,.85);font-weight:700}
 .hud-sc{font-family:Storyboo;font-size:clamp(16px,3.4vw,24px);color:#ffd36e;line-height:1;text-shadow:0 2px 4px rgba(0,0,0,.5)}
 .sbar{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
 .slbl{font-family:Storyboo;font-size:8px;color:rgba(210,165,255,.7);letter-spacing:.5px}
@@ -698,7 +702,8 @@ body.mobile .joy-knob{width:64px;height:64px}
 #stBox .st-who{position:absolute;top:-15px;left:24px;margin:0;padding:6px 16px 5px;font-size:12px;letter-spacing:.22em;color:#2a1408;background:linear-gradient(180deg,#f8e2a2,#c8973f);border-radius:3px 12px 3px 12px;box-shadow:0 5px 16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.5)}
 #stBox.r .st-who{left:auto;right:24px;border-radius:12px 3px 12px 3px}
 #stBox.v .st-who{color:#fff4f6;background:linear-gradient(180deg,#d9566e,#7a1c34)}
-#stLine{font-family:var(--body),system-ui,sans-serif;font-size:clamp(16px,2.4vw,22px);line-height:1.42;color:#fff7ea;text-shadow:0 1px 2px rgba(0,0,0,.6);min-height:2.84em}
+#stLine{font-family:var(--body),system-ui,sans-serif;font-size:clamp(16px,2.4vw,22px);line-height:1.42;color:#fff7ea;text-shadow:0 1px 2px rgba(0,0,0,.6);min-height:2.84em;white-space:pre-line}
+#stBox.pg .st-who{letter-spacing:.1em;font-size:11px;max-width:calc(100% - 48px);white-space:nowrap}
 .st-more{position:absolute;right:14px;bottom:9px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid rgba(217,180,90,.85)}
 #stBox.r .st-more{right:auto;left:14px}
 body:not(.rm) .st-more{animation:stBob 1.1s ease-in-out infinite}
@@ -842,7 +847,7 @@ body.rf .bb-ph,body.rf .lc-ld{animation:none}
       <div class="ms-card" id="msSide">
         <div class="ms-ico"><img src="../web/4d21cb338088.png" style="height:98px;image-rendering:auto;filter:drop-shadow(0 3px 7px rgba(0,0,0,.55))" alt="Jandé attacking"></div>
         <div class="ms-t">ACTION RPG</div>
-        <div class="ms-d">Side-scroll combat dash.<br>Swipe <img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCUlEQVR4nO3bMQrCQBQG4SgewNIipXgY8Rye0yOIZbBMYekN9AK7Di+8JYnMV4qJMiz8ELTrJElaq03WjY77wyfjPs/3K+07ZdjO/QWWzkDAQMBAwEBgF72gtlbX86X4/tvjHv2I0Bq2Xj1PEDAQMBAwEDAQCK9Ya6e+j17SdPU8QcBAwEDAQMBAYHErFpW1erV18wQBAwEDAQMBA4G0FZvw5HAWP1avuG6eIGAgYCBgIGAgYCBgIGAgYCBgIGAgsPonilHDOBZf94niRAYCBgIGAgYCq1+x2irV+OuOZAYCBgIGAgYCi1ux1qsU5QkCBgIGAgYCBgL+6xl4goCBgIGAgYCBJEn6W184WCzKwp9lwAAAAABJRU5ErkJggg==" alt=""> Mic Strike · stomp foes · level up.</div>
+        <div class="ms-d">Side-scroll combat dash.<br>Swipe <img class="pxa" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAABCUlEQVR4nO3bMQrCQBQG4SgewNIipXgY8Rye0yOIZbBMYekN9AK7Di+8JYnMV4qJMiz8ELTrJElaq03WjY77wyfjPs/3K+07ZdjO/QWWzkDAQMBAwEBgF72gtlbX86X4/tvjHv2I0Bq2Xj1PEDAQMBAwEDAQCK9Ya6e+j17SdPU8QcBAwEDAQMBAYHErFpW1erV18wQBAwEDAQMBA4G0FZvw5HAWP1avuG6eIGAgYCBgIGAgYCBgIGAgYCBgIGAgsPonilHDOBZf94niRAYCBgIGAgYCq1+x2irV+OuOZAYCBgIGAgYCi1ux1qsU5QkCBgIGAgYCBgL+6xl4goCBgIGAgYCBJEn6W184WCzKwp9lwAAAAABJRU5ErkJggg==" alt=""> Mic Strike · stomp foes.</div>
       </div>
       <div class="ms-card" id="msTemple">
         <div class="ms-ico"><img src="../web/4ddc3f8db2d1.png" style="height:98px;image-rendering:auto;filter:drop-shadow(0 3px 7px rgba(0,0,0,.55))" alt="Jandé running"></div>
@@ -863,7 +868,6 @@ body.rf .bb-ph,body.rf .lc-ld{animation:none}
     <div class="hud-l">
       <div class="hud-masks" id="hudMasks"></div>
       <div class="sbar"><span class="slbl">RESONANCE</span><div class="strk"><div class="sfil" id="sfil" style="width:0%"></div></div></div>
-      <div class="sbar"><span class="slbl" id="lvlLbl">LV 1</span><div class="strk"><div class="xfil" id="xfil" style="width:0%"></div></div></div>
     </div>
     <div class="hud-r"><div class="hud-sc" id="hudSc">0</div></div>
   </div>
@@ -940,7 +944,14 @@ body.rf .bb-ph,body.rf .lc-ld{animation:none}
   <div class="sh-h">STORYBOOK</div>
   <div class="set-note">Every chapter you have reached. Pick one to read it again.</div>
   <div id="ssRows" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0"></div>
+  <button class="ov-btn" id="ssBook" style="margin-top:4px">MEMORY BOOK</button>
   <button class="ov-btn" id="ssClose" style="margin-top:8px">BACK</button>
+</div></div>
+<div id="mbScr" role="dialog" aria-label="Memory Book"><div class="sh-box">
+  <div class="sh-h">MEMORY BOOK</div>
+  <div class="set-note" id="mbCount"></div>
+  <div id="mbRows"></div>
+  <button class="ov-btn" id="mbClose" style="margin-top:8px">BACK</button>
 </div></div>
 <div id="settingsScr" role="dialog" aria-label="Settings"><div class="sh-box">
   <div class="sh-h">SETTINGS</div>
@@ -1373,15 +1384,14 @@ function initGS(ai){_bgW=null;_bgF=null;_bgV=null;_bgP=null;
   ai=CH[_ch].env;   // chapter -> world
   // dev: ?fin=1 on the last chapter jumps straight to the finale run-in
   var _fin=false;try{_fin=/[?&]fin=1/.test(location.search);}catch(_e2){}
-  var sc=GS.score||0, gn=GS.totalNotes||0, lvl=GS.level||1, xp=GS.xp||0, mm=GS.permMax||MASKS, dmg=GS.dmg||1;
+  var sc=GS.score||0, gn=GS.totalNotes||0, mm=GS.permMax||MASKS;
   var hpB=shop().hp||0;
   GS={ai:ai,ch:_ch,score:sc,totalNotes:gn,masks:mm+hpB,maxMasks:mm+hpB,permMax:mm,res:0,resMax:200,
-    level:lvl,xp:xp,xpNext:GS.xpNext||100,dmg:dmg,
     // ── per-STAGE performance counters (reset with everything else here, so the
     //    end-of-stage tally scores what you just did, not the whole run) ──
     kills:0,foesTotal:0,dmgTaken:0,notes0:0,
     camX:0,camY:0,tick:0,lyricT:0,titleT:210,won:false,finale:0,endT:0,trans:false,paused:false,mapOpen:false,blocking:false,blockHits:0,
-    dmgT:0,shieldT:0,fxMax:{},levelUpT:0,
+    dmgT:0,shieldT:0,fxMax:{},
     solid:{},tiles:[],bkbl:[],enemies:[],notes:[],pwr:[],ptcl:[],boss:null,bossActive:false,
     gateOpen:false,gateFlash:0,gateCol:88,arrowT:0,LW:1e9,LH:22,
     speed:5.2,dist:0,nextTheme:(_fin?12:330),obs:[],genC:0,groundR:14,
@@ -1435,7 +1445,7 @@ function buildRunner(gs){
   gs.stageEnd=330;          // run the SAME length the stage used to auto-transition at (old nextTheme=330), then the boss gate — fight through, then beat the boss to proceed(was 108 = boss far too soon)
   gs.bossBuilt=false; gs.bossActive=false; gs.bossDeadT=0;
   gs.nextTheme=1e9;         // RPG advances by BEATING the stage boss, not by distance
-  gs.mapSeeded=false; gs.cacheSeeded=false; gs.cacheGot=false;
+  gs.mapSeeded=false; gs.cacheSeeded=false; gs.cacheGot=false; gs.pgs=[];
   gs.mapFound=!!mapsOwned()[gs.ai]; gs.cacheX=0; gs.cacheY=0;   // Wanderer's Map (persisted per stage)
   genAhead(gs,Math.ceil((W||1280)/T)+30);
 }
@@ -1515,6 +1525,8 @@ function genAhead(gs,until){
       for(_cq=0;_cq<3;_cq++)setT(gs,c+1+_cq,_cr,'P');
       for(_cq=0;_cq<3;_cq++)gs.notes.push({x:(c+1+_cq)*T+8,y:(_cr-1)*T-6,anim:(_cq*9)%60,got:false,cache:true});
       gs.pwr.push({x:(c+2)*T,y:(_cr-2)*T,type:'DEVOTION',anim:0,got:false,cache:true});
+      // the chapter's HIDDEN PAGE hovers over the same off-path ledge (client copy 11-16); gone once collected
+      if(gs.ch!=null&&gs.ch<HPAGES.length&&!V2S.pages[gs.ch])gs.pgs.push({x:(c+3)*T+4,y:(_cr-2)*T-6,ch:gs.ch,anim:0,got:false});
       gs.cacheX=(c+2)*T;gs.cacheY=(_cr-1)*T;gs.genC+=4;gs.cacheSeeded=true;continue;}
     if(r<rec.gap&&c>40){ // GAP — jump it (width + notes arc over), per-stage
       var gw=2+Math.floor(rnd01(c*3.1)*rec.gapMax);
@@ -1848,6 +1860,11 @@ function sfx(n){
     case 'fanfare':[0,4,7,12,16].forEach(function(iv,k){tone(r*Math.pow(2,iv/12),0.22,'triangle',0.13,0.005,0.17,0,t+k*0.09);});break;
     case 'revive':tone(r/2,0.7,'sine',0.14,0.05,0.4,r);[12,16,19,24].forEach(function(iv,k){tone(r*Math.pow(2,iv/12),0.3,'sine',0.07,0.01,0.24,0,t+0.3+k*0.09);});break;
     case 'ui':   tone(880,0.05,'sine',0.07);break;
+    // Guard: the first two guarded hits ring lower each time, the break is a dull crack, and the return is one soft rising chime
+    case 'gb1':  tone(300,0.07,'square',0.05);tone(450,0.05,'sine',0.03);break;
+    case 'gb2':  tone(230,0.09,'square',0.06);tone(340,0.06,'sine',0.03);break;
+    case 'gbreak':hiss(0.14,0.13,3400,420);tone(170,0.22,'sawtooth',0.09,0.002,0.16,-80);tone(90,0.25,'sine',0.12);break;
+    case 'gback':tone(660,0.1,'sine',0.05);tone(990,0.14,'sine',0.04,0.01,0.1,0,t+0.07);break;
   }}
 // ── generative score: bright C–G–Am–F (I–V–vi–IV) major pad, reactive ──
 var MUS={step:0,next:0,cut:600};
@@ -1950,7 +1967,6 @@ function update(){
   if(GS.foes)for(var _fi=0;_fi<GS.foes.length;_fi++){var _fe=GS.foes[_fi];_fe._ix=_fe.x;_fe._iy=_fe.y;}
   if(GS.boss){GS.boss._ix=GS.boss.x;GS.boss._iy=GS.boss.y;}
   if(GS.shieldT>0){GS.shieldT--;p.inv=Math.max(p.inv,2);}
-  if(GS.levelUpT>0)GS.levelUpT--;
   if(p.dead){
     if(!p.noteGone){p.noteGone=true;sfx('death');noteBurst(p.x+PW/2,Math.min(p.y+PH/2,GS.LH*T-50),26);buzz([120,50,160]);}
     p.deadT++;if(p.deadT>(MODE==='side'?55:110)){if(MODE==='side'){if(!p.intShown){p.intShown=1;v2Interrupted();}}else showOver(false);}return;}
@@ -2301,6 +2317,10 @@ function update(){
       updateHUD();}}
   for(var pwi=0;pwi<GS.pwr.length;pwi++){var pw=GS.pwr[pwi];if(pw.got)continue;pw.anim++;
     if(p.x<pw.x+26&&p.x+PW>pw.x-2&&p.y<pw.y+26&&p.y+PH>pw.y){pw.got=true;applyPowerup(pw.type);sfx('pw');ptcl(pw.x+12,pw.y+12,'gbk');if(pw.cache){GS.cacheGot=true;GS.toasts.push({txt:'CACHE CLAIMED',sub:'THE WANDERER REWARDS THE CURIOUS',t:170,max:170,ico:'crown'});}}}
+
+  // ── HIDDEN PAGES: touch to collect, save it, and read it in Princess's voice ──
+  if(GS.pgs&&MODE==='side'&&GS.ch!=null&&!BGVIEW)for(var pgi=0;pgi<GS.pgs.length;pgi++){var pg=GS.pgs[pgi];if(pg.got)continue;pg.anim++;
+    if(!GS.cut&&p.x<pg.x+24&&p.x+PW>pg.x-4&&p.y<pg.y+30&&p.y+PH>pg.y-4){pageCollect(pg);break;}}
 
   // ── dying foes: hold them on screen for a beat so the kill is legible ──
   for(var _dq=GS.foes.length-1;_dq>=0;_dq--){var _df=GS.foes[_dq];
@@ -3797,7 +3817,7 @@ function updateEnemies(){
     if((e.vy||0)>0&&(isSolid(feL,feR)||isSolid(feRt,feR))){e.y=feR*T-50;e.vy=0;}
     e.x=Math.max(T,Math.min(e.x,(GS.LW-1)*T-44));
     // FALL DEATH counts as kill
-    if(e.y>GS.LH*T+60){e.alive=false;GS.score+=280;resGain(38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);ptcl(e.x+22,(GS.LH-1)*T,'kill',goreOf(e));updateHUD();continue;}
+    if(e.y>GS.LH*T+60){e.alive=false;GS.score+=280;resGain(38);ptcl(e.x+22,(GS.LH-1)*T,'kill',goreOf(e));updateHUD();continue;}
     for(var bi=e.bullets.length-1;bi>=0;bi--){var bl=e.bullets[bi];bl.x+=bl.vx;bl.y+=bl.vy;bl.life-=0.013;
       if(bl.life<=0){e.bullets.splice(bi,1);continue;}
       if(p.inv===0&&!p.dashing&&bl.x<p.x+PW&&bl.x+8>p.x&&bl.y<p.y+PH&&bl.y+8>p.y){hurtP(p);e.bullets.splice(bi,1);}}
@@ -3865,9 +3885,9 @@ function nextBoss(b){
   var dur={CHASE:110,JUMP:70,SLAM:80,SHOOT:75,CHARGE:55,WAIT:50,RAGE:90,DRIFT:100};
   b.stateTimer=Math.floor((dur[b.state]||80)*(b.enraged?0.7:1));}
 
-function hitE(e){e.hp-=(GS.dmg||1)+(GS.dmgT>0?1:0);GS.score+=120;
+function hitE(e){e.hp-=1+(GS.dmgT>0?1:0);GS.score+=120;
   gore(e.x+22+((GS.p.x<e.x)?22:-22),e.y+24,(GS.p.x<e.x)?1:-1,goreOf(e),6);
-  if(e.hp<=0){e.alive=false;GS.score+=280;resGain(38);gainXP(e.tp==='WARDEN'?40:e.tp==='LANCER'?30:20);
+  if(e.hp<=0){e.alive=false;GS.score+=280;resGain(38);
     // OUTWARD from the struck side, not a 22-blob burst dropped on the body
     gore(e.x+22+((GS.p.x<e.x)?26:-26),e.y+22,(GS.p.x<e.x)?1:-1,goreOf(e),14);updateHUD();}
   else{e.stg=true;e.stgT=20;e.vx*=-2;}}
@@ -3881,7 +3901,7 @@ function hitB(b){
   try{var _bd=(GS.p.x+PW/2)<(b.x+b.W/2)?1:-1;
       gore(b.x+b.W/2+_bd*(b.W*0.35),b.y+b.H*0.45,_bd,_gore||'200,20,55',8);}catch(_e){}
   if(b.hurtCd>0)return;if(v2BossHitFilter(b)){b.hurtCd=8;return;}
-  b.hp-=((GS.dmg||1)+(GS.dmgT>0?1:0))*(V2HIT==='wave'?0.5:1);b.hurtCd=16;GS.score+=550;
+  b.hp-=(1+(GS.dmgT>0?1:0))*(V2HIT==='wave'?0.5:1);b.hurtCd=16;GS.score+=550;
   ptcl(b.x+b.W/2,b.y+28,'bhit',_gore);   // hit spray in the villain's own colour
   if(b.state!=='RAGE'){b.state='WAIT';b.stateT=0;b.stateTimer=24;}
   if(b.hp<=0&&b.princess){v2PrincessKO(b);document.getElementById('bbF').style.width='0%';return;}   // zero health is not victory
@@ -3899,10 +3919,6 @@ function hurtP(p){if(p.inv>0||BGVIEW)return;   // viewer: nothing interrupts a l
   if(GS.blocking){ptcl(p.x+(p.faceL?0:PW),p.y+30,'slash');GS.blockHits++;p.inv=45;p.vx=p.faceL?4:-4;if(GS.blockHits%2===0){if(!assistSpare())GS.masks--;updateHUD();}}
   else{if(!assistSpare())GS.masks--;updateHUD();p.inv=90;p.vx=p.faceL?10:-10;p.vy=-8;ptcl(p.x+14,p.y+30,'hurt');buzz([80,30,80]);}
   if(GS.masks<=0){p.dead=true;p.vy=-10;}}
-function gainXP(amt){GS.xp+=amt;
-  if(GS.xp>=GS.xpNext){GS.xp-=GS.xpNext;GS.level++;GS.xpNext=Math.floor(GS.xpNext*1.4);
-    if(GS.level%2===0){GS.permMax++;GS.maxMasks++;GS.masks=GS.maxMasks;}if(GS.level%3===0)GS.dmg++;
-    GS.levelUpT=120;for(var i=0;i<20;i++)ptcl(GS.p.x+14,GS.p.y+20,'gbk');}updateHUD();}
 function applyPowerup(type){
   if(type==='DEVOTION'){GS.masks=Math.min(GS.maxMasks+3,GS.masks+2);GS.toasts.push({txt:'DEVOTION',sub:GS.masks>GS.maxMasks?'EXTRA LIFE BANKED':'+2 LIVES',t:190,max:190,ico:'heart'});}
   else if(type==='VOICE'){GS.res=GS.resMax;GS.toasts.push({txt:'DEEP BREATH',sub:'RESONANCE REFILLED',t:190,max:190,ico:'mic'});}
@@ -4148,7 +4164,7 @@ function applyA11y(){try{var d=document.documentElement,b=document.body;
   var mc=document.getElementById('mCtrl');if(mc)mc.classList.toggle('swap',SET.cSide==='swap');
   b.classList.toggle('rf',!!SET.flash);audVol();measureCtrlTop();}catch(_e){}}
 // sound captions: audio cues that carry information. No timers; the CSS animation ends and removes the node.
-var CAP_TXT={hurt:'[Sharp hit]',death:'[Sorrowful notes]',fanfare:'[Triumphant fanfare]',revive:'[Rising chime]',pw:'[A bright chord rings]'};
+var CAP_TXT={gbreak:'[Guard breaks]',gback:'[Guard ready]',hurt:'[Sharp hit]',death:'[Sorrowful notes]',fanfare:'[Triumphant fanfare]',revive:'[Rising chime]',pw:'[A bright chord rings]'};
 function capSay(t){if(!SET.subs)return;var box=document.getElementById('caps');if(!box)return;
   while(box.children.length>=2)box.removeChild(box.firstChild);
   var e=document.createElement('div');e.className='cap';e.textContent=t;
@@ -4212,16 +4228,12 @@ function stumbleT(){var t3=GS.t3,p=GS.p;
 function caughtT(){var p=GS.p;sfx('death');p.dead=true;p.deadT=0;GS.t3.grabT=44;GS.masks=Math.min(GS.masks,0);updateHUD();
   buzz([120,50,160]);}
 
-// ── ACTION RPG (side mode): persistent level, combo kills, damage pops ──
-function rpgLoad(){try{return JSON.parse(localStorage.getItem('jande_rpg')||'{"lvl":1,"xp":0,"next":80}');}catch(x){return{lvl:1,xp:0,next:80};}}
-var RPG=rpgLoad();
-function rpgXP(a){RPG.xp+=a;var up=false;
-  while(RPG.xp>=RPG.next){RPG.xp-=RPG.next;RPG.lvl++;RPG.next=Math.floor(RPG.next*1.3);up=true;}
-  if(up){sfx('fanfare');GS.toasts.push({txt:'LEVEL '+RPG.lvl,sub:'HER VOICE GROWS STRONGER',t:220,max:220,ico:'crown'});
-    GS.masks=Math.min(GS.maxMasks,GS.masks+1);updateHUD();
-    buzz([20,20,50]);}
-  else updateHUD();   // refresh the XP bar on every gain, not only on level-up
-  try{localStorage.setItem('jande_rpg',JSON.stringify(RPG));}catch(x){}}
+// ── ACTION RPG (side mode): combo kills, damage pops. There is NO XP and NO level (client decision 3a, 11-16). ──
+var PG_NOW=0;
+function pageCollect(pg){pg.got=true;var n=pg.ch;V2S.pages[n]=1;v2Persist();sfx('pw');
+  for(var i=0;i<14;i++)ptcl(pg.x+10,pg.y+12,'gbk');
+  GS.toasts.push({txt:'HIDDEN PAGE '+toRoman(n+1),sub:HPAGES[n].t.toUpperCase(),t:150,max:150,ico:'crown'});
+  PG_NOW=n;storyRun([['H',HPAGES[n].x]]);}   // story beat: GS.cut pauses the world, tap to close, SKIP works
 function addPop(x,y,txt){GS.pops.push({x:x,y:y,txt:''+txt,t:52});}
 function killFoe(f){
   // Client: "you can't really see them die too well." They were removed the
@@ -4233,7 +4245,7 @@ function killFoe(f){
   GS.combo++;GS.comboT=130;
   var cm=1+0.25*Math.min(GS.combo-1,8);
   var sc=Math.round((f.tp?160:120)*runMult()*cm);
-  GS.score+=sc;addPop(f.x+26,f.y-4,sc);rpgXP(f.tp?14:10);
+  GS.score+=sc;addPop(f.x+26,f.y-4,sc);
   noteBurst(f.x+26,f.y+22,7);
   resGain(12);updateHUD();
   buzz(30);}
@@ -5639,6 +5651,14 @@ function draw(){
     FX.font='900 24px Storyboo,sans-serif';FX.textAlign='center';
     FX.fillStyle='rgba(150,255,196,'+(0.6+0.35*Math.sin(GS.tick*0.15))+')';
     starMark(GS.cacheX+4,GS.cacheY-30+Math.sin(GS.tick*0.12)*6,9);}
+  // HIDDEN PAGES: a small parchment drawn in code (no stock glyphs); a soft slow glow, still under Reduce Motion
+  if(GS.pgs)for(i=0;i<GS.pgs.length;i++){var hg=GS.pgs[i];if(hg.got)continue;
+    var hbob=RM()?0:Math.sin(GS.tick*0.06+i)*4,hx=hg.x,hy=hg.y+hbob;
+    FX.fillStyle='rgba(255,236,170,'+(RM()?0.2:0.16+0.06*Math.sin(GS.tick*0.06))+')';FX.beginPath();FX.arc(hx+10,hy+13,26,0,6.28);FX.fill();
+    FX.fillStyle='#f4e3b8';FX.strokeStyle='#6b4a1e';FX.lineWidth=2;
+    FX.beginPath();FX.moveTo(hx,hy);FX.lineTo(hx+14,hy);FX.lineTo(hx+20,hy+6);FX.lineTo(hx+20,hy+26);FX.lineTo(hx,hy+26);FX.closePath();FX.fill();FX.stroke();
+    FX.fillStyle='#d9b45a';FX.beginPath();FX.moveTo(hx+14,hy);FX.lineTo(hx+14,hy+6);FX.lineTo(hx+20,hy+6);FX.closePath();FX.fill();FX.stroke();
+    FX.fillStyle='rgba(107,74,30,0.7)';for(var hl=0;hl<3;hl++)FX.fillRect(hx+4,hy+11+hl*5,12-hl*2,1.6);}
   // particles
   for(i=0;i<GS.ptcl.length;i++){var pp=GS.ptcl[i];
     FX.globalAlpha=Math.max(0,pp.life*pp.life);
@@ -5702,7 +5722,6 @@ function draw(){
   drawPowerHUD(ac);drawDist(ac);drawToasts();
   // (start-of-run instruction banner removed at request — the how-to page
   //  before play covers controls)
-  if(GS.levelUpT>0)drawLevelUp();
   stageBanner();
   syncPauseMenu();if(GS.paused)drawPause();
 }
@@ -5744,11 +5763,9 @@ function drawDist(ac){
   FX.font='7px Storyboo,sans-serif';FX.fillStyle='rgba(255,255,255,0.3)';
   var ml=runMult();
   FX.fillText((MODE==='temple'?'SPEED '+GS.speed.toFixed(1)+'  ':'')+(ml>1?'×'+(ml%1?ml.toFixed(1):ml):''),W/2,74);
-  // gem wallet + RPG level, top-left under hearts
+  // gem wallet, top-left under hearts
   FX.textAlign='left';FX.font='10px Storyboo,sans-serif';
   FX.fillStyle='rgba(190,120,255,0.9)';FX.fillText((GS.gemsLive||0)+' GEMS',14,52);
-  // (level/XP moved to the status bar so it shows in BOTH modes -- this canvas
-  //  copy was side-scroller only and duplicated it)
   FX.textAlign='center';
 }
 
@@ -6545,7 +6562,6 @@ function drawFxChips(){
     FX.fillStyle='rgba(255,215,0,0.85)';
     FX.fillRect(cx+1,cy+hh-3,(cw-2)*Math.max(0,Math.min(1,ch[i][2]/ch[i][3])),2);
     cx+=cw+gap;}}
-function drawLevelUp(){var a=Math.min(1,GS.levelUpT/30);FX.font='900 36px Storyboo,sans-serif';FX.fillStyle='rgba(255,215,0,'+a+')';FX.textAlign='center';FX.fillText('LEVEL '+GS.level+'!',W/2,H*0.4);FX.font='300 italic 15px Storyboo,sans-serif';FX.fillStyle='rgba(255,245,220,'+a+')';FX.fillText(GS.level%2===0?'+1 Life':GS.level%3===0?'Stronger Vocals':'Her range expands',W/2,H*0.4+30);}
 function syncPauseMenu(){
   var el=document.getElementById('pauseMenu');
   var want=!!(GS.paused&&!GS.mapOpen&&running);
@@ -6614,14 +6630,6 @@ function updateHUD(){
   else{_hs.textContent=GS.score.toLocaleString();_hs.classList.remove('gn');}
   var _ha=document.getElementById('hudAct');if(_ha)_ha.textContent=(GS.ch!=null?CH[GS.ch].n:STAGES[GS.ai].n);
   document.getElementById('sfil').style.width=(GS.res/GS.resMax*100)+'%';
-  // Level/XP in the status bar, both modes. RPG (not GS.level) is the real
-  // progression: it persists to localStorage and is what kills feed, whereas
-  // GS.level belongs to the legacy platformer path.
-  var lb=document.getElementById('lvlLbl'),xf=document.getElementById('xfil');
-  if(lb&&xf&&typeof RPG!=='undefined'&&RPG){
-    lb.textContent='LV '+RPG.lvl;
-    xf.style.width=(Math.max(0,Math.min(1,RPG.xp/RPG.next))*100)+'%';
-  }
   renderChapters();}
 // ── chapter track ─────────────────────────────────────────────────────────
 // One node per stage with a crown over the current one. Nodes are built once
@@ -6651,7 +6659,7 @@ function renderChapters(){
   if(nm&&CH[_cn])nm.textContent='CHAPTER '+rn+' · '+CH[_cn].n;
 }
 function syncAbilityBar(){var p=GS.p;
-  setCd('cd3',p.dashCd,32);setCd('cd4',GS.blocking?1:0,1);setCd('cd5',p.atkT,14);}
+  setCd('cd3',p.dashCd,32);setCd('cd4',GS.p.guardBroken>0?GS.p.guardBroken/GUARD_BREAK_T:(GS.blocking?1:0),1);setCd('cd5',p.atkT,14);}
 function setCd(id,v,mx){var el=document.getElementById(id);if(el)el.style.height=(Math.max(0,Math.min(1,v/mx))*100)+'%';}
 
 function showLevelCard(ai,cb){if(MODE==='temple'){var _s=STAGES[ai]||STAGES[0];document.getElementById('lcR').textContent='STAGE '+toRoman(ai+1);var _t=document.getElementById('lcT');_t.textContent=_s.n;_t.style.color='#'+_s.ac.slice(1);document.getElementById('lcL').textContent=_s.lyr;var _l=document.getElementById('lvlCard');_l.classList.add('on');setTimeout(function(){_l.classList.remove('on');if(cb)cb();},2200);return;}
@@ -6660,8 +6668,8 @@ function showLevelCard(ai,cb){if(MODE==='temple'){var _s=STAGES[ai]||STAGES[0];d
   document.getElementById('lcDiv').style.background='linear-gradient(90deg,transparent,#'+st.ac.slice(1)+',transparent)';
   document.getElementById('lcL').textContent='';var lc=document.getElementById('lvlCard');lc.classList.add('on');setTimeout(function(){lc.classList.remove('on');if(cb)cb();},2200);}
 function toRoman(n){return ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI'][n-1]||n;}
-function nextStage(){setZoom(BASEZ);var ai=(GS.ch!=null?GS.ch:GS.ai)+1,sc=GS.score,gn=GS.totalNotes,lvl=GS.level,xp=GS.xp,mm=GS.permMax,dmg=GS.dmg;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.notes0=gn;   // notes0 = baseline, so the tally scores THIS stage's notes
-GS.level=lvl;GS.xp=xp;GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;GS.dmg=dmg;CHECKPOINT=ai;CHECKPOINT_X=0;updateHUD();v2Save(0);showLevelCard(ai,function(){});}
+function nextStage(){setZoom(BASEZ);var ai=(GS.ch!=null?GS.ch:GS.ai)+1,sc=GS.score,gn=GS.totalNotes,mm=GS.permMax;initGS(ai);GS.score=sc;GS.totalNotes=gn;GS.notes0=gn;   // notes0 = baseline, so the tally scores THIS stage's notes
+GS.permMax=mm;GS.maxMasks=mm;GS.masks=mm;CHECKPOINT=ai;CHECKPOINT_X=0;updateHUD();v2Save(0);showLevelCard(ai,function(){});}
 // ── THE REUNION ── the run's real ending: she reaches her prince. Drawn as a
 // tableau (his sprite + her back-view turning to him) over a gold bloom, then
 // the normal results board underneath so the run still scores.
@@ -6731,7 +6739,7 @@ function drawEnding(){
 }
 // CONTINUE from the game-over overlay: spend the escalating gem cost, keep the
 // run's score + Grace Notes, and drop back in. Side mode rebuilds the reached
-// stage (initGS preserves score/notes/level/xp/dmg) and respawns where she fell;
+// stage (initGS preserves score/notes) and respawns where she fell;
 // temple mode rises in place and sweeps the lane clean. Returns false if unaffordable.
 function continueRun(){
   if(!canContinue())return false;
@@ -6752,7 +6760,7 @@ function continueRun(){
     buzz([20,30,80]);
     if(!running){running=true;applyTouchMode();loop();}
   }else{
-    initGS(CHECKPOINT);              // preserves score/notes/level/xp/dmg from prior GS
+    initGS(CHECKPOINT);              // preserves score/notes from prior GS
     GS.gemsLive=w.gems;
     if(CHECKPOINT_X>8*T)respawnAt(CHECKPOINT_X);
     GS.toasts.push({txt:'SHE RISES AGAIN',sub:subT,t:200,max:200});
@@ -6787,8 +6795,7 @@ function showLevelClear(){
   var pNotes=notes*90;
   var pFoes=kills*220+((foesN&&kills>=foesN)?1500:0);      // full-clear bonus
   var pClean=Math.max(0,4000-hits*650);                     // UNTOUCHED
-  var pLevel=(GS.level||1)*260;
-  var total=pTime+pNotes+pFoes+pClean+pLevel;
+  var total=pTime+pNotes+pFoes+pClean;
   function row(l,mid,pts){return '<div class="tly-r"><span class="tly-l">'+l+'</span>'+
     '<span class="tly-m">'+mid+'</span><span class="tly-p">'+pts.toLocaleString()+'</span></div>';}
   var bh='<div class="tly">';
@@ -6796,7 +6803,6 @@ function showLevelClear(){
   bh+=row('GRACE NOTES',String(notes),pNotes);
   bh+=row('FOES SILENCED',kills+(foesN?' / '+foesN:''),pFoes);
   bh+=row('UNTOUCHED',hits===0?'FLAWLESS':String(hits),pClean);
-  bh+=row('RESONANCE','LV '+(GS.level||1),pLevel);
   bh+='<div class="tly-r tly-tot"><span class="tly-l">TOTAL</span><span class="tly-m"></span>'+
       '<span class="tly-p" id="tlyTot">0</span></div></div>';
   GS.score+=total;   // the tally's payout is real score
@@ -7341,10 +7347,34 @@ var FOE_NM=['THE INSTIGATOR','THE SUSPICION','THE IMPULSE','THE GRUDGE','THE SPI
 // Ability onboarding (Bible §6): the chapter in which each verb is learned.
 var ABIL={mic:0,wave:0,guard:1,bass:2,second:3,voice:5};
 var ABIL_NM={mic:'MIC CHECK',wave:'SOUNDWAVE',guard:'GUARD',bass:'BASS DROP',second:'SECOND WIND',voice:'FULL VOICE'};
+// HIDDEN PAGES (client copy, BASILICA 16 Nov 2026, section 3): Princess's own voice, one per chapter I-XI. VERBATIM; never paraphrase.
+// t = the page's title, x = its passage. Collected pages live in V2S.pages {chapterIndex:1} and stay readable in the Memory Book.
+var HPAGES=[
+ {t:'Control',x:'I had the whole thing pictured. How it would happen. How he’d show up. I just needed everything to go the way I saw it.'},
+ {t:'Insecurity',x:'I had a feeling I knew the answer. I asked anyway. I wanted to see if he’d tell me the truth without me having to tell him what I knew.'},
+ {t:'Defensiveness',x:'I could explain every decision I made. And I did. In detail. Whether anybody asked or not. I had receipts, too.'},
+ {t:'Selfishness',x:'I wanted room to do things my way. I didn’t always notice how little room I left for anybody else.'},
+ {t:'Novelty',x:'The beginning was my favorite part. The butterflies, the surprises, the attention. Everything was exciting when nobody knew what came next.'},
+ {t:'Commitment',x:'I wanted him close. I wanted my freedom too. I kept thinking there had to be a way to have both without making a choice.'},
+ {t:'Boundaries',x:'I thought keeping things undefined meant keeping things simple. Turns out, everybody was working with a different definition.'},
+ {t:'Distance',x:'I told him everything that happened that day. Almost everything. The parts I couldn’t explain were usually the parts that mattered.'},
+ {t:'Pride',x:'I wasn’t about to apologize just to end an argument. Especially when I had a perfectly good reason for why I wasn’t wrong.'},
+ {t:'Vulnerability',x:'I kept waiting for the right moment to say what I actually felt. There was always another reason to wait.'},
+ {t:'Self-Confrontation',x:'I keep thinking about all the versions of me that got us here. The ones I liked. The ones I didn’t. The ones I wish I could take back.\nI guess they’re all still me.'}
+];
 var V2K='ouat2';
-function v2Load(){try{return JSON.parse(localStorage.getItem(V2K)||'{}')||{};}catch(e){return {};}}
+function v2Load(){try{var o=JSON.parse(localStorage.getItem(V2K)||'{}');return (o&&typeof o==='object'&&!Array.isArray(o))?o:{};}catch(e){return {};}}
 function v2Persist(){try{localStorage.setItem(V2K,JSON.stringify(V2S));}catch(e){}}
-var V2S=v2Load();V2S.learned=V2S.learned||{};V2S.revealed=V2S.revealed||{};V2S.clears=V2S.clears||{};
+var V2S=v2Load();V2S.learned=V2S.learned||{};V2S.revealed=V2S.revealed||{};V2S.clears=V2S.clears||{};V2S.pages=(V2S.pages&&typeof V2S.pages==='object')?V2S.pages:{};
+// XP / LEVEL MIGRATION (client decision 3a, 11-16). Game I has no XP, no levels and no stat upgrades. Older saves carry such fields:
+// they are dropped on load. Chapter, ability, collectible (pages) and story-save progression are untouched. NEVER reintroduce them.
+// Do NOT remove localStorage 'jande_rpg' / 'jande_shop': the public game at the site root shares this origin and still reads them.
+var XP_KEYS=['xp','xpNext','lvl','level','next','dmg','rpg','levelUp'];
+function xpMigrate(){var dirty=false,k;
+  for(k=0;k<XP_KEYS.length;k++)if(XP_KEYS[k] in V2S){delete V2S[XP_KEYS[k]];dirty=true;}
+  if(V2S.save&&typeof V2S.save==='object')for(k=0;k<XP_KEYS.length;k++)if(XP_KEYS[k] in V2S.save){delete V2S.save[XP_KEYS[k]];dirty=true;}
+  if(dirty)v2Persist();}
+xpMigrate();
 var SEEN={};                                   // cuts already played THIS session, per chapter
 function seen(ch,k){var s=SEEN[ch]||(SEEN[ch]={});if(s[k])return true;s[k]=1;return false;}
 function chOf(){return (GS&&GS.ch!=null)?GS.ch:0;}
@@ -7565,6 +7595,7 @@ function exprS(t){
   if(/I usually do|^No\.$/i.test(t))return 'dry';
   return 'neutral';}
 function castKey(k,txt){var ch=chOf();
+  if(k==='H')return castKey('P','');   // a Hidden Page is Princess's own voice
   if(k==='P'){var pre=!!PRO.pre;return {side:'L',k:(pre?'pb_':'pr_')+exprP(txt,pre)};}
   if(k==='O'||(k==='B'&&CH[ch].art<0)){var e=exprP(txt,false);return {side:'R',k:'pr_'+(e==='neutral'?'confident':e),flip:true,filt:OTHER_FILTER};}
   if(k==='S')return {side:'R',k:'sk_'+exprS(txt)};
@@ -7828,19 +7859,20 @@ function stPad(){if(!navigator.getGamepads)return;var gs=navigator.getGamepads()
   if(a&&!ST.gp.a)stTap();if(sk&&!ST.gp.s)stSkip();ST.gp.a=a;ST.gp.s=sk;}
 function speaker(k){var ch=chOf();
   if(k==='P')return {nm:'PRINCESS',side:'l',por:function(c,w,h){drawPrincessFig(c,w*0.5,h*1.62,h*1.6,{});}};
+  if(k==='H')return {nm:'HIDDEN PAGE '+toRoman(PG_NOW+1)+' \u00b7 '+HPAGES[PG_NOW].t.toUpperCase(),side:'l',por:function(c,w,h){drawPrincessFig(c,w*0.5,h*1.62,h*1.6,{});}};
   if(k==='O')return {nm:'PRINCESS',side:'r',por:function(c,w,h){drawPrincessFig(c,w*0.5,h*1.62,h*1.6,{flip:true,filter:OTHER_FILTER});}};
   if(k==='S')return {nm:'STORYKEEPER',side:'r',por:function(c,w,h){drawSK(c,w*0.5,h*2.25,h*2.3,{flip:true,t:ST.bgT});}};
   if(k==='B')return {nm:bossShort(ch),side:'r',por:function(c,w,h){drawBossFig(c,ch,w*0.5,h*1.9,h*1.95,{flip:true});}};
   if(k==='F'){var tp=CH[ch].rev;return {nm:FOE_NM[tp].replace(/^THE /,''),side:'r',por:function(c,w,h){drawFoeFig(c,tp,w*0.5,h*1.18,h*1.2,{flip:true});}};}
   return {nm:k,side:'r',por:null};}
 function stShowLine(k,txt){var sp=speaker(k),box=$i('stBox');
-  box.classList.add('on');box.classList.toggle('r',sp.side==='r');box.classList.toggle('v',k==='B'||k==='F'||k==='O');
+  box.classList.add('on');box.classList.toggle('r',sp.side==='r');box.classList.toggle('v',k==='B'||k==='F'||k==='O');box.classList.toggle('pg',k==='H');
   box.classList.remove('pop');void box.offsetWidth;box.classList.add('pop');
   $i('stWho').textContent=sp.nm;
   castSet(castKey(k,txt));CAST.boxTop=box.offsetTop;
   ST.full=txt;ST.line=0;
   if(RM()){ST.typing=0;$i('stLine').textContent=txt;}else{ST.typing=1;$i('stLine').textContent='';}
-  if(!(AUD.muted||AUD.fxOff)&&AUD.ctx){var r=k==='P'||k==='O'?520:k==='S'?330:k==='F'?700:240;tone(r,0.05,'triangle',0.035);}}
+  if(!(AUD.muted||AUD.fxOff)&&AUD.ctx){var r=k==='P'||k==='O'||k==='H'?520:k==='S'?330:k==='F'?700:240;tone(r,0.05,'triangle',0.035);}}
 function stNext(){clearTimeout(ST.timer);ST.waitMs=0;if(!ST.on)return;
   var s=ST.steps[ST.i++];
   if(!s){storyEnd();return;}
@@ -8009,7 +8041,10 @@ function v2Tick(p){if(GS.ch==null)return;var ch=GS.ch;var _bv=(typeof BGVIEW!=='
   if(p.waveCd>0)p.waveCd--;
   if(vk&&!lV){p.vT=0;p.guardT=0;p.blockedSome=false;
     if(!learned('guard')&&learned('wave'))fireWave(p);}
-  if(p.guardBroken>0)p.guardBroken--;if(p.gStrain>0&&GS.tick%90===0)p.gStrain--;
+  // GUARD (client decision 3d, 11-16): three successful guarded hits break it; it returns after GUARD_BREAK_T ticks. All on the game clock, here, never a timer.
+  if(p.guardBroken>0){p.guardBroken--;if(p.guardBroken===0){GS.gbT=26;sfx('gback');}}
+  if(GS.gbT>0)GS.gbT--;
+  if(!GS.blocking&&(p.gStrain||0)>0&&!(p.guardBroken>0)){p.gIdle=(p.gIdle||0)+1;if(p.gIdle>=GUARD_IDLE_T){p.gStrain=0;p.gIdle=0;}}   // lowered long enough: the count refills
   if(vk){p.vT=(p.vT||0)+1;
     if(learned('guard')&&!p.dashing&&p.atkT<=0&&!(p.guardBroken>0)){GS.blocking=true;p.guardT=(p.guardT||0)+1;p.vx*=0.35;}}
   else{if(lV&&learned('guard')&&learned('wave')&&(p.vT||0)<=12&&!p.blockedSome)fireWave(p);GS.blocking=false;}
@@ -8038,12 +8073,16 @@ function stepWaves(){var ws=GS.waves;if(!ws)return;
       if(!hit&&w.x>bs.x&&w.x<bs.x+bs.W&&w.y>bs.y-10&&w.y<bs.y+bs.H+10){V2HIT='wave';hitB(bs);V2HIT='';hit=true;}}
     if(hit){ptcl(w.x,w.y,'note');ws.splice(i,1);}}}
 // Guard / Perfect Note. Returns true when the hit was absorbed.
+var GUARD_HITS=3,GUARD_BREAK_T=120,GUARD_IDLE_T=90;   // hits to break; ticks (60/s) Guard stays down after a break; ticks lowered before the count refills
 function v2Guard(src){var p=GS.p;if(!GS.blocking)return false;
   var perfect=(p.guardT||0)<=parryWin();p.blockedSome=true;p.inv=Math.max(p.inv,perfect?40:28);
-  // Guard costs nothing (Bible §6) but cannot be held forever: three ordinary blocks in quick
-  // succession break it — she is shoved back and cannot raise it for a second. Perfect Notes never strain.
-  if(!perfect){p.gStrain=(p.gStrain||0)+1;if(p.gStrain>=3){p.gStrain=0;p.guardBroken=70;GS.blocking=false;p.vx=(src&&src.x>p.x)?-7:7;p.vy=-4;
-    GS.toasts.push({txt:'GUARD BROKEN',sub:'',t:80,max:80});tone(160,0.18,'sawtooth',0.07);return true;}}
+  // Guard costs nothing (Bible §6; no Resonance cost, client 3d) but it is not endless: the THIRD successful guarded hit breaks it.
+  // A Perfect Note is not an ordinary guarded hit: it never counts toward the three and never resets them.
+  if(!perfect){p.gStrain=(p.gStrain||0)+1;p.gIdle=0;
+    if(p.gStrain>=GUARD_HITS){p.gStrain=0;p.guardBroken=GUARD_BREAK_T;GS.blocking=false;p.vx=(src&&src.x>p.x)?-7:7;p.vy=-4;
+      for(var gi=0;gi<10;gi++)ptcl(p.x+PW/2,p.y+PH*0.45,'slash');   // the ring shatters outward
+      GS.toasts.push({txt:'GUARD BROKEN',sub:'',t:80,max:80});sfx('gbreak');buzz([60,30,60]);return true;}
+    sfx(p.gStrain===1?'gb1':'gb2');}   // each hit rings lower than the last: the ring is wearing out
   if(perfect){resGain(15);GS.hitstop=Math.max(GS.hitstop,6);sfx('pw');
     for(var i=0;i<10;i++)ptcl(p.x+PW/2,p.y+PH*0.45,'gbk');GS.pnT=36;
     // stagger the attacker
@@ -8051,7 +8090,7 @@ function v2Guard(src){var p=GS.p;if(!GS.blocking)return false;
     if(src&&src.tp!=null){src.stun=70;src.x+=(src.x>p.x?36:-36);}
     else if(bs&&bs.alive&&GS.bossActive&&Math.abs((bs.x+bs.W/2)-(p.x+PW/2))<300){bs.state='WAIT';bs.stateT=0;bs.stateTimer=60;bs.vx=(bs.x>p.x?5:-5);bs.open=70;}
     GS.toasts.push({txt:'PERFECT NOTE',sub:'',t:70,max:70,ico:'mic'});updateHUD();}
-  else{p.vx=(src&&src.x>p.x)?-4:4;ptcl(p.x+(p.faceL?0:PW),p.y+30,'slash');tone(300,0.06,'square',0.05);}
+  else{p.vx=(src&&src.x>p.x)?-4:4;ptcl(p.x+(p.faceL?0:PW),p.y+30,'slash');}
   return true;}
 // contextual touch buttons + VOICE visibility
 function syncCtx(){var tch=document.body.classList.contains('mobile');if(!tch)return;
@@ -8183,8 +8222,14 @@ function v2DrawWorld(behind){if(GS.ch==null)return;var t=GS.tick;
       for(var r=0;r<3;r++){FX.beginPath();FX.arc(wv.x-wv.d*r*9,wv.y,10+r*6,wv.d>0?-0.9:2.24,wv.d>0?0.9:4.04);FX.stroke();}
       FX.fillStyle='rgba(255,236,190,'+a+')';drawNoteShape(FX,wv.x+wv.d*4,wv.y+(Math.sin(wv.life*0.6)*4),5,false);}
     var p=GS.p;
-    if(GS.blocking&&!p.dead){var pr=GS.p.guardT<=parryWin()?1:0;FX.strokeStyle=pr?'rgba(255,230,140,0.95)':'rgba(170,220,255,0.75)';FX.lineWidth=pr?4:2.5;
-      FX.beginPath();FX.arc(p.x+PW/2,p.y+PH*0.5,PH*0.62,0,6.28);FX.stroke();}
+    var gcx=p.x+PW/2,gcy=p.y+PH*0.5,gR=PH*0.62;
+    if(GS.blocking&&!p.dead){var pr=GS.p.guardT<=parryWin()?1:0,gl=GUARD_HITS-(p.gStrain||0);   // three arcs = three hits left; each guarded hit puts one out
+      for(var gk=0;gk<GUARD_HITS;gk++){var ga=-1.5708+gk*2.0944+0.17;
+        if(gk<gl){FX.strokeStyle=pr?'rgba(255,230,140,0.95)':(gl<=1?'rgba(255,176,120,0.9)':'rgba(170,220,255,0.75)');FX.lineWidth=pr?4:2.5;}
+        else{FX.strokeStyle='rgba(170,220,255,0.18)';FX.lineWidth=1.5;}
+        FX.beginPath();FX.arc(gcx,gcy,gR,ga,ga+1.75);FX.stroke();}}
+    if(p.guardBroken>0&&!p.dead){FX.strokeStyle='rgba(170,190,220,0.5)';FX.lineWidth=2;FX.beginPath();FX.arc(gcx,gcy,gR,-1.5708,-1.5708+(1-p.guardBroken/GUARD_BREAK_T)*6.2832);FX.stroke();}   // Guard coming back: the ring refills
+    if(GS.gbT>0&&!p.dead){var gq=GS.gbT/26;FX.strokeStyle='rgba(170,220,255,'+(0.6*gq)+')';FX.lineWidth=2;FX.beginPath();FX.arc(gcx,gcy,gR*(RM()?1:1+(1-gq)*0.5),0,6.28);FX.stroke();}   // one thin ring when Guard is ready again
     if(GS.pnT>0){GS.pnT--;FX.strokeStyle='rgba(255,224,140,'+(GS.pnT/36)+')';FX.lineWidth=3;FX.beginPath();FX.arc(p.x+PW/2,p.y+PH*0.5,PH*(0.7+(36-GS.pnT)*0.04),0,6.28);FX.stroke();}
     if(GS.xform>0){var xa=GS.xform/90;FX.fillStyle='rgba(255,246,220,'+(0.55*Math.sin(xa*3.14))+')';FX.beginPath();FX.arc(p.x+PW/2,p.y+PH*0.5,PH*(1.4-xa*0.6),0,6.28);FX.fill();}
   }}
@@ -8229,6 +8274,11 @@ function titleMenuSync(){var s=V2S.save,c=$i('tCont');if(c)c.style.display=(s&&s
 function v2NewStory(){SEEN={};RUN_BM={ch:0,x:0};V2S.save={ch:0,x:0,t:Date.now()};v2Persist();MODE='side';START_STAGE=0;V2_PRO=true;startGame();}
 function v2ContinueStory(){var s=V2S.save;if(!s)return v2NewStory();RUN_BM={ch:s.ch,x:s.x||0};MODE='side';START_STAGE=s.ch;V2_RESUME=s.x||0;startGame();}
 var V2_PRO=false,V2_RESUME=0;
+function openMemoryBook(){var scr=$i('mbScr'),rows=$i('mbRows');if(!scr||!rows)return;
+  var h='',n=0;for(var i=0;i<HPAGES.length;i++){var got=!!V2S.pages[i];if(got)n++;
+    h+='<div class="mb-p'+(got?'':' lock')+'" data-pg="'+i+'"><div class="mb-h">PAGE '+toRoman(i+1)+(got?' \u00b7 '+HPAGES[i].t.toUpperCase():'')+'</div><div class="mb-t">'+(got?HPAGES[i].x:'Not found yet.')+'</div></div>';}
+  rows.innerHTML=h;$i('mbCount').textContent=n+' of '+HPAGES.length+' pages found';
+  var sb=scr.querySelector('.sh-box');if(sb)sb.scrollTop=0;scr.classList.add('on');}
 function openStorybook(){var scr=$i('stageSelScr'),rows=$i('ssRows');if(!scr||!rows)return;
   var h='';for(var i=0;i<CH.length;i++){var ok=(i===0)||!!V2S.clears[i-1]||!!V2S.clears[i]||(V2S.save&&V2S.save.ch>=i);
     h+='<button class="ss-b sbk'+(V2S.clears[i]?' cleared':'')+'" data-ch="'+i+'"'+(ok?'':' disabled')+'><span class="sbk-r">'+toRoman(i+1)+'</span><span class="sbk-n">'+(ok?CH[i].n:'')+'</span></button>';}
@@ -8263,6 +8313,8 @@ function v2Wire(){
   window.addEventListener('keyup',function(e){delete ST.down[e.code];delete ST.block[e.code];},true);
   document.addEventListener('click',function(e){if(Date.now()<ST.eatUntil){e.preventDefault();e.stopPropagation();}},true);
   window.addEventListener('resize',function(){if(ST.on)stResize();});
+  $i('ssBook').onclick=function(){sfx('ui');openMemoryBook();};
+  $i('mbClose').onclick=function(){sfx('ui');$i('mbScr').classList.remove('on');};
   $i('siCont').onclick=function(){sfx('ui');v2ContinueBookmark();};
   $i('siRestart').onclick=function(){sfx('ui');v2RestartChapter();};
   $i('siBook').onclick=function(){sfx('ui');v2Storybook();};
