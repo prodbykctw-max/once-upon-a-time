@@ -183,8 +183,9 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   still spends the usable credits: upload with file_upload from /mnt/user-data/uploads, set the name field with
   the native value setter (typed text doesn't register), pick the animation, Generate, ANSWER the post-generation survey (+10 credits; never skip free credits), Download
   (lands in Downloads; read it back through Documents with the Filesystem tool). 33 usable after the 11-17 test plus the +3 daily bonus, which pops up on opening /app (claim it every visit).
-  **Princess art: ChatGPT is the main tool, AutoSprite the backup (client, 11-17). Frédéric dislikes the current idle
-  dance ("looks crazy"), so Princess's idle gets a calm replacement rather than a restyle of the dance.**
+  **Princess art: ChatGPT is the main tool, AutoSprite the backup (client, 11-17). Frédéric dislikes the dance ("looks crazy"),
+  so Game I never plays the `dance` slot (it was the stand-still easter egg and the chapter-clear pose; both now
+  play idle, 11-17). Do not bring it back, and the outfit restyle needs no dance sheet.**
   **Weave's 2 free model runs are used up; it needs a paid Weave plan to run (11-17).**
 
 ## Conventions / guardrails
