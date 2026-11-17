@@ -187,6 +187,12 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   so Game I never plays the `dance` slot (it was the stand-still easter egg and the chapter-clear pose; both now
   play idle, 11-17). Do not bring it back, and the outfit restyle needs no dance sheet.**
   **Weave's 2 free model runs are used up; it needs a paid Weave plan to run (11-17).**
+  **Princess outfit restyle pipeline (11-17): `tools/weave/princess/sheets.py pack|unpack`.** ONE animation per
+  sheet, a NEW ChatGPT chat per sheet, with only the approved idle edit as reference. Mixed sheets sent into the chat
+  that already held the run edit came back as copies of the run poses (attack, jump, block, refrain, end of belt),
+  so they were rejected. Unpack prints each frame's alpha IoU against the original; reject anything under ~0.75 and
+  look at the side-by-side. Done and approved-quality: idle, run (`run_new.png`). Still to do: attack, jump, block,
+  refrain, belt, dash, downstrike. The ChatGPT free plan allows only a few images a day.
 
 ## Conventions / guardrails
 - Keep the artist's name accented everywhere: **Jandé / JANDÉ**.
