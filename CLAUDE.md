@@ -178,7 +178,12 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   without it); the script now sends it whenever it is set. Keys are shown in full only once, at creation
   (the key page masks the rest), so a new session needs a new key: Developers > API Keys > Create Key, with
   the client's OK each time. Usable credits on 11-12: 35 (1,888 frozen until the plan is renewed);
-  turbo animations cost 5 each.
+  turbo animations cost 5 each. **Since 11-17 the MCP endpoint answers "MCP access requires a paid subscription"
+  and the REST API returns 403 while the plan is lapsed, even with a valid key.** The website in the client's Edge
+  still spends the usable credits: upload with file_upload from /mnt/user-data/uploads, set the name field with
+  the native value setter (typed text doesn't register), pick the animation, Generate, Skip the survey, Download
+  (lands in Downloads; read it back through Documents with the Filesystem tool). 30 usable after the 11-17 test.
+  **Weave's 2 free model runs are used up; it needs a paid Weave plan to run (11-17).**
 
 ## Conventions / guardrails
 - Keep the artist's name accented everywhere: **Jandé / JANDÉ**.
