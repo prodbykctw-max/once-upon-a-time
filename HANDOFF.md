@@ -15,6 +15,9 @@
 > THE BOUTIQUE in portrait). Item 3 is the 47-site glyph sweep. Everything is
 > already root-caused with line numbers — no investigation needed.
 
+> ## ✔ BUILT 11-17 — Princess's dance removed from Game I, `e080643`, preview PR #21 awaiting merge
+> Idle and chapter clear play the calm idle; the outfit restyle (ChatGPT, AutoSprite backup) no longer needs a dance sheet.
+>
 > ## ✔ BUILT 11-16 (preview branch, not deployed) — decisions 3a / 3d + Hidden Pages copy, `99f0fe7`, branch `claude/overhaul-decisions-1116`
 > XP and levels removed (migration `xpMigrate()`), Guard breaks on the 3rd guarded hit (120-tick recovery), 11 Hidden Pages verbatim in the world and in a Memory Book. Details: "Decisions 11-16" in `docs/OVERHAUL_BIBLE_2_5.md`.
 > NOT built (new scope pending estimate): Reflections, Memory Book completion animation, ending variation, Perfect Pitch. Stage redesign, 3b Dash check and 3e zoom A/B are still open.
