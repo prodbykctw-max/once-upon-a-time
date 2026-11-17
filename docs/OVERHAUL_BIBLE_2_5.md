@@ -205,7 +205,7 @@ Ability behaviour:
 
 - **Storybook UI (§9).** Missing: spreads, Grace Note counts per chapter, Hidden Page / Perfect Pitch flags,
   completion %. Today "Storybook" is a chapter list.
-- **Hidden Pages:** all 11 (§4). **Postgame:** Her Encore unlocks, Dress playable, The Archive, Boss Rush.
+- ~~**Hidden Pages:** all 11 (§4).~~ **BUILT 11-16 (`99f0fe7`):** one page per chapter on its off-path cache ledge, BASILICA's copy verbatim, readable in the Memory Book (Storybook > MEMORY BOOK). Not built: Reflections, Memory Book completion animation, ending variation (new scope, pending estimate). **Postgame:** Her Encore unlocks, Dress playable, The Archive, Boss Rush.
 - ~~**Settings and accessibility (§10)**~~ **BUILT 11-13 (`95f1d87`), LIVE in /overhaul/ 11-15 (PR #13, `e73f0a7`).**
   See "Settings, accessibility and assists" below. Not built from §10: dialogue volume (the game is not voiced).
 - **Art direction:** environment and platform art direction (§19), and the Adventurer Princess and other
@@ -247,12 +247,28 @@ sound is muted.
 
 ## Open decisions for BASILICA
 
-1. **XP/levels** still run underneath (hearts and damage grow with kills). The bible rules out %-upgrades.
-   Keep them, or remove them?
-2. **Dash** is not in the ability table. Keep it?
-3. **World reuse** for V/VI/VII/IX/X/XI until new environments exist. OK?
-4. **Guard strain** (three ordinary blocks break Guard): keep it, or prefer a resource cost?
-5. **Line of sight (Sept notes)** is unchanged. It still conflicts with the zoom directive.
+1. ~~**XP/levels**~~ **DECIDED 11-16 (3a): removed (`99f0fe7`).** See "Decisions 11-16" below.
+2. ~~**Dash**~~ **DECIDED 11-16 (3b): kept.**
+3. ~~**World reuse** for V/VI/VII/IX/X/XI~~ **DECIDED 11-16 (3c): temporary placeholders only.**
+4. ~~**Guard strain**~~ **DECIDED 11-16 (3d): three successful guarded hits break Guard, no Resonance cost (`99f0fe7`).**
+5. **Line of sight (Sept notes)** is unchanged. A/B build requested (3e), not built yet.
+
+## Decisions 11-16 (BASILICA handoff 13 Nov, received 16 Nov) — built in `99f0fe7`
+- **Hidden Pages (§3 of the handoff).** `HPAGES[]` holds the 11 passages verbatim (curly apostrophes; page XI keeps its line break, `#stLine` is `white-space:pre-line`).
+  Each chapter spawns its page (`GS.pgs`) on the chapter's existing hidden cache ledge, off the critical path; touching it saves `V2S.pages[ch]=1`
+  (`ouat2`), plays a story beat (`storyRun([['H',text]])`, speaker `HIDDEN PAGE n · TITLE`) and the page is gone from later runs. Collected pages stay readable
+  in the Memory Book (Storybook > MEMORY BOOK; uncollected show "Not found yet."). The ledge needs Jump + Double Jump with the jump held; headless bot reached it
+  with ~10 px to spare. Chapter/theme per page: I Once Upon a Page/Control, II First Light Meadow/Insecurity, III The Petal Mile/Defensiveness,
+  IV Rose Waltz/Selfishness, V Afterglow/Novelty, VI Halfway Ever After/Commitment, VII Open Doors/Boundaries, VIII Mirror Lake/Distance,
+  IX The High Ground/Pride, X Into the Storm/Vulnerability, XI Her/Self-Confrontation. Matches `CH[].th` one to one.
+  There was no Hidden Page, Memory Book or Perfect Pitch code before this: nothing was replaced. Perfect Pitch is still not built.
+- **XP and levels removed (3a).** Gone: the RPG level/XP (`rpgXP`, +1 heart heal per level-up, LV label and XP bar in the HUD), the legacy `gainXP`
+  (every 2nd level +1 max heart, every 3rd level +1 damage), the LEVEL popup, and the tally's RESONANCE row (LV x 260 points). Damage is now a flat 1 (2 under TURN IT UP).
+  `xpMigrate()` drops `xp xpNext lvl level next dmg rpg levelUp` from `ouat2` and `ouat2.save` on load. `localStorage['jande_rpg']` and `['jande_shop']` are left alone:
+  the public game at the root shares this origin and still reads them. The Boutique (gem shop) is not XP and is unchanged.
+- **Guard (3d).** `GUARD_HITS` 3, `GUARD_BREAK_T` 120 ticks (2.0 s), `GUARD_IDLE_T` 90 ticks. The 3rd ordinary guarded hit is absorbed, then Guard breaks. A Perfect Note neither counts toward the three nor resets them.
+  Lowering Guard for 90 ticks refills the count. Cues: three ring arcs (one goes out per hit, the last turns amber), shard burst and GUARD BROKEN toast on break, a refill arc while down, one thin ring when it returns,
+  sfx `gb1 gb2 gbreak gback` with captions `[Guard breaks]` `[Guard ready]`, vibration through `buzz()`, touch HOLD button drains. No full-screen flash; at most two pulses (break, return), 2 s apart.
 
 ## Saves
 - **The story save** (`V2S.save`) only moves forward. Replaying an earlier chapter from the Storybook never rewinds it.

@@ -15,6 +15,11 @@
 > THE BOUTIQUE in portrait). Item 3 is the 47-site glyph sweep. Everything is
 > already root-caused with line numbers — no investigation needed.
 
+> ## ✔ BUILT 11-16 (preview branch, not deployed) — decisions 3a / 3d + Hidden Pages copy, `99f0fe7`, branch `claude/overhaul-decisions-1116`
+> XP and levels removed (migration `xpMigrate()`), Guard breaks on the 3rd guarded hit (120-tick recovery), 11 Hidden Pages verbatim in the world and in a Memory Book. Details: "Decisions 11-16" in `docs/OVERHAUL_BIBLE_2_5.md`.
+> NOT built (new scope pending estimate): Reflections, Memory Book completion animation, ending variation, Perfect Pitch. Stage redesign, 3b Dash check and 3e zoom A/B are still open.
+> Do not merge to the deploy branch or run `tools/deploy.sh` from here; publish via `tools/build_overhaul.py` only.
+
 > ## ✔ LIVE 11-15 — SETTINGS / ACCESSIBILITY / ASSIST (Bible §10), `95f1d87`, merged into `claude/overhaul-bible-2.5` (`6e3941e`)
 > Published to /overhaul/ via PR #13 (`e73f0a7`, 11-15); live md5 matched the build, 0 console errors. Sent to Frédéric 11-15. Spec table: "Settings, accessibility and assists" in `docs/OVERHAUL_BIBLE_2_5.md`.
 > Volume buses, shake, reduced flashing, text size, captions, vibration, touch-pad size/opacity/sides/height and four

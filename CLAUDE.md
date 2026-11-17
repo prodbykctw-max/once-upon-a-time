@@ -81,6 +81,7 @@ Storykeeper, 11 chapters). Spec, maps, placeholders and open decisions:
   luma 77 to 87 to 83), so tone was set afterwards by a skin mask limited to head and hand boxes (hue 8-28,
   saturation over 0.40), checked clean at the beard, hair and eyes. Anything else in the frame, such as Princess,
   is proved untouched by a pixel diff of 0. Masters: `tools/weave/storykeeper_fred/`.
+- **No XP, no levels, no stat upgrades in Game I (client 3a, 11-16).** Never reintroduce them. `xpMigrate()` drops old fields from `ouat2`; never delete `jande_rpg`/`jande_shop` (the public game shares the origin). Guard breaks on the 3rd ordinary guarded hit (`GUARD_HITS`); keep it off Resonance. Hidden Page copy is BASILICA's verbatim, in `HPAGES[]`.
 - **Settings (Bible §10) have one source each; keep it that way.** Every vibration goes through `buzz()`, every
   card jitter through `shkMul()`, every full-screen flash alpha through `flashA()` or `RF()`, every Resonance gain
   through `resGain()`. Music uses `AUD.mbus` (set `AUD._mus` around score code), everything else `AUD.fbus`: a raw

@@ -1662,6 +1662,11 @@ a flat VS slide and a fifteen-panel reel of reused sprites. Every cut now draws 
   moves its number (10 hits cost 10 hearts, 5 with the assist; Resonance +38 becomes +57; Perfect Note at tick 15
   only with the wider window; 2 bookmarks become 5), flash alpha is capped at 0.15, pads respond in portrait and
   landscape at every size. Also fixed a stale `CTRL_TOP` (1e9) after a story start.
+- **11-16 — BASILICA decisions 3a, 3d and the Hidden Pages copy, `99f0fe7`, branch `claude/overhaul-decisions-1116` (not merged, not deployed).**
+  Eleven Hidden Pages (verbatim copy) placed on each chapter's off-path cache ledge, saved in `ouat2.pages`, readable in a new Memory Book on the Storybook screen.
+  XP and levels removed entirely (RPG level/XP, legacy gainXP, HUD bar, LEVEL popup, tally row) with an `xpMigrate()` that drops the old fields. Guard now breaks on the third
+  successful guarded hit (recovery 120 ticks, ring-arc and audio cues, Perfect Note not counted). Headless: all 11 passages read back from the DOM identical to the copy, old save with XP fields loads,
+  third hit breaks and Guard returns at tick 119, 1500 frames in portrait and landscape with 0 errors, all 130 `web/` references exist.
 
 ---
 
