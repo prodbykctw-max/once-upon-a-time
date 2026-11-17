@@ -42,6 +42,28 @@ git add robots.txt sitemap.xml llms.txt social-card.jpg
 git add -f fred/index.html          # generated, and .gitignored on the dev branch
 git reset -q -- web/_manifest.txt 2>/dev/null || true   # debug file, not served
 
+# GAME I PREVIEW (2026-11-16): /overhaul/ is published from claude/overhaul-bible-2.5 ON TOP of
+# gh-pages, so this orphan rebuild used to delete it. The 11-15 22:20 UTC deploy did exactly that:
+# the preview and 38 preview-only images went 404 and the client's link broke. Carry the live
+# preview over unchanged, with every web/ file it references, and clean the copies up afterwards.
+CARRIED=()
+git fetch -q origin +refs/heads/gh-pages:refs/remotes/origin/gh-pages 2>/dev/null || true
+if git cat-file -e origin/gh-pages:overhaul/index.html 2>/dev/null; then
+  if [ ! -e overhaul/index.html ]; then
+    mkdir -p overhaul
+    git show origin/gh-pages:overhaul/index.html > overhaul/index.html
+    CARRIED+=(overhaul/index.html)
+  fi
+  for f in $(grep -oE 'web/[0-9a-f]+\.[a-z0-9]+' overhaul/index.html | sort -u); do
+    if [ ! -e "$f" ]; then
+      git show "origin/gh-pages:$f" > "$f" || { echo "ABORT: preview asset $f missing on gh-pages"; git checkout -f "$DEV"; git branch -D _deploy_tmp; exit 1; }
+      CARRIED+=("$f")
+    fi
+  done
+  git add -f overhaul/index.html web
+  echo "Carried the Game I preview over (/overhaul/ + ${#CARRIED[@]} files)."
+fi
+
 # hard guard: abort if anything sensitive slipped into the staging set
 if git diff --cached --name-only | grep -iqE 'jande|charref|face_crop|\.blend|\.zip|character_ref|^image-|wrangler|^assets/'; then
   echo "ABORT: sensitive file staged for deploy:"; git diff --cached --name-only | grep -iE 'jande|charref|face_crop|\.blend|\.zip|character_ref|^image-|wrangler|^assets/'
@@ -52,6 +74,7 @@ git commit -q -m "Deploy: game assets only"
 git push -f -q origin _deploy_tmp:gh-pages
 git checkout -f "$DEV"
 git branch -D _deploy_tmp
+for f in "${CARRIED[@]}"; do rm -f "$f"; done; rmdir overhaul 2>/dev/null || true
 git fetch -q origin
 git branch -f gh-pages origin/gh-pages 2>/dev/null || true
 echo "Deployed to gh-pages ($(git ls-tree -r --name-only origin/gh-pages | wc -l) files, game only)."

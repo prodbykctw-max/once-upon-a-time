@@ -49,6 +49,9 @@ bash tools/deploy.sh
 Publishes `index.html` + `web/` + icons + manifest to `gh-pages` as a fresh orphan,
 and **hard-aborts if anything sensitive is staged**.
 
+- **`tools/deploy.sh` carries `/overhaul/` (the Game I preview) over from the live gh-pages** with every `web/` file it
+  references, then deletes the copies. Before 11-16 the orphan rebuild wiped it: the 11-15 22:20 UTC root deploy
+  took the preview and 38 of its images to 404 and the client's link broke. Never remove that block.
 - **NEVER `git add -A` on `gh-pages`.** That is exactly what once leaked Jandé's
   real reference photos onto the public branch.
 - `assets/` stays git-ignored — real photos live there locally only, never committed.
