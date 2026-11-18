@@ -191,8 +191,11 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   sheet, a NEW ChatGPT chat per sheet, with only the approved idle edit as reference. Mixed sheets sent into the chat
   that already held the run edit came back as copies of the run poses (attack, jump, block, refrain, end of belt),
   so they were rejected. Unpack prints each frame's alpha IoU against the original; reject anything under ~0.75 and
-  look at the side-by-side. Done and approved-quality: idle, run (`run_new.png`). Still to do: attack, jump, block,
-  refrain, belt, dash, downstrike. The ChatGPT free plan allows only a few images a day.
+  look at the side-by-side (a cape in place of the gown scores ~0.73-0.78 on the attack and still matches; judge
+  those by eye). Done: idle, run, attack, jump, block, refrain (`<anim>_new.png`, 11-17/11-18). Still to do: belt,
+  dash, downstrike. ChatGPT free plan: about 4 images a day, reset around 4 AM ET. Temporary chats cannot make
+  images; use chatgpt.com/images (empty composer of its own, ONE image per message, so describe the outfit in words
+  instead of attaching the reference), one Edge tab per sheet because Edge allows one script download per tab.
 
 ## Conventions / guardrails
 - Keep the artist's name accented everywhere: **Jandé / JANDÉ**.
