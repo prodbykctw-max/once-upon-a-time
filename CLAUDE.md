@@ -195,7 +195,7 @@ downstrike` (combat states) · `bkrun, bkjump, bkslide` (Royal Runner back view)
   those by eye). Done: idle, run, attack, jump, block, refrain (`<anim>_new.png`, 11-17/11-18). Still to do: belt,
   dash, downstrike. **Superseded 11-19 by Frédéric's feedback (GAME I thread, 11-19 02:33 UTC):** keep the outfit but the
   cape ends at mid-calf (no train) and the boots have flat soles; block needs a recognisable defensive pose; the heal
-  (refrain / Second Wind) drops the mic stand (proposed: hand on chest, eyes closed, notes rising). v3 strips with the
+  (refrain / Second Wind) drops the mic stand (hand on chest, eyes closed, notes rising: APPROVED by Frédéric, GAME I thread, 11-19 16:14 UTC, "the suggestion works for me. move forward with the adjustments."). v3 strips with the
   new cape and boots live in `tools/weave/princess/v3/`: idle, run, jump done 11-19. ChatGPT free plan: about 4 images a day, reset around 4 AM ET. Temporary chats cannot make
   images; use chatgpt.com/images (empty composer of its own, ONE image per message, so describe the outfit in words
   instead of attaching the reference), one Edge tab per sheet because Edge allows one script download per tab.
